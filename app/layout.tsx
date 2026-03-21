@@ -1,0 +1,37 @@
+import { type ReactNode } from "react"
+
+import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
+
+import { cn } from "@/lib/utils"
+
+import { ThemeProvider } from "@/providers/ThemeProvider"
+
+import "./globals.css"
+
+const fontSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans"
+})
+
+const fontMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono"
+})
+
+export default function RootLayout({
+  children
+}: Readonly<{
+  children: ReactNode
+}>) {
+  return (
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn("antialiased", fontSans.variable, fontMono.variable)}
+    >
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
+  )
+}
