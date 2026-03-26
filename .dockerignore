@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+drizzle/migrations/meta
+*.log
+coverage
+.turbo
+.vscode
+.idea
+README.md
