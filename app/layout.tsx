@@ -1,5 +1,7 @@
 import { type ReactNode } from "react"
 
+import { type Metadata } from "next"
+
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
 
 import { cn } from "@/lib/utils"
@@ -18,11 +20,19 @@ const fontMono = Geist_Mono({
   variable: "--font-mono"
 })
 
-export default function RootLayout({
+export const metadata: Metadata = {
+  title: {
+    template: "%s - Remit",
+    default: "Remit"
+  },
+  description: "Self-hosted business management for freelancers."
+}
+
+const RootLayout = ({
   children
 }: Readonly<{
   children: ReactNode
-}>) {
+}>) => {
   return (
     <html
       lang="en"
@@ -35,3 +45,5 @@ export default function RootLayout({
     </html>
   )
 }
+
+export default RootLayout
