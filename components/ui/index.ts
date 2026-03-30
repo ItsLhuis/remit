@@ -1,5 +1,6 @@
 export * from "./AuroraText"
 export * from "./Button"
+export * from "./Fade"
 export * from "./Field"
 export * from "./Icon"
 export * from "./Input"
