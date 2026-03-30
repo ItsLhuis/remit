@@ -1,6 +1,6 @@
 import Image from "next/image"
 
-import { AuroraText } from "@/components/ui"
+import { AuroraText, Typography } from "@/components/ui"
 
 const LoginPanel = () => {
   return (
@@ -42,31 +42,53 @@ const LoginPanel = () => {
       />
       <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5">
         <Image src="/logo.png" width={32} height={32} alt="Remit" className="rounded-md" />
-        <span className="text-white font-semibold text-lg tracking-tight">Remit</span>
+        <Typography variant="span" className="text-lg font-semibold tracking-tight text-white">
+          Remit
+        </Typography>
       </div>
-      <div className="absolute bottom-8 left-8 right-8 z-20 flex flex-col items-start">
-        <h2 className="text-5xl font-bold leading-[1.15] tracking-tight text-white">
+      <div className="absolute inset-x-8 bottom-8 z-20 flex flex-col items-start">
+        <Typography variant="h2" className="text-5xl font-bold leading-[1.15] text-white">
           Your work.
           <br />
           <AuroraText>Your terms.</AuroraText>
-        </h2>
-        <div className="mt-4 h-px w-8 bg-primary" />
-        <p className="mt-3 max-w-67 text-sm font-normal leading-relaxed text-white/55">
+        </Typography>
+        <div className="my-4 h-px w-8 bg-primary" />
+        <Typography
+          variant="p"
+          affects="removePMargin"
+          className="mt-3 max-w-67 text-sm font-normal leading-relaxed text-white/55"
+        >
           Manage clients, projects, proposals and invoices — self-hosted and fully yours. No
           subscriptions, no lock-in.
-        </p>
+        </Typography>
         <div className="mt-6 flex items-center gap-3">
-          <span className="text-xs font-medium tracking-widest text-white/35 uppercase">
+          <Typography
+            variant="span"
+            affects={["small", "uppercase"]}
+            className="font-medium tracking-widest text-white/35"
+          >
             Self-hosted
-          </span>
-          <span className="text-white/20">·</span>
-          <span className="text-xs font-medium tracking-widest text-white/35 uppercase">
+          </Typography>
+          <Typography variant="span" className="text-white/20">
+            ·
+          </Typography>
+          <Typography
+            variant="span"
+            affects={["small", "uppercase"]}
+            className="font-medium tracking-widest text-white/35"
+          >
             Open source
-          </span>
-          <span className="text-white/20">·</span>
-          <span className="text-xs font-medium tracking-widest text-white/35 uppercase">
+          </Typography>
+          <Typography variant="span" className="text-white/20">
+            ·
+          </Typography>
+          <Typography
+            variant="span"
+            affects={["small", "uppercase"]}
+            className="font-medium tracking-widest text-white/35"
+          >
             Own your data
-          </span>
+          </Typography>
         </div>
       </div>
     </div>

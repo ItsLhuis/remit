@@ -6,12 +6,11 @@ import { authClient } from "@/lib/authClient"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+import { loginSchema, type LoginValues } from "./schema"
 
 import Image from "next/image"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
-
-import { loginSchema, type LoginValues } from "./schema"
 
 const LoginForm = () => {
   const [authError, setAuthError] = useState<string | null>(null)
