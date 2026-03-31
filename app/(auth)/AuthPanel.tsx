@@ -2,7 +2,7 @@ import Image from "next/image"
 
 import { AuroraText, Typography } from "@/components/ui"
 
-const LoginPanel = () => {
+const AuthPanel = () => {
   return (
     <div className="relative hidden h-screen w-1/3 overflow-hidden lg:flex flex-col">
       <Image
@@ -42,22 +42,18 @@ const LoginPanel = () => {
       />
       <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5">
         <Image src="/logo.png" width={32} height={32} alt="Remit" className="rounded-md" />
-        <Typography variant="span" className="text-lg font-semibold tracking-tight text-white">
+        <Typography variant="h5" className="tracking-tight text-white">
           Remit
         </Typography>
       </div>
       <div className="absolute inset-x-8 bottom-8 z-20 flex flex-col items-start">
-        <Typography variant="h2" className="text-5xl font-bold leading-[1.15] text-white">
+        <Typography variant="h1" className="leading-[1.15] text-white">
           Your work.
           <br />
           <AuroraText>Your terms.</AuroraText>
         </Typography>
         <div className="my-4 h-px w-8 bg-primary" />
-        <Typography
-          variant="p"
-          affects="removePMargin"
-          className="mt-3 max-w-67 text-sm font-normal leading-relaxed text-white/55"
-        >
+        <Typography variant="span" className="max-w-67 leading-relaxed text-white/55">
           Manage clients, projects, proposals and invoices — self-hosted and fully yours. No
           subscriptions, no lock-in.
         </Typography>
@@ -65,7 +61,7 @@ const LoginPanel = () => {
           <Typography
             variant="span"
             affects={["small", "uppercase"]}
-            className="font-medium tracking-widest text-white/35"
+            className="tracking-widest text-white/35"
           >
             Self-hosted
           </Typography>
@@ -75,7 +71,7 @@ const LoginPanel = () => {
           <Typography
             variant="span"
             affects={["small", "uppercase"]}
-            className="font-medium tracking-widest text-white/35"
+            className="tracking-widest text-white/35"
           >
             Open source
           </Typography>
@@ -85,7 +81,7 @@ const LoginPanel = () => {
           <Typography
             variant="span"
             affects={["small", "uppercase"]}
-            className="font-medium tracking-widest text-white/35"
+            className="tracking-widest text-white/35"
           >
             Own your data
           </Typography>
@@ -95,4 +91,4 @@ const LoginPanel = () => {
   )
 }
 
-export { LoginPanel }
+export { AuthPanel }

@@ -6,7 +6,7 @@ import { authClient } from "@/lib/authClient"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { loginSchema, type LoginValues } from "./schema"
+import { loginSchema, type LoginValues } from "./schemas"
 
 import Image from "next/image"
 
