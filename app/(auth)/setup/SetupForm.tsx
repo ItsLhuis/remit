@@ -446,8 +446,12 @@ const DoneStep = () => {
   )
 }
 
-const SetupForm = () => {
-  const [step, setStep] = useState<Step>("business")
+type SetupFormProps = {
+  initialStep: Step
+}
+
+const SetupForm = ({ initialStep }: SetupFormProps) => {
+  const [step, setStep] = useState<Step>(initialStep)
 
   return (
     <>

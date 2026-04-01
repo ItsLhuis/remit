@@ -2,6 +2,7 @@ import { type Metadata } from "next"
 import { redirect } from "next/navigation"
 
 import { database } from "@/database"
+import { getSession } from "@/lib/session"
 
 import { ScrollArea } from "@/components/ui"
 
@@ -13,7 +14,11 @@ export const metadata: Metadata = { title: "Register" }
 const RegisterPage = async () => {
   const existingUser = await database.query.user.findFirst({ columns: { id: true } })
 
-  if (existingUser) redirect("/login")
+  if (existingUser) {
+    const session = await getSession()
+
+    redirect(session ? "/setup" : "/login")
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Sign in" }
 const LoginPage = async () => {
   const session = await getSession()
 
-  if (session) redirect("/dashboard")
+  if (session) redirect("/setup")
 
   return (
     <div className="flex h-screen overflow-hidden">

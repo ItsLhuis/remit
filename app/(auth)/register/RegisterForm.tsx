@@ -73,7 +73,7 @@ const RegisterForm = () => {
       return
     }
 
-    router.push("/login")
+    router.push("/setup")
   }
 
   return (

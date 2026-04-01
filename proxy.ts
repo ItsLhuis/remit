@@ -27,11 +27,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (pathname === "/register") {
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
   const session = await auth.api.getSession({ headers: request.headers })
+
+  if (pathname === "/register") {
+    return NextResponse.redirect(new URL(session ? "/setup" : "/login", request.url))
+  }
 
   if (!session) {
     if (pathname.startsWith("/login")) {
@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/setup", request.url))
   }
 
   const userSettings = await database
@@ -55,7 +55,7 @@ export async function proxy(request: NextRequest) {
   const setupComplete = !!(userSettings?.businessName && session.user.twoFactorEnabled)
 
   if (!setupComplete) {
-    if (pathname === "/setup") {
+    if (pathname === "/setup" || pathname.startsWith("/api/setup/")) {
       return NextResponse.next()
     }
 
