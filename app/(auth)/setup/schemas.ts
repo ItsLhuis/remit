@@ -1,13 +1,5 @@
 import { z } from "zod"
 
-export const accountSchema = z.object({
-  name: z.string().min(1, "Name is required."),
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters.").max(128)
-})
-
-export type AccountValues = z.infer<typeof accountSchema>
-
 export const businessProfileSchema = z.object({
   businessName: z.string().min(1, "Business name is required."),
   businessEmail: z.email("Enter a valid email address.").or(z.literal("")),
@@ -17,6 +9,12 @@ export const businessProfileSchema = z.object({
 })
 
 export type BusinessProfileValues = z.infer<typeof businessProfileSchema>
+
+export const totpEnableSchema = z.object({
+  password: z.string().min(1, "Password is required.")
+})
+
+export type TotpEnableValues = z.infer<typeof totpEnableSchema>
 
 export const totpVerifySchema = z.object({
   code: z

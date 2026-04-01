@@ -53,36 +53,20 @@ const AuthPanel = () => {
           <AuroraText>Your terms.</AuroraText>
         </Typography>
         <div className="my-4 h-px w-8 bg-primary" />
-        <Typography variant="span" className="max-w-67 leading-relaxed text-white/55">
+        <Typography className="max-w-67 leading-relaxed text-white/55">
           Manage clients, projects, proposals and invoices — self-hosted and fully yours. No
           subscriptions, no lock-in.
         </Typography>
         <div className="mt-6 flex items-center gap-3">
-          <Typography
-            variant="span"
-            affects={["small", "uppercase"]}
-            className="tracking-widest text-white/35"
-          >
+          <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
             Self-hosted
           </Typography>
-          <Typography variant="span" className="text-white/20">
-            ·
-          </Typography>
-          <Typography
-            variant="span"
-            affects={["small", "uppercase"]}
-            className="tracking-widest text-white/35"
-          >
+          <Typography className="text-white/20">·</Typography>
+          <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
             Open source
           </Typography>
-          <Typography variant="span" className="text-white/20">
-            ·
-          </Typography>
-          <Typography
-            variant="span"
-            affects={["small", "uppercase"]}
-            className="tracking-widest text-white/35"
-          >
+          <Typography className="text-white/20">·</Typography>
+          <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
             Own your data
           </Typography>
         </div>

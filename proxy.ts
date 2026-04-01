@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { eq } from "drizzle-orm"
+
 import { auth } from "@/lib/auth"
 
-// Cookie presence is optimistic only — does not validate the session.
-// Every protected layout and page must call auth.api.getSession({ headers: await headers() })
-// and handle the null case.
+import { database } from "@/database"
+import { settings, user } from "@/database/schema"
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -13,34 +14,56 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const setupDone = request.cookies.has("remit_setup")
+  const existingUser = await database
+    .select({ id: user.id })
+    .from(user)
+    .limit(1)
+    .then((rows) => rows[0] ?? null)
 
-  if (!setupDone) {
-    if (pathname !== "/setup") {
-      return NextResponse.redirect(new URL("/setup", request.url))
+  if (!existingUser) {
+    if (pathname !== "/register") {
+      return NextResponse.redirect(new URL("/register", request.url))
     }
-
     return NextResponse.next()
   }
 
-  if (pathname === "/setup") {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
-  if (pathname.startsWith("/login")) {
-    const session = await auth.api.getSession({ headers: request.headers })
-
-    if (session) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
-
-    return NextResponse.next()
+  if (pathname === "/register") {
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
   const session = await auth.api.getSession({ headers: request.headers })
 
   if (!session) {
+    if (pathname.startsWith("/login")) {
+      return NextResponse.next()
+    }
+
     return NextResponse.redirect(new URL("/login", request.url))
+  }
+
+  if (pathname.startsWith("/login")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
+  const userSettings = await database
+    .select({ businessName: settings.businessName })
+    .from(settings)
+    .where(eq(settings.userId, session.user.id))
+    .limit(1)
+    .then((rows) => rows[0] ?? null)
+
+  const setupComplete = !!(userSettings?.businessName && session.user.twoFactorEnabled)
+
+  if (!setupComplete) {
+    if (pathname === "/setup") {
+      return NextResponse.next()
+    }
+
+    return NextResponse.redirect(new URL("/setup", request.url))
+  }
+
+  if (pathname === "/setup") {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
   return NextResponse.next()

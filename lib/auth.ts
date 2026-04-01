@@ -11,7 +11,7 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL!,
   advanced: {
     database: {
-      generateId: "uuid"
+      generateId: () => crypto.randomUUID()
     }
   },
   database: drizzleAdapter(database, {

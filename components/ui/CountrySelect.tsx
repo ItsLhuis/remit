@@ -37,6 +37,7 @@ type CountrySelectProps = {
   disabled?: boolean
   placeholder?: string
   slim?: boolean
+  valid?: boolean
 }
 
 const CountrySelect = ({
@@ -48,11 +49,14 @@ const CountrySelect = ({
   disabled = false,
   placeholder = "Select a country",
   slim = false,
+  valid = true,
   ref
 }: CountrySelectProps) => {
   const handleValueChange = (alpha2: string) => {
     const country = options.find((c) => c.alpha2 === alpha2)
+
     if (!country) return
+
     onChangeAction?.(country)
   }
 
@@ -60,7 +64,12 @@ const CountrySelect = ({
 
   return (
     <Select value={value ?? ""} onValueChange={handleValueChange} disabled={disabled}>
-      <SelectTrigger ref={ref} className={cn("w-full", slim && "w-fit gap-2")}>
+      <SelectTrigger
+        ref={ref}
+        className={cn("w-full", slim && "w-fit gap-2")}
+        data-valid={valid}
+        aria-invalid={!valid}
+      >
         {currentCountry && slim ? (
           <SelectValue placeholder={placeholder}>
             <span>{currentCountry.alpha2}</span>
@@ -89,5 +98,4 @@ const CountrySelect = ({
   )
 }
 
-export type { Country }
 export { CountrySelect }
