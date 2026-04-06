@@ -81,8 +81,7 @@ const InputGroupButton = ({
   variant = "ghost",
   size = "xs",
   ...props
-}: Omit<ComponentProps<typeof Button>, "size"> &
-  VariantProps<typeof inputGroupButtonVariants>) => (
+}: Omit<ComponentProps<typeof Button>, "size"> & VariantProps<typeof inputGroupButtonVariants>) => (
   <Button
     type={type}
     data-size={size}

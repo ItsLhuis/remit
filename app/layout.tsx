@@ -6,6 +6,7 @@ import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
 
 import { cn } from "@/lib/utils"
 
+import { TooltipProvider } from "@/components/ui"
 import { ThemeProvider } from "@/providers/ThemeProvider"
 
 import "./globals.css"
@@ -40,7 +41,9 @@ const RootLayout = ({
       className={cn("antialiased", fontSans.variable, fontMono.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

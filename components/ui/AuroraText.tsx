@@ -23,11 +23,13 @@ const AuroraText = ({
   const gradientStyle = {
     backgroundImage: `linear-gradient(135deg, ${colors.join(", ")}, ${colors[0]})`,
     WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",animationDuration: `${10 / speed}s`
+    WebkitTextFillColor: "transparent",
+    animationDuration: `${10 / speed}s`
   }
 
   return (
     <span
+      data-slot="aurora-text"
       className={`relative inline-block ${className}`}
       aria-label={typeof children === "string" ? children : undefined}
     >

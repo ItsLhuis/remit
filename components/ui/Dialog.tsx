@@ -96,10 +96,7 @@ const DialogFooter = ({
   </div>
 )
 
-const DialogTitle = ({
-  className,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Title>) => (
+const DialogTitle = ({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) => (
   <DialogPrimitive.Title
     data-slot="dialog-title"
     className={cn("cn-font-heading text-base leading-none font-medium", className)}

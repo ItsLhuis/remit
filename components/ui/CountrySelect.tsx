@@ -63,7 +63,12 @@ const CountrySelect = ({
   const currentCountry = options.find((c) => c.alpha2 === value)
 
   return (
-    <Select value={value ?? ""} onValueChange={handleValueChange} disabled={disabled}>
+    <Select
+      data-slot="country-select"
+      value={value ?? ""}
+      onValueChange={handleValueChange}
+      disabled={disabled}
+    >
       <SelectTrigger
         ref={ref}
         className={cn("w-full", slim && "w-fit gap-2")}

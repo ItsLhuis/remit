@@ -78,6 +78,7 @@ const Typography = ({
 
   return (
     <Comp
+      data-slot="typography"
       className={cn(typographyVariants({ variant }), ...affectsClasses, className)}
       ref={ref}
       {...props}

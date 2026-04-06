@@ -10,11 +10,15 @@ export type IconProps = LucideProps & {
   isFilled?: boolean
 }
 
-const Icon = ({ name, isFilled = false, className }: IconProps) => {
+const Icon = ({ name, isFilled = false, className, ...props }: IconProps) => {
   const LucideIcon = (LucideIcons[name] ?? LucideIcons["Info"]) as ComponentType<LucideProps>
 
   return (
-    <LucideIcon className={cn("size-4 transition-colors", isFilled && "fill-current", className)} />
+    <LucideIcon
+      data-slot="icon"
+      className={cn("size-4 transition-colors", isFilled && "fill-current", className)}
+      {...props}
+    />
   )
 }
 

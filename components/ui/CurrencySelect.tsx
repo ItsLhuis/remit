@@ -141,6 +141,7 @@ const CurrencySelect = ({
 
   return (
     <Select
+      data-slot="currency-select"
       value={value}
       onValueChange={handleValueChange}
       name={name}

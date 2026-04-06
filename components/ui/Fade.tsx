@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  type CSSProperties,
-  type ElementType,
-  type ReactNode,
-  type Ref,
-  useState
-} from "react"
+import { type CSSProperties, type ElementType, type ReactNode, type Ref, useState } from "react"
 
 import { AnimatePresence, motion, type Transition, type Variant, type Variants } from "motion/react"
 
@@ -137,9 +131,9 @@ const Fade = ({
   }
 
   const fadeContent = exit ? (
-    <MotionComponent {...baseProps} exit="hidden" />
+    <MotionComponent data-slot="fade" {...baseProps} exit="hidden" />
   ) : (
-    <MotionComponent {...baseProps} />
+    <MotionComponent data-slot="fade" {...baseProps} />
   )
 
   if (unmountOnExit) {
