@@ -178,11 +178,11 @@ const TotpStep = ({ onComplete }: { onComplete: () => void }) => {
           below.
         </Typography>
       </div>
-      <div className="mb-6 flex mx-auto justify-center rounded-lg border w-fit bg-white p-4">
+      <div className="mx-auto mb-6 flex w-fit justify-center rounded-lg border bg-white p-4">
         <QRCodeSVG value={totpUri} bgColor="white" size={200} />
       </div>
       {secret && (
-        <div className="mb-6 rounded-lg border dark:bg-input/30 p-3">
+        <div className="dark:bg-input/30 mb-6 rounded-lg border p-3">
           <Typography affects="small" className="text-muted-foreground">
             Manual entry code
           </Typography>
@@ -439,7 +439,7 @@ const DoneStep = () => {
           Remit is ready. Start by adding your first client.
         </Typography>
       </div>
-      <Button size="lg" className="w-full" onClick={() => router.push("/dashboard")}>
+      <Button size="lg" className="w-full" onClick={() => router.push("/")}>
         Go to dashboard
       </Button>
     </div>

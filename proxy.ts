@@ -63,7 +63,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === "/setup") {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
   return NextResponse.next()

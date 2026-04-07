@@ -25,14 +25,14 @@ const SetupPage = async () => {
   const businessDone = !!userSettings?.businessName
   const isSetupComplete = businessDone && !!session.user.twoFactorEnabled
 
-  if (isSetupComplete) redirect("/dashboard")
+  if (isSetupComplete) redirect("/")
 
   const initialStep = businessDone ? "totp" : "business"
 
   return (
     <div className="flex h-screen overflow-hidden">
       <AuthPanel />
-      <ScrollArea className="h-full w-full bg-background lg:w-2/3">
+      <ScrollArea className="bg-background h-full w-full lg:w-2/3">
         <div className="flex min-h-screen flex-col items-center justify-center px-8 py-12">
           <SetupForm initialStep={initialStep} />
         </div>
