@@ -4,7 +4,7 @@ import { AuroraText, Typography } from "@/components/ui"
 
 const AuthPanel = () => {
   return (
-    <div className="relative hidden h-screen w-1/3 overflow-hidden lg:flex flex-col">
+    <div className="relative hidden h-screen w-1/3 flex-col overflow-hidden lg:flex">
       <Image
         src="/login.jpg"
         alt=""
@@ -27,7 +27,7 @@ const AuthPanel = () => {
         }}
       />
       <div
-        className="absolute inset-0 z-10 pointer-events-none opacity-25"
+        className="pointer-events-none absolute inset-0 z-10 opacity-25"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundRepeat: "repeat",
@@ -35,13 +35,13 @@ const AuthPanel = () => {
         }}
       />
       <div
-        className="absolute inset-0 z-10 pointer-events-none"
+        className="pointer-events-none absolute inset-0 z-10"
         style={{
           background: "radial-gradient(ellipse at 65% 40%, transparent 30%, rgba(0,0,0,0.45) 100%)"
         }}
       />
       <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5">
-        <Image src="/logo.png" width={32} height={32} alt="Remit" className="rounded-md" />
+        <Image src="/logo.png" width={32} height={32} alt="Remit" />
         <Typography variant="h5" className="tracking-tight text-white">
           Remit
         </Typography>
@@ -52,7 +52,7 @@ const AuthPanel = () => {
           <br />
           <AuroraText>Your terms.</AuroraText>
         </Typography>
-        <div className="my-4 h-px w-8 bg-primary" />
+        <div className="bg-primary my-4 h-px w-8" />
         <Typography className="max-w-67 leading-relaxed text-white/55">
           Manage clients, projects, proposals and invoices — self-hosted and fully yours. No
           subscriptions, no lock-in.

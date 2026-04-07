@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 const Skeleton = ({ className, ...props }: ComponentProps<"div">) => (
   <div
     data-slot="skeleton"
-    className={cn("animate-pulse rounded-md bg-muted", className)}
+    className={cn("bg-muted animate-pulse rounded-md", className)}
     {...props}
   />
 )

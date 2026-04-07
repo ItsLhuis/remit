@@ -23,7 +23,7 @@ const RegisterPage = async () => {
   return (
     <div className="flex h-screen overflow-hidden">
       <AuthPanel />
-      <ScrollArea className="h-full w-full bg-background lg:w-2/3">
+      <ScrollArea className="bg-background h-full w-full lg:w-2/3">
         <div className="flex min-h-screen flex-col items-center justify-center px-8 py-12">
           <RegisterForm />
         </div>

@@ -167,7 +167,7 @@ const CurrencySelect = ({
           {uniqueCurrencies.map((currency) => (
             <SelectItem key={currency.code} value={currency.code}>
               <div className="flex w-full items-center gap-2">
-                <span className="w-8 text-left text-sm text-muted-foreground">{currency.code}</span>
+                <span className="text-muted-foreground w-8 text-left text-sm">{currency.code}</span>
                 <span className="hidden">{currency.symbol}</span>
                 <span>{currency.name}</span>
               </div>

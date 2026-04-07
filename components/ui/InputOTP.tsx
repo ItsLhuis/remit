@@ -34,7 +34,7 @@ const InputOTPGroup = ({ className, ...props }: ComponentProps<"div">) => {
     <div
       data-slot="input-otp-group"
       className={cn(
-        "flex items-center rounded-lg has-aria-invalid:border-destructive has-aria-invalid:ring-3 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40",
+        "has-aria-invalid:border-destructive has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 flex items-center rounded-lg has-aria-invalid:ring-3",
         className
       )}
       {...props}
@@ -57,9 +57,9 @@ const InputOTPSlot = ({
       data-slot="input-otp-slot"
       data-active={isActive}
       className={cn(
-        "relative flex size-8 items-center justify-center border-y border-r border-input text-sm transition-colors outline-none first:rounded-l-lg first:border-l last:rounded-r-lg aria-invalid:border-destructive dark:bg-input/30",
+        "border-input aria-invalid:border-destructive dark:bg-input/30 relative flex size-8 items-center justify-center border-y border-r text-sm transition-colors outline-none first:rounded-l-lg first:border-l last:rounded-r-lg",
         isActive &&
-          "z-10 border-primary ring-3 ring-primary/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+          "border-primary ring-primary/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 z-10 ring-3",
         className
       )}
       {...props}
@@ -67,7 +67,7 @@ const InputOTPSlot = ({
       {char}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+          <div className="animate-caret-blink bg-foreground h-4 w-px" />
         </div>
       )}
     </div>

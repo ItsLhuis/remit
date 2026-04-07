@@ -138,10 +138,10 @@ const RegisterForm = () => {
                 disabled={isSubmitting}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              <div className="mt-2 rounded-md border dark:bg-input/30 p-3">
+              <div className="dark:bg-input/30 mt-2 rounded-md border p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <Typography affects="small">Password strength requirements</Typography>
-                  <Typography affects="small" className="font-medium text-foreground">
+                  <Typography affects="small" className="text-foreground font-medium">
                     {passedChecks}/{passwordChecks.length}
                   </Typography>
                 </div>
@@ -161,7 +161,7 @@ const RegisterForm = () => {
                         className={
                           check.valid
                             ? "size-3.5 text-emerald-600 dark:text-emerald-500"
-                            : "size-3.5 text-muted-foreground"
+                            : "text-muted-foreground size-3.5"
                         }
                       />
                       <Typography
