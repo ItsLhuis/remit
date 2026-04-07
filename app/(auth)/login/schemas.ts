@@ -6,3 +6,9 @@ export const loginSchema = z.object({
 })
 
 export type LoginValues = z.infer<typeof loginSchema>
+
+export const totpSchema = z.object({
+  code: z.string().length(6, "Enter the 6-digit code.")
+})
+
+export type TotpValues = z.infer<typeof totpSchema>
