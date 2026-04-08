@@ -2,7 +2,7 @@ import { type ReactNode } from "react"
 
 import { type Metadata } from "next"
 
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google"
+import { DM_Sans, JetBrains_Mono } from "next/font/google"
 
 import { cn } from "@/lib/utils"
 
@@ -11,12 +11,12 @@ import { ThemeProvider } from "@/providers/ThemeProvider"
 
 import "./globals.css"
 
-const fontSans = Plus_Jakarta_Sans({
+const fontSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-sans"
 })
 
-const fontMono = Geist_Mono({
+const fontMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono"
 })
