@@ -1,7 +1,10 @@
 import { headers } from "next/headers"
+
 import { NextResponse } from "next/server"
 
 import { eq } from "drizzle-orm"
+
+import { z } from "zod"
 
 import { auth } from "@/lib/auth"
 
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "Validation failed",
-        issues: result.error.flatten((issue) => issue.message).fieldErrors
+        issues: z.treeifyError(result.error)
       },
       { status: 400 }
     )
