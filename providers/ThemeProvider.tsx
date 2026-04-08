@@ -1,6 +1,8 @@
 "use client"
 
-import { ComponentProps, useEffect } from "react"
+import { ComponentProps } from "react"
+
+import { useHotkey } from "@tanstack/react-hotkeys"
 
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
@@ -19,49 +21,12 @@ const ThemeProvider = ({ children, ...props }: ComponentProps<typeof NextThemesP
   )
 }
 
-function isTypingTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
-    return false
-  }
-
-  return (
-    target.isContentEditable ||
-    target.tagName === "INPUT" ||
-    target.tagName === "TEXTAREA" ||
-    target.tagName === "SELECT"
-  )
-}
-
 const ThemeHotkey = () => {
   const { resolvedTheme, setTheme } = useTheme()
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.repeat) {
-        return
-      }
-
-      if (event.metaKey || event.ctrlKey || event.altKey) {
-        return
-      }
-
-      if (event.key.toLowerCase() !== "d") {
-        return
-      }
-
-      if (isTypingTarget(event.target)) {
-        return
-      }
-
-      setTheme(resolvedTheme === "dark" ? "light" : "dark")
-    }
-
-    window.addEventListener("keydown", onKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown)
-    }
-  }, [resolvedTheme, setTheme])
+  useHotkey("D", () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+  })
 
   return null
 }
