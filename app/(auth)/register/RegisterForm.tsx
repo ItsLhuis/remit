@@ -31,7 +31,7 @@ const RegisterForm = () => {
 
   const form = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" }
   })
 
@@ -97,7 +97,7 @@ const RegisterForm = () => {
               <Input
                 {...field}
                 id={field.name}
-                placeholder="Jane Smith"
+                placeholder="Your name"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -115,7 +115,7 @@ const RegisterForm = () => {
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="jane@example.com"
+                placeholder="Your email"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -133,7 +133,7 @@ const RegisterForm = () => {
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="••••••••"
+                placeholder="Your password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -154,7 +154,7 @@ const RegisterForm = () => {
                   {passwordChecks.map((check) => (
                     <div
                       key={check.label}
-                      className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-colors"
+                      className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-all"
                     >
                       <Icon
                         name={check.valid ? "CheckCircle2" : "Circle"}
@@ -187,7 +187,7 @@ const RegisterForm = () => {
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="••••••••"
+                placeholder="Repeat your password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />

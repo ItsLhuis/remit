@@ -28,6 +28,7 @@ import {
 const TotpForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const form = useForm<TotpValues>({
     resolver: zodResolver(totpSchema),
+    mode: "onSubmit",
     defaultValues: { code: "" }
   })
 
@@ -103,6 +104,7 @@ const LoginForm = () => {
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
+    mode: "onSubmit",
     defaultValues: { email: "", password: "" }
   })
 
@@ -155,7 +157,7 @@ const LoginForm = () => {
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Your email"
                 autoComplete="email"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -174,7 +176,7 @@ const LoginForm = () => {
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Your password"
                 autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}

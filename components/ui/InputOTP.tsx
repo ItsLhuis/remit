@@ -57,9 +57,9 @@ const InputOTPSlot = ({
       data-slot="input-otp-slot"
       data-active={isActive}
       className={cn(
-        "border-input aria-invalid:border-destructive dark:bg-input/30 relative flex size-8 items-center justify-center border-y border-r text-sm transition-colors outline-none first:rounded-l-lg first:border-l last:rounded-r-lg",
+        "border-input aria-invalid:border-destructive dark:bg-input/30 relative flex size-8 items-center justify-center border-y border-r text-sm transition-all outline-none first:rounded-l-lg first:border-l last:rounded-r-lg",
         isActive &&
-          "border-primary ring-primary/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 z-10 ring-3",
+          "border-ring ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 z-10 ring-3",
         className
       )}
       {...props}

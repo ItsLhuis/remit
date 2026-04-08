@@ -31,6 +31,7 @@ type Country = {
 
 type CountrySelectProps = {
   ref?: Ref<HTMLButtonElement>
+  id?: string
   options?: Country[]
   onChangeAction?: (country: Country) => void
   value?: string
@@ -44,6 +45,7 @@ const CountrySelect = ({
   options = countries.all.filter(
     (country: Country) => country.emoji && country.status !== "deleted" && country.ioc !== "PRK"
   ),
+  id,
   onChangeAction,
   value,
   disabled = false,
@@ -71,6 +73,7 @@ const CountrySelect = ({
     >
       <SelectTrigger
         ref={ref}
+        id={id}
         className={cn("w-full", slim && "w-fit gap-2")}
         data-valid={valid}
         aria-invalid={!valid}

@@ -7,6 +7,8 @@ import {
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
+  Button,
+  Icon,
   SidebarTrigger
 } from "@/components/ui"
 
@@ -33,7 +35,7 @@ const AppHeader = () => {
   const pathname = usePathname()
 
   return (
-    <header className="flex shrink-0 items-center gap-2 border-b p-4">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="md:hidden" />
       <Breadcrumb>
         <BreadcrumbList>
@@ -42,6 +44,12 @@ const AppHeader = () => {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      <div className="ml-auto">
+        <Button variant="ghost" size="icon">
+          <Icon name="Bell" />
+          <span className="sr-only">Notifications</span>
+        </Button>
+      </div>
     </header>
   )
 }

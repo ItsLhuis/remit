@@ -16,7 +16,7 @@ const Icon = ({ name, isFilled = false, className, ...props }: IconProps) => {
   return (
     <LucideIcon
       data-slot="icon"
-      className={cn("size-4 transition-colors", isFilled && "fill-current", className)}
+      className={cn("size-4 transition-all", isFilled && "fill-current", className)}
       {...props}
     />
   )

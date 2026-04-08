@@ -76,6 +76,7 @@ const CUSTOM_CURRENCIES = new Set(["DKK", "SEK", "NOK", "EUR", "USD", "CAD", "GB
 
 type CurrencySelectProps = {
   ref?: Ref<HTMLButtonElement>
+  id?: string
   value?: string
   onValueChangeAction?: (value: string) => void
   onCurrencySelectAction?: (currency: Currency) => void
@@ -89,6 +90,7 @@ type CurrencySelectProps = {
 
 const CurrencySelect = ({
   ref,
+  id,
   value,
   onValueChangeAction,
   onCurrencySelectAction,
@@ -150,6 +152,7 @@ const CurrencySelect = ({
     >
       <SelectTrigger
         ref={ref}
+        id={id}
         className={cn("w-full", variant === "small" && "w-fit gap-2")}
         data-valid={valid}
         aria-invalid={!valid}

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 import { cva, type VariantProps } from "class-variance-authority"
 
-export const typographyVariants = cva("transition-colors", {
+export const typographyVariants = cva("transition-all", {
   variants: {
     variant: {
       h1: "scroll-m-20 text-4xl font-extrabold tracking-tight",
