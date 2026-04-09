@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Fragment,
   useContext,
   useId,
   useMemo,
@@ -89,7 +90,9 @@ const ChartContainer = ({
 }
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([, config]) => config.theme ?? config.color)
+  const colorConfig = Object.entries(config).filter(
+    ([, itemConfig]) => itemConfig.theme ?? itemConfig.color
+  )
 
   if (!colorConfig.length) {
     return null
@@ -199,7 +202,7 @@ const ChartTooltipContent = ({
                 {formatter && item?.value !== undefined && item.name ? (
                   formatter(item.value, item.name, item, index, item.payload)
                 ) : (
-                  <>
+                  <Fragment>
                     {itemConfig?.icon ? (
                       <itemConfig.icon />
                     ) : (
@@ -244,7 +247,7 @@ const ChartTooltipContent = ({
                         </span>
                       )}
                     </div>
-                  </>
+                  </Fragment>
                 )}
               </div>
             )

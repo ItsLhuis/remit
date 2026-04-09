@@ -1,33 +1,31 @@
-import { useEffect, useState, type RefObject } from "react"
+import { useCallback, useState } from "react"
 
-const useScrollGradients = (ref: RefObject<HTMLDivElement | null>) => {
+const useScrollGradients = () => {
   const [showTop, setShowTop] = useState(false)
   const [showBottom, setShowBottom] = useState(false)
 
-  useEffect(() => {
-    const el = ref.current
-
-    if (!el) return
+  const ref = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return
 
     const update = () => {
-      setShowTop(el.scrollTop > 0)
-      setShowBottom(el.scrollTop < el.scrollHeight - el.clientHeight - 1)
+      setShowTop(element.scrollTop > 0)
+      setShowBottom(element.scrollTop < element.scrollHeight - element.clientHeight - 1)
     }
 
     update()
 
-    el.addEventListener("scroll", update, { passive: true })
+    element.addEventListener("scroll", update, { passive: true })
 
     const observer = new ResizeObserver(update)
-    observer.observe(el)
+    observer.observe(element)
 
     return () => {
-      el.removeEventListener("scroll", update)
+      element.removeEventListener("scroll", update)
       observer.disconnect()
     }
-  }, [ref])
+  }, [])
 
-  return { showTop, showBottom }
+  return { ref, showTop, showBottom }
 }
 
 export { useScrollGradients }

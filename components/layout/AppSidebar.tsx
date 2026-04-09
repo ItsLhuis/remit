@@ -1,6 +1,8 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { Fragment, useState } from "react"
+
+import { cn } from "@/lib/utils"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
@@ -11,6 +13,7 @@ import { useScrollGradients } from "@/hooks/useScrollGradients"
 import { signOut, useSession } from "@/lib/authClient"
 
 import Image from "next/image"
+
 import Link from "next/link"
 
 import {
@@ -35,6 +38,7 @@ import {
   Fade,
   Icon,
   Kbd,
+  ScrollArea,
   Sidebar,
   SidebarFooter,
   SidebarGroup,
@@ -145,8 +149,7 @@ const AppSidebar = () => {
 
   const [commandOpen, setCommandOpen] = useState(false)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const { showTop, showBottom } = useScrollGradients(scrollRef)
+  const { ref: viewportRef, showTop, showBottom } = useScrollGradients()
 
   const isCollapsed = state === "collapsed"
 
@@ -154,7 +157,7 @@ const AppSidebar = () => {
   const initials = user?.name
     ? user.name
         .split(" ")
-        .map((n) => n[0])
+        .map((word) => word[0])
         .slice(0, 2)
         .join("")
         .toUpperCase()
@@ -165,13 +168,13 @@ const AppSidebar = () => {
     router.refresh()
   }
 
-  useHotkey("Mod+K", (e) => {
-    e.preventDefault()
+  useHotkey("Mod+K", (event) => {
+    event.preventDefault()
     setCommandOpen((prev) => !prev)
   })
 
   return (
-    <>
+    <Fragment>
       <Sidebar collapsible="icon">
         <SidebarHeader className="flex h-14 justify-center">
           <div className="flex h-9 items-center justify-center gap-2 px-1">
@@ -188,32 +191,29 @@ const AppSidebar = () => {
           </div>
         </SidebarHeader>
         <div className="mt-2 px-2 pb-2">
-          {isCollapsed && !isMobile ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setCommandOpen(true)}>
-                  <Icon name="Search" />
-                  <span className="sr-only">Search</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="center">
-                Search
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button variant="outline" onClick={() => setCommandOpen(true)} className="w-full">
-              <Icon name="Search" />
-              <Typography className="flex-1 text-left">Search</Typography>
-              <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
-            </Button>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={() => setCommandOpen(true)}
+                className="w-full justify-start overflow-hidden transition-all group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:shrink-0"
+              >
+                <Icon name="Search" />
+                <Typography className="flex-1 text-left">Search</Typography>
+                <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" align="center" hidden={!isCollapsed || isMobile}>
+              Search
+            </TooltipContent>
+          </Tooltip>
         </div>
-        <div className="relative min-h-0 flex-1">
-          <div
-            ref={scrollRef}
-            className="no-scrollbar absolute inset-0 flex flex-col gap-0 overflow-y-auto group-data-[collapsible=icon]:overflow-hidden"
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <ScrollArea
+            className="min-h-0 flex-1 group-data-[collapsible=icon]:overflow-hidden"
             data-slot="sidebar-content"
             data-sidebar="content"
+            viewportRef={viewportRef}
           >
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -255,13 +255,19 @@ const AppSidebar = () => {
                 ))}
               </SidebarMenu>
             </SidebarGroup>
-          </div>
-          {showTop && (
-            <div className="from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent" />
-          )}
-          {showBottom && (
-            <div className="from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent" />
-          )}
+          </ScrollArea>
+          <div
+            className={cn(
+              "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity duration-200",
+              showTop ? "opacity-100" : "opacity-0"
+            )}
+          />
+          <div
+            className={cn(
+              "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity duration-200",
+              showBottom ? "opacity-100" : "opacity-0"
+            )}
+          />
         </div>
         <SidebarFooter>
           <NavUser
@@ -309,7 +315,7 @@ const AppSidebar = () => {
           </CommandList>
         </Command>
       </CommandDialog>
-    </>
+    </Fragment>
   )
 }
 

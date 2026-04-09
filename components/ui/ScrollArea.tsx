@@ -1,24 +1,25 @@
 "use client"
 
-import { type ComponentProps } from "react"
+import { type ComponentProps, type Ref } from "react"
 
 import { cn } from "@/lib/utils"
 
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
-const ScrollArea = ({
-  className,
-  children,
-  ...props
-}: ComponentProps<typeof ScrollAreaPrimitive.Root>) => (
+type ScrollAreaProps = ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  viewportRef?: Ref<HTMLDivElement>
+}
+
+const ScrollArea = ({ className, children, viewportRef, ...props }: ScrollAreaProps) => (
   <ScrollAreaPrimitive.Root
     data-slot="scroll-area"
     className={cn("relative", className)}
     {...props}
   >
     <ScrollAreaPrimitive.Viewport
+      ref={viewportRef}
       data-slot="scroll-area-viewport"
-      className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+      className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-all outline-none focus-visible:ring-[3px] focus-visible:outline-1"
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
@@ -37,7 +38,7 @@ const ScrollBar = ({
     data-orientation={orientation}
     orientation={orientation}
     className={cn(
-      "flex touch-none p-px transition-all select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent",
+      "flex touch-none p-px transition-all select-none data-horizontal:h-2 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2 data-vertical:border-l data-vertical:border-l-transparent data-[state=hidden]:opacity-0 data-[state=visible]:opacity-100",
       className
     )}
     {...props}
