@@ -1,56 +1,46 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this
-repository.
-
-## About
-
-Remit is an open-source, self-hostable business management platform for freelancers and small
-businesses built with Next.js 16, React 19, TypeScript, and Tailwind CSS v4. Core workflow: Client →
-Project → Proposal → Invoice.
+Remit is a self-hostable business management app for freelancers: Client → Project → Proposal →
+Invoice. Stack: Next.js 16 App Router, React 19, TypeScript, Drizzle ORM (PostgreSQL), better-auth,
+Tailwind CSS v4.
 
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server with Turbopack
-pnpm build        # Production build
-pnpm lint         # ESLint check
-pnpm lint:fix     # ESLint auto-fix
-pnpm format       # Prettier format all files
-pnpm format:check # Check formatting without writing
-pnpm typecheck    # TypeScript type check (no emit)
+pnpm dev                # Dev server (Turbopack)
+pnpm build              # Production build
+pnpm lint:fix           # ESLint auto-fix
+pnpm format             # Prettier
+pnpm typecheck          # TypeScript check (no emit)
+pnpm database:generate  # Generate Drizzle migration from schema changes
+pnpm database:migrate   # Apply pending migrations
+pnpm database:studio    # Drizzle Studio UI
 ```
 
-There are no tests configured yet. Node >=22.0.0 is required.
+Node >=22.0.0. No tests configured yet.
 
-## Architecture
+## Directory map
 
-This is a Next.js App Router project in early stages — currently a scaffold with minimal pages.
+- `app/` — Next.js App Router routes. Route groups: `(auth)` for login/setup, `(dashboard)` for the
+  main app.
+- `features/` — Domain feature modules. Each feature contains `components/` (with barrel `index.ts`)
+  and `schemas.ts`. Import feature components externally via the barrel
+  (`@/features/<name>/components`); internally use direct paths to avoid circular deps.
+- `components/` — Shared UI and layout primitives. `ui/` exported via `components/ui/index.ts`;
+  `layout/` via `components/layout/index.ts`.
+- `database/` — Drizzle ORM. Schemas in `database/schema/` (one file per domain, barrel at
+  `database/schema/index.ts`). Never edit files in `drizzle/migrations/` manually.
+- `lib/` — Server and client utilities. `lib/auth.ts` — better-auth server config;
+  `lib/authClient.ts` — client exports (`authClient`, `signOut`, `useSession`).
+- `hooks/` — Shared React hooks.
 
-**Directory structure:**
+## Hard rules
 
-- `app/` — Next.js App Router pages and layouts. `layout.tsx` wraps everything in `ThemeProvider`.
-- `components/ui/` — Reusable UI primitives (shadcn/ui style). Export via `components/ui/index.ts`.
-- `providers/` — React context providers. `ThemeProvider` wraps `next-themes` and adds a `d` hotkey
-  to toggle dark/light mode.
-- `lib/utils.ts` — `cn()` utility (clsx + tailwind-merge).
-- `hooks/` — Custom React hooks (currently empty).
-- `scripts/` — Dev tooling (e.g., `bump-version.ts` for semver bumps via
-  `pnpm version:patch/minor/major`).
+NEVER read `.env` or `.env.*`. NEVER run `pnpm database:migrate` without confirming the target
+environment first. NEVER force-push `main`. Pre-push hook runs `pnpm typecheck` — all type errors
+must be resolved before pushing.
 
-**Styling:** Tailwind CSS v4 with CSS variables for theming. Colors use `oklch`. Design tokens are
-defined in `app/globals.css` under `:root` and `.dark`. Dark mode uses the `dark` class strategy.
+## Rules
 
-**Components:** shadcn/ui using `radix-nova` style. Components are built on `radix-ui` primitives
-with `class-variance-authority` for variants. Use `Slot.Root` from `radix-ui` for `asChild` pattern.
-Add new components with `pnpm shadcn add <component>`.
-
-**Path aliases:** `@/*` maps to the project root (e.g., `@/components/ui`, `@/lib/utils`).
-
-## Code Style
-
-- No semicolons, double quotes, 2-space indent, 100 char print width (enforced by Prettier).
-- Trailing commas disabled.
-- Commits must follow Conventional Commits:
-  `feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert`. Max header length 100 chars.
-- Pre-commit hook runs ESLint + Prettier on staged files via lint-staged.
+@.claude/rules/code-style.md @.claude/rules/components.md @.claude/rules/forms.md
+@.claude/rules/database.md @.claude/rules/hooks.md @.claude/rules/types.md

@@ -2,12 +2,12 @@
 
 # Remit
 
-**Remit** is an open-source, self-hostable business management tool built for freelancers — own your
+**Remit** is an open-source, self-hostable business management tool built for freelancers - own your
 data, own your workflow, no subscriptions required.
 
 ## Why Remit?
 
-Most invoicing and proposal tools are SaaS — monthly fees, your financial data on someone else's
+Most invoicing and proposal tools are SaaS - monthly fees, your financial data on someone else's
 servers, and features you'll never use. Remit is built for freelancers who want full control: run it
 on your own server, own everything, and never depend on a third-party platform. A single command,
 everything in Docker, nothing to configure manually.
@@ -31,7 +31,7 @@ The core workflow is **Client → Project → Proposal → Invoice**.
 - **Template Editor**: Block-based visual editor for invoice and proposal templates.
 - **Email Sending**: Send invoices and proposals directly to clients with editable templates and
   dynamic variables. Supports your own SMTP server or Resend for managed deliverability.
-- **Shareable Links**: Each invoice and proposal gets a unique, secure link — clients can view it in
+- **Shareable Links**: Each invoice and proposal gets a unique, secure link - clients can view it in
   a browser with no account required.
 - **Dashboard**: Business overview with total revenue, monthly billing chart, active projects,
   pending proposals, and recent activity.
