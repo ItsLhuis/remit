@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo } from "react"
+
+import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
 import { authClient } from "@/lib/authClient"
 
+import { totpVerifySchema, type TotpVerifyValues } from "@/features/setup/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { totpVerifySchema, type TotpVerifyValues } from "./schemas"
 
 import { QRCodeSVG } from "qrcode.react"
 
@@ -14,11 +16,10 @@ import Image from "next/image"
 
 import {
   Button,
-  Fade,
+  CopyIcon,
   Field,
   FieldError,
   FieldLabel,
-  Icon,
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
@@ -32,8 +33,7 @@ type TotpVerifyStepProps = {
 }
 
 const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
-  const [isSecretCopied, setIsSecretCopied] = useState(false)
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { copied: isSecretCopied, copy: copySecret } = useCopyWithFeedback()
 
   const secret = useMemo(() => {
     try {
@@ -50,24 +50,6 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
   })
 
   const { isSubmitting } = form.formState
-
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
-    }
-  }, [])
-
-  const handleCopySecret = async () => {
-    if (!secret) return
-
-    try {
-      await navigator.clipboard.writeText(secret)
-      setIsSecretCopied(true)
-      copyTimeoutRef.current = setTimeout(() => setIsSecretCopied(false), 2000)
-    } catch {
-      // clipboard write failed — the secret is visible on screen for manual copy
-    }
-  }
 
   const onSubmit = async (values: TotpVerifyValues) => {
     const { error } = await authClient.twoFactor.verifyTotp({ code: values.code })
@@ -100,11 +82,11 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
           <Typography affects="small" className="text-muted-foreground">
             Manual entry code
           </Typography>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex items-center gap-3">
             <Typography
               variant="p"
               affects={["bold", "removePMargin"]}
-              className="min-w-0 flex-1 truncate font-mono"
+              className="min-w-0 flex-1 font-mono break-all"
               title={secret}
             >
               {secret}
@@ -114,28 +96,9 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
               variant="outline"
               size="icon"
               className="shrink-0"
-              onClick={handleCopySecret}
+              onClick={() => secret && copySecret(secret)}
             >
-              <span className="relative inline-flex size-4 items-center justify-center">
-                <Fade
-                  as="span"
-                  show={!isSecretCopied}
-                  initial={false}
-                  unmountOnExit={false}
-                  className="absolute"
-                >
-                  <Icon name="Copy" />
-                </Fade>
-                <Fade
-                  as="span"
-                  show={isSecretCopied}
-                  initial={false}
-                  unmountOnExit={false}
-                  className="absolute"
-                >
-                  <Icon name="Check" />
-                </Fade>
-              </span>
+              <CopyIcon copied={isSecretCopied} />
             </Button>
           </div>
         </div>
@@ -177,7 +140,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
       </form>
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 2 of 2
+          Step 3 of 4
         </Typography>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+export { totpVerifySchema, type TotpVerifyValues } from "@/features/settings/security/schemas"
+
 export const businessProfileSchema = z.object({
   businessName: z.string().min(1, "Business name is required."),
   businessEmail: z.email("Enter a valid email address.").or(z.literal("")),
@@ -15,12 +17,3 @@ export const totpEnableSchema = z.object({
 })
 
 export type TotpEnableValues = z.infer<typeof totpEnableSchema>
-
-export const totpVerifySchema = z.object({
-  code: z
-    .string()
-    .length(6, "Enter the 6-digit code.")
-    .regex(/^\d{6}$/, "Code must be 6 digits.")
-})
-
-export type TotpVerifyValues = z.infer<typeof totpVerifySchema>

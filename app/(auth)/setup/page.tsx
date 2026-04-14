@@ -10,8 +10,8 @@ import { settings } from "@/database/schema"
 
 import { ScrollArea } from "@/components/ui"
 
-import { AuthPanel } from "../AuthPanel"
-import { SetupForm } from "./SetupForm"
+import { AuthPanel } from "@/features/auth/components"
+import { SetupForm } from "@/features/setup/components"
 
 export const metadata: Metadata = { title: "Setup" }
 

@@ -6,14 +6,19 @@ import { authClient } from "@/lib/authClient"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { totpEnableSchema, type TotpEnableValues } from "./schemas"
+import { totpEnableSchema, type TotpEnableValues } from "@/features/setup/schemas"
 
 import Image from "next/image"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
 
+export type TotpEnableData = {
+  totpUri: string
+  backupCodes: string[]
+}
+
 type TotpEnableStepProps = {
-  onSuccess: (totpUri: string) => void
+  onSuccess: (data: TotpEnableData) => void
 }
 
 const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
@@ -30,20 +35,27 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
   const onSubmit = async (values: TotpEnableValues) => {
     setEnableError(null)
 
-    const { data, error } = await authClient.twoFactor.enable({ password: values.password })
+    const { data: enableData, error: enableErr } = await authClient.twoFactor.enable({
+      password: values.password
+    })
 
-    if (error) {
-      setEnableError(error.message ?? "Failed to enable two-factor authentication.")
+    if (enableErr) {
+      setEnableError(enableErr.message ?? "Failed to enable two-factor authentication.")
       return
     }
 
-    if (!data?.totpURI) {
+    if (!enableData?.totpURI) {
       setEnableError("Something went wrong. Please try again.")
       return
     }
 
+    if (!enableData.backupCodes?.length) {
+      setEnableError("Recovery codes could not be generated. Please try again.")
+      return
+    }
+
     form.reset()
-    onSuccess(data.totpURI)
+    onSuccess({ totpUri: enableData.totpURI, backupCodes: enableData.backupCodes })
   }
 
   return (
@@ -82,14 +94,10 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
           Set up authenticator
         </Button>
       </form>
-      {enableError && (
-        <FieldError className="mt-4 text-center" role="alert">
-          {enableError}
-        </FieldError>
-      )}
+      {enableError && <FieldError className="mt-4 text-center">{enableError}</FieldError>}
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 2 of 2
+          Step 2 of 4
         </Typography>
       </div>
     </div>

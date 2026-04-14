@@ -6,7 +6,7 @@ import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { businessProfileSchema, type BusinessProfileValues } from "./schemas"
+import { businessProfileSchema, type BusinessProfileValues } from "@/features/setup/schemas"
 
 import {
   Button,
@@ -173,7 +173,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
       </form>
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 1 of 2
+          Step 1 of 4
         </Typography>
       </div>
     </div>

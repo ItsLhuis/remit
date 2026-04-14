@@ -2,9 +2,9 @@
 
 import { Fragment, useState } from "react"
 
-import { BusinessStep } from "./BusinessStep"
-import { DoneStep } from "./DoneStep"
-import { TotpStep } from "./TotpStep"
+import { BusinessStep } from "@/features/setup/components/BusinessStep"
+import { DoneStep } from "@/features/setup/components/DoneStep"
+import { TotpStep } from "@/features/setup/components/TotpStep"
 
 type Step = "business" | "totp" | "done"
 
