@@ -66,6 +66,7 @@ const SidebarProvider = ({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  cookieName,
   className,
   style,
   children,
@@ -74,6 +75,7 @@ const SidebarProvider = ({
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  cookieName?: string
 }) => {
   const isMobile = useIsMobile()
 
@@ -92,9 +94,10 @@ const SidebarProvider = ({
         _setOpen(openState)
       }
 
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      const name = cookieName ?? SIDEBAR_COOKIE_NAME
+      document.cookie = `${name}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
-    [setOpenProp, open]
+    [setOpenProp, open, cookieName]
   )
 
   const toggleSidebar = useCallback(() => {
@@ -163,7 +166,7 @@ const Sidebar = ({
 }: ComponentProps<"div"> & {
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
-  collapsible?: "offcanvas" | "icon" | "none"
+  collapsible?: "offcanvas" | "icon" | "none" | "panel"
 }) => {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -173,6 +176,44 @@ const Sidebar = ({
         data-slot="sidebar"
         className={cn(
           "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
+
+  if (collapsible === "panel") {
+    if (isMobile) {
+      return (
+        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+          <SheetContent
+            dir={dir}
+            data-sidebar="sidebar"
+            data-slot="sidebar"
+            data-mobile="true"
+            className="bg-sidebar text-sidebar-foreground p-0 [&>button]:hidden"
+            style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as CSSProperties}
+            side={side}
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Sidebar</SheetTitle>
+              <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            </SheetHeader>
+            <div className="flex h-full w-full flex-col">{children}</div>
+          </SheetContent>
+        </Sheet>
+      )
+    }
+
+    return (
+      <div
+        data-slot="sidebar"
+        data-sidebar="sidebar"
+        className={cn(
+          "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) shrink-0 flex-col border-r",
           className
         )}
         {...props}
@@ -462,7 +503,7 @@ const SidebarMenuItem = ({ className, ...props }: ComponentProps<"li">) => {
   )
 }
 
-const sidebarMenuButtonVariants = cva(
+export const sidebarMenuButtonVariants = cva(
   "peer/menu-button transition-all group/menu-button flex w-full cursor-pointer items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-muted-foreground ring-sidebar-ring outline-hidden group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 active:translate-y-px active:bg-sidebar-accent active:text-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
   {
     variants: {
