@@ -11,7 +11,7 @@ import { auth } from "@/lib/auth"
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
-import { businessProfileSchema } from "@/app/(auth)/setup/schemas"
+import { businessProfileSchema } from "@/features/setup/schemas"
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() })

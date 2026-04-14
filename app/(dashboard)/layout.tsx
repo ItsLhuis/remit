@@ -13,11 +13,11 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   const defaultOpen = sidebarState !== "false"
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <SidebarProvider defaultOpen={defaultOpen} className="h-svh overflow-hidden">
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )
