@@ -54,7 +54,7 @@ const AuthPanel = () => {
         </Typography>
         <div className="bg-primary my-4 h-px w-8" />
         <Typography className="max-w-67 leading-relaxed text-white/55">
-          Manage clients, projects, proposals and invoices — self-hosted and fully yours. No
+          Manage clients, projects, proposals and invoices &mdash; self-hosted and fully yours. No
           subscriptions, no lock-in.
         </Typography>
         <div className="mt-6 flex items-center gap-3">

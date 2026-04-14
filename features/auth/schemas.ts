@@ -1,5 +1,27 @@
 import { z } from "zod"
 
+export const loginSchema = z.object({
+  email: z.email("Enter a valid email address."),
+  password: z.string().min(1, "Password is required.")
+})
+
+export type LoginValues = z.infer<typeof loginSchema>
+
+export const totpSchema = z.object({
+  code: z.string().length(6, "Enter the 6-digit code.")
+})
+
+export type TotpValues = z.infer<typeof totpSchema>
+
+export const recoveryCodeSchema = z.object({
+  code: z
+    .string()
+    .min(8, "Enter your recovery code.")
+    .regex(/^[a-zA-Z0-9-]+$/, "Invalid recovery code format.")
+})
+
+export type RecoveryCodeValues = z.infer<typeof recoveryCodeSchema>
+
 export const passwordRules = {
   minLength: 12,
   hasUppercase: /[A-Z]/,

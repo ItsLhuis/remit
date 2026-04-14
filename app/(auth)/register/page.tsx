@@ -7,8 +7,7 @@ import { getSession } from "@/lib/session"
 
 import { ScrollArea } from "@/components/ui"
 
-import { AuthPanel } from "../AuthPanel"
-import { RegisterForm } from "./RegisterForm"
+import { AuthPanel, RegisterForm } from "@/features/auth/components"
 
 export const metadata: Metadata = { title: "Register" }
 

@@ -5,8 +5,7 @@ import { redirect } from "next/navigation"
 import { ScrollArea } from "@/components/ui"
 import { getSession } from "@/lib/session"
 
-import { AuthPanel } from "../AuthPanel"
-import { LoginForm } from "./LoginForm"
+import { AuthPanel, LoginForm } from "@/features/auth/components"
 
 export const metadata: Metadata = { title: "Sign in" }
 

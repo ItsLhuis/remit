@@ -8,7 +8,7 @@ import { authClient } from "@/lib/authClient"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
-import { accountSchema, passwordRules, type AccountValues } from "./schemas"
+import { accountSchema, passwordRules, type AccountValues } from "@/features/auth/schemas"
 
 import Image from "next/image"
 
