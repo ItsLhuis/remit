@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
-import { usePathname, useRouter } from "next/navigation"
+import { useScroll } from "@/hooks/useScroll"
 
-import { useScrollGradients } from "@/hooks/useScrollGradients"
+import { usePathname, useRouter } from "next/navigation"
 
 import { signOut, useSession } from "@/lib/authClient"
 
@@ -149,7 +149,7 @@ const AppSidebar = () => {
 
   const [commandOpen, setCommandOpen] = useState(false)
 
-  const { ref: viewportRef, showTop, showBottom } = useScrollGradients()
+  const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
 
   const isCollapsed = state === "collapsed"
 
@@ -259,13 +259,13 @@ const AppSidebar = () => {
           <div
             className={cn(
               "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity duration-200",
-              showTop ? "opacity-100" : "opacity-0"
+              canScrollUp ? "opacity-100" : "opacity-0"
             )}
           />
           <div
             className={cn(
               "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity duration-200",
-              showBottom ? "opacity-100" : "opacity-0"
+              canScrollDown ? "opacity-100" : "opacity-0"
             )}
           />
         </div>

@@ -1,15 +1,15 @@
 import { useCallback, useState } from "react"
 
-const useScrollGradients = () => {
-  const [showTop, setShowTop] = useState(false)
-  const [showBottom, setShowBottom] = useState(false)
+export function useScroll() {
+  const [canScrollUp, setCanScrollUp] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
 
   const ref = useCallback((element: HTMLDivElement | null) => {
     if (!element) return
 
     const update = () => {
-      setShowTop(element.scrollTop > 0)
-      setShowBottom(element.scrollTop < element.scrollHeight - element.clientHeight - 1)
+      setCanScrollUp(element.scrollTop > 0)
+      setCanScrollDown(element.scrollTop < element.scrollHeight - element.clientHeight - 1)
     }
 
     update()
@@ -25,7 +25,5 @@ const useScrollGradients = () => {
     }
   }, [])
 
-  return { ref, showTop, showBottom }
+  return { ref, canScrollUp, canScrollDown }
 }
-
-export { useScrollGradients }
