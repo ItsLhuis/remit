@@ -2,6 +2,10 @@
 
 import { useState } from "react"
 
+import { cn } from "@/lib/utils"
+
+import { useScroll } from "@/hooks/useScroll"
+
 import { usePathname } from "next/navigation"
 
 import Link from "next/link"
@@ -15,6 +19,7 @@ import {
   Sidebar,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem
@@ -34,7 +39,29 @@ type NavGroup = {
 const navGroups: NavGroup[] = [
   {
     label: "Account",
-    items: [{ label: "Security", href: "/settings/security", icon: "ShieldCheck" }]
+    items: [
+      { label: "Profile", href: "/settings/profile", icon: "UserRound" },
+      { label: "Security", href: "/settings/security", icon: "ShieldCheck" }
+    ]
+  },
+  {
+    label: "Business",
+    items: [
+      { label: "Business", href: "/settings/business", icon: "Building2" },
+      { label: "Payment", href: "/settings/payment", icon: "Landmark" }
+    ]
+  },
+  {
+    label: "Invoicing",
+    items: [
+      { label: "Invoicing", href: "/settings/invoicing", icon: "FileText" },
+      { label: "Tax Rates", href: "/settings/tax-rates", icon: "Percent" },
+      { label: "Templates", href: "/settings/templates", icon: "LayoutTemplate" }
+    ]
+  },
+  {
+    label: "Email",
+    items: [{ label: "Email", href: "/settings/email", icon: "Mail" }]
   }
 ]
 
@@ -42,6 +69,8 @@ const SettingsSidebar = () => {
   const pathname = usePathname()
 
   const [search, setSearch] = useState("")
+
+  const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
 
   const filteredGroups = navGroups
     .map((group) => ({
@@ -52,41 +81,60 @@ const SettingsSidebar = () => {
 
   return (
     <Sidebar className="bg-background" collapsible="panel">
-      <ScrollArea className="min-h-0 flex-1" data-slot="sidebar-content" data-sidebar="content">
-        <SidebarGroup>
-          <InputGroup>
-            <InputGroupInput
-              placeholder="Search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <InputGroupAddon>
-              <Icon name="Search" />
-            </InputGroupAddon>
-          </InputGroup>
-        </SidebarGroup>
-        {filteredGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarMenu>
-              {group.items.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                    tooltip={item.label}
-                  >
-                    <Link href={item.href}>
-                      <Icon name={item.icon} />
-                      {item.label}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        ))}
-      </ScrollArea>
+      <SidebarHeader>
+        <InputGroup>
+          <InputGroupInput
+            placeholder="Search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <InputGroupAddon>
+            <Icon name="Search" />
+          </InputGroupAddon>
+        </InputGroup>
+      </SidebarHeader>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ScrollArea
+          className="min-h-0 flex-1"
+          data-slot="sidebar-content"
+          data-sidebar="content"
+          viewportRef={viewportRef}
+        >
+          {filteredGroups.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href}>
+                        <Icon name={item.icon} />
+                        {item.label}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
+        </ScrollArea>
+        <div
+          className={cn(
+            "from-background pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity duration-200",
+            canScrollUp ? "opacity-100" : "opacity-0"
+          )}
+        />
+        <div
+          className={cn(
+            "from-background pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity duration-200",
+            canScrollDown ? "opacity-100" : "opacity-0"
+          )}
+        />
+      </div>
     </Sidebar>
   )
 }

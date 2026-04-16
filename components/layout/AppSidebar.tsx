@@ -196,7 +196,7 @@ const AppSidebar = () => {
               <Button
                 variant="outline"
                 onClick={() => setCommandOpen(true)}
-                className="w-full justify-start overflow-hidden transition-all group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:shrink-0"
+                className="text-muted-foreground hover:text-foreground w-full justify-start overflow-hidden transition-all group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:shrink-0"
               >
                 <Icon name="Search" />
                 <Typography className="flex-1 text-left">Search</Typography>

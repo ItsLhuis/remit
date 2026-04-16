@@ -21,10 +21,12 @@ const SettingsLayout = async ({ children }: SettingsLayoutProps) => {
       defaultOpen={defaultOpen}
       cookieName="settings_sidebar_state"
       style={{ "--sidebar-width": "12rem", minHeight: 0 } as React.CSSProperties}
-      className="mx-auto max-w-5xl flex-1"
+      className="flex-1"
     >
       <SettingsSidebar />
-      <ScrollArea className="min-w-0 flex-1">{children}</ScrollArea>
+      <ScrollArea className="min-w-0 flex-1">
+        <div className="mx-auto max-w-3xl">{children}</div>
+      </ScrollArea>
     </SidebarProvider>
   )
 }
