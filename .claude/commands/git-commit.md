@@ -75,6 +75,22 @@ If the config extends presets like `@commitlint/config-conventional`:
 
 The project's custom rules **override** the defaults.
 
+## Working Directory
+
+**CRITICAL**: Never use `cd` before any git or shell command. The agent is already running from the
+project root. All commands must be run directly without any directory prefix.
+
+```bash
+# ✅ CORRECT
+git status
+git add src/foo.ts
+git commit -m "feat: add foo"
+
+# ❌ WRONG — never do this
+cd "my-project" && git status
+cd /path/to/project && git add .
+```
+
 ## Analysis Commands
 
 Execute these Git commands for analysis:
