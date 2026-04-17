@@ -2,6 +2,8 @@
 
 import { useRef, useState, useTransition } from "react"
 
+import { useRouter } from "next/navigation"
+
 import {
   accountDetailsSchema,
   type AccountDetailsValues
@@ -9,12 +11,14 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
+import { authClient } from "@/lib/authClient"
+
 import { type User } from "@/lib/auth"
 
 import {
   changeEmailAddress,
-  updateProfileName,
-  uploadAvatar
+  confirmAvatarUpload,
+  updateProfileName
 } from "@/features/settings/profile/actions"
 
 import {
@@ -28,6 +32,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
+  Icon,
   Input,
   Separator,
   SidebarTrigger,
@@ -50,11 +55,13 @@ type AvatarSectionProps = {
 }
 
 const AvatarSection = ({ user }: AvatarSectionProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   const [isPending, startTransition] = useTransition()
 
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const router = useRouter()
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -63,17 +70,51 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
 
     setUploadError(null)
 
-    const formData = new FormData()
-    formData.append("file", file)
-
     event.target.value = ""
 
     startTransition(async () => {
-      const result = await uploadAvatar(formData)
+      const presignResponse = await fetch("/api/upload/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: file.type })
+      })
+
+      if (!presignResponse.ok) {
+        const data: unknown = await presignResponse.json()
+        const message =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as Record<string, unknown>).error)
+            : "Failed to get upload URL."
+        setUploadError(message)
+        return
+      }
+
+      const { uploadUrl, objectKey } = (await presignResponse.json()) as {
+        uploadUrl: string
+        objectKey: string
+      }
+
+      const putResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file
+      })
+
+      if (!putResponse.ok) {
+        setUploadError("Failed to upload file.")
+        return
+      }
+
+      const result = await confirmAvatarUpload(objectKey, file.name, file.type, file.size)
 
       if ("error" in result) {
         setUploadError(result.error)
+        return
       }
+
+      await authClient.getSession({ fetchOptions: { cache: "no-store" } })
+
+      router.refresh()
     })
   }
 
@@ -115,14 +156,17 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
 
 type AccountDetailsSectionProps = {
   user: User
+  emailConfigured: boolean
 }
 
-const AccountDetailsSection = ({ user }: AccountDetailsSectionProps) => {
+const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionProps) => {
   const [isPending, startTransition] = useTransition()
 
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [emailVerificationSent, setEmailVerificationSent] = useState(false)
+
+  const router = useRouter()
 
   const form = useForm<AccountDetailsValues>({
     resolver: zodResolver(accountDetailsSchema),
@@ -138,7 +182,7 @@ const AccountDetailsSection = ({ user }: AccountDetailsSectionProps) => {
     setEmailVerificationSent(false)
 
     const nameChanged = values.name !== user.name
-    const emailChanged = values.email !== user.email
+    const emailChanged = emailConfigured && values.email !== user.email
 
     if (!nameChanged && !emailChanged) return
 
@@ -162,6 +206,9 @@ const AccountDetailsSection = ({ user }: AccountDetailsSectionProps) => {
 
         setEmailVerificationSent(true)
       }
+
+      await authClient.getSession({ fetchOptions: { cache: "no-store" } })
+      router.refresh()
     })
   }
 
@@ -199,10 +246,19 @@ const AccountDetailsSection = ({ user }: AccountDetailsSectionProps) => {
                 type="email"
                 placeholder="Your email"
                 aria-invalid={fieldState.invalid}
-                disabled={isPending}
+                disabled={isPending || !emailConfigured}
               />
               <FieldDescription className="text-muted-foreground text-sm">
-                A verification email will be sent to the new address.
+                {emailConfigured ? (
+                  "A verification email will be sent to the new address."
+                ) : (
+                  <Typography>
+                    Email changes require an email provider to be configured in{" "}
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                      Settings <Icon name="ArrowRight" /> Email.
+                    </span>
+                  </Typography>
+                )}
               </FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
@@ -229,9 +285,10 @@ const AccountDetailsSection = ({ user }: AccountDetailsSectionProps) => {
 
 type ProfileSettingsPageProps = {
   user: User
+  emailConfigured: boolean
 }
 
-const ProfileSettingsPage = ({ user }: ProfileSettingsPageProps) => {
+const ProfileSettingsPage = ({ user, emailConfigured }: ProfileSettingsPageProps) => {
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
       <header className="flex items-center gap-2">
@@ -241,7 +298,7 @@ const ProfileSettingsPage = ({ user }: ProfileSettingsPageProps) => {
       <div className="space-y-8">
         <AvatarSection user={user} />
         <Separator />
-        <AccountDetailsSection user={user} />
+        <AccountDetailsSection user={user} emailConfigured={emailConfigured} />
       </div>
     </div>
   )
