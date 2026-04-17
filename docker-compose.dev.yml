@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
+      # Port exposed to the host in dev only — useful for local DB clients
+      # (e.g. TablePlus, psql). Never expose this in production.
       - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-remit}
@@ -16,5 +18,25 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-remit}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-remitremit}
+    volumes:
+      - minio_dev_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      # Console port exposed in dev for the MinIO web UI.
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_dev_data:
+  minio_dev_data:

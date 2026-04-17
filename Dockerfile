@@ -16,12 +16,20 @@ COPY . .
 
 ENV NODE_ENV=production
 
-ARG DATABASE_URL
-ARG BETTER_AUTH_SECRET
+# NEXT_PUBLIC_* variables are the only legitimate build-time ARGs because
+# Next.js statically embeds them into the client bundle at build time.
+#
+# Secrets such as DATABASE_URL and BETTER_AUTH_SECRET must NEVER be build
+# ARGs — they are visible in plain text via `docker history` and are baked
+# into intermediate image layers. They are injected at runtime instead,
+# via the `environment` block in docker-compose.yml.
+#
+# A placeholder DATABASE_URL is provided here solely to satisfy any
+# static analysis or module-level imports during the Next.js build.
+# No real database connection is made at build time.
 ARG NEXT_PUBLIC_APP_URL
-ENV DATABASE_URL=$DATABASE_URL
-ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 
 RUN corepack enable pnpm && pnpm build
 
@@ -33,12 +41,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create a non-root system user and group in a single layer.
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
-COPY --from=builder /app/public ./public
+# All COPY instructions include --chown so files are owned by the runtime
+# user from the start, not by root.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -48,6 +59,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate.js ./scripts/migr
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
+# Drop to non-root user for all runtime operations.
 USER nextjs
 
 EXPOSE 3000

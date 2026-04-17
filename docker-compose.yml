@@ -8,8 +8,28 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # No ports exposed — the db is reachable only within the Docker network.
+    # Exposing 5432 to the host in production is a security risk.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -19,23 +39,44 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        DATABASE_URL: ${DATABASE_URL}
-        BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+        # Only NEXT_PUBLIC_APP_URL is a legitimate build arg — Next.js embeds
+        # NEXT_PUBLIC_* variables into the client bundle at build time.
+        # DATABASE_URL and BETTER_AUTH_SECRET are runtime secrets and must
+        # never appear under `args`. They are passed via `environment` below.
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     environment:
+      # Runtime secrets — injected by Docker at container start, never baked
+      # into the image. DATABASE_URL uses the Docker-internal `db` hostname
+      # so the app can reach PostgreSQL within the compose network.
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-remit}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     volumes:
       - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      # Requires a /api/health endpoint in the application (recommended).
+      # Adjust the path if your health endpoint differs.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   postgres_data:
+  minio_data:
   uploads:
