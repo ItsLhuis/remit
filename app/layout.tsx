@@ -6,7 +6,7 @@ import { DM_Sans, JetBrains_Mono } from "next/font/google"
 
 import { cn } from "@/lib/utils"
 
-import { TooltipProvider } from "@/components/ui"
+import { Toaster, TooltipProvider } from "@/components/ui"
 import { ThemeProvider } from "@/providers/ThemeProvider"
 
 import "./globals.css"
@@ -42,7 +42,10 @@ const RootLayout = ({
     >
       <body>
         <ThemeProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -9,6 +9,8 @@ import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel, RegisterForm } from "@/features/auth/components"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = { title: "Register" }
 
 const RegisterPage = async () => {
