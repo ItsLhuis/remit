@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      # Port exposed to the host in dev only — useful for local DB clients
+      # Port exposed to the host in dev only - useful for local DB clients
       # (e.g. TablePlus, psql). Never expose this in production.
       - "5432:5432"
     environment:

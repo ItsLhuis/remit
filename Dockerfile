@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 # Next.js statically embeds them into the client bundle at build time.
 #
 # Secrets such as DATABASE_URL and BETTER_AUTH_SECRET must NEVER be build
-# ARGs — they are visible in plain text via `docker history` and are baked
+# ARGs - they are visible in plain text via `docker history` and are baked
 # into intermediate image layers. They are injected at runtime instead,
 # via the `environment` block in docker-compose.yml.
 #
@@ -29,6 +29,8 @@ ENV NODE_ENV=production
 # No real database connection is made at build time.
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_STORAGE_BASE_URL
+ENV NEXT_PUBLIC_STORAGE_BASE_URL=$NEXT_PUBLIC_STORAGE_BASE_URL
 ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 
 RUN corepack enable pnpm && pnpm build

@@ -8,7 +8,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # No ports exposed — the db is reachable only within the Docker network.
+    # No ports exposed - the db is reachable only within the Docker network.
     # Exposing 5432 to the host in production is a security risk.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -39,25 +39,27 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Only NEXT_PUBLIC_APP_URL is a legitimate build arg — Next.js embeds
-        # NEXT_PUBLIC_* variables into the client bundle at build time.
+        # NEXT_PUBLIC_* variables are legitimate build args - Next.js embeds
+        # them into the client bundle at build time.
         # DATABASE_URL and BETTER_AUTH_SECRET are runtime secrets and must
         # never appear under `args`. They are passed via `environment` below.
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      # Runtime secrets — injected by Docker at container start, never baked
+      # Runtime secrets - injected by Docker at container start, never baked
       # into the image. DATABASE_URL uses the Docker-internal `db` hostname
       # so the app can reach PostgreSQL within the compose network.
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-remit}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     volumes:
