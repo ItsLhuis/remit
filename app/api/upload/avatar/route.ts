@@ -46,9 +46,12 @@ export async function POST(request: NextRequest) {
     Key: objectKey,
     ContentType: contentType
   })
-  console.log(command.input)
 
-  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 })
+  try {
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 })
 
-  return NextResponse.json({ uploadUrl, objectKey })
+    return NextResponse.json({ uploadUrl, objectKey })
+  } catch {
+    return NextResponse.json({ error: "Failed to generate upload URL." }, { status: 500 })
+  }
 }

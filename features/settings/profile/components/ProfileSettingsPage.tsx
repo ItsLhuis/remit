@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useRef, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -13,17 +13,14 @@ import { Controller, useForm } from "react-hook-form"
 
 import { authClient } from "@/lib/authClient"
 
+import { resolveStorageUrl } from "@/lib/storage"
+import { getInitials } from "@/lib/utils"
+
 import { type User } from "@/lib/auth"
 
-import {
-  changeEmailAddress,
-  confirmAvatarUpload,
-  updateProfileName
-} from "@/features/settings/profile/actions"
+import { changeEmailAddress, confirmAvatarUpload } from "@/features/settings/profile/actions"
 
 import {
-  Alert,
-  AlertDescription,
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -37,18 +34,9 @@ import {
   Separator,
   SidebarTrigger,
   Spinner,
+  toast,
   Typography
 } from "@/components/ui"
-
-const getInitials = (name: string): string => {
-  const parts = name.trim().split(/\s+/)
-
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-  }
-
-  return name.slice(0, 2).toUpperCase()
-}
 
 type AvatarSectionProps = {
   user: User
@@ -57,18 +45,16 @@ type AvatarSectionProps = {
 const AvatarSection = ({ user }: AvatarSectionProps) => {
   const [isPending, startTransition] = useTransition()
 
-  const [uploadError, setUploadError] = useState<string | null>(null)
-
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const router = useRouter()
+
+  const { refetch: refetchSession } = authClient.useSession()
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
 
     if (!file) return
-
-    setUploadError(null)
 
     event.target.value = ""
 
@@ -85,7 +71,9 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
           typeof data === "object" && data !== null && "error" in data
             ? String((data as Record<string, unknown>).error)
             : "Failed to get upload URL."
-        setUploadError(message)
+
+        toast.error(message)
+
         return
       }
 
@@ -101,20 +89,32 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
       })
 
       if (!putResponse.ok) {
-        setUploadError("Failed to upload file.")
+        toast.error("Failed to upload file")
+
         return
       }
 
       const result = await confirmAvatarUpload(objectKey, file.name, file.type, file.size)
 
       if ("error" in result) {
-        setUploadError(result.error)
+        toast.error(result.error)
+
         return
       }
 
-      await authClient.getSession({ fetchOptions: { cache: "no-store" } })
+      const { error: updateError } = await authClient.updateUser({ image: result.storageKey })
+
+      if (updateError) {
+        toast.error(updateError.message)
+
+        return
+      }
+
+      await refetchSession()
 
       router.refresh()
+
+      toast.success("Avatar updated")
     })
   }
 
@@ -123,7 +123,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
       <Typography variant="h4">Avatar</Typography>
       <div className="flex items-center gap-4">
         <Avatar className="size-20 text-base">
-          {user.image && <AvatarImage src={user.image} alt={user.name} />}
+          {user.image && <AvatarImage src={resolveStorageUrl(user.image) ?? ""} alt={user.name} />}
           <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col gap-2">
@@ -149,7 +149,6 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
           </Typography>
         </div>
       </div>
-      {uploadError && <FieldError>{uploadError}</FieldError>}
     </section>
   )
 }
@@ -162,11 +161,9 @@ type AccountDetailsSectionProps = {
 const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionProps) => {
   const [isPending, startTransition] = useTransition()
 
-  const [submitError, setSubmitError] = useState<string | null>(null)
-
-  const [emailVerificationSent, setEmailVerificationSent] = useState(false)
-
   const router = useRouter()
+
+  const { refetch: refetchSession } = authClient.useSession()
 
   const form = useForm<AccountDetailsValues>({
     resolver: zodResolver(accountDetailsSchema),
@@ -177,9 +174,10 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
     }
   })
 
+  const { isDirty, isValid } = form.formState
+
   const onSubmit = (values: AccountDetailsValues) => {
-    setSubmitError(null)
-    setEmailVerificationSent(false)
+    if (!isDirty || !isValid) return
 
     const nameChanged = values.name !== user.name
     const emailChanged = emailConfigured && values.email !== user.email
@@ -188,10 +186,10 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 
     startTransition(async () => {
       if (nameChanged) {
-        const result = await updateProfileName(values.name)
+        const { error } = await authClient.updateUser({ name: values.name })
 
-        if ("error" in result) {
-          form.setError("name", { message: result.error })
+        if (error) {
+          form.setError("name", { message: error.message })
           return
         }
       }
@@ -204,11 +202,20 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
           return
         }
 
-        setEmailVerificationSent(true)
+        toast.success("Verification email sent", {
+          description: "Check your inbox to confirm the new address"
+        })
       }
 
-      await authClient.getSession({ fetchOptions: { cache: "no-store" } })
+      form.reset(values)
+
+      await refetchSession()
+
       router.refresh()
+
+      if (nameChanged && !emailChanged) {
+        toast.success("Profile updated")
+      }
     })
   }
 
@@ -264,21 +271,47 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
             </Field>
           )}
         />
-        {emailVerificationSent && (
-          <Alert>
-            <AlertDescription>
-              Check your inbox — a verification email has been sent to the new address.
-            </AlertDescription>
-          </Alert>
-        )}
-        {submitError && <FieldError>{submitError}</FieldError>}
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || !(isDirty && isValid)}>
             {isPending && <Spinner />}
             Save changes
           </Button>
         </div>
       </form>
+    </section>
+  )
+}
+
+const LogoutSection = () => {
+  const router = useRouter()
+
+  const [isPending, startTransition] = useTransition()
+
+  const handleLogout = () => {
+    startTransition(async () => {
+      await authClient.signOut()
+
+      router.push("/login")
+    })
+  }
+
+  return (
+    <section className="space-y-4">
+      <Typography variant="h4">Session</Typography>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <Typography variant="p" affects={["medium", "removePMargin"]}>
+            Sign out
+          </Typography>
+          <Typography variant="p" affects={["muted", "removePMargin"]} className="text-sm">
+            Sign out of your account on this device.
+          </Typography>
+        </div>
+        <Button variant="outline" disabled={isPending} onClick={handleLogout}>
+          {isPending && <Spinner />}
+          Sign out
+        </Button>
+      </div>
     </section>
   )
 }
@@ -299,6 +332,8 @@ const ProfileSettingsPage = ({ user, emailConfigured }: ProfileSettingsPageProps
         <AvatarSection user={user} />
         <Separator />
         <AccountDetailsSection user={user} emailConfigured={emailConfigured} />
+        <Separator />
+        <LogoutSection />
       </div>
     </div>
   )

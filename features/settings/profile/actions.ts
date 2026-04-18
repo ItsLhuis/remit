@@ -9,25 +9,6 @@ import { auth } from "@/lib/auth"
 import { database } from "@/database"
 import { uploads } from "@/database/schema"
 
-export async function updateProfileName(
-  name: string
-): Promise<{ error: string } | { success: true }> {
-  try {
-    await auth.api.updateUser({
-      headers: await headers(),
-      body: { name }
-    })
-
-    revalidatePath("/settings/profile")
-
-    return { success: true }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update name."
-
-    return { error: message }
-  }
-}
-
 export async function changeEmailAddress(
   email: string
 ): Promise<{ error: string } | { success: true; pendingVerification: true }> {
@@ -50,14 +31,12 @@ export async function confirmAvatarUpload(
   filename: string,
   mimeType: string,
   sizeBytes: number
-): Promise<{ error: string } | { success: true; imageUrl: string }> {
+): Promise<{ error: string } | { success: true; storageKey: string }> {
   const requestHeaders = await headers()
 
   const session = await auth.api.getSession({ headers: requestHeaders })
 
   if (!session) return { error: "Unauthorized." }
-
-  const imageUrl = `${process.env.MINIO_PUBLIC_URL}/${process.env.MINIO_BUCKET}/${objectKey}`
 
   try {
     await database.insert(uploads).values({
@@ -67,11 +46,6 @@ export async function confirmAvatarUpload(
       mimeType,
       sizeBytes
     })
-
-    await auth.api.updateUser({
-      headers: requestHeaders,
-      body: { image: imageUrl }
-    })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update profile picture."
 
@@ -80,5 +54,5 @@ export async function confirmAvatarUpload(
 
   revalidatePath("/settings/profile")
 
-  return { success: true, imageUrl }
+  return { success: true, storageKey: objectKey }
 }
