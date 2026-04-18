@@ -2,7 +2,9 @@
 
 import { Fragment, useState } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn, getInitials } from "@/lib/utils"
+
+import { resolveStorageUrl } from "@/lib/storage"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
@@ -154,14 +156,7 @@ const AppSidebar = () => {
   const isCollapsed = state === "collapsed"
 
   const user = session?.user
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((word) => word[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "?"
+  const initials = user?.name ? getInitials(user.name) : "?"
 
   const handleLogout = async () => {
     await signOut()
@@ -273,7 +268,7 @@ const AppSidebar = () => {
           <NavUser
             name={user?.name}
             email={user?.email}
-            image={user?.image}
+            image={resolveStorageUrl(user?.image)}
             initials={initials}
             onLogout={handleLogout}
           />

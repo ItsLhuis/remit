@@ -30,9 +30,11 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
     defaultValues: { password: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: TotpEnableValues) => {
+    if (!isDirty || !isValid) return
+
     setEnableError(null)
 
     const { data: enableData, error: enableErr } = await authClient.twoFactor.enable({
@@ -89,7 +91,12 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
             </Field>
           )}
         />
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={isSubmitting || !(isDirty && isValid)}
+        >
           {isSubmitting && <Spinner />}
           Set up authenticator
         </Button>

@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/authClient"
 
+import { accountSchema, passwordRules, type AccountValues } from "@/features/auth/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
-import { accountSchema, passwordRules, type AccountValues } from "@/features/auth/schemas"
 
 import Image from "next/image"
 
@@ -25,9 +25,9 @@ import {
 } from "@/components/ui"
 
 const RegisterForm = () => {
-  const router = useRouter()
-
   const [serverError, setServerError] = useState<string | null>(null)
+
+  const router = useRouter()
 
   const form = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
@@ -35,7 +35,7 @@ const RegisterForm = () => {
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const password =
     useWatch({
@@ -59,6 +59,8 @@ const RegisterForm = () => {
   const passedChecks = passwordChecks.filter((check) => check.valid).length
 
   const onSubmit = async (values: AccountValues) => {
+    if (!isDirty || !isValid) return
+
     setServerError(null)
 
     const { error } = await authClient.signUp.email({
@@ -195,7 +197,12 @@ const RegisterForm = () => {
             </Field>
           )}
         />
-        <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-2 w-full"
+          disabled={isSubmitting || !(isDirty && isValid)}
+        >
           {isSubmitting && <Spinner />}
           Create account
         </Button>

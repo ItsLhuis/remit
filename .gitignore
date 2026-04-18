@@ -37,6 +37,6 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# claude code — personal overrides
+# claude code - personal overrides
 CLAUDE.local.md
 .claude/settings.local.json

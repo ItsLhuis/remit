@@ -21,24 +21,25 @@ Node >=22.0.0. No tests configured yet.
 
 ## Directory map
 
-- `app/` — Next.js App Router routes. Route groups: `(auth)` for login/setup, `(dashboard)` for the
+- `app/` - Next.js App Router routes. Route groups: `(auth)` for login/setup, `(dashboard)` for the
   main app.
-- `features/` — Domain feature modules. Each feature contains `components/` (with barrel `index.ts`)
+- `features/` - Domain feature modules. Each feature contains `components/` (with barrel `index.ts`)
   and `schemas.ts`. Import feature components externally via the barrel
   (`@/features/<name>/components`); internally use direct paths to avoid circular deps.
-- `components/` — Shared UI and layout primitives. `ui/` exported via `components/ui/index.ts`;
+- `components/` - Shared UI and layout primitives. `ui/` exported via `components/ui/index.ts`;
   `layout/` via `components/layout/index.ts`.
-- `database/` — Drizzle ORM. Schemas in `database/schema/` (one file per domain, barrel at
+- `database/` - Drizzle ORM. Schemas in `database/schema/` (one file per domain, barrel at
   `database/schema/index.ts`). Never edit files in `drizzle/migrations/` manually.
-- `lib/` — Server and client utilities. `lib/auth.ts` — better-auth server config;
-  `lib/authClient.ts` — client exports (`authClient`, `signOut`, `useSession`).
-- `hooks/` — Shared React hooks.
+- `lib/` - Server and client utilities. `lib/auth.ts` - better-auth server config;
+  `lib/authClient.ts` - client exports (`authClient`, `signOut`, `useSession`).
+- `hooks/` - Shared React hooks.
 
 ## Hard rules
 
-NEVER read `.env` or `.env.*`. NEVER run `pnpm database:migrate` without confirming the target
-environment first. NEVER force-push `main`. Pre-push hook runs `pnpm typecheck` — all type errors
-must be resolved before pushing.
+NEVER read `.env` or `.env.*.` (exception: `.env.example` and other example/template env files are
+allowed). NEVER run `pnpm database:migrate` without confirming the target environment first. NEVER
+force-push `main`. Pre-push hook runs `pnpm typecheck` - all type errors must be resolved before
+pushing.
 
 ## Rules
 

@@ -17,10 +17,10 @@ import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } fro
 import { TotpForm } from "./TotpForm"
 
 const LoginForm = () => {
-  const router = useRouter()
-
   const [authError, setAuthError] = useState<string | null>(null)
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
+
+  const router = useRouter()
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -28,9 +28,11 @@ const LoginForm = () => {
     defaultValues: { email: "", password: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: LoginValues) => {
+    if (!isDirty || !isValid) return
+
     setAuthError(null)
 
     const { data, error } = await authClient.signIn.email({
@@ -107,7 +109,12 @@ const LoginForm = () => {
             </Field>
           )}
         />
-        <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-2 w-full"
+          disabled={isSubmitting || !(isDirty && isValid)}
+        >
           {isSubmitting && <Spinner />}
           Sign in
         </Button>

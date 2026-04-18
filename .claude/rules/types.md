@@ -6,7 +6,7 @@ paths:
 
 # Type Rules
 
-- Always use `type` — never `interface`. Use intersection (`&`) to compose types.
+- Always use `type` - never `interface`. Use intersection (`&`) to compose types.
 - Never use `any`. Prefer `unknown` for truly unknown values and narrow with type guards.
 - Never use non-null assertion (`!`). Narrow to non-null explicitly with a guard or conditional.
 - Export types inline on the declaration: `export type Foo = { ... }`. Never include types in a

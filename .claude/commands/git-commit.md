@@ -86,7 +86,7 @@ git status
 git add src/foo.ts
 git commit -m "feat: add foo"
 
-# ❌ WRONG — never do this
+# ❌ WRONG - never do this
 cd "my-project" && git status
 cd /path/to/project && git add .
 ```

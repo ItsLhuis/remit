@@ -14,7 +14,7 @@ import { settings } from "@/database/schema"
 import { ProfileSettingsPage } from "@/features/settings/profile/components"
 
 export const metadata: Metadata = {
-  title: "Profile — Settings"
+  title: "Profile - Settings"
 }
 
 const ProfilePage = async () => {

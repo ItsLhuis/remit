@@ -48,7 +48,7 @@ const ref = useRef<HTMLDivElement>(null)
 
 const isLastStep = step === "confirm"
 
-// ✓ — tightly coupled, no blank line needed
+// ✓ - tightly coupled, no blank line needed
 const [isPending, setIsPending] = useState(false)
 const [error, setError] = useState<string | null>(null)
 ```
@@ -85,7 +85,7 @@ useEffect(() => { ... }, [open])
 - Single-line functions or trivially short functions (≤ 2 statements, same concern) may omit blank
   lines.
 
-## Naming — No Abbreviations
+## Naming - No Abbreviations
 
 - Always use full, descriptive names for parameters, callbacks, and map/filter/reduce arguments.
   Never use abbreviations or single-letter shorthands.

@@ -19,9 +19,11 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
     defaultValues: { code: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: RecoveryCodeValues) => {
+    if (!isDirty || !isValid) return
+
     const { error } = await authClient.twoFactor.verifyBackupCode({ code: values.code })
 
     if (error) {
@@ -56,7 +58,12 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
           </Field>
         )}
       />
-      <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={isSubmitting || !(isDirty && isValid)}
+      >
         {isSubmitting && <Spinner />}
         Verify recovery code
       </Button>

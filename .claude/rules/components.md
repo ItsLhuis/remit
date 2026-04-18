@@ -12,7 +12,7 @@ paths:
   `const Component = (props: ComponentProps) => ...`. Never use inline object types in the function
   signature.
 - Use named export at the bottom of the file: `export { ComponentName }`. No default exports. Never
-  use `export` directly on the component declaration — the bottom export is mandatory for
+  use `export` directly on the component declaration - the bottom export is mandatory for
   components.
 - Add every new `components/ui/` component to `components/ui/index.ts` immediately after creating
   it.
@@ -20,19 +20,19 @@ paths:
   components with `export * from "./ComponentName"`. External callers import from the barrel
   (`@/features/<name>/components`); sibling components within the same feature import by direct path
   (e.g. `@/features/<name>/components/ComponentName`) to avoid circular dependencies.
-- Use `Slot.Root` from `radix-ui` for the `asChild` pattern — not from `@radix-ui/react-slot`.
+- Use `Slot.Root` from `radix-ui` for the `asChild` pattern - not from `@radix-ui/react-slot`.
 - Add `data-slot="component-name"` to the root element of every UI primitive.
-- Use `<Icon name="IconName" />` for all Lucide icons — never import from `lucide-react` directly.
+- Use `<Icon name="IconName" />` for all Lucide icons - never import from `lucide-react` directly.
 - Tailwind v4: all design tokens are CSS variables defined in `app/globals.css`. There is no
   `tailwind.config.js`.
-- Add new shadcn components with `pnpm shadcn add <component>` — do not copy-paste manually.
+- Add new shadcn components with `pnpm shadcn add <component>` - do not copy-paste manually.
 - Dark mode uses the `dark` class strategy; add both light and dark variant classes inline.
-- Never use `<>` shorthand fragments — always use `<Fragment>` from React explicitly.
+- Never use `<>` shorthand fragments - always use `<Fragment>` from React explicitly.
 
 ## Always Prefer Existing UI Components
 
 - Before writing any JSX that renders visual UI, check `components/ui/index.ts` for an existing
-  primitive. If one exists, use it — never reimplement it with raw HTML elements or `div`s.
+  primitive. If one exists, use it - never reimplement it with raw HTML elements or `div`s.
 - This applies to every visual concept: badges, buttons, avatars, separators, tooltips, cards,
   inputs, etc.
 
@@ -40,13 +40,13 @@ paths:
 // ✓
 <Badge variant="secondary">Active</Badge>
 
-// ✗ — Badge already exists
+// ✗ - Badge already exists
 <div className="rounded-full bg-secondary px-2 py-0.5 text-xs">Active</div>
 ```
 
 ## Typography
 
-- Always use the `Typography` component for standalone text — never raw `<p>`, `<span>`, `<h1>`…
+- Always use the `Typography` component for standalone text - never raw `<p>`, `<span>`, `<h1>`…
   outside of a UI primitive's internal implementation.
 - The `variant` prop sets both the semantic element and its default style (`h1`–`h6`, `p`,
   `blockquote`, `code`, `pre`, `span`). Defaults to `span` when omitted.
@@ -62,10 +62,10 @@ paths:
 <Typography affects={["bold", "uppercase"]}>Label</Typography>
 <Typography affects="muted">Inline muted text</Typography>
 
-// ✓ — variant overrides semantics when visual hierarchy differs
+// ✓ - variant overrides semantics when visual hierarchy differs
 <Typography variant="h2" affects="large">Visually large but h2</Typography>
 
-// ✗ — never use raw elements for standalone text
+// ✗ - never use raw elements for standalone text
 <p className="text-sm text-muted-foreground">Some description</p>
 <span className="font-bold uppercase">Label</span>
 ```

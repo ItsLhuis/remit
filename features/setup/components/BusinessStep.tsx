@@ -39,9 +39,11 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
     }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: BusinessProfileValues) => {
+    if (!isDirty || !isValid) return
+
     setServerError(null)
 
     const res = await fetch("/api/setup/business", {
@@ -161,7 +163,12 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
             </Field>
           )}
         />
-        <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-2 w-full"
+          disabled={isSubmitting || !(isDirty && isValid)}
+        >
           {isSubmitting && <Spinner />}
           Continue
         </Button>

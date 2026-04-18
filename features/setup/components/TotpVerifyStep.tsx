@@ -49,9 +49,11 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
     defaultValues: { code: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: TotpVerifyValues) => {
+    if (!isDirty || !isValid) return
+
     const { error } = await authClient.twoFactor.verifyTotp({ code: values.code })
 
     if (error) {
@@ -133,7 +135,12 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
             </Field>
           )}
         />
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={isSubmitting || !(isDirty && isValid)}
+        >
           {isSubmitting && <Spinner />}
           Verify code
         </Button>

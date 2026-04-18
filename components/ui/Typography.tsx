@@ -23,7 +23,7 @@ export const typographyVariants = cva("transition-all", {
       default: "",
       lead: "text-xl text-muted-foreground",
       large: "text-lg",
-      medium: "text-base",
+      medium: "text-base font-medium",
       small: "text-xs",
       muted: "text-muted-foreground",
       bold: "font-bold",

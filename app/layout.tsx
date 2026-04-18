@@ -23,7 +23,7 @@ const fontMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s - Remit",
+    template: "%s | Remit",
     default: "Remit"
   },
   description: "Self-hosted business management for freelancers."
