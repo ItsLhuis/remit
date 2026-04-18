@@ -3,12 +3,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { twoFactor as twoFactorPlugin } from "better-auth/plugins"
 
 import { database } from "@/database"
+import { env } from "@/lib/env"
 import { account, session, twoFactor, user, verification } from "@/database/schema"
 
 export const auth = betterAuth({
   appName: "Remit",
-  secret: process.env.BETTER_AUTH_SECRET!,
-  baseURL: process.env.BETTER_AUTH_URL!,
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
   advanced: {
     database: {
       generateId: () => crypto.randomUUID()
