@@ -38,6 +38,7 @@ import {
   Label,
   RecoveryCodes,
   Spinner,
+  toast,
   Typography
 } from "@/components/ui"
 
@@ -72,6 +73,9 @@ const TotpReconfigureDialog = () => {
   const handleDone = () => {
     setOpen(false)
     reset()
+    toast.success("Two-factor authentication reconfigured", {
+      description: "Your new TOTP secret and recovery codes are active"
+    })
   }
 
   return (
@@ -125,9 +129,11 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
     defaultValues: { password: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: ConfirmPasswordValues) => {
+    if (!isDirty || !isValid) return
+
     setSubmitError(null)
 
     const { data, error } = await authClient.twoFactor.enable({ password: values.password })
@@ -176,7 +182,11 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
         />
         {submitError && <FieldError>{submitError}</FieldError>}
         <DialogFooter>
-          <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={isSubmitting || !(isDirty && isValid)}
+          >
             {isSubmitting && <Spinner />}
             Continue
           </Button>
@@ -210,9 +220,11 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
     defaultValues: { code: "" }
   })
 
-  const { isSubmitting } = form.formState
+  const { isSubmitting, isDirty, isValid } = form.formState
 
   const onSubmit = async (values: TotpVerifyValues) => {
+    if (!isDirty || !isValid) return
+
     setSubmitError(null)
 
     const { error: verifyError } = await authClient.twoFactor.verifyTotp({ code: values.code })
@@ -308,7 +320,11 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
         />
         {submitError && <FieldError>{submitError}</FieldError>}
         <DialogFooter>
-          <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={isSubmitting || !(isDirty && isValid)}
+          >
             {isSubmitting && <Spinner />}
             Verify code
           </Button>
