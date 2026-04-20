@@ -19,7 +19,7 @@ const SecuritySettingsPage = () => {
               <Typography variant="p" affects={["medium", "removePMargin"]}>
                 Authenticator app
               </Typography>
-              <Typography variant="p" affects={["muted", "removePMargin"]} className="text-sm">
+              <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
                 Replace your authenticator app or migrate to a new device. Your current codes will
                 stop working once reconfiguration is complete.
               </Typography>

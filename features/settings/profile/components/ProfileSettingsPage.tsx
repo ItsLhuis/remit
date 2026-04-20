@@ -144,9 +144,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
             {isPending && <Spinner />}
             Upload photo
           </Button>
-          <Typography affects="muted" className="text-xs">
-            JPG, PNG, WebP or GIF. Max 5MB.
-          </Typography>
+          <Typography affects={["muted", "small"]}>JPG, PNG, WebP or GIF. Max 5MB.</Typography>
         </div>
       </div>
     </section>
@@ -259,7 +257,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
                 {emailConfigured ? (
                   "A verification email will be sent to the new address."
                 ) : (
-                  <Typography>
+                  <Typography affects={["small"]}>
                     Email changes require an email provider to be configured in{" "}
                     <span className="inline-flex items-center gap-1 whitespace-nowrap">
                       Settings <Icon name="ArrowRight" /> Email.
@@ -303,7 +301,7 @@ const LogoutSection = () => {
           <Typography variant="p" affects={["medium", "removePMargin"]}>
             Sign out
           </Typography>
-          <Typography variant="p" affects={["muted", "removePMargin"]} className="text-sm">
+          <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
             Sign out of your account on this device.
           </Typography>
         </div>

@@ -264,9 +264,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
       </div>
       {secret && (
         <div className="dark:bg-input/30 rounded-lg border p-3">
-          <Typography affects="small" className="text-muted-foreground">
-            Manual entry code
-          </Typography>
+          <Typography affects={["small", "muted"]}>Manual entry code</Typography>
           <div className="mt-1 flex items-center gap-3">
             <Typography
               variant="p"
