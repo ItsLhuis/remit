@@ -41,7 +41,8 @@ const navGroups: NavGroup[] = [
     label: "Account",
     items: [
       { label: "Profile", href: "/settings/profile", icon: "UserRound" },
-      { label: "Security", href: "/settings/security", icon: "ShieldCheck" }
+      { label: "Security", href: "/settings/security", icon: "ShieldCheck" },
+      { label: "Appearance", href: "/settings/appearance", icon: "Palette" }
     ]
   },
   {
