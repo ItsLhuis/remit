@@ -305,7 +305,7 @@ const LogoutSection = () => {
             Sign out of your account on this device.
           </Typography>
         </div>
-        <Button variant="outline" disabled={isPending} onClick={handleLogout}>
+        <Button variant="destructive" disabled={isPending} onClick={handleLogout}>
           {isPending && <Spinner />}
           Sign out
         </Button>
