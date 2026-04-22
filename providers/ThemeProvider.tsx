@@ -6,6 +6,16 @@ import { useHotkey } from "@tanstack/react-hotkeys"
 
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+const ThemeHotkey = () => {
+  const { resolvedTheme, setTheme } = useTheme()
+
+  useHotkey("D", () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+  })
+
+  return null
+}
+
 const ThemeProvider = ({ children, ...props }: ComponentProps<typeof NextThemesProvider>) => {
   return (
     <NextThemesProvider
@@ -19,16 +29,6 @@ const ThemeProvider = ({ children, ...props }: ComponentProps<typeof NextThemesP
       {children}
     </NextThemesProvider>
   )
-}
-
-const ThemeHotkey = () => {
-  const { resolvedTheme, setTheme } = useTheme()
-
-  useHotkey("D", () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark")
-  })
-
-  return null
 }
 
 export { ThemeProvider }

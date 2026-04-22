@@ -151,6 +151,27 @@
   --default-transition-duration: 300ms;
 }
 
+html[data-font-size="compact"] {
+  font-size: 87.5%;
+}
+html[data-font-size="comfortable"] {
+  font-size: 112.5%;
+}
+
+html[data-density="compact"] {
+  --spacing: 0.2rem;
+}
+html[data-density="spacious"] {
+  --spacing: 0.3125rem;
+}
+
+html[data-font-family="inter"] {
+  --font-sans: var(--font-inter);
+}
+html[data-font-family="system"] {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

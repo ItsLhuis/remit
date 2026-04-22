@@ -1,6 +1,6 @@
 import { type Metadata } from "next"
 
-import { AppearanceSettingsPage } from "@/features/settings/appearance/components"
+import { AppearanceSettingsPage } from "./AppearancePageClient"
 
 export const metadata: Metadata = {
   title: "Appearance"
