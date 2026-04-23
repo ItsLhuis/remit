@@ -35,9 +35,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/Tooltip
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "16rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextProps = {
@@ -136,13 +133,7 @@ const SidebarProvider = ({
     <SidebarContext.Provider value={contextValue}>
       <div
         data-slot="sidebar-wrapper"
-        style={
-          {
-            "--sidebar-width": SIDEBAR_WIDTH,
-            "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-            ...style
-          } as CSSProperties
-        }
+        style={style}
         className={cn(
           "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
           className
@@ -195,7 +186,6 @@ const Sidebar = ({
             data-slot="sidebar"
             data-mobile="true"
             className="bg-sidebar text-sidebar-foreground p-0 [&>button]:hidden"
-            style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as CSSProperties}
             side={side}
           >
             <SheetHeader className="sr-only">
@@ -232,11 +222,6 @@ const Sidebar = ({
           data-slot="sidebar"
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground p-0 [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE
-            } as CSSProperties
-          }
           side={side}
         >
           <SheetHeader className="sr-only">
