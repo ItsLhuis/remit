@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -19,6 +19,8 @@ import { getInitials } from "@/lib/utils"
 import { type User } from "@/lib/auth"
 
 import { changeEmailAddress, confirmAvatarUpload } from "@/features/settings/profile/actions"
+
+import { SignOutDialog } from "@/features/auth/components/SignOutDialog"
 
 import {
   Avatar,
@@ -283,6 +285,8 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 const LogoutSection = () => {
   const router = useRouter()
 
+  const [signOutOpen, setSignOutOpen] = useState(false)
+
   const [isPending, startTransition] = useTransition()
 
   const handleLogout = () => {
@@ -305,11 +309,12 @@ const LogoutSection = () => {
             Sign out of your account on this device.
           </Typography>
         </div>
-        <Button variant="destructive" disabled={isPending} onClick={handleLogout}>
+        <Button variant="destructive" disabled={isPending} onClick={() => setSignOutOpen(true)}>
           {isPending && <Spinner />}
           Sign out
         </Button>
       </div>
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} onConfirm={handleLogout} />
     </section>
   )
 }

@@ -2,6 +2,8 @@
 
 import { Fragment, useState } from "react"
 
+import { SignOutDialog } from "@/features/auth/components"
+
 import { cn, getInitials } from "@/lib/utils"
 
 import { resolveStorageUrl } from "@/lib/storage"
@@ -81,62 +83,67 @@ type NavUserProps = {
 const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
   const { isMobile } = useSidebar()
 
+  const [signOutOpen, setSignOutOpen] = useState(false)
+
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-foreground"
-              tooltip={name ?? "Account"}
-            >
-              <Avatar>
-                <AvatarImage src={image ?? ""} alt={name ?? ""} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div className="text-foreground grid flex-1">
-                <Typography className="truncate">{name}</Typography>
-                <Typography className="truncate" affects={["muted", "small"]}>
-                  {email}
-                </Typography>
-              </div>
-              <Icon name="ChevronsUpDown" className="text-foreground" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="min-w-56"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>
-                <div className="flex items-center gap-2 px-1 py-1.5">
-                  <Avatar>
-                    <AvatarImage src={image ?? ""} alt={name ?? ""} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="text-foreground grid flex-1">
-                    <Typography className="truncate">{name}</Typography>
-                    <Typography className="truncate" affects={["muted", "small"]}>
-                      {email}
-                    </Typography>
-                  </div>
+    <Fragment>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-foreground"
+                tooltip={name ?? "Account"}
+              >
+                <Avatar>
+                  <AvatarImage src={image ?? ""} alt={name ?? ""} />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="text-foreground grid flex-1">
+                  <Typography className="truncate">{name}</Typography>
+                  <Typography className="truncate" affects={["muted", "small"]}>
+                    {email}
+                  </Typography>
                 </div>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem variant="destructive" onClick={onLogout}>
-                <Icon name="LogOut" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+                <Icon name="ChevronsUpDown" className="text-foreground" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="min-w-56"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={4}
+            >
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                  <div className="flex items-center gap-2 px-1 py-1.5">
+                    <Avatar>
+                      <AvatarImage src={image ?? ""} alt={name ?? ""} />
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-foreground grid flex-1">
+                      <Typography className="truncate">{name}</Typography>
+                      <Typography className="truncate" affects={["muted", "small"]}>
+                        {email}
+                      </Typography>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem variant="destructive" onSelect={() => setSignOutOpen(true)}>
+                  <Icon name="LogOut" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} onConfirm={onLogout} />
+    </Fragment>
   )
 }
 
