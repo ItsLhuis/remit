@@ -46,7 +46,7 @@ paths:
 
 ## Typography
 
-- Always use the `Typography` component for standalone text - never raw `<p>`, `<span>`, `<h1>`…
+- Always use the `Typography` component for standalone text - never raw `<p>`, `<span>`, `<h1>`...
   outside of a UI primitive's internal implementation.
 - The `variant` prop sets both the semantic element and its default style (`h1`–`h6`, `p`,
   `blockquote`, `code`, `pre`, `span`). Defaults to `span` when omitted.
@@ -69,3 +69,22 @@ paths:
 <p className="text-sm text-muted-foreground">Some description</p>
 <span className="font-bold uppercase">Label</span>
 ```
+
+## Component decomposition
+
+- Every distinct visual section, preview, or logical group must become its own component — no
+  exceptions.
+- A component must do exactly one thing. If it renders a labelled section with controls, that
+  section is a component; if it renders a preview thumbnail, that is a separate component.
+- Prefer many small focused files over fewer large ones — even a 10-line component warrants its own
+  file if it has a distinct responsibility. Inline JSX that can be named and extracted must be
+  extracted.
+- **Single-file rule**: when a component has no sub-components, place it directly as
+  `ComponentName.tsx`.
+- **Folder rule**: when a component requires its own sub-components, create a `ComponentName/`
+  folder. Place `ComponentName.tsx` inside alongside each sub-component file. Add `index.ts` with
+  barrel exports for everything consumed from outside the folder.
+- Internal helper components (used only within the folder, not by external callers) must not appear
+  in the folder's `index.ts`.
+- The folder-vs-file trigger is solely whether the component needs co-located sub-components — not
+  file size alone.
