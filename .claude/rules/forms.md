@@ -2,6 +2,7 @@
 paths:
   - "app/**/*.tsx"
   - "components/**/*.tsx"
+  - "features/**/*.tsx"
 ---
 
 # Form Rules
@@ -9,8 +10,8 @@ paths:
 - Use `Controller` from `react-hook-form` for every field - never use `register`.
 - Use `zodResolver` from `@hookform/resolvers/zod` for validation.
 - Colocate all Zod schemas and their inferred types in a `schemas.ts` file next to the form
-  component, or at `features/<name>/schemas.ts` when the schema is shared across multiple components
-  in that feature.
+  component, or at `features/<n>/schemas.ts` when the schema is shared across multiple components in
+  that feature.
 - Shared schemas live in the feature that owns the concept (e.g. `totpVerifySchema` lives in
   `features/settings/schemas.ts`). Other features re-export them rather than duplicating:
   `export { totpVerifySchema, type TotpVerifyValues } from "@/features/settings/schemas"`.

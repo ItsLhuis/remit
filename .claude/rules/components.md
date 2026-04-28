@@ -72,11 +72,11 @@ paths:
 
 ## Component decomposition
 
-- Every distinct visual section, preview, or logical group must become its own component — no
+- Every distinct visual section, preview, or logical group must become its own component - no
   exceptions.
 - A component must do exactly one thing. If it renders a labelled section with controls, that
   section is a component; if it renders a preview thumbnail, that is a separate component.
-- Prefer many small focused files over fewer large ones — even a 10-line component warrants its own
+- Prefer many small focused files over fewer large ones - even a 10-line component warrants its own
   file if it has a distinct responsibility. Inline JSX that can be named and extracted must be
   extracted.
 - **Single-file rule**: when a component has no sub-components, place it directly as
@@ -86,5 +86,5 @@ paths:
   barrel exports for everything consumed from outside the folder.
 - Internal helper components (used only within the folder, not by external callers) must not appear
   in the folder's `index.ts`.
-- The folder-vs-file trigger is solely whether the component needs co-located sub-components — not
+- The folder-vs-file trigger is solely whether the component needs co-located sub-components - not
   file size alone.

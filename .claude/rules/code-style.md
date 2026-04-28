@@ -106,3 +106,97 @@ values.reduce((acc, val) => acc + val, 0)
 
 - This applies everywhere: event handlers, array methods, promise chains, function parameters.
 - Exception: loop indices (`i`, `j`) in `for` loops are acceptable.
+
+## Naming
+
+### Query functions
+
+Use `get` for single-record-by-id lookups, `list` for collections, and `find` for filtered queries
+that may return null or an empty set. The suffix is the entity, not the operation.
+
+```ts
+// ✓
+getInvoiceById(id)
+listInvoices()
+findOverdueInvoices()
+
+// ✗ - wrong prefix for the semantics
+fetchInvoiceById(id) // use get
+getInvoices() // use list for collections
+getOverdueInvoices() // use find when result may be empty
+```
+
+### Service functions
+
+Service function names describe what they do as an action, not what they are as a noun.
+
+```ts
+// ✓
+calculateInvoiceTotal(lineItems)
+generateInvoiceNumber(prefix, lastNumber)
+canTransitionInvoiceStatus(current, next)
+
+// ✗ - noun forms that read as objects, not actions
+invoiceCalculator(lineItems)
+InvoiceTotalService.calculate(lineItems)
+```
+
+### Booleans
+
+Boolean variables and props use `is`, `has`, `can`, or `should` as a prefix.
+
+```ts
+// ✓
+;(isPaid, hasOverdueInvoices, canEdit, shouldRevalidate, isSubmitting)
+
+// ✗
+;(paid, overdueInvoices, editable, revalidate)
+```
+
+### Event handlers
+
+Props that accept an event callback use `on` + the event name. Handlers defined inside a component
+use `handle` + the event name.
+
+```ts
+// ✓ - prop
+<InvoiceForm onSubmit={handleSubmit} onStatusChange={handleStatusChange} />
+
+// ✓ - internal handler
+const handleSubmit = async (values: InvoiceValues) => { ... }
+const handleStatusChange = (status: InvoiceStatus) => { ... }
+
+// ✗ - inconsistent prefix
+<InvoiceForm submitHandler={handleSubmit} />
+const submitForm = () => { ... }
+```
+
+### Status enum values
+
+Status values are `snake_case` lowercase strings, matching the domain model in
+`docs/architecture/ARCHITECTURE.md` (Domain model).
+
+```ts
+// ✓
+type InvoiceStatus = "draft" | "sent" | "paid" | "overdue"
+type ProjectStatus = "active" | "completed" | "on_hold" | "cancelled"
+
+// ✗
+type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue"
+type ProjectStatus = "ACTIVE" | "COMPLETED" | "ON_HOLD" | "CANCELLED"
+```
+
+### Folder names
+
+Feature folders use `camelCase`. Next.js route segments use `kebab-case`.
+
+```
+features/timeTracking/    ✓
+features/time-tracking/   ✗
+
+app/(dashboard)/time-tracking/   ✓
+app/(dashboard)/timeTracking/    ✗
+```
+
+Action naming (verb + noun, present indicative: `createInvoice`, `markAsPaid`) is documented in
+`actions.md`.
