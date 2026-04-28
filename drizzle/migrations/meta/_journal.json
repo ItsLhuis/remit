@@ -29,6 +29,13 @@
       "when": 1777390114985,
       "tag": "0003_good_tomorrow_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777390585006,
+      "tag": "0004_far_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,8 @@ export const lineItems = pgTable(
     quantity: numeric("quantity", { precision: 10, scale: 2 }).notNull(),
     unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
     discountType: discountType("discount_type"),
-    discountValue: numeric("discount_value", { precision: 10, scale: 2 }),
+    discountPercentage: numeric("discount_percentage", { precision: 5, scale: 2 }),
+    discountAmountCents: bigint("discount_amount_cents", { mode: "number" }),
     taxPercentage: numeric("tax_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
     subtotal: bigint("subtotal", { mode: "number" }).notNull().default(0),
     taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
@@ -57,12 +58,16 @@ export const lineItems = pgTable(
       sql`(${table.proposalId} IS NOT NULL AND ${table.invoiceId} IS NULL) OR (${table.proposalId} IS NULL AND ${table.invoiceId} IS NOT NULL)`
     ),
     check(
-      "chk_line_items_discount",
-      sql`(${table.discountType} IS NULL AND ${table.discountValue} IS NULL) OR (${table.discountType} IS NOT NULL AND ${table.discountValue} IS NOT NULL)`
+      "line_items_discount_percentage_chk",
+      sql`${table.discountPercentage} IS NULL OR (${table.discountPercentage} >= 0 AND ${table.discountPercentage} <= 100)`
     ),
     check(
-      "chk_line_items_discount_value",
-      sql`${table.discountValue} IS NULL OR ${table.discountValue} >= 0`
+      "line_items_discount_amount_chk",
+      sql`${table.discountAmountCents} IS NULL OR ${table.discountAmountCents} >= 0`
+    ),
+    check(
+      "line_items_discount_shape_chk",
+      sql`(${table.discountType} IS NULL AND ${table.discountPercentage} IS NULL AND ${table.discountAmountCents} IS NULL) OR (${table.discountType} = 'percentage' AND ${table.discountPercentage} IS NOT NULL AND ${table.discountAmountCents} IS NULL) OR (${table.discountType} = 'fixed' AND ${table.discountAmountCents} IS NOT NULL AND ${table.discountPercentage} IS NULL)`
     ),
     check("chk_line_items_quantity", sql`${table.quantity} > 0`),
     check("chk_line_items_unit_price", sql`${table.unitPrice} >= 0`),

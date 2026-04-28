@@ -39,7 +39,8 @@ export const invoices = pgTable(
     status: invoiceStatus("status").notNull().default("draft"),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
     discountType: discountType("discount_type"),
-    discountValue: numeric("discount_value", { precision: 10, scale: 2 }),
+    discountPercentage: numeric("discount_percentage", { precision: 5, scale: 2 }),
+    discountAmountCents: bigint("discount_amount_cents", { mode: "number" }),
     subtotal: bigint("subtotal", { mode: "number" }).notNull().default(0),
     discountAmount: bigint("discount_amount", { mode: "number" }).notNull().default(0),
     taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
@@ -67,12 +68,16 @@ export const invoices = pgTable(
       .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("idx_invoices_public_token").on(table.publicToken),
     check(
-      "chk_invoices_discount",
-      sql`(${table.discountType} IS NULL AND ${table.discountValue} IS NULL) OR (${table.discountType} IS NOT NULL AND ${table.discountValue} IS NOT NULL)`
+      "invoices_discount_percentage_chk",
+      sql`${table.discountPercentage} IS NULL OR (${table.discountPercentage} >= 0 AND ${table.discountPercentage} <= 100)`
     ),
     check(
-      "chk_invoices_discount_value",
-      sql`${table.discountValue} IS NULL OR ${table.discountValue} >= 0`
+      "invoices_discount_amount_chk",
+      sql`${table.discountAmountCents} IS NULL OR ${table.discountAmountCents} >= 0`
+    ),
+    check(
+      "invoices_discount_shape_chk",
+      sql`(${table.discountType} IS NULL AND ${table.discountPercentage} IS NULL AND ${table.discountAmountCents} IS NULL) OR (${table.discountType} = 'percentage' AND ${table.discountPercentage} IS NOT NULL AND ${table.discountAmountCents} IS NULL) OR (${table.discountType} = 'fixed' AND ${table.discountAmountCents} IS NOT NULL AND ${table.discountPercentage} IS NULL)`
     ),
     check(
       "chk_invoices_totals",
