@@ -8,9 +8,10 @@
 >
 > Sections are refined in place as the system evolves. Nothing is deleted.
 >
-> **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions —
+> **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions -
 > file naming, component patterns, form structure, import order, testing layout — are owned by the
-> rule files in `.claude/rules/` and are referenced from here, not duplicated.
+> rule files in `.claude/rules/` and are referenced from here, not duplicated. The final database
+> schema is owned by `SCHEMA.md` in this directory.
 
 ---
 
@@ -30,11 +31,13 @@
 12. [API surface](#12-api-surface)
 13. [Infrastructure and deployment](#13-infrastructure-and-deployment)
 14. [Self-hosting experience](#14-self-hosting-experience)
-15. [Observability](#15-observability)
-16. [Testing strategy](#16-testing-strategy)
-17. [Plugin system](#17-plugin-system)
-18. [Open architectural questions](#18-open-architectural-questions)
-19. [Architecture Decision Records](#19-architecture-decision-records)
+15. [Internationalization](#15-internationalization)
+16. [Observability](#16-observability)
+17. [Testing strategy](#17-testing-strategy)
+18. [Plugin system](#18-plugin-system)
+19. [Hosted offering](#19-hosted-offering)
+20. [Open architectural questions](#20-open-architectural-questions)
+21. [Architecture Decision Records](#21-architecture-decision-records)
 
 ---
 
@@ -58,12 +61,12 @@ providers are pluggable and user-selected — they are never forced. The system 
 data covered by an NDA or contractual confidentiality requirement never needs to leave the user's
 own infrastructure.
 
-**Single-user model as a structural decision.** Every domain entity is implicitly owned by the
-instance. There is no multi-tenancy, no organisation layer, no per-seat pricing logic, and no role
-hierarchy in the base model. This is not a temporary constraint — it is a deliberate simplification
-that drives every data model and permission decision. Multi-user support exists as a layered
-addition (owner, accountant, assistant) — see §10 — and never replaces or compromises the base
-model.
+**Single-instance simplicity.** Every domain entity is implicitly owned by the instance. There is no
+multi-tenancy in the application code, no per-seat pricing logic in the schema. Multi-user support
+exists as a layered addition (owner, accountant, assistant) — see the Multi-user model section — and
+never introduces tenant scoping into domain queries. A managed Hosted offering exists alongside
+self-hosting, with each customer running on a dedicated isolated instance — see the Hosted offering
+section — so that the same simplification holds for both deployment models.
 
 ### Primary workflow
 
@@ -112,16 +115,18 @@ without explicit, opt-in configuration by the user. This is not aspirational —
 architecture: every external dependency (email, payment, error tracking) is an optional adapter that
 is disabled until the user provides credentials.
 
-### 2 — Single-user simplicity is structural
+### 2 — Single-instance simplicity is structural
 
-Domain entities carry no `userId` or `organisationId` foreign key. Ownership is implicit to the
-instance. This eliminates an entire class of permission-checking bugs, simplifies every query, and
-means the permission model can be understood in one sentence: you own everything in your database.
+Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. Within an
+instance, multi-user adds a `role` per user account but does not partition data — every member of
+the instance sees the same domain dataset, scoped only by role permissions.
 
-Multi-user access is layered on top via roles and role-scoped middleware. It does not alter the
-domain model. See §10.
+This eliminates an entire class of permission-checking bugs, simplifies every query, and means the
+permission model can be understood in two sentences: you own everything in your instance, and your
+role decides what you can do with it. The Hosted offering preserves this by isolating each customer
+in a dedicated instance — see the Hosted offering section.
 
-### 3 — Modular architecture for a two-year roadmap
+### 3 — Modular architecture for a multi-year roadmap
 
 Each feature is a closed module with explicitly enforced boundaries. The codebase is structured as
 if it were already a monorepo, so future extraction of packages is mechanical. This constraint
@@ -148,15 +153,15 @@ branch is always deployable. A feature is either done or it lives on a branch.
 
 ### 7 — Type safety to every boundary
 
-Every server action, public endpoint, settings field, and environment variable validates with Zod.
-`any` is forbidden. Non-null assertions are forbidden. The compiler's guarantees hold all the way
-from the database schema to the React component.
+Every server action, public endpoint, settings field, environment variable, and translation key
+validates with Zod or generated types. `any` is forbidden. Non-null assertions are forbidden. The
+compiler's guarantees hold all the way from the database schema to the React component.
 
 ### 8 — The self-hosting experience is part of the product
 
 Install, upgrade, backup, restore, and recover from disaster are first-class features. The install
 experience is a single command. Nothing beyond database credentials, an encryption key, and an auth
-secret requires editing `.env` for typical use. See §14.
+secret requires editing `.env` for typical use. see the Self-hosting experience section.
 
 ---
 
@@ -317,8 +322,8 @@ erDiagram
 ```
 draft ──► sent ──► paid
             │
-            └──► (overdue — computed, not stored: dueAt < now AND status = sent)
-            └──► (partially_paid — computed: sum(payments) < totalCents AND payments exist)
+            └──► (overdue - computed, not stored: dueAt < now AND status = sent)
+            └──► (partially_paid - computed: sum(payments) < totalCents AND payments exist)
 ```
 
 **Proposal**
@@ -370,8 +375,8 @@ active ──► completed (end condition met: count or date)
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
   EUR/USD). The ISO 4217 currency code lives on the parent entity, never on individual money
   columns.
-- Domain entities carry no `userId` or `organisationId` foreign key. Ownership is implicit to the
-  instance. The single-user model is structural — see §2 and §10.
+- Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. The
+  single-instance model is structural — see the Design philosophy and Multi-user model sections.
 - All domain tables carry `createdAt` and `updatedAt` timestamps (via the `timestamps` helper) and a
   `deletedAt` for soft delete (via the `softDelete` helper).
 
@@ -380,9 +385,11 @@ active ──► completed (end condition met: count or date)
 The domain model in this section is the conceptual reference. It defines entities, relationships,
 lifecycles, and invariants. The actual database schema in `database/schema/` implements this model
 faithfully and adds operational detail: indexes, check constraints, soft-delete columns, encryption
-helpers, polymorphic patterns where pragmatic.
+helpers, polymorphic patterns where pragmatic. The full table-by-table schema specification is in
+`SCHEMA.md` in this directory - that is the authoritative reference for column shape, constraints,
+and indexes.
 
-A divergence between the two means one of the following:
+A divergence between the domain model and the schema means one of the following:
 
 1. The schema is ahead — a new feature is being implemented and the domain model has not yet been
    updated. The domain model is updated as part of merging the feature.
@@ -424,26 +431,28 @@ proceeds.
                  ▼
   ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
   │        Data Layer           │    │         External Adapters            │
-  │   Drizzle ORM               │    │   Email  — SMTP or Resend            │
-  │   PostgreSQL                │    │   Payments — Stripe (or others)      │
-  │   database/schema/          │    │   Storage  — local FS or S3          │
-  └─────────────────────────────┘    │   Error tracking — Sentry-compatible │
+  │   Drizzle ORM               │    │   Email  - SMTP or Resend            │
+  │   PostgreSQL                │    │   Payments - Stripe (or others)      │
+  │   database/schema/          │    │   Storage  - local FS or S3          │
+  └─────────────────────────────┘    │   Error tracking - Sentry-compatible │
                                      └──────────────────────────────────────┘
 ```
 
 ### Technology stack
 
-| Layer      | Technology                    | Rationale                                                                                                               |
-| ---------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router)       | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes  |
-| Runtime    | Node.js ≥ 22                  | Required by better-auth; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                                 |
-| Language   | TypeScript (strict)           | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                    |
-| ORM        | Drizzle                       | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                      |
-| Database   | PostgreSQL                    | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search              |
-| Auth       | better-auth                   | TOTP plugin included; sessions; multi-user via the organization plugin or a dedicated memberships layer (see §10)       |
-| Styling    | Tailwind CSS v4               | Design tokens as CSS variables in `globals.css`; no config file                                                         |
-| Validation | Zod                           | Runtime and compile-time safety at every boundary; single source of truth for input shape and inferred TypeScript types |
-| Forms      | react-hook-form + zodResolver | Controlled validation with zero unnecessary re-renders per keystroke                                                    |
+| Layer      | Technology                        | Rationale                                                                                                                               |
+| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router)           | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes                  |
+| Runtime    | Node.js ≥ 22                      | Required by better-auth; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                                                 |
+| Language   | TypeScript (strict)               | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                                    |
+| ORM        | Drizzle                           | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                                      |
+| Database   | PostgreSQL                        | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search                              |
+| Auth       | better-auth + organization plugin | TOTP plugin included; sessions; multi-user via the organization plugin (single org per instance) — see the Multi-user model section     |
+| Styling    | Tailwind CSS v4                   | Design tokens as CSS variables in `globals.css`; no config file                                                                         |
+| Validation | Zod                               | Runtime and compile-time safety at every boundary; single source of truth for input shape and inferred TypeScript types                 |
+| Forms      | react-hook-form + zodResolver     | Controlled validation with zero unnecessary re-renders per keystroke                                                                    |
+| i18n       | i18next + react-i18next + ICU     | Type-safe message keys derived from a single `Translations` type; ICU for plurals and parameters — see the Internationalization section |
+| Logging    | pino                              | Structured JSON in production; one log entry per significant event, with `requestId` correlation                                        |
 
 ---
 
@@ -589,6 +598,9 @@ One Drizzle schema file per domain entity in `database/schema/`. All schemas exp
 `database/schema/index.ts`. Generated migrations live in `drizzle/migrations/` and are never
 hand-edited — the migration file is an artefact, not source code.
 
+The full final schema specification — every table, column, constraint, index — is in `SCHEMA.md` in
+this directory.
+
 ### Universal table conventions
 
 | Convention       | Rule                                                                    | Rationale                                                                       |
@@ -629,7 +641,7 @@ Fields that contain sensitive credentials are defined in the Drizzle schema usin
 
 - **Transparent encryption on write** using AES-256-GCM with a per-row random IV generated at write
   time.
-- **Transparent decryption on read** — consuming code receives the plaintext value and is unaware of
+- **Transparent decryption on read** - consuming code receives the plaintext value and is unaware of
   the encryption.
 - The master key is loaded from `REMIT_ENCRYPTION_KEY` (a base64-encoded 32-byte key generated at
   install time by the install script).
@@ -676,10 +688,10 @@ payment.received
 client.created         client.updated         client.deleted
 lead.converted         lead.stage_changed
 auth.login.succeeded   auth.login.failed      auth.password.changed
-auth.totp.reconfigured auth.recovery_code.consumed
+auth.totp.reconfigured auth.backup_code.consumed
 settings.email.configured  settings.payment.configured  settings.security.changed
 recurring.invoice_generated  retainer.pool_exhausted
-membership.invited     membership.accepted    membership.revoked
+member.invited         member.accepted        member.removed         invitation.canceled
 ```
 
 ### `invoice.paid` fan-out as a concrete example
@@ -711,7 +723,8 @@ The same event bus that wires cross-feature side effects today is the contract t
 subscribe to. Adding ATCUD generation for Portuguese invoicing, AI-drafted proposal text, or OCR for
 expense receipts is a matter of installing a plugin that registers handlers for `invoice.created`,
 `proposal.created`, or `expense.created`. The event bus is therefore not just a decoupling mechanism
-— it is the public extensibility surface of Remit. See §17.
+
+- it is the public extensibility surface of Remit. see the Plugin system section.
 
 ---
 
@@ -736,6 +749,7 @@ POST /login
   │     └── Success → continue
   │
   ├── Session created (httpOnly, secure, sameSite: lax)
+  │     └── activeOrganizationId set on session (always the instance organization)
   │
   └── emit auth.login.succeeded → audit log
 ```
@@ -747,16 +761,17 @@ Three coexisting paths, in order of availability:
 1. **Email reset link** — available only when SMTP is configured and a test send has succeeded. The
    UI conditionally shows "Forgot password?" when this condition is met.
 
-2. **Recovery codes** — 10 single-use codes generated at `/setup` after TOTP enrollment. Displayed
-   once, forced download as `.txt`, acknowledgement checkbox required. Codes are bcrypt-hashed in
-   `recovery_codes` table. The `/recover` route accepts email + code, consumes the code atomically,
-   and allows setting a new password and re-enrolling TOTP.
+2. **CLI/admin reset** - `docker exec remit-app pnpm remit:reset-password` for self-hosted
+   complete-lockout cases or environments without SMTP. Generates a temporary password, marks the
+   user `mustChangePasswordOnNextLogin`, writes audit log.
 
-3. **CLI fallback** — `docker exec remit-app pnpm remit:reset-password` for complete lockout.
-   Generates a temporary password, marks the user `mustChangePasswordOnNextLogin`, writes audit log.
+TOTP is **never optional**. There is no UI to disable it. Password reset and second-factor fallback
+are separate concerns: password reset happens by email or CLI/admin action, while second-factor
+fallback uses Better Auth backup codes.
 
-TOTP is **never optional**. There is no UI to disable it. The only flow that clears it is the full
-account recovery path via recovery codes, which re-enrolls TOTP as part of the flow.
+Better Auth **backup codes** remain enabled as part of the TOTP plugin and are stored in
+`two_factor.backup_codes`. They are used only as a second-factor fallback during login when the
+authenticator app is unavailable.
 
 ### Encryption at rest
 
@@ -773,16 +788,17 @@ account recovery path via recovery codes, which re-enrolls TOTP as part of the f
 
 Two logs serve distinct purposes and must never be confused:
 
-**Activity log** (`activity_log`) — user-facing, friendly messages ("Invoice #INV-042 sent to Acme
+**Activity log** (`activity_log`) - user-facing, friendly messages ("Invoice #INV-042 sent to Acme
 Corp"), can be edited or deleted via the UI, used for "what happened this week" and client-facing
 event summaries.
 
-**Audit log** (`audit_log`) — security-facing, append-only, immutable. No UI to delete entries.
+**Audit log** (`audit_log`) - security-facing, append-only, immutable. No UI to delete entries.
 Schema: `id`, `event`, `actorUserId | null`, `targetEntityType | null`, `targetEntityId | null`,
 `metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no `deletedAt`. Captures:
-login success/failure; password change; TOTP setup, reconfiguration; recovery code generation and
-consumption; settings changes touching SMTP, Stripe, or payment information; data exports; entity
-deletions; public token rotations; membership changes (see §10).
+login success/failure; password change; TOTP setup, reconfiguration; Better Auth backup-code
+consumption; CLI/admin password resets; settings changes touching SMTP, Stripe, or payment
+information; data exports; entity deletions; public token rotations; member changes (see the
+Multi-user model section).
 
 ### Public token security
 
@@ -800,8 +816,8 @@ Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`, `/s/[toke
 
 A rate limiter with a swappable adapter (in-memory by default; Redis for multi-instance deploys)
 protects every endpoint that processes authentication or a public token. Protected endpoints:
-`POST /login`, `POST /register`, `/i/[token]`, `/p/[token]`, password reset requests, recovery code
-redemption, and all `/api/*` routes with a per-IP backstop.
+`POST /login`, `POST /register`, `/i/[token]`, `/p/[token]`, password reset requests, and all
+`/api/*` routes with a per-IP backstop.
 
 Limits are sane defaults configurable in settings.
 
@@ -831,7 +847,6 @@ No user record in DB             → redirect to /register
 No active session                → redirect to /login
 Business profile incomplete      → redirect to /setup (business step)
 TOTP not enrolled                → redirect to /setup (TOTP step)
-Recovery codes not acknowledged  → redirect to /setup (recovery codes step)
 All conditions satisfied         → allow to (dashboard)
 ```
 
@@ -839,16 +854,15 @@ This rule is non-negotiable. Adding a cookie to influence routing is a violation
 
 ### Data export and deletion
 
-Two GDPR-aligned features that exist even though Remit is single-user:
+Two GDPR-aligned features:
 
 **Export.** `/settings/data` produces a zip containing JSON of every entity, every uploaded file,
 and every generated PDF. Audit-logged. Per-client export is also available for client offboarding or
 right-to-portability requests.
 
 **Soft delete and retention.** Domain entities use `deletedAt` for soft delete and are restorable
-from a trash view. Hard delete is available after a configurable retention period (default matches
-the user's fiscal retention requirement, typically 10 years for Portugal). Hard-deleting a client
-cascades to projects, proposals, and invoices in soft-delete state and requires typed-name
+from a trash view. Hard delete is available after a configurable retention period. Hard-deleting a
+client cascades to projects, proposals, and invoices in soft-delete state and requires typed-name
 confirmation.
 
 ---
@@ -857,13 +871,10 @@ confirmation.
 
 ### Why this section exists
 
-The single-user model in §2 is structural: every domain entity is implicitly owned by the instance,
-and there is no `userId` foreign key on domain tables. This section explains how to layer light
-multi-user access — accountant access, an assistant — on top of this base model **without breaking
-it**.
-
-This is the most architecturally consequential decision in the project after the closed-module
-boundary, because getting it wrong forces a multi-tenant rewrite later.
+The single-instance simplicity in see the Design philosophy section is structural: every domain
+entity is owned by the instance, and there is no `tenantId` foreign key on domain tables. This
+section explains how to layer light multi-user access — accountant access, an assistant — on top of
+this base model **without introducing tenant scoping into domain queries**.
 
 ### The roles
 
@@ -878,36 +889,44 @@ Three roles, defined statically and never extended through configuration:
 The owner is permanent and structural — it is the instance owner. Other roles are invitations, not
 seats.
 
-### The data model
+### Implementation: Better Auth organization plugin
 
-Multi-user adds **one new concept — role assignment per user account** — and changes nothing in the
-domain model. Domain tables remain free of `userId` foreign keys, queries do not change, and
-ownership remains implicit to the instance.
+Multi-user is implemented via the Better Auth organization plugin, with **a single organization per
+Remit instance**. The organization is created automatically during `/setup` (named after the
+business profile) and every authenticated user is a member of it. The session always carries an
+`activeOrganizationId` and it is always that one organization.
 
-The implementation of the role assignment is a deliberate choice between two equivalent options that
-do not affect any other part of the architecture:
+This deliberately uses the plugin in a degenerate mode - multi-org-per-user is not exercised,
+because a Remit instance is a single business. The benefit is inheriting the plugin's invitation
+flow, role propagation, and member tables for free, while keeping the conceptual model trivial.
 
-- **Better Auth's built-in organization plugin** — exposes membership, role, and invitation flows
-  out of the box. Suitable when the project wants to inherit the plugin's UI affordances and
-  invitation tokens.
-- **A dedicated `memberships` table** — a minimal mapping of
-  `(userId, role, invitedBy, invitedAt, acceptedAt)` owned by Remit. Suitable when the project
-  prefers full control over invitation emails, role enumeration, and audit logging.
+The installed Better Auth version is the schema contract for these tables. Remit customizes the
+allowed business roles at the plugin boundary, but it does **not** invent a parallel schema for the
+plugin-owned tables. If Better Auth expects `text` role/status fields, a required `slug`, or a
+session-level `activeOrganizationId`, the Remit schema mirrors that exactly.
 
-Both options yield the same authorization model from the perspective of every server action and
-every query. The choice is recorded as an open question in §18 and decided when multi-user is
-implemented.
+The plugin contributes the following tables to the schema:
+
+- `organization` - exactly one row per instance, with a required unique `slug`. `metadata` follows
+  Better Auth's storage contract for the installed version.
+- `member` - maps `(userId, organizationId, role)`. `role` is stored in the plugin-compatible column
+  shape and Remit constrains allowed values to `owner | accountant | assistant`.
+- `invitation` - pending invitations with email, role, expiry, inviter, and Better Auth's status
+  lifecycle (`pending | accepted | rejected | canceled` for the current version).
+
+Domain tables remain free of `tenantId` foreign keys, queries do not change, and ownership remains
+implicit to the instance. See ADR-0013.
 
 ### Authorization model
 
-Authorization is implemented as a thin layer in two places, regardless of which role-storage option
-is chosen:
+Authorization is implemented as a thin layer in two places:
 
 **Middleware-level (route gating).** Routes under `/settings/security`, `/settings/api`, and any
 endpoint that exposes the encryption key fingerprint are owner-only. Routes that perform sends or
 deletions are blocked for `assistant`. All other routes are accessible to all roles.
 
-**Action-level (operation gating).** Every server action declares its required role at the top:
+**Action-level (operation gating).** Every server action declares its required role at the top via a
+`requireRole` helper that wraps the Better Auth session and checks the active member's role:
 
 ```ts
 "use server"
@@ -930,30 +949,34 @@ export async function listInvoices() {
 }
 ```
 
-`requireRole` reads the session, checks the role, and returns `{ error: "Not authorized" }` if the
-caller's role is insufficient. Audit log entries always include the actor's user id and role.
+`requireRole` reads the session, extracts the `activeMemberRole`, and returns
+`{ error: "Not authorized" }` if the caller's role is insufficient. Audit log entries always include
+the actor's user id and role.
 
 ### Invitation flow
 
 1. Owner invites an email address with a role from `/settings/team`.
-2. If SMTP is configured, an invitation email is sent. Otherwise, the owner is shown a one-time link
-   to share manually.
+2. Better Auth creates an `invitation` record with the plugin's expected field shape. If SMTP is
+   configured, an invitation email is sent; otherwise, the owner is shown a one-time link to share
+   manually.
 3. Invitee follows the link, registers (or signs in if the email already has an account), and the
-   role assignment is activated.
-4. The invitee enrolls TOTP — mandatory for all roles, no exceptions.
+   `member` row is activated.
+4. The invitee enrolls TOTP - mandatory for all roles, no exceptions.
 
-Owners can revoke role assignments at any time. Revocation invalidates all sessions for that user.
+Owners can remove memberships at any time. Removal invalidates all sessions for that user.
 
 ### What multi-user does not change
 
-- The domain model has no `userId` foreign keys. Adding one is a violation.
-- The single-user model is the base; multi-user is layered on top via role assignment and
+- The domain model has no `tenantId` foreign keys. Adding one is a violation.
+- The single-instance model is the base; multi-user is layered on top via role assignment and
   `requireRole`.
-- The audit log captures the actor user id but never alters what gets recorded — the audit log is
-  not a permission system.
-- All roles must enroll TOTP and acknowledge recovery codes through the same `/setup` flow.
+- The audit log captures the actor user id and role but never alters what gets recorded — the audit
+  log is not a permission system.
+- All roles must enroll TOTP through the same `/setup` flow. Backup codes are generated and shown as
+  part of the Better Auth TOTP flow; password recovery remains email- or CLI/admin-based.
 
-See ADR-0002 (single-user model is structural) — multi-user does not supersede it; it extends it.
+See ADR-0002 (single-instance model is structural) — multi-user does not supersede it; it extends
+it. See ADR-0013 (Better Auth organization plugin chosen).
 
 ---
 
@@ -964,18 +987,19 @@ See ADR-0002 (single-user model is structural) — multi-user does not supersede
 Pages and layouts are React Server Components (RSC) by default. `"use client"` is added only when
 the component requires browser APIs, event listeners, or React hooks. The result is minimal
 JavaScript shipped to the browser for read-heavy pages — invoice lists, client detail, the dashboard
-— while interactive components remain fully reactive.
+
+- while interactive components remain fully reactive.
 
 ### Component hierarchy
 
 ```
-app/(dashboard)/invoices/page.tsx       Server component — fetches, composes
+app/(dashboard)/invoices/page.tsx       Server component - fetches, composes
   └── features/invoicing/components/
-        ├── InvoiceList.tsx              Server component — renders table
-        ├── InvoiceFilters.tsx           Client component — search, filter UI
+        ├── InvoiceList.tsx              Server component - renders table
+        ├── InvoiceFilters.tsx           Client component - search, filter UI
         └── InvoiceActions/
-              ├── InvoiceActions.tsx     Client component — send, mark paid, delete
-              └── DeleteInvoiceDialog.tsx  Client component — confirmation dialog
+              ├── InvoiceActions.tsx     Client component - send, mark paid, delete
+              └── DeleteInvoiceDialog.tsx  Client component - confirmation dialog
                     └── components/ui/   Shared primitives (shadcn + Radix UI)
 ```
 
@@ -1072,7 +1096,7 @@ The primary deployment unit is a Docker image published to GitHub Container Regi
 
 ```
 lib/env.ts           Zod-validated boot secrets. Process exits on failure.
-/setup wizard        First-run UI configuration. Minimal — see §14.
+/setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
 /settings/**         Ongoing configuration stored in the settings table.
 .env                 Only: DB connection string, encryption key, auth secret.
 ```
@@ -1117,11 +1141,12 @@ the first day. Everything else is in `/settings/**` and edited when the user nee
 
 **In `/setup` (mandatory):**
 
-1. Business profile — name, default currency, locale, timezone.
+1. Business profile - name, default currency, locale, timezone.
 2. TOTP enrollment.
-3. Recovery codes — generated, displayed once, forced download, checkbox acknowledgement.
+3. Backup codes - generated by Better Auth as part of TOTP setup, displayed once, strongly
+   encouraged to download/store safely.
 
-**Not in `/setup` — only in `/settings/**` later:\*\*
+**Not in `/setup` - only in `/settings/**` later:\*\*
 
 - Logo and branding.
 - Invoicing defaults (number prefix, padding width, payment terms, default notes, IBAN).
@@ -1188,12 +1213,12 @@ when an update is available.
 
 Shipped as `pnpm` scripts inside the Docker image:
 
-- `remit:reset-password` — interactive password reset (for the lost-everything case).
-- `remit:backup` — ad-hoc backup.
-- `remit:restore` — interactive restore.
-- `remit:upgrade` — full upgrade flow.
-- `remit:rotate-encryption-key` — re-encrypt all encrypted fields with a new key (advanced).
-- `remit:seed-demo` — populate the instance with realistic demo data (for screenshots, screencasts,
+- `remit:reset-password` - interactive password reset (for the lost-everything case).
+- `remit:backup` - ad-hoc backup.
+- `remit:restore` - interactive restore.
+- `remit:upgrade` - full upgrade flow.
+- `remit:rotate-encryption-key` - re-encrypt all encrypted fields with a new key (advanced).
+- `remit:seed-demo` - populate the instance with realistic demo data (for screenshots, screencasts,
   and demo deployments).
 
 ### Deployment guides
@@ -1205,7 +1230,70 @@ test invoice.
 
 ---
 
-## 15. Observability
+## 15. Internationalization
+
+Remit ships with full i18n infrastructure from day one, configured for English with the structure
+ready for additional locales. Adding a new language is purely additive — adding a new locale file
+and registering it.
+
+### Stack
+
+- **i18next** — translation engine. Locale resources, fallback handling, plural rules.
+- **react-i18next** — React bindings. Provider, `useTranslation` hook.
+- **i18next-icu** — ICU MessageFormat support for plurals and parameters (e.g.
+  `"{count} item{count, plural, one {} other{s}}"`).
+
+This is the same stack used in other internal projects. It runs in Next.js without locale routing
+(no `/en/...`, `/pt/...` URL prefixes) - locale selection lives in user settings and is applied
+client-side.
+
+### Type-safe message keys
+
+Translation keys are derived from a single `Translations` TypeScript type defined in
+`lib/i18n/types.ts`. Every locale exports a `Language` object (with `code`, `name`, `flag`, `isRtl`,
+`translations`) where `translations` must satisfy `Translations`. The compiler rejects:
+
+- A locale that is missing a key.
+- A locale that has an extra key not declared in `Translations`.
+- A `t("...")` call with a non-existent key.
+
+The `t` function is strongly typed via `react-i18next`'s module augmentation - autocomplete works in
+editors out of the box.
+
+### File layout
+
+```
+lib/i18n/
+  config.ts         i18next initialization, ICU plugin, defaults
+  types.ts          Translations type definition (single source of truth for key shape)
+  locales.ts        Map of locale code → Language object (English only initially)
+  resources.ts      Translation resources for i18next consumption
+  hooks.ts          useTranslation hook (re-export with locales)
+  index.ts          Public barrel
+  locales/
+    en.tsx          English locale, conforms to Translations
+```
+
+When `pt`, `es`, etc. are added, each becomes a new file under `locales/` and is registered in
+`locales.ts`. No other change required.
+
+### Activity log and message keys
+
+User-facing messages in the `activity_log` table store **message keys**, not rendered strings, so
+that re-rendering on a locale change produces the right translation. The activity log row's
+`message_key` column references a key in `Translations` and the row's `message_args` JSONB column
+carries ICU parameters.
+
+### Deferred decisions
+
+- **Date and number formatting** uses `Intl.*` directly (no library). Each locale's `Language`
+  object can carry an optional formatter override if a particular locale needs it.
+- **URL-based locale routing** (e.g. `/pt/dashboard`) is out of scope. Locale is a user preference,
+  not a URL property.
+
+---
+
+## 16. Observability
 
 ### Structured logging
 
@@ -1213,8 +1301,8 @@ test invoice.
 `trace | debug | info | warn | error | fatal`. Production default: `info`. Every log entry includes
 a `requestId` for distributed-trace correlation.
 
-Server-side log entries for errors always include structured context — action name, entity type,
-entity id — and never include sensitive data: passwords, tokens, API keys, or encryption secrets.
+Server-side log entries for errors always include structured context - action name, entity type,
+entity id - and never include sensitive data: passwords, tokens, API keys, or encryption secrets.
 The full convention is in `errors.md`.
 
 ### Error tracking
@@ -1233,11 +1321,11 @@ enable. Self-hosted Sentry and GlitchTip work identically via the same DSN-based
 
 ### Health checks
 
-See §14 — health is part of the self-hosting experience.
+see the Self-hosting experience section — health is part of the self-hosting experience.
 
 ---
 
-## 16. Testing strategy
+## 17. Testing strategy
 
 ### Principle
 
@@ -1247,35 +1335,35 @@ Every test justifies its existence by describing a behavior — never an impleme
 ### Coverage model
 
 ```
-Tier 1 — Pure logic (>90%, CI gate)
+Tier 1 - Pure logic (>90%, CI gate)
   features/*/services/         Tax calculations, state transitions, number generation,
   hooks/                       rate resolution, next-run dates, billable hour aggregation.
   features/*/hooks/            Non-trivial hooks with complex state or side effects.
 
-Tier 2 — Integration (every server action)
+Tier 2 - Integration (every server action)
   features/*/mutations.ts      Against a real Postgres instance (docker-compose.test.yml).
   Recurring jobs               Daily invoice generation, overdue detection.
-  IO adapters                  Email providers, Stripe, S3 — SDK stubbed at module boundary.
+  IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
 
-Tier 3 — E2E (Playwright, five canonical flows)
-  1. Register → setup wizard → recovery codes → first dashboard
+Tier 3 - E2E (Playwright, five canonical flows)
+  1. Register → setup wizard → TOTP + backup codes → first dashboard
   2. Client → project → proposal → acceptance → invoice → paid
   3. Time entry → invoice → send → paid
   4. Recurring invoice generates expected draft on next-run date
-  5. Password reset via recovery code
+  5. Password reset via email or CLI/admin reset
 
-Tier 4 — Selective component tests
+Tier 4 - Selective component tests
   When: state machine (multi-step dialogs), 3+ conditional branches,
         form submission orchestration, non-trivial keyboard/focus behavior.
   Always: assert visible output and user-observable behavior via getByRole.
   Never: renderHook to inspect internal state, render counts, callback names.
 
-Tier 5 — Never tested
+Tier 5 - Never tested
   components/ui/    Trust shadcn + Radix UI.
-  Server components and pages — covered by E2E.
+  Server components and pages - covered by E2E.
   Pure presentational components with no logic.
-  Drizzle queries in isolation — covered by integration tests of their consumers.
-  Snapshot tests of rendered React — banned.
+  Drizzle queries in isolation - covered by integration tests of their consumers.
+  Snapshot tests of rendered React - banned.
 ```
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
@@ -1291,7 +1379,7 @@ The full convention — file placement, naming, AAA structure, factories, determ
 
 ---
 
-## 17. Plugin system
+## 18. Plugin system
 
 ### Why a plugin system
 
@@ -1312,12 +1400,12 @@ burden. Plugins solve this cleanly.
 
 A plugin is an npm package that may do any combination of:
 
-- **Register handlers on the event bus** — react to `invoice.created`, `expense.created`, etc.
-- **Add Drizzle schema extensions** — additive columns or new tables. Plugins do not modify existing
+- **Register handlers on the event bus** - react to `invoice.created`, `expense.created`, etc.
+- **Add Drizzle schema extensions** - additive columns or new tables. Plugins do not modify existing
   schemas; they extend.
-- **Register Next.js routes** — under a reserved `/plugins/<n>/` namespace.
-- **Add settings sections** — render in `/settings` automatically.
-- **Add template variants and merge variables** — plug into the template editor.
+- **Register Next.js routes** - under a reserved `/plugins/<n>/` namespace.
+- **Add settings sections** - render in `/settings` automatically.
+- **Add template variants and merge variables** - plug into the template editor.
 
 The internal interfaces that wire features together (the event bus type map, the settings extension
 API, the schema barrel) are the same surfaces that the plugin SDK exposes. The design constraint is
@@ -1326,7 +1414,7 @@ simple: **everything new in core must remain extensible**.
 ### Loading model
 
 Plugins are listed in `remit.config.ts` and bundled at build time. There is no runtime plugin
-loading from arbitrary URLs — that would be a serious security hole in a self-hosted application.
+loading from arbitrary URLs - that would be a serious security hole in a self-hosted application.
 Self-hosters explicitly add plugins to their config and rebuild.
 
 ### Anchor plugins
@@ -1341,7 +1429,67 @@ Self-hosters explicitly add plugins to their config and rebuild.
 
 ---
 
-## 18. Open architectural questions
+## 19. Hosted offering
+
+Remit is open-source and self-hostable first. A Hosted offering exists alongside self-hosting for
+users who do not want to operate their own infrastructure. The Hosted offering does not displace
+self-hosting; it complements it.
+
+### Single architectural commitment
+
+**One customer = one isolated Remit instance.** No shared database. No `tenantId` columns. No
+row-level tenant scoping inside the application code. The same Docker image and the same schema that
+a self-hoster uses are what each Hosted customer gets, with their own database and their own volume
+of files.
+
+This is a strong commitment because the alternative - multi-tenancy via row-level scoping in a
+shared database - would force every domain query to carry tenant filtering, expand the security
+surface, and contradict see the Design philosophy section design philosophy. Per-instance isolation
+keeps the application code oblivious to whether it is running on a freelancer's Raspberry Pi or on
+the Hosted platform.
+
+### What Hosted adds, outside the application
+
+The Hosted offering needs operational components that do not belong in the open-source repository:
+
+- A **control plane** - handles signups, subscription billing, instance provisioning, and routing.
+  This is a separate codebase, not part of the Remit application.
+- A **router** - maps `<customer>.remit.dev` (or a custom domain) to the correct instance. Standard
+  reverse-proxy work, not Remit-specific.
+- **Centralised backups, patching, and monitoring** - operational concerns that the user would
+  otherwise handle themselves on a self-host.
+
+None of this requires changes to the Remit application. The Hosted operator runs the same image,
+manages the lifecycle externally.
+
+### What the application does need to know
+
+Three small affordances inside the application acknowledge the Hosted context:
+
+- **Read-only configuration items in Hosted mode.** The encryption key fingerprint, the base URL,
+  and the database connection are user-editable on a self-host but read-only on Hosted (the operator
+  manages them). A boolean flag in `lib/env.ts` (`REMIT_HOSTED_MODE`) drives this.
+- **Backup section.** On Hosted, the backup destination is operator-managed; the UI shows that
+  status rather than asking the user to configure S3/R2 credentials.
+- **Update section.** On Hosted, the update flow is operator-managed; the UI shows the running
+  version but does not expose `remit:upgrade`.
+
+These are UI affordances, not feature gates. Every feature exists in both modes.
+
+### Why this matters now even though Hosted is not built
+
+Documenting the per-instance commitment up front prevents architectural drift. Without this section,
+it is too easy for a future contributor to add a `tenantId` column "just in case", which would
+compromise the single-instance model for self-hosters and add complexity that is never exercised. By
+committing to per-instance isolation as the architecture for both deployment models, the application
+stays simple, the schema stays clean, and the future Hosted launch is operations work - not
+refactoring work.
+
+See ADR-0014.
+
+---
+
+## 20. Open architectural questions
 
 Honest record of decisions that are not yet made. Each becomes an ADR when decided. Listing them
 here serves three purposes: it forces awareness of the trade-off space, it prevents accidental
@@ -1354,31 +1502,15 @@ of the project for any reader.
 
 **Candidates.**
 
-- **Puppeteer / Playwright headless** — full HTML/CSS fidelity, slow startup, large memory
+- **Puppeteer / Playwright headless** - full HTML/CSS fidelity, slow startup, large memory
   footprint, requires a Chromium dependency in the Docker image.
-- **`react-pdf`** — lightweight, no browser dependency, but the visual fidelity is constrained by
+- **`react-pdf`** - lightweight, no browser dependency, but the visual fidelity is constrained by
   the renderer's own subset of CSS.
-- **`pdfmake`** — programmatic, no HTML at all, very lightweight, but means the template editor
+- **`pdfmake`** - programmatic, no HTML at all, very lightweight, but means the template editor
   produces a different intermediate representation than what the user sees.
 
 **Decision criteria.** Bundle and runtime cost vs. template fidelity. Whether the WYSIWYG editor
 preview should match the rendered PDF exactly.
-
-### Multi-user role storage
-
-**The question.** Where do role assignments live: in Better Auth's organization plugin, or in a
-dedicated `memberships` table owned by Remit?
-
-**Candidates.**
-
-- **Better Auth organization plugin.** Inherits invitation flows, session role propagation, and UI
-  helpers. Fewer custom flows. Couples role storage to the auth library's evolution.
-- **Dedicated `memberships` table.** Full control over the role enumeration, invitation token
-  format, audit detail, and email content. More code to maintain.
-
-**Decision criteria.** How much invitation customisation Remit needs (specifically: locale,
-branding, audit detail), and how stable Better Auth's organization plugin becomes by the time
-multi-user is implemented.
 
 ### In-process queue vs. external worker
 
@@ -1388,7 +1520,7 @@ scheduled or asynchronous tasks executed?
 **Candidates.**
 
 - **In-process scheduler.** A small `setInterval`-based scheduler inside the Next.js process.
-  Sufficient for single-user scale; no external dependency.
+  Sufficient for single-instance scale; no external dependency.
 - **External worker process.** A separate Node process that owns the scheduler and an outbound
   queue. Closer to "correct" under load; doubles the Docker image complexity.
 - **BullMQ-style queue with Redis.** Best practice for serious background work; introduces Redis as
@@ -1397,55 +1529,32 @@ scheduled or asynchronous tasks executed?
 **Decision criteria.** When the simplest option starts producing user-visible failures (missed runs,
 duplicate emails). Until then, simpler is better.
 
-### Internationalization strategy
-
-**The question.** How is UI text translated and how are locale-specific formats handled?
-
-**Candidates.**
-
-- **`next-intl`** — popular, App-Router-native, supports message extraction.
-- **Custom dictionary** — a typed map of message keys to strings, no library.
-- **Server-component-friendly minimal layer** — translate on the server, ship only the active
-  language to the client.
-
-**Decision criteria.** When the first non-English UI surface lands. The mechanism for date, number,
-and currency formatting (already `Intl.*` for currency) needs no library — only message translation
-does.
-
-### Multi-instance scaling
-
-**The question.** Does Remit ever run as more than a single instance?
-
-The single-instance topology is sufficient for the freelancer use case. The in-memory rate limiter,
-the in-process event bus, and the in-process scheduler all assume one instance. If the answer
-becomes yes — for a hosted deployment or for redundancy behind a load balancer — the rate limiter
-swaps to Redis (already designed as an adapter), the event bus pattern migrates to a queue, and the
-scheduler moves to an external worker. None of these changes affect feature code; they affect the
-lifecycle of three modules.
-
 ---
 
-## 19. Architecture Decision Records
+## 21. Architecture Decision Records
 
 ADRs are numbered, immutable, and append-only. They live in `docs/architecture/adr/`. Once an ADR is
-recorded, it is never deleted or rewritten — later decisions create new ADRs that supersede or
+recorded, it is never deleted or rewritten - later decisions create new ADRs that supersede or
 refine earlier ones. Each ADR follows the standard template: **Context**, **Decision**,
 **Consequences**, **Alternatives considered**.
 
-| ADR                                          | Title                                                               | Status   |
-| -------------------------------------------- | ------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)        | No cookies for routing state                                        | Accepted |
-| [0002](adr/0002-single-user-model.md)        | Single-user model is structural                                     | Accepted |
-| [0003](adr/0003-mandatory-totp.md)           | Mandatory TOTP — no opt-out                                         | Accepted |
-| [0004](adr/0004-feature-module-structure.md) | Closed feature modules with ESLint enforcement                      | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)       | AES-256-GCM encryption via Drizzle column helper                    | Accepted |
-| [0006](adr/0006-internal-event-bus.md)       | Typed in-process event bus for cross-feature effects                | Accepted |
-| [0007](adr/0007-pure-services.md)            | Pure business logic in `services/` — no framework imports           | Accepted |
-| [0008](adr/0008-email-adapters.md)           | SMTP and Resend as interchangeable adapter implementations          | Accepted |
-| [0009](adr/0009-money-as-integer-cents.md)   | Money stored as integer cents — no floating-point                   | Accepted |
-| [0010](adr/0010-soft-delete.md)              | Soft delete by default — hard delete after retention window         | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)        | Single Next.js app until a second artefact requires its own build   | Accepted |
-| [0012](adr/0012-recovery-codes.md)           | Recovery codes as primary password-reset path when SMTP unavailable | Accepted |
+| ADR                                          | Title                                                                                                       | Status   |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)        | No cookies for routing state                                                                                | Accepted |
+| [0002](adr/0002-single-instance-model.md)    | Single-instance model is structural                                                                         | Accepted |
+| [0003](adr/0003-mandatory-totp.md)           | Mandatory TOTP - no opt-out                                                                                 | Accepted |
+| [0004](adr/0004-feature-module-structure.md) | Closed feature modules with ESLint enforcement                                                              | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)       | AES-256-GCM encryption via Drizzle column helper                                                            | Accepted |
+| [0006](adr/0006-internal-event-bus.md)       | Typed in-process event bus for cross-feature effects                                                        | Accepted |
+| [0007](adr/0007-pure-services.md)            | Pure business logic in `services/` - no framework imports                                                   | Accepted |
+| [0008](adr/0008-email-adapters.md)           | SMTP and Resend as interchangeable adapter implementations                                                  | Accepted |
+| [0009](adr/0009-money-as-integer-cents.md)   | Money stored as integer cents - no floating-point                                                           | Accepted |
+| [0010](adr/0010-soft-delete.md)              | Soft delete by default - hard delete after retention window                                                 | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)        | Single Next.js app until a second artefact requires its own build                                           | Accepted |
+| [0012](adr/0012-recovery-codes.md)           | Password reset uses email when available, otherwise CLI/admin reset; backup codes are only for 2FA fallback | Accepted |
+| [0013](adr/0013-better-auth-organization.md) | Better Auth organization plugin for multi-user role storage                                                 | Accepted |
+| [0014](adr/0014-hosted-offering.md)          | Hosted offering as per-instance isolation, not row-level multi-tenancy                                      | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)       | i18next + ICU with TypeScript-typed message keys                                                            | Accepted |
 
 ---
 

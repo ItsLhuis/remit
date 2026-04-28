@@ -22,7 +22,8 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
+  useSidebar
 } from "@/components/ui"
 
 type NavItem = {
@@ -68,6 +69,8 @@ const navGroups: NavGroup[] = [
 
 const SettingsSidebar = () => {
   const pathname = usePathname()
+
+  const { isMobile } = useSidebar()
 
   const [search, setSearch] = useState("")
 
@@ -125,13 +128,15 @@ const SettingsSidebar = () => {
         </ScrollArea>
         <div
           className={cn(
-            "from-background pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity duration-200",
+            "pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
+            isMobile ? "from-sidebar" : "from-background",
             canScrollUp ? "opacity-100" : "opacity-0"
           )}
         />
         <div
           className={cn(
-            "from-background pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity duration-200",
+            "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
+            isMobile ? "from-sidebar" : "from-background",
             canScrollDown ? "opacity-100" : "opacity-0"
           )}
         />

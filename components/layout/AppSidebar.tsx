@@ -135,7 +135,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
               <DropdownMenuGroup>
                 <DropdownMenuItem variant="destructive" onSelect={() => setSignOutOpen(true)}>
                   <Icon name="LogOut" />
-                  Log out
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -260,13 +260,13 @@ const AppSidebar = () => {
           </ScrollArea>
           <div
             className={cn(
-              "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity duration-200",
+              "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
               canScrollUp ? "opacity-100" : "opacity-0"
             )}
           />
           <div
             className={cn(
-              "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity duration-200",
+              "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
               canScrollDown ? "opacity-100" : "opacity-0"
             )}
           />

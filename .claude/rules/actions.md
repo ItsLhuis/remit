@@ -71,8 +71,8 @@ server-side with structured context (action name, relevant entity ids) and retur
 ## Naming
 
 Action names are verb + noun, present indicative: `createInvoice`, `markAsPaid`, `convertToInvoice`,
-`deleteProject`. See `code-style.md` §Naming for the broader naming conventions used throughout the
-codebase.
+`deleteProject`. See `code-style.md`, Naming section, for the broader naming conventions used
+throughout the codebase.
 
 ## Canonical example
 
