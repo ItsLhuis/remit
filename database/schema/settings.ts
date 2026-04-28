@@ -2,17 +2,12 @@ import { boolean, check, integer, pgTable, text, uuid, varchar } from "drizzle-o
 
 import { relations, sql } from "drizzle-orm"
 
-import { user } from "./auth"
 import { timestamps } from "./helpers"
 
 export const settings = pgTable(
   "settings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .unique()
-      .references(() => user.id, { onDelete: "cascade" }),
     businessName: text("business_name"),
     businessEmail: text("business_email"),
     businessPhone: text("business_phone"),
@@ -66,9 +61,4 @@ export const settings = pgTable(
   ]
 )
 
-export const settingsRelations = relations(settings, ({ one }) => ({
-  user: one(user, {
-    fields: [settings.userId],
-    references: [user.id]
-  })
-}))
+export const settingsRelations = relations(settings, () => ({}))

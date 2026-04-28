@@ -15,7 +15,6 @@ import {
 
 import { relations, sql } from "drizzle-orm"
 
-import { user } from "./auth"
 import { discountType, invoiceStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
 import { lineItems } from "./lineItems"
@@ -27,9 +26,6 @@ export const invoices = pgTable(
   "invoices",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -57,7 +53,6 @@ export const invoices = pgTable(
     ...timestamps
   },
   (table) => [
-    index("idx_invoices_user_id").on(table.userId),
     index("idx_invoices_project_id").on(table.projectId),
     index("idx_invoices_proposal_id").on(table.proposalId),
     index("idx_invoices_template_id").on(table.templateId),
@@ -92,10 +87,6 @@ export const invoices = pgTable(
 )
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
-  user: one(user, {
-    fields: [invoices.userId],
-    references: [user.id]
-  }),
   project: one(projects, {
     fields: [invoices.projectId],
     references: [projects.id]

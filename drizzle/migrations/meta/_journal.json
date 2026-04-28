@@ -36,6 +36,13 @@
       "when": 1777390585006,
       "tag": "0004_far_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777390815013,
+      "tag": "0005_cold_deathstrike",
+      "breakpoints": true
     }
   ]
 }
