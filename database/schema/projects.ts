@@ -5,7 +5,7 @@ import { relations, sql } from "drizzle-orm"
 import { user } from "./auth"
 import { clients } from "./clients"
 import { projectStatus } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 
@@ -25,12 +25,16 @@ export const projects = pgTable(
     budget: bigint("budget", { mode: "number" }),
     startDate: date("start_date", { mode: "date" }),
     endDate: date("end_date", { mode: "date" }),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
     index("idx_projects_user_id").on(table.userId),
     index("idx_projects_client_id").on(table.clientId),
     index("idx_projects_status").on(table.status),
+    index("idx_projects_active")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     check("chk_projects_budget", sql`${table.budget} IS NULL OR ${table.budget} >= 0`),
     check(
       "chk_projects_dates",

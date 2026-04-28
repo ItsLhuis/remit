@@ -13,7 +13,7 @@ import {
 import { relations, sql } from "drizzle-orm"
 
 import { discountType } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 import { taxRates } from "./taxRates"
@@ -36,12 +36,16 @@ export const lineItems = pgTable(
     subtotal: bigint("subtotal", { mode: "number" }).notNull().default(0),
     taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
     total: bigint("total", { mode: "number" }).notNull().default(0),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
     index("idx_line_items_proposal_id").on(table.proposalId),
     index("idx_line_items_invoice_id").on(table.invoiceId),
     index("idx_line_items_tax_rate_id").on(table.taxRateId),
+    index("idx_line_items_active")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("uq_line_items_proposal_position")
       .on(table.proposalId, table.position)
       .where(sql`${table.proposalId} IS NOT NULL`),

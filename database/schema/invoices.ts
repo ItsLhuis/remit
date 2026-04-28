@@ -17,7 +17,7 @@ import { relations, sql } from "drizzle-orm"
 
 import { user } from "./auth"
 import { discountType, invoiceStatus } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { lineItems } from "./lineItems"
 import { projects } from "./projects"
 import { proposals } from "./proposals"
@@ -52,6 +52,7 @@ export const invoices = pgTable(
     firstViewedAt: timestamp("first_viewed_at", { withTimezone: true, mode: "date" }),
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true, mode: "date" }),
     viewCount: integer("view_count").notNull().default(0),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
@@ -61,6 +62,9 @@ export const invoices = pgTable(
     index("idx_invoices_template_id").on(table.templateId),
     index("idx_invoices_status").on(table.status),
     index("idx_invoices_due_date").on(table.dueDate),
+    index("idx_invoices_active")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("idx_invoices_public_token").on(table.publicToken),
     check(
       "chk_invoices_discount",

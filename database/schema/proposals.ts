@@ -17,7 +17,7 @@ import { relations, sql } from "drizzle-orm"
 
 import { user } from "./auth"
 import { discountType, proposalStatus } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { lineItems } from "./lineItems"
 import { projects } from "./projects"
@@ -55,6 +55,7 @@ export const proposals = pgTable(
     respondedAt: timestamp("responded_at", { withTimezone: true, mode: "date" }),
     respondedIp: text("responded_ip"),
     rejectionReason: text("rejection_reason"),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
@@ -62,6 +63,9 @@ export const proposals = pgTable(
     index("idx_proposals_project_id").on(table.projectId),
     index("idx_proposals_template_id").on(table.templateId),
     index("idx_proposals_status").on(table.status),
+    index("idx_proposals_active")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("idx_proposals_public_token").on(table.publicToken),
     check(
       "chk_proposals_discount",

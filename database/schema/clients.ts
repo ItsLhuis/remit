@@ -1,9 +1,9 @@
 import { index, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
-import { relations } from "drizzle-orm"
+import { relations, sql } from "drizzle-orm"
 
 import { user } from "./auth"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { projects } from "./projects"
 
 export const clients = pgTable(
@@ -25,11 +25,15 @@ export const clients = pgTable(
     postalCode: text("postal_code"),
     country: text("country"),
     notes: text("notes"),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
     index("idx_clients_user_id").on(table.userId),
-    index("idx_clients_name").on(table.name)
+    index("idx_clients_name").on(table.name),
+    index("idx_clients_active")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`)
   ]
 )
 
