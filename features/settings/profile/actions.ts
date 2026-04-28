@@ -40,7 +40,6 @@ export async function confirmAvatarUpload(
 
   try {
     await database.insert(uploads).values({
-      userId: session.user.id,
       filename,
       path: objectKey,
       mimeType,

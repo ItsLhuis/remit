@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { eq } from "drizzle-orm"
-
 import { auth } from "@/lib/auth"
 
 import { database } from "@/database"
@@ -48,7 +46,6 @@ export async function proxy(request: NextRequest) {
   const userSettings = await database
     .select({ businessName: settings.businessName })
     .from(settings)
-    .where(eq(settings.userId, session.user.id))
     .limit(1)
     .then((rows) => rows[0] ?? null)
 
