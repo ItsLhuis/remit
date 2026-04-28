@@ -18,6 +18,17 @@ import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 import { taxRates } from "./taxRates"
 
+/**
+ * Snapshot fields on line items:
+ * - taxPercentageSnapshot
+ * - unitPrice
+ * - discountPercentage
+ * - discountAmountCents
+ *
+ * These values are captured at line-item creation time and preserved as-is, even
+ * if referenced entities (for example, a `tax_rates` row) are modified later.
+ * This protects invoice immutability after issuance.
+ */
 export const lineItems = pgTable(
   "line_items",
   {
@@ -33,7 +44,9 @@ export const lineItems = pgTable(
     discountType: discountType("discount_type"),
     discountPercentage: numeric("discount_percentage", { precision: 5, scale: 2 }),
     discountAmountCents: bigint("discount_amount_cents", { mode: "number" }),
-    taxPercentage: numeric("tax_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
+    taxPercentageSnapshot: numeric("tax_percentage_snapshot", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
     subtotal: bigint("subtotal", { mode: "number" }).notNull().default(0),
     taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
     total: bigint("total", { mode: "number" }).notNull().default(0),
@@ -73,7 +86,7 @@ export const lineItems = pgTable(
     check("chk_line_items_unit_price", sql`${table.unitPrice} >= 0`),
     check(
       "chk_line_items_tax_percentage",
-      sql`${table.taxPercentage} >= 0 AND ${table.taxPercentage} <= 100`
+      sql`${table.taxPercentageSnapshot} >= 0 AND ${table.taxPercentageSnapshot} <= 100`
     ),
     check(
       "chk_line_items_totals",

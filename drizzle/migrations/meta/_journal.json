@@ -43,6 +43,13 @@
       "when": 1777390815013,
       "tag": "0005_cold_deathstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777391348308,
+      "tag": "0006_fantastic_loners",
+      "breakpoints": true
     }
   ]
 }
