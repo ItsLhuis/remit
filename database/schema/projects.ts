@@ -1,4 +1,4 @@
-import { check, date, index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core"
+import { bigint, check, date, index, pgTable, text, uuid } from "drizzle-orm/pg-core"
 
 import { relations, sql } from "drizzle-orm"
 
@@ -22,7 +22,7 @@ export const projects = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     status: projectStatus("status").notNull().default("active"),
-    budget: integer("budget"),
+    budget: bigint("budget", { mode: "number" }),
     startDate: date("start_date", { mode: "date" }),
     endDate: date("end_date", { mode: "date" }),
     ...timestamps

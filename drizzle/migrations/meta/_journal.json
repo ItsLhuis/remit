@@ -15,6 +15,13 @@
       "when": 1774882870536,
       "tag": "0001_lucky_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777389626857,
+      "tag": "0002_stiff_post",
+      "breakpoints": true
     }
   ]
 }

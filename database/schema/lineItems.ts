@@ -1,4 +1,5 @@
 import {
+  bigint,
   check,
   index,
   integer,
@@ -28,13 +29,13 @@ export const lineItems = pgTable(
     description: text("description").notNull(),
     unit: text("unit"),
     quantity: numeric("quantity", { precision: 10, scale: 2 }).notNull(),
-    unitPrice: integer("unit_price").notNull(),
+    unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
     discountType: discountType("discount_type"),
     discountValue: numeric("discount_value", { precision: 10, scale: 2 }),
     taxPercentage: numeric("tax_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
-    subtotal: integer("subtotal").notNull().default(0),
-    taxAmount: integer("tax_amount").notNull().default(0),
-    total: integer("total").notNull().default(0),
+    subtotal: bigint("subtotal", { mode: "number" }).notNull().default(0),
+    taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
+    total: bigint("total", { mode: "number" }).notNull().default(0),
     ...timestamps
   },
   (table) => [
