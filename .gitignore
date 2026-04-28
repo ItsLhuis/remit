@@ -40,3 +40,6 @@ next-env.d.ts
 # claude code - personal overrides
 CLAUDE.local.md
 .claude/settings.local.json
+
+# claude code - implementation plans (ephemeral)
+docs/superpowers/

@@ -41,7 +41,16 @@ allowed). NEVER run `pnpm database:migrate` without confirming the target enviro
 force-push `main`. Pre-push hook runs `pnpm typecheck` - all type errors must be resolved before
 pushing.
 
+## Architecture reference
+
+`docs/architecture/ARCHITECTURE.md` is the canonical technical reference for Remit. It documents
+what the system is, the design philosophy, the domain model, module boundaries, security
+architecture, and every significant architectural decision. Implementation plans and feature
+decisions must align with the principles and decisions recorded there.
+
 ## Rules
 
-@.claude/rules/code-style.md @.claude/rules/components.md @.claude/rules/forms.md
-@.claude/rules/database.md @.claude/rules/hooks.md @.claude/rules/types.md
+@.claude/rules/accessibility.md @.claude/rules/actions.md @.claude/rules/architecture.md
+@.claude/rules/code-style.md @.claude/rules/components.md @.claude/rules/database.md
+@.claude/rules/errors.md @.claude/rules/forms.md @.claude/rules/hooks.md @.claude/rules/imports.md
+@.claude/rules/security.md @.claude/rules/testing.md @.claude/rules/types.md
