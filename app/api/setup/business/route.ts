@@ -37,9 +37,7 @@ export async function POST(request: Request) {
   const { businessName, businessEmail, businessTaxId, businessCountry, defaultCurrency } =
     result.data
 
-  const existing = await database.query.settings.findFirst({
-    where: eq(settings.userId, session.user.id)
-  })
+  const existing = await database.query.settings.findFirst()
 
   if (existing) {
     await database
@@ -51,10 +49,9 @@ export async function POST(request: Request) {
         businessCountry,
         defaultCurrency
       })
-      .where(eq(settings.userId, session.user.id))
+      .where(eq(settings.id, existing.id))
   } else {
     await database.insert(settings).values({
-      userId: session.user.id,
       businessName,
       businessEmail: businessEmail || null,
       businessTaxId: businessTaxId || null,
