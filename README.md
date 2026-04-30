@@ -137,8 +137,8 @@ Security is treated as a first-class feature, not a checklist.
 - Strict HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
   Permissions-Policy) enforced for every response.
 - Rate limiting on every endpoint that processes authentication or a public token.
-- GDPR-aligned full data export (every entity, every uploaded file, every PDF) and right-to-be-
-  forgotten with a configurable fiscal retention window.
+- GDPR-aligned full data export (every entity, every uploaded file, every PDF), and support for the
+  right to be forgotten with a configurable fiscal retention window.
 
 ## Self-hosting
 

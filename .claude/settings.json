@@ -16,7 +16,6 @@
       "Bash(git branch -D *)",
       "Bash(git clean *)",
       "Read(.env)",
-      "Read(.env)",
       "Read(.env.local)",
       "Read(.env.production)",
       "Read(.env.development)"

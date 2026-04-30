@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { eq } from "drizzle-orm"
-
 import { auth } from "@/lib/auth"
 
 import { database } from "@/database"
-import { settings, user } from "@/database/schema"
+import { settings, users } from "@/database/schema"
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -15,8 +13,8 @@ export async function proxy(request: NextRequest) {
   }
 
   const existingUser = await database
-    .select({ id: user.id })
-    .from(user)
+    .select({ id: users.id })
+    .from(users)
     .limit(1)
     .then((rows) => rows[0] ?? null)
 
@@ -48,7 +46,6 @@ export async function proxy(request: NextRequest) {
   const userSettings = await database
     .select({ businessName: settings.businessName })
     .from(settings)
-    .where(eq(settings.userId, session.user.id))
     .limit(1)
     .then((rows) => rows[0] ?? null)
 

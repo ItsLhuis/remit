@@ -16,10 +16,13 @@ missing encryption key at startup. Everything else is caught and returned as `{ 
 // ✓ - unexpected failure caught and returned
 try {
   const [row] = await database.insert(invoices).values(data).returning()
+
   if (!row) return { error: "Something went wrong" }
+
   return { data: row }
 } catch (error) {
   console.error("createInvoice: insert failed", { projectId: data.projectId, error })
+
   return { error: "Something went wrong" }
 }
 
