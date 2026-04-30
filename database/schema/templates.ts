@@ -1,11 +1,10 @@
-import { boolean, index, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core"
+import { boolean, index, jsonb, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 
 import { relations, sql } from "drizzle-orm"
 
-import { user } from "./auth"
 import { emailLogs } from "./emailLogs"
 import { templateType } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 
@@ -13,9 +12,6 @@ export const templates = pgTable(
   "templates",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
     type: templateType("type").notNull(),
     name: text("name").notNull(),
     description: text("description"),
@@ -25,22 +21,18 @@ export const templates = pgTable(
       .default(sql`'[]'::jsonb`),
     isDefault: boolean("is_default").notNull().default(false),
     isSystem: boolean("is_system").notNull().default(false),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
-    index("idx_templates_user_id").on(table.userId),
-    index("idx_templates_type").on(table.type),
-    index("idx_templates_type_default")
-      .on(table.userId, table.type)
-      .where(sql`${table.isDefault} = true`)
+    index("templates_type_idx").on(table.type),
+    uniqueIndex("uq_templates_default_per_type")
+      .on(table.type)
+      .where(sql`${table.isDefault} = true AND ${table.deletedAt} IS NULL`)
   ]
 )
 
-export const templatesRelations = relations(templates, ({ one, many }) => ({
-  user: one(user, {
-    fields: [templates.userId],
-    references: [user.id]
-  }),
+export const templatesRelations = relations(templates, ({ many }) => ({
   proposals: many(proposals),
   invoices: many(invoices),
   emailLogs: many(emailLogs)

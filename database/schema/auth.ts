@@ -2,7 +2,14 @@ import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-c
 
 import { sql } from "drizzle-orm"
 
-export const user = pgTable("user", {
+import { organizations } from "./organizations"
+
+const authTimestamp = {
+  withTimezone: true,
+  mode: "date"
+} as const
+
+export const users = pgTable("users", {
   id: uuid("id")
     .default(sql`gen_random_uuid()`)
     .primaryKey(),
@@ -11,81 +18,89 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+  createdAt: timestamp("created_at", authTimestamp).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", authTimestamp)
     .defaultNow()
     .$onUpdateFn(() => new Date())
     .notNull()
 })
 
-export const session = pgTable(
-  "session",
+export const sessions = pgTable(
+  "sessions",
   {
     id: text("id").primaryKey(),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: timestamp("expires_at", authTimestamp).notNull(),
     token: text("token").notNull().unique(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", authTimestamp).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", authTimestamp)
+      .defaultNow()
       .$onUpdateFn(() => new Date())
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
+    activeOrganizationId: uuid("active_organization_id").references(() => organizations.id, {
+      onDelete: "set null"
+    }),
     userId: uuid("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" })
+      .references(() => users.id, { onDelete: "cascade" })
   },
-  (table) => [index("session_userId_idx").on(table.userId)]
+  (table) => [index("sessions_user_id_idx").on(table.userId)]
 )
 
-export const account = pgTable(
-  "account",
+export const accounts = pgTable(
+  "accounts",
   {
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", authTimestamp),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", authTimestamp),
     scope: text("scope"),
     password: text("password"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .$onUpdateFn(() => new Date())
-      .notNull()
-  },
-  (table) => [index("account_userId_idx").on(table.userId)]
-)
-
-export const verification = pgTable(
-  "verification",
-  {
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", authTimestamp).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", authTimestamp)
       .defaultNow()
       .$onUpdateFn(() => new Date())
       .notNull()
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)]
+  (table) => [index("accounts_user_id_idx").on(table.userId)]
 )
 
-export const twoFactor = pgTable(
-  "two_factor",
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", authTimestamp).notNull(),
+    createdAt: timestamp("created_at", authTimestamp).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", authTimestamp)
+      .defaultNow()
+      .$onUpdateFn(() => new Date())
+      .notNull()
+  },
+  (table) => [index("verifications_identifier_idx").on(table.identifier)]
+)
+
+export const twoFactors = pgTable(
+  "two_factors",
   {
     id: text("id").primaryKey(),
     secret: text("secret").notNull(),
     backupCodes: text("backup_codes").notNull(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" })
+      .references(() => users.id, { onDelete: "cascade" })
   },
-  (table) => [index("twoFactor_userId_idx").on(table.userId)]
+  (table) => [
+    index("two_factors_user_id_idx").on(table.userId),
+    index("two_factors_secret_idx").on(table.secret)
+  ]
 )

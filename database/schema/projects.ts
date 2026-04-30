@@ -1,11 +1,10 @@
-import { check, date, index, integer, pgTable, text, uuid } from "drizzle-orm/pg-core"
+import { bigint, check, date, index, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core"
 
 import { relations, sql } from "drizzle-orm"
 
-import { user } from "./auth"
 import { clients } from "./clients"
 import { projectStatus } from "./enums"
-import { timestamps } from "./helpers"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 
@@ -13,25 +12,31 @@ export const projects = pgTable(
   "projects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
     status: projectStatus("status").notNull().default("active"),
-    budget: integer("budget"),
+    currency: varchar("currency", { length: 3 }),
+    budgetCents: bigint("budget_cents", { mode: "number" }),
+    hourlyRateCents: bigint("hourly_rate_cents", { mode: "number" }),
     startDate: date("start_date", { mode: "date" }),
     endDate: date("end_date", { mode: "date" }),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
-    index("idx_projects_user_id").on(table.userId),
-    index("idx_projects_client_id").on(table.clientId),
-    index("idx_projects_status").on(table.status),
-    check("chk_projects_budget", sql`${table.budget} IS NULL OR ${table.budget} >= 0`),
+    index("projects_client_id_idx").on(table.clientId),
+    index("projects_status_idx").on(table.status),
+    index("projects_active_idx")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    check("chk_projects_budget", sql`${table.budgetCents} IS NULL OR ${table.budgetCents} >= 0`),
+    check(
+      "chk_projects_hourly_rate",
+      sql`${table.hourlyRateCents} IS NULL OR ${table.hourlyRateCents} >= 0`
+    ),
     check(
       "chk_projects_dates",
       sql`${table.endDate} IS NULL OR ${table.startDate} IS NULL OR ${table.endDate} >= ${table.startDate}`
@@ -40,10 +45,6 @@ export const projects = pgTable(
 )
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
-  user: one(user, {
-    fields: [projects.userId],
-    references: [user.id]
-  }),
   client: one(clients, {
     fields: [projects.clientId],
     references: [clients.id]

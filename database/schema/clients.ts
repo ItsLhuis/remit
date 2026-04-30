@@ -1,18 +1,14 @@
-import { index, pgTable, text, uuid } from "drizzle-orm/pg-core"
+import { index, pgTable, text, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
 
-import { relations } from "drizzle-orm"
+import { relations, sql } from "drizzle-orm"
 
-import { user } from "./auth"
-import { timestamps } from "./helpers"
+import { encryptedColumn, softDelete, timestamps } from "./helpers"
 import { projects } from "./projects"
 
 export const clients = pgTable(
   "clients",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     email: text("email").notNull(),
     phone: text("phone"),
@@ -24,19 +20,24 @@ export const clients = pgTable(
     state: text("state"),
     postalCode: text("postal_code"),
     country: text("country"),
-    notes: text("notes"),
+    currency: varchar("currency", { length: 3 }),
+    notes: encryptedColumn("notes"),
+    portalToken: text("portal_token"),
+    ...softDelete,
     ...timestamps
   },
   (table) => [
-    index("idx_clients_user_id").on(table.userId),
-    index("idx_clients_name").on(table.name)
+    index("clients_name_idx").on(table.name),
+    index("clients_email_idx").on(table.email),
+    index("clients_active_idx")
+      .on(table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    uniqueIndex("clients_portal_token_idx")
+      .on(table.portalToken)
+      .where(sql`${table.portalToken} IS NOT NULL`)
   ]
 )
 
-export const clientsRelations = relations(clients, ({ one, many }) => ({
-  user: one(user, {
-    fields: [clients.userId],
-    references: [user.id]
-  }),
+export const clientsRelations = relations(clients, ({ many }) => ({
   projects: many(projects)
 }))

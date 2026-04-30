@@ -22,8 +22,8 @@ export const proposalOtps = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
   },
   (table) => [
-    index("idx_proposal_otps_proposal_id").on(table.proposalId),
-    index("idx_proposal_otps_active")
+    index("proposal_otps_proposal_id_idx").on(table.proposalId),
+    index("proposal_otps_active_idx")
       .on(table.proposalId)
       .where(sql`${table.usedAt} IS NULL AND ${table.invalidatedAt} IS NULL`),
     check("chk_proposal_otps_attempts", sql`${table.attempts} >= 0 AND ${table.attempts} <= 5`),
