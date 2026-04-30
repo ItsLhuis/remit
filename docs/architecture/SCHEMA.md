@@ -17,8 +17,8 @@
 2. [Universal helpers](#2-universal-helpers)
 3. [Auth tables (better-auth)](#3-auth-tables-better-auth)
 4. [Organization tables (better-auth organization plugin)](#4-organization-tables-better-auth-organization-plugin)
-5. [Audit log](#5-audit-log)
-6. [Activity log](#6-activity-log)
+5. [Audit logs](#5-audit-logs)
+6. [Activity logs](#6-activity-logs)
 7. [Settings](#7-settings)
 8. [Tax rates](#8-tax-rates)
 9. [Templates](#9-templates)
@@ -48,12 +48,13 @@
 These apply to every table unless explicitly overridden.
 
 - **Primary key.** `uuid`, generated with `defaultRandom()`. Column name `id`.
-- **Naming.** Tables `snake_case` plural. Columns `snake_case` in the database, exposed as
-  `camelCase` in TypeScript by Drizzle.
+- **Naming.** Tables use `snake_case` plural names. Rare collective nouns may remain as-is when they
+  are substantially more natural than the plural form (for example `settings`). Columns use
+  `snake_case` in the database and are exposed as `camelCase` in TypeScript by Drizzle.
 - **Timestamps.** Every table has `created_at` and `updated_at`, both `timestamptz`, both
   `NOT NULL DEFAULT now()`. `updated_at` is auto-bumped on UPDATE via the `timestamps` helper.
 - **Soft delete.** Domain tables have `deleted_at` (`timestamptz`, nullable), via the `softDelete`
-  helper. Tables explicitly noted as **insert-only** (audit log, OTPs) and infrastructure tables
+  helper. Tables explicitly noted as **insert-only** (audit logs, OTPs) and infrastructure tables
   (auth) do not have `deleted_at`.
 - **Foreign keys.** Default to `ON DELETE CASCADE`. Exceptions explicitly noted.
 - **Money.** `bigint` storing the smallest currency unit (cents for EUR/USD). The ISO 4217 currency
@@ -80,9 +81,10 @@ Defined once in `database/schema/helpers.ts`:
 ## 3. Auth tables (better-auth)
 
 Owned by better-auth core. Schemas follow the upstream library; the columns below are the ones Remit
-relies on. **No timestamps helper** here — better-auth manages its own timestamp shape.
+relies on. Table names are plural `snake_case` via Better Auth `modelName` overrides. **No
+timestamps helper** here — better-auth manages its own timestamp shape.
 
-### `user`
+### `users`
 
 | Column             | Type        | Null | Default             | Notes                                                        |
 | ------------------ | ----------- | ---- | ------------------- | ------------------------------------------------------------ |
@@ -95,43 +97,46 @@ relies on. **No timestamps helper** here — better-auth manages its own timesta
 | created_at         | timestamptz | no   | `now()`             |                                                              |
 | updated_at         | timestamptz | no   | `now()` (autobump)  |                                                              |
 
-### `session`
+### `sessions`
 
-| Column                 | Type        | Null | Default            | Notes                                                                           |
-| ---------------------- | ----------- | ---- | ------------------ | ------------------------------------------------------------------------------- |
-| id                     | text        | no   |                    | PK (better-auth-managed)                                                        |
-| user_id                | uuid        | no   |                    | FK → `user.id` (cascade)                                                        |
-| token                  | text        | no   |                    | Unique                                                                          |
-| expires_at             | timestamptz | no   |                    |                                                                                 |
-| ip_address             | text        | yes  |                    |                                                                                 |
-| user_agent             | text        | yes  |                    |                                                                                 |
-| active_organization_id | uuid        | yes  |                    | FK → `organization.id` (set null). Added by the Better Auth organization plugin |
-| created_at             | timestamptz | no   | `now()`            |                                                                                 |
-| updated_at             | timestamptz | no   | `now()` (autobump) |                                                                                 |
+| Column                 | Type        | Null | Default            | Notes                                                                            |
+| ---------------------- | ----------- | ---- | ------------------ | -------------------------------------------------------------------------------- |
+| id                     | text        | no   |                    | PK (better-auth-managed)                                                         |
+| user_id                | uuid        | no   |                    | FK → `users.id` (cascade)                                                        |
+| token                  | text        | no   |                    | Unique                                                                           |
+| expires_at             | timestamptz | no   |                    |                                                                                  |
+| ip_address             | text        | yes  |                    |                                                                                  |
+| user_agent             | text        | yes  |                    |                                                                                  |
+| active_organization_id | uuid        | yes  |                    | FK → `organizations.id` (set null). Added by the Better Auth organization plugin |
+| created_at             | timestamptz | no   | `now()`            |                                                                                  |
+| updated_at             | timestamptz | no   | `now()` (autobump) |                                                                                  |
 
-Index: `session_user_id_idx` on `user_id`.
+Index: `sessions_user_id_idx` on `user_id`.
 
-### `account`
+### `accounts`
 
-OAuth/credential accounts as managed by better-auth. Schema unchanged from upstream. Index on
-`user_id`.
+OAuth/credential accounts as managed by better-auth. Schema unchanged from upstream.
 
-### `verification`
+Index: `accounts_user_id_idx` on `user_id`.
 
-Email verification and password reset tokens as managed by better-auth. Index on `identifier`.
+### `verifications`
 
-### `two_factor`
+Email verification and password reset tokens as managed by better-auth.
+
+Index: `verifications_identifier_idx` on `identifier`.
+
+### `two_factors`
 
 | Column       | Type | Null | Notes                                                                             |
 | ------------ | ---- | ---- | --------------------------------------------------------------------------------- |
 | id           | text | no   | PK                                                                                |
-| user_id      | uuid | no   | FK → `user.id` (cascade)                                                          |
+| user_id      | uuid | no   | FK → `users.id` (cascade)                                                         |
 | secret       | text | no   | Encrypted at rest                                                                 |
 | backup_codes | text | no   | Better Auth-managed encrypted payload containing the current list of backup codes |
 
-Index on `user_id`.
+Indexes: `two_factors_user_id_idx` on `user_id`, `two_factors_secret_idx` on `secret`.
 
-Remit uses Better Auth **backup codes** in `two_factor.backup_codes` only to complete the sign-in
+Remit uses Better Auth **backup codes** in `two_factors.backup_codes` only to complete the sign-in
 flow when the authenticator app is unavailable. Password reset is handled either by email reset
 links (when SMTP is configured) or by CLI/admin reset on self-hosted installs.
 
@@ -139,12 +144,12 @@ links (when SMTP is configured) or by CLI/admin reset on self-hosted installs.
 
 ## 4. Organization tables (better-auth organization plugin)
 
-Used in **degenerate single-org-per-instance mode**. Exactly one row in `organization` per Remit
+Used in **degenerate single-org-per-instance mode**. Exactly one row in `organizations` per Remit
 instance, created automatically during `/setup`. Every authenticated user is a member. Field names
 and lifecycle rules follow the Better Auth organization plugin contract; Remit constrains the
 allowed business roles at the application boundary.
 
-### `organization`
+### `organizations`
 
 | Column     | Type        | Null | Default             | Notes                                  |
 | ---------- | ----------- | ---- | ------------------- | -------------------------------------- |
@@ -155,15 +160,15 @@ allowed business roles at the application boundary.
 | metadata   | text        | yes  |                     | JSON serialized as text by Better Auth |
 | created_at | timestamptz | no   | `now()`             |                                        |
 
-### `member`
+### `members`
 
 Maps a user to a role within the (single) organization.
 
 | Column          | Type        | Null | Default             | Notes                                                                                  |
 | --------------- | ----------- | ---- | ------------------- | -------------------------------------------------------------------------------------- |
 | id              | uuid        | no   | `gen_random_uuid()` | PK                                                                                     |
-| user_id         | uuid        | no   |                     | FK → `user.id` (cascade)                                                               |
-| organization_id | uuid        | no   |                     | FK → `organization.id` (cascade)                                                       |
+| user_id         | uuid        | no   |                     | FK → `users.id` (cascade)                                                              |
+| organization_id | uuid        | no   |                     | FK → `organizations.id` (cascade)                                                      |
 | role            | text        | no   |                     | Better Auth role string. Remit constrains values to `owner \| accountant \| assistant` |
 | created_at      | timestamptz | no   | `now()`             |                                                                                        |
 
@@ -172,7 +177,7 @@ Indexes: `member_user_id_idx`, `member_organization_id_idx`. Unique on `(user_id
 Constraint: at most one member with role `owner` per organization. Enforced via partial unique index
 `uq_member_owner_per_org` on `organization_id` where `role = 'owner'`.
 
-### `invitation`
+### `invitations`
 
 Pending invitation as created by an owner.
 
@@ -180,8 +185,8 @@ Pending invitation as created by an owner.
 | --------------- | ----------- | ---- | ------------------- | ---------------------------------------------------------------------------------- |
 | id              | uuid        | no   | `gen_random_uuid()` | PK                                                                                 |
 | email           | text        | no   |                     |                                                                                    |
-| organization_id | uuid        | no   |                     | FK → `organization.id` (cascade)                                                   |
-| inviter_id      | uuid        | no   |                     | FK → `user.id`. Required by Better Auth; `SET NULL` is not valid for this column   |
+| organization_id | uuid        | no   |                     | FK → `organizations.id` (cascade)                                                  |
+| inviter_id      | uuid        | no   |                     | FK → `users.id` (cascade). Required by Better Auth; `SET NULL` is not valid here   |
 | role            | text        | no   |                     | Better Auth role string. Remit UI offers `accountant \| assistant` for invitations |
 | status          | text        | no   | `'pending'`         | Better Auth lifecycle: `pending \| accepted \| rejected \| canceled`               |
 | expires_at      | timestamptz | no   |                     | 48 hours from creation by default, unless overridden in plugin config              |
@@ -191,39 +196,39 @@ Indexes: `invitation_email_idx`, `invitation_organization_id_idx`, `invitation_s
 
 ---
 
-## 5. Audit log
+## 5. Audit logs
 
 Security-facing, append-only. No UPDATE or DELETE operation ever runs against this table.
 
-### `audit_log`
+### `audit_logs`
 
-| Column             | Type        | Null | Default             | Notes                                                  |
-| ------------------ | ----------- | ---- | ------------------- | ------------------------------------------------------ |
-| id                 | uuid        | no   | `gen_random_uuid()` | PK                                                     |
-| event              | text        | no   |                     | Event name, e.g. `auth.login.succeeded`                |
-| actor_user_id      | uuid        | yes  |                     | FK → `user.id` (set null) — actor may be deleted later |
-| actor_role         | enum        | yes  |                     | `owner \| accountant \| assistant`                     |
-| target_entity_type | text        | yes  |                     | E.g. `invoice`, `client`, `settings`                   |
-| target_entity_id   | uuid        | yes  |                     |                                                        |
-| metadata           | jsonb       | yes  |                     | Free-form, never includes secrets                      |
-| ip_address         | text        | yes  |                     |                                                        |
-| user_agent         | text        | yes  |                     |                                                        |
-| created_at         | timestamptz | no   | `now()`             |                                                        |
+| Column             | Type        | Null | Default             | Notes                                                   |
+| ------------------ | ----------- | ---- | ------------------- | ------------------------------------------------------- |
+| id                 | uuid        | no   | `gen_random_uuid()` | PK                                                      |
+| event              | text        | no   |                     | Event name, e.g. `auth.login.succeeded`                 |
+| actor_user_id      | uuid        | yes  |                     | FK → `users.id` (set null) — actor may be deleted later |
+| actor_role         | enum        | yes  |                     | `owner \| accountant \| assistant`                      |
+| target_entity_type | text        | yes  |                     | E.g. `invoice`, `client`, `settings`                    |
+| target_entity_id   | uuid        | yes  |                     |                                                         |
+| metadata           | jsonb       | yes  |                     | Free-form, never includes secrets                       |
+| ip_address         | text        | yes  |                     |                                                         |
+| user_agent         | text        | yes  |                     |                                                         |
+| created_at         | timestamptz | no   | `now()`             |                                                         |
 
-Indexes: `audit_log_event_created_at_idx` on `(event, created_at DESC)`, `audit_log_actor_idx` on
-`actor_user_id`, `audit_log_target_idx` on `(target_entity_type, target_entity_id)`.
+Indexes: `audit_logs_event_created_at_idx` on `(event, created_at DESC)`, `audit_logs_actor_idx` on
+`actor_user_id`, `audit_logs_target_idx` on `(target_entity_type, target_entity_id)`.
 
 **No `updated_at`. No `deleted_at`.** Database-level enforcement: a trigger that raises on UPDATE or
 DELETE provides defense in depth.
 
 ---
 
-## 6. Activity log
+## 6. Activity logs
 
 User-facing event history. Editable via UI. Stores **message keys**, not rendered strings, so the
 log re-renders correctly when the user changes locale.
 
-### `activity_log`
+### `activity_logs`
 
 | Column       | Type        | Null | Default             | Notes                                             |
 | ------------ | ----------- | ---- | ------------------- | ------------------------------------------------- |
@@ -236,8 +241,8 @@ log re-renders correctly when the user changes locale.
 | read_at      | timestamptz | yes  |                     |                                                   |
 | created_at   | timestamptz | no   | `now()`             |                                                   |
 
-Indexes: `activity_log_created_at_idx` on `created_at DESC`, `activity_log_entity_idx` on
-`(entity_type, entity_id)`, `activity_log_unread_idx` on `id` where `read_at IS NULL`.
+Indexes: `activity_logs_created_at_idx` on `created_at DESC`, `activity_logs_entity_idx` on
+`(entity_type, entity_id)`, `activity_logs_unread_idx` on `id` where `read_at IS NULL`.
 
 **No `updated_at`. No `deleted_at`.** Editing means delete + insert at the application level.
 
@@ -568,7 +573,7 @@ Indexes: `tasks_project_id_idx`, `tasks_status_idx`, `tasks_due_at_idx` on `due_
 | id                         | uuid        | no   | `gen_random_uuid()` | PK                                                                 |
 | project_id                 | uuid        | no   |                     | FK → `projects.id` (cascade)                                       |
 | task_id                    | uuid        | yes  |                     | FK → `tasks.id` (set null)                                         |
-| user_id                    | uuid        | yes  |                     | FK → `user.id` (set null) — who logged the time                    |
+| user_id                    | uuid        | yes  |                     | FK → `users.id` (set null) — who logged the time                   |
 | started_at                 | timestamptz | no   |                     |                                                                    |
 | ended_at                   | timestamptz | yes  |                     | Null while a timer is running                                      |
 | duration_seconds           | integer     | yes  |                     | Computed when ended_at is set; ≥ 0                                 |
@@ -869,7 +874,8 @@ Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal
 
 ## 24. Line items
 
-Polymorphic — belongs to either a proposal or an invoice via mutually-exclusive FKs (see ADR-0014).
+Polymorphic — belongs to a proposal, invoice, or credit note via mutually-exclusive FKs (see
+ADR-0014).
 
 ### `line_items`
 
@@ -878,6 +884,7 @@ Polymorphic — belongs to either a proposal or an invoice via mutually-exclusiv
 | id                      | uuid           | no   | `gen_random_uuid()` | PK                                              |
 | proposal_id             | uuid           | yes  |                     | FK → `proposals.id` (cascade)                   |
 | invoice_id              | uuid           | yes  |                     | FK → `invoices.id` (cascade)                    |
+| credit_note_id          | uuid           | yes  |                     | FK → `credit_notes.id` (cascade)                |
 | tax_rate_id             | uuid           | yes  |                     | FK → `tax_rates.id` (set null)                  |
 | position                | integer        | no   |                     | Manual ordering within the parent               |
 | description             | text           | no   |                     |                                                 |
@@ -898,7 +905,7 @@ Standard `timestamps` and `softDelete`.
 
 Constraints:
 
-- `chk_line_items_parent` — exactly one of `proposal_id` and `invoice_id` is set.
+- `chk_line_items_parent` — exactly one of `proposal_id`, `invoice_id`, and `credit_note_id` is set.
 - `chk_line_items_discount_shape` — same shape as proposals.
 - `chk_line_items_discount_percentage` — null or `>= 0 AND <= 100`.
 - `chk_line_items_discount_amount` — null or `>= 0`.
@@ -907,11 +914,13 @@ Constraints:
 - `chk_line_items_tax_percentage` — `>= 0 AND <= 100`.
 - `chk_line_items_totals` — `>= 0` for all three.
 
-Indexes: `line_items_proposal_id_idx`, `line_items_invoice_id_idx`, `line_items_tax_rate_id_idx`,
-`line_items_source_time_entry_id_idx`, `line_items_source_expense_id_idx`, unique partial
-`uq_line_items_proposal_position` on `(proposal_id, position)` where `proposal_id IS NOT NULL`,
-unique partial `uq_line_items_invoice_position` on `(invoice_id, position)` where
-`invoice_id IS NOT NULL`.
+Indexes: `line_items_proposal_id_idx`, `line_items_invoice_id_idx`, `idx_line_items_credit_note_id`,
+`line_items_tax_rate_id_idx`, `line_items_source_time_entry_id_idx`,
+`line_items_source_expense_id_idx`, unique partial `uq_line_items_proposal_position` on
+`(proposal_id, position)` where `proposal_id IS NOT NULL`, unique partial
+`uq_line_items_invoice_position` on `(invoice_id, position)` where `invoice_id IS NOT NULL`, unique
+partial `uq_line_items_credit_note_position` on `(credit_note_id, position)` where
+`credit_note_id IS NOT NULL`.
 
 ---
 
@@ -972,10 +981,8 @@ Constraints:
 
 Indexes: `credit_notes_invoice_id_idx`, unique `credit_notes_number_idx`.
 
-Line items for credit notes reuse the `line_items` table via a third nullable FK `credit_note_id`.
-This is a deliberate extension to the polymorphic pattern in the Line items section; the
-`chk_line_items_parent` constraint becomes "exactly one of proposal_id, invoice_id, credit_note_id
-is set". Update `line_items` accordingly when implementing credit notes.
+Line items for credit notes reuse the `line_items` table via the nullable `credit_note_id` FK. The
+Line items section above is the authoritative definition of that three-parent polymorphic shape.
 
 ---
 
@@ -1012,7 +1019,7 @@ All enum types declared in `database/schema/enums.ts`.
 and `paid_at IS NULL`, and `partially_paid` when
 `amount_paid_cents > 0 AND amount_paid_cents < total_cents`.
 
-`member_role` remains available for app-owned tables such as `audit_log.actor_role`. Better Auth's
+`member_role` remains available for app-owned tables such as `audit_logs.actor_role`. Better Auth's
 organization-plugin tables (`member.role`, `invitation.role`, `invitation.status`) are stored as
 `text` to match the plugin contract.
 

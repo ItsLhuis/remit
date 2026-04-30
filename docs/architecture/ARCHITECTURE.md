@@ -370,7 +370,7 @@ active ──► completed (end condition met: count or date)
   historical version; the original is preserved.
 - An invoice number, once assigned, is permanent and never reused. The sequence is per-prefix and
   configurable in settings.
-- `audit_log` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
+- `audit_logs` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
   application level.
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
   EUR/USD). The ISO 4217 currency code lives on the parent entity, never on individual money
@@ -770,7 +770,7 @@ are separate concerns: password reset happens by email or CLI/admin action, whil
 fallback uses Better Auth backup codes.
 
 Better Auth **backup codes** remain enabled as part of the TOTP plugin and are stored in
-`two_factor.backup_codes`. They are used only as a second-factor fallback during login when the
+`two_factors.backup_codes`. They are used only as a second-factor fallback during login when the
 authenticator app is unavailable.
 
 ### Encryption at rest
@@ -788,11 +788,11 @@ authenticator app is unavailable.
 
 Two logs serve distinct purposes and must never be confused:
 
-**Activity log** (`activity_log`) - user-facing, friendly messages ("Invoice #INV-042 sent to Acme
+**Activity log** (`activity_logs`) - user-facing, friendly messages ("Invoice #INV-042 sent to Acme
 Corp"), can be edited or deleted via the UI, used for "what happened this week" and client-facing
 event summaries.
 
-**Audit log** (`audit_log`) - security-facing, append-only, immutable. No UI to delete entries.
+**Audit log** (`audit_logs`) - security-facing, append-only, immutable. No UI to delete entries.
 Schema: `id`, `event`, `actorUserId | null`, `targetEntityType | null`, `targetEntityId | null`,
 `metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no `deletedAt`. Captures:
 login success/failure; password change; TOTP setup, reconfiguration; Better Auth backup-code
@@ -1279,7 +1279,7 @@ When `pt`, `es`, etc. are added, each becomes a new file under `locales/` and is
 
 ### Activity log and message keys
 
-User-facing messages in the `activity_log` table store **message keys**, not rendered strings, so
+User-facing messages in the `activity_logs` table store **message keys**, not rendered strings, so
 that re-rendering on a locale change produces the right translation. The activity log row's
 `message_key` column references a key in `Translations` and the row's `message_args` JSONB column
 carries ICU parameters.
@@ -1538,23 +1538,26 @@ recorded, it is never deleted or rewritten - later decisions create new ADRs tha
 refine earlier ones. Each ADR follows the standard template: **Context**, **Decision**,
 **Consequences**, **Alternatives considered**.
 
-| ADR                                          | Title                                                                                                       | Status   |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)        | No cookies for routing state                                                                                | Accepted |
-| [0002](adr/0002-single-instance-model.md)    | Single-instance model is structural                                                                         | Accepted |
-| [0003](adr/0003-mandatory-totp.md)           | Mandatory TOTP - no opt-out                                                                                 | Accepted |
-| [0004](adr/0004-feature-module-structure.md) | Closed feature modules with ESLint enforcement                                                              | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)       | AES-256-GCM encryption via Drizzle column helper                                                            | Accepted |
-| [0006](adr/0006-internal-event-bus.md)       | Typed in-process event bus for cross-feature effects                                                        | Accepted |
-| [0007](adr/0007-pure-services.md)            | Pure business logic in `services/` - no framework imports                                                   | Accepted |
-| [0008](adr/0008-email-adapters.md)           | SMTP and Resend as interchangeable adapter implementations                                                  | Accepted |
-| [0009](adr/0009-money-as-integer-cents.md)   | Money stored as integer cents - no floating-point                                                           | Accepted |
-| [0010](adr/0010-soft-delete.md)              | Soft delete by default - hard delete after retention window                                                 | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)        | Single Next.js app until a second artefact requires its own build                                           | Accepted |
-| [0012](adr/0012-recovery-codes.md)           | Password reset uses email when available, otherwise CLI/admin reset; backup codes are only for 2FA fallback | Accepted |
-| [0013](adr/0013-better-auth-organization.md) | Better Auth organization plugin for multi-user role storage                                                 | Accepted |
-| [0014](adr/0014-hosted-offering.md)          | Hosted offering as per-instance isolation, not row-level multi-tenancy                                      | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)       | i18next + ICU with TypeScript-typed message keys                                                            | Accepted |
+| ADR                                          | Title                                                                       | Status   |
+| -------------------------------------------- | --------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)        | No cookies for routing state                                                | Accepted |
+| [0002](adr/0002-single-instance-model.md)    | Single-instance model is structural                                         | Accepted |
+| [0003](adr/0003-mandatory-totp.md)           | Mandatory TOTP — no opt-out                                                 | Accepted |
+| [0004](adr/0004-feature-module-structure.md) | Closed feature modules with ESLint enforcement                              | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)       | AES-256-GCM encryption via Drizzle column helper                            | Accepted |
+| [0006](adr/0006-internal-event-bus.md)       | Typed in-process event bus for cross-feature effects                        | Accepted |
+| [0007](adr/0007-pure-services.md)            | Pure business logic in `services/` — no framework imports                   | Accepted |
+| [0008](adr/0008-email-adapters.md)           | SMTP and Resend as interchangeable adapter implementations                  | Accepted |
+| [0009](adr/0009-money-as-integer-cents.md)   | Money stored as integer cents — no floating-point                           | Accepted |
+| [0010](adr/0010-soft-delete.md)              | Soft delete by default — hard delete after retention window                 | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)        | Single Next.js app until a second artefact requires its own build           | Accepted |
+| [0012](adr/0012-password-reset-paths.md)     | Password reset via email when available, CLI fallback otherwise             | Accepted |
+| [0013](adr/0013-better-auth-organization.md) | Better Auth organization plugin for multi-user role storage                 | Accepted |
+| [0014](adr/0014-hosted-offering.md)          | Hosted offering as per-instance isolation, not row-level tenancy            | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)       | i18next + ICU with TypeScript-typed message keys                            | Accepted |
+| [0016](adr/0016-server-actions-canonical.md) | Server actions as canonical write path; API routes for public/webhooks only | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)   | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
+| [0018](adr/0018-no-telemetry.md)             | No telemetry or analytics by default                                        | Accepted |
 
 ---
 
