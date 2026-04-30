@@ -1,10 +1,23 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { twoFactor as twoFactorPlugin } from "better-auth/plugins"
+import {
+  organization as organizationPlugin,
+  twoFactor as twoFactorPlugin
+} from "better-auth/plugins"
+
+import { env } from "@/lib/env"
 
 import { database } from "@/database"
-import { env } from "@/lib/env"
-import { account, session, twoFactor, user, verification } from "@/database/schema"
+import {
+  accounts,
+  invitations,
+  members,
+  organizations,
+  sessions,
+  twoFactors,
+  users,
+  verifications
+} from "@/database/schema"
 
 export const auth = betterAuth({
   appName: "Remit",
@@ -18,28 +31,57 @@ export const auth = betterAuth({
   database: drizzleAdapter(database, {
     provider: "pg",
     schema: {
-      user,
-      session,
-      account,
-      verification,
-      twoFactor
+      user: users,
+      session: sessions,
+      account: accounts,
+      verification: verifications,
+      twoFactor: twoFactors,
+      organization: organizations,
+      member: members,
+      invitation: invitations
     }
   }),
   emailAndPassword: {
     enabled: true,
     autoSignIn: true
   },
+  account: {
+    modelName: "accounts"
+  },
   user: {
+    modelName: "users",
     changeEmail: {
       enabled: true
     }
   },
+  verification: {
+    modelName: "verifications"
+  },
   plugins: [
     twoFactorPlugin({
-      issuer: "Remit"
+      issuer: "Remit",
+      schema: {
+        twoFactor: {
+          modelName: "two_factors"
+        }
+      }
+    }),
+    organizationPlugin({
+      schema: {
+        organization: {
+          modelName: "organizations"
+        },
+        member: {
+          modelName: "members"
+        },
+        invitation: {
+          modelName: "invitations"
+        }
+      }
     })
   ],
   session: {
+    modelName: "sessions",
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
     cookieCache: {

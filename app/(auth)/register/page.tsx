@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Register" }
 
 const RegisterPage = async () => {
-  const existingUser = await database.query.user.findFirst({ columns: { id: true } })
+  const existingUser = await database.query.users.findFirst({ columns: { id: true } })
 
   if (existingUser) {
     const session = await getSession()

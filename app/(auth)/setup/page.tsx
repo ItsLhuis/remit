@@ -2,11 +2,8 @@ import { type Metadata } from "next"
 
 import { redirect } from "next/navigation"
 
-import { eq } from "drizzle-orm"
-
 import { requireSession } from "@/lib/session"
 import { database } from "@/database"
-import { settings } from "@/database/schema"
 
 import { ScrollArea } from "@/components/ui"
 
@@ -19,7 +16,6 @@ const SetupPage = async () => {
   const session = await requireSession()
 
   const userSettings = await database.query.settings.findFirst({
-    where: eq(settings.userId, session.user.id),
     columns: { businessName: true }
   })
 
