@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 
 import { Toaster, TooltipProvider } from "@/components/ui"
 import { AppearanceProvider } from "@/providers/AppearanceProvider"
+import { I18nProvider } from "@/providers/I18nProvider"
 import { ThemeProvider } from "@/providers/ThemeProvider"
 
 import "./globals.css"
@@ -60,10 +61,12 @@ const RootLayout = ({
         <script dangerouslySetInnerHTML={{ __html: APPEARANCE_SCRIPT }} />
         <ThemeProvider>
           <AppearanceProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <I18nProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </I18nProvider>
           </AppearanceProvider>
         </ThemeProvider>
       </body>
