@@ -1,0 +1,9 @@
+# Project-local Codex configuration for this repository.
+# Codex primarily discovers project guidance through AGENTS.md.
+# CLAUDE.md is listed only as a fallback for cases where AGENTS.md is absent
+# or for compatibility with tools that use fallback project docs.
+project_doc_fallback_filenames = ["CLAUDE.md"]
+
+# Raise the project instruction size limit so the root AGENTS.md is not
+# truncated too aggressively as guidance evolves.
+project_doc_max_bytes = 65536

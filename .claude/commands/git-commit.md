@@ -1,5 +1,8 @@
 # Git Expert - Commit Executor
 
+> Portable workflow: `.agents/skills/git-commit/SKILL.md` contains the cross-agent version of this
+> commit workflow. This Claude command remains the Claude-specific executor wrapper.
+
 You are an expert Git commit executor. Your role is to analyze code changes and **execute** logical,
 atomic commits that group related functionality while respecting code dependencies.
 

@@ -1,0 +1,134 @@
+# Codex command policy for this repository.
+# Valid Codex rules use Starlark-style prefix_rule(...) calls.
+
+prefix_rule(
+    pattern = ["pnpm", "add"],
+    decision = "prompt",
+    justification = "Dependency installation can change lockfiles and may require network access.",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "install"],
+    decision = "prompt",
+    justification = "Dependency installation can change lockfiles and may require network access.",
+)
+
+prefix_rule(
+    pattern = ["docker", "compose"],
+    decision = "prompt",
+    justification = "Docker commands can start services, mutate volumes, or affect local databases.",
+)
+
+prefix_rule(
+    pattern = ["docker-compose"],
+    decision = "prompt",
+    justification = "Docker commands can start services, mutate volumes, or affect local databases.",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "database:generate"],
+    decision = "prompt",
+    justification = "Database migration generation must be reviewed.",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "database:migrate"],
+    decision = "prompt",
+    justification = "Database migrations can change schema/data and must be reviewed.",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "database:studio"],
+    decision = "prompt",
+    justification = "Database studio can expose or mutate local data.",
+)
+
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "prompt",
+    justification = "Creating commits changes repository history and requires explicit user intent.",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "forbidden",
+    justification = "Force-push is destructive and must be handled manually.",
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force-with-lease"],
+    decision = "forbidden",
+    justification = "Force-push is destructive and must be handled manually.",
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushing changes affects the remote repository.",
+)
+
+prefix_rule(
+    pattern = ["git", "reset"],
+    decision = "prompt",
+    justification = "Reset can discard or rewrite local work.",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout"],
+    decision = "prompt",
+    justification = "Checkout can overwrite local changes.",
+)
+
+prefix_rule(
+    pattern = ["git", "switch"],
+    decision = "prompt",
+    justification = "Switching branches can affect local work.",
+)
+
+prefix_rule(
+    pattern = ["git", "restore"],
+    decision = "prompt",
+    justification = "Restore can discard local changes.",
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "Clean can delete untracked files.",
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "-D"],
+    decision = "prompt",
+    justification = "Deleting branches requires explicit approval.",
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", "/"],
+    decision = "forbidden",
+    justification = "Filesystem-wide deletion is destructive.",
+)
+
+prefix_rule(
+    pattern = ["rm", "-rf", "/*"],
+    decision = "forbidden",
+    justification = "Filesystem-wide deletion is destructive.",
+)
+
+prefix_rule(
+    pattern = ["printenv"],
+    decision = "prompt",
+    justification = "Environment variables may contain secrets.",
+)
+
+prefix_rule(
+    pattern = ["env"],
+    decision = "prompt",
+    justification = "Environment variables may contain secrets.",
+)
+
+prefix_rule(
+    pattern = ["Get-ChildItem", "Env:"],
+    decision = "prompt",
+    justification = "Environment variables may contain secrets.",
+)
