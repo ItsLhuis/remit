@@ -45,43 +45,18 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true
   },
-  account: {
-    modelName: "accounts"
-  },
   user: {
-    modelName: "users",
     changeEmail: {
       enabled: true
     }
   },
-  verification: {
-    modelName: "verifications"
-  },
   plugins: [
     twoFactorPlugin({
-      issuer: "Remit",
-      schema: {
-        twoFactor: {
-          modelName: "two_factors"
-        }
-      }
+      issuer: "Remit"
     }),
-    organizationPlugin({
-      schema: {
-        organization: {
-          modelName: "organizations"
-        },
-        member: {
-          modelName: "members"
-        },
-        invitation: {
-          modelName: "invitations"
-        }
-      }
-    })
+    organizationPlugin()
   ],
   session: {
-    modelName: "sessions",
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
     cookieCache: {
