@@ -1,7 +1,9 @@
 import { type Metadata } from "next"
 
+import { t } from "@/lib/i18n/server"
+
 export const metadata: Metadata = {
-  title: "Dashboard"
+  title: t("app.metadata.dashboardTitle")
 }
 
 const DashboardPage = () => {

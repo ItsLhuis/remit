@@ -6,6 +6,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 import { auth } from "@/lib/auth"
+import { t } from "@/lib/i18n/server"
 
 import { MINIO_BUCKET, s3 } from "@/lib/s3"
 
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
+    return NextResponse.json({ error: t("settings.profile.errors.unauthorized") }, { status: 401 })
   }
 
   const body: unknown = await request.json()
@@ -26,14 +27,14 @@ export async function POST(request: NextRequest) {
     typeof (body as Record<string, unknown>).filename !== "string" ||
     typeof (body as Record<string, unknown>).contentType !== "string"
   ) {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 })
+    return NextResponse.json({ error: t("errors.invalidRequestBody") }, { status: 400 })
   }
 
   const { filename, contentType } = body as { filename: string; contentType: string }
 
   if (!ALLOWED_MIME_TYPES.includes(contentType)) {
     return NextResponse.json(
-      { error: "Invalid file type. Use JPG, PNG, WebP, or GIF." },
+      { error: t("settings.profile.invalidAvatarFileType") },
       { status: 400 }
     )
   }
@@ -52,6 +53,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ uploadUrl, objectKey })
   } catch {
-    return NextResponse.json({ error: "Failed to generate upload URL." }, { status: 500 })
+    return NextResponse.json({ error: t("settings.profile.uploadUrlFailed") }, { status: 500 })
   }
 }

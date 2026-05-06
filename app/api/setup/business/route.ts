@@ -7,17 +7,18 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { auth } from "@/lib/auth"
+import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
-import { businessProfileSchema } from "@/features/setup/schemas"
+import { businessProfileSchema } from "@/features/setup"
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() })
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 })
   }
 
   const body = await request.json()
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
   if (!result.success) {
     return NextResponse.json(
       {
-        error: "Validation failed",
+        error: t("errors.validationFailed"),
         issues: z.treeifyError(result.error)
       },
       { status: 400 }

@@ -1,17 +1,17 @@
+import { type Metadata } from "next"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-import { headers } from "next/headers"
-
-import { type Metadata } from "next"
+import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
 
 import { database } from "@/database"
 
-import { ProfileSettingsPage } from "@/features/settings/profile/components"
+import { ProfileSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Profile - Settings"
+  title: t("settings.metadata.profile")
 }
 
 const ProfilePage = async () => {

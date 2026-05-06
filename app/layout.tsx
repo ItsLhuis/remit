@@ -4,6 +4,8 @@ import { type Metadata } from "next"
 
 import { DM_Sans, Inter, JetBrains_Mono } from "next/font/google"
 
+import { t } from "@/lib/i18n/server"
+
 import { cn } from "@/lib/utils"
 
 import { Toaster, TooltipProvider } from "@/components/ui"
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | Remit",
     default: "Remit"
   },
-  description: "Self-hosted business management for freelancers."
+  description: t("app.metadata.description")
 }
 
 const APPEARANCE_SCRIPT = `(function(){try{

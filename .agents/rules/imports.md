@@ -44,6 +44,8 @@ import { Fragment, useState } from "react"
 
 import { useRouter } from "next/navigation"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 

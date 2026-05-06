@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { TemplatesSettingsPage } from "@/features/settings/templates/components"
+import { t } from "@/lib/i18n/server"
+
+import { TemplatesSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Templates - Settings"
+  title: t("settings.metadata.templates")
 }
 
 export default TemplatesSettingsPage

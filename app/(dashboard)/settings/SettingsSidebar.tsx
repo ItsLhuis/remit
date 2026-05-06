@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+
+import { useTranslation } from "@/lib/i18n"
+
 import { cn } from "@/lib/utils"
 
 import { useScroll } from "@/hooks/useScroll"
-
-import { usePathname } from "next/navigation"
-
-import Link from "next/link"
 
 import {
   Icon,
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui"
 
 type NavItem = {
-  label: string
+  labelKey: string
   href: string
   icon: Parameters<typeof Icon>[0]["name"]
 }
@@ -37,37 +38,43 @@ type NavGroup = {
   items: NavItem[]
 }
 
-const navGroups: NavGroup[] = [
+const navGroups = [
   {
-    label: "Account",
+    label: "common.navigation.account",
     items: [
-      { label: "Profile", href: "/settings/profile", icon: "UserRound" },
-      { label: "Security", href: "/settings/security", icon: "ShieldCheck" },
-      { label: "Appearance", href: "/settings/appearance", icon: "Palette" }
+      { labelKey: "settings.navigation.profile", href: "/settings/profile", icon: "UserRound" },
+      { labelKey: "settings.navigation.security", href: "/settings/security", icon: "ShieldCheck" },
+      { labelKey: "settings.navigation.appearance", href: "/settings/appearance", icon: "Palette" }
     ]
   },
   {
-    label: "Business",
+    label: "settings.navigation.business",
     items: [
-      { label: "Business", href: "/settings/business", icon: "Building2" },
-      { label: "Payment", href: "/settings/payment", icon: "Landmark" }
+      { labelKey: "settings.navigation.business", href: "/settings/business", icon: "Building2" },
+      { labelKey: "settings.navigation.payment", href: "/settings/payment", icon: "Landmark" }
     ]
   },
   {
-    label: "Invoicing",
+    label: "settings.navigation.invoicing",
     items: [
-      { label: "Invoicing", href: "/settings/invoicing", icon: "FileText" },
-      { label: "Tax Rates", href: "/settings/tax-rates", icon: "Percent" },
-      { label: "Templates", href: "/settings/templates", icon: "LayoutTemplate" }
+      { labelKey: "settings.navigation.invoicing", href: "/settings/invoicing", icon: "FileText" },
+      { labelKey: "settings.navigation.taxRates", href: "/settings/tax-rates", icon: "Percent" },
+      {
+        labelKey: "common.navigation.templates",
+        href: "/settings/templates",
+        icon: "LayoutTemplate"
+      }
     ]
   },
   {
-    label: "Email",
-    items: [{ label: "Email", href: "/settings/email", icon: "Mail" }]
+    label: "settings.navigation.email",
+    items: [{ labelKey: "settings.navigation.email", href: "/settings/email", icon: "Mail" }]
   }
-]
+] as const satisfies readonly NavGroup[]
 
 const SettingsSidebar = () => {
+  const { t } = useTranslation()
+
   const pathname = usePathname()
 
   const { isMobile } = useSidebar()
@@ -79,7 +86,9 @@ const SettingsSidebar = () => {
   const filteredGroups = navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
+      items: group.items.filter((item) =>
+        t(item.labelKey).toLowerCase().includes(search.toLowerCase())
+      )
     }))
     .filter((group) => group.items.length > 0)
 
@@ -88,7 +97,7 @@ const SettingsSidebar = () => {
       <SidebarHeader>
         <InputGroup>
           <InputGroupInput
-            placeholder="Search"
+            placeholder={t("common.actions.search")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -106,18 +115,18 @@ const SettingsSidebar = () => {
         >
           {filteredGroups.map((group) => (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                      tooltip={item.label}
+                      tooltip={t(item.labelKey)}
                     >
                       <Link href={item.href}>
                         <Icon name={item.icon} />
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

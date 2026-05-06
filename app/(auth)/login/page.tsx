@@ -1,13 +1,15 @@
 import { type Metadata } from "next"
-
 import { redirect } from "next/navigation"
 
-import { ScrollArea } from "@/components/ui"
+import { t } from "@/lib/i18n/server"
+
 import { getSession } from "@/lib/session"
 
-import { AuthPanel, LoginForm } from "@/features/auth/components"
+import { ScrollArea } from "@/components/ui"
 
-export const metadata: Metadata = { title: "Sign in" }
+import { AuthPanel, LoginForm } from "@/features/auth"
+
+export const metadata: Metadata = { title: t("auth.login.metadataTitle") }
 
 const LoginPage = async () => {
   const session = await getSession()

@@ -3,10 +3,7 @@
 import dynamic from "next/dynamic"
 
 const AppearanceSettingsPage = dynamic(
-  () =>
-    import("@/features/settings/appearance/components/AppearanceSettingsPage").then(
-      (module) => module.AppearanceSettingsPage
-    ),
+  () => import("@/features/settings").then((module) => module.AppearanceSettingsPage),
   { ssr: false }
 )
 

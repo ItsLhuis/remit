@@ -1,16 +1,18 @@
 import { type Metadata } from "next"
-
 import { redirect } from "next/navigation"
 
-import { requireSession } from "@/lib/session"
+import { t } from "@/lib/i18n/server"
+
 import { database } from "@/database"
+
+import { requireSession } from "@/lib/session"
 
 import { ScrollArea } from "@/components/ui"
 
-import { AuthPanel } from "@/features/auth/components"
-import { SetupForm } from "@/features/setup/components"
+import { AuthPanel } from "@/features/auth"
+import { SetupForm } from "@/features/setup"
 
-export const metadata: Metadata = { title: "Setup" }
+export const metadata: Metadata = { title: t("setup.metadataTitle") }
 
 const SetupPage = async () => {
   const session = await requireSession()

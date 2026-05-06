@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { TaxRatesSettingsPage } from "@/features/settings/tax-rates/components"
+import { t } from "@/lib/i18n/server"
+
+import { TaxRatesSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Tax Rates - Settings"
+  title: t("settings.metadata.taxRates")
 }
 
 export default TaxRatesSettingsPage

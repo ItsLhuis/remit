@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
+import { t } from "@/lib/i18n/server"
+
 import { AppearanceSettingsPage } from "./AppearancePageClient"
 
 export const metadata: Metadata = {
-  title: "Appearance"
+  title: t("settings.metadata.appearance")
 }
 
 export default function Page() {

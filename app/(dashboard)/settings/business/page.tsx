@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { BusinessSettingsPage } from "@/features/settings/business/components"
+import { t } from "@/lib/i18n/server"
+
+import { BusinessSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Business - Settings"
+  title: t("settings.metadata.business")
 }
 
 export default BusinessSettingsPage

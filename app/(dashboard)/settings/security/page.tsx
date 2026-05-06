@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { SecuritySettingsPage } from "@/features/settings/security/components"
+import { t } from "@/lib/i18n/server"
+
+import { SecuritySettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Security - Settings"
+  title: t("settings.metadata.security")
 }
 
 const SecurityPage = () => {

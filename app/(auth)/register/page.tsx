@@ -1,17 +1,19 @@
 import { type Metadata } from "next"
-
 import { redirect } from "next/navigation"
 
+import { t } from "@/lib/i18n/server"
+
 import { database } from "@/database"
+
 import { getSession } from "@/lib/session"
 
 import { ScrollArea } from "@/components/ui"
 
-import { AuthPanel, RegisterForm } from "@/features/auth/components"
+import { AuthPanel, RegisterForm } from "@/features/auth"
 
 export const dynamic = "force-dynamic"
 
-export const metadata: Metadata = { title: "Register" }
+export const metadata: Metadata = { title: t("auth.register.metadataTitle") }
 
 const RegisterPage = async () => {
   const existingUser = await database.query.users.findFirst({ columns: { id: true } })

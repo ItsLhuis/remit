@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { EmailSettingsPage } from "@/features/settings/email/components"
+import { t } from "@/lib/i18n/server"
+
+import { EmailSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Email - Settings"
+  title: t("settings.metadata.email")
 }
 
 export default EmailSettingsPage

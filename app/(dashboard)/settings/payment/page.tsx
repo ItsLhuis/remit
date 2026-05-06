@@ -1,9 +1,11 @@
 import { type Metadata } from "next"
 
-import { PaymentSettingsPage } from "@/features/settings/payment/components"
+import { t } from "@/lib/i18n/server"
+
+import { PaymentSettingsPage } from "@/features/settings"
 
 export const metadata: Metadata = {
-  title: "Payment - Settings"
+  title: t("settings.metadata.payment")
 }
 
 export default PaymentSettingsPage
