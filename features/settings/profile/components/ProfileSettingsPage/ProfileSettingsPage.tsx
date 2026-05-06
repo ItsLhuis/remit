@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { type User } from "@/lib/auth"
 
 import { Separator, SidebarTrigger, Typography } from "@/components/ui"
@@ -13,20 +15,24 @@ type ProfileSettingsPageProps = {
   emailConfigured: boolean
 }
 
-const ProfileSettingsPage = ({ user, emailConfigured }: ProfileSettingsPageProps) => (
-  <div className="flex flex-col gap-8 p-4 md:p-8">
-    <header className="flex items-center gap-2">
-      <SidebarTrigger className="md:hidden" />
-      <Typography variant="h2">Profile</Typography>
-    </header>
-    <div className="space-y-8">
-      <AvatarSection user={user} />
-      <Separator />
-      <AccountDetailsSection user={user} emailConfigured={emailConfigured} />
-      <Separator />
-      <LogoutSection />
+const ProfileSettingsPage = ({ user, emailConfigured }: ProfileSettingsPageProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col gap-8 p-4 md:p-8">
+      <header className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+        <Typography variant="h2">{t("settings.profile.title")}</Typography>
+      </header>
+      <div className="space-y-8">
+        <AvatarSection user={user} />
+        <Separator />
+        <AccountDetailsSection user={user} emailConfigured={emailConfigured} />
+        <Separator />
+        <LogoutSection />
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export { ProfileSettingsPage }

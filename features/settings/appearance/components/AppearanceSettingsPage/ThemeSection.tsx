@@ -4,6 +4,8 @@ import { type ReactNode } from "react"
 
 import { useTheme } from "next-themes"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Kbd, ToggleGroup, ToggleGroupItem, Typography } from "@/components/ui"
 
 import { DarkPreview } from "./DarkPreview"
@@ -12,17 +14,19 @@ import { SystemPreview } from "./SystemPreview"
 
 type ThemeOption = {
   value: string
-  label: string
+  labelKey: string
   preview: ReactNode
 }
 
-const themeOptions: ThemeOption[] = [
-  { value: "system", label: "System", preview: <SystemPreview /> },
-  { value: "light", label: "Light", preview: <LightPreview /> },
-  { value: "dark", label: "Dark", preview: <DarkPreview /> }
-]
+const themeOptions = [
+  { value: "system", labelKey: "settings.appearance.themeSystem", preview: <SystemPreview /> },
+  { value: "light", labelKey: "settings.appearance.themeLight", preview: <LightPreview /> },
+  { value: "dark", labelKey: "settings.appearance.themeDark", preview: <DarkPreview /> }
+] as const satisfies readonly ThemeOption[]
 
 const ThemeSection = () => {
+  const { t } = useTranslation()
+
   const { theme, setTheme } = useTheme()
 
   const handleThemeChange = (value: string) => {
@@ -35,11 +39,11 @@ const ThemeSection = () => {
     <section className="space-y-4">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <Typography variant="h4">Interface theme</Typography>
+          <Typography variant="h4">{t("settings.appearance.theme")}</Typography>
           <Kbd>D</Kbd>
         </div>
         <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
-          Select your preferred interface theme.
+          {t("settings.appearance.themeDescription")}
         </Typography>
       </div>
       <ToggleGroup
@@ -57,7 +61,7 @@ const ThemeSection = () => {
             className="data-[state=on]:border-primary h-auto max-w-32 flex-1 basis-0 flex-col gap-2 p-2"
           >
             {option.preview}
-            <Typography affects="small">{option.label}</Typography>
+            <Typography affects="small">{t(option.labelKey)}</Typography>
           </ToggleGroupItem>
         ))}
       </ToggleGroup>

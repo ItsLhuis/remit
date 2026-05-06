@@ -2,6 +2,8 @@
 
 import { Fragment, useState } from "react"
 
+import { useTranslation } from "@/lib/i18n"
+
 import {
   Button,
   Checkbox,
@@ -19,16 +21,15 @@ type CodesStepProps = {
 }
 
 const CodesStep = ({ backupCodes, onDone }: CodesStepProps) => {
+  const { t } = useTranslation()
+
   const [acknowledged, setAcknowledged] = useState(false)
 
   return (
     <Fragment>
       <DialogHeader>
-        <DialogTitle>Save your new recovery codes</DialogTitle>
-        <DialogDescription>
-          Your previous recovery codes are now invalid. Store these in a safe place &mdash; they
-          won&apos;t be shown again.
-        </DialogDescription>
+        <DialogTitle>{t("backupCodes.title")}</DialogTitle>
+        <DialogDescription>{t("backupCodes.description")}</DialogDescription>
       </DialogHeader>
       <RecoveryCodes codes={backupCodes} />
       <div className="flex items-start gap-3">
@@ -38,12 +39,12 @@ const CodesStep = ({ backupCodes, onDone }: CodesStepProps) => {
           onCheckedChange={(checked) => setAcknowledged(checked === true)}
         />
         <Label htmlFor="acknowledge" className="cursor-pointer leading-snug">
-          I have saved my recovery codes in a safe place.
+          {t("backupCodes.confirm")}
         </Label>
       </div>
       <DialogFooter>
         <Button className="w-full sm:w-auto" disabled={!acknowledged} onClick={onDone}>
-          Done
+          {t("common.actions.done")}
         </Button>
       </DialogFooter>
     </Fragment>

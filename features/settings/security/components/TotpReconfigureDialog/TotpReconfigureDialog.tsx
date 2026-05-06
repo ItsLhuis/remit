@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Button, Dialog, DialogContent, DialogTrigger, toast } from "@/components/ui"
 
 import { ConfirmStep } from "./ConfirmStep"
@@ -17,6 +19,8 @@ type ReconfigureState = {
 }
 
 const TotpReconfigureDialog = () => {
+  const { t } = useTranslation()
+
   const [open, setOpen] = useState(false)
 
   const [step, setStep] = useState<Step>("confirm")
@@ -39,8 +43,8 @@ const TotpReconfigureDialog = () => {
   const handleDone = () => {
     setOpen(false)
     reset()
-    toast.success("Two-factor authentication reconfigured", {
-      description: "Your new TOTP secret and recovery codes are active"
+    toast.success(t("settings.security.reconfigured"), {
+      description: t("settings.security.reconfiguredDescription")
     })
   }
 
@@ -48,7 +52,7 @@ const TotpReconfigureDialog = () => {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          Reconfigure
+          {t("settings.security.reconfigure")}
         </Button>
       </DialogTrigger>
       <DialogContent

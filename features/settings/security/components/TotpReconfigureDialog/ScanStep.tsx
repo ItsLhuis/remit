@@ -2,11 +2,14 @@
 
 import { Fragment, useMemo, useState } from "react"
 
-import { authClient } from "@/lib/authClient"
-
-import { totpVerifySchema, type TotpVerifyValues } from "@/features/settings/security/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { totpVerifySchema, type TotpVerifyValues } from "../../schemas"
 
 import {
   Button,
@@ -33,6 +36,8 @@ type ScanStepProps = {
 }
 
 const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
+  const { t } = useTranslation()
+
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const secret = useMemo(() => {
@@ -60,7 +65,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
 
     if (verifyError) {
       form.setError("code", {
-        message: verifyError.message ?? "Invalid code. Please try again."
+        message: verifyError.message ?? t("totp.invalidCode")
       })
       return
     }
@@ -70,9 +75,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
     })
 
     if (codesError || !codesData?.backupCodes?.length) {
-      setSubmitError(
-        "TOTP verified, but recovery codes could not be generated. Please try again from settings."
-      )
+      setSubmitError(t("settings.security.dialog.recoveryGenerationFailed"))
       return
     }
 
@@ -82,11 +85,8 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
   return (
     <Fragment>
       <DialogHeader>
-        <DialogTitle>Scan QR code</DialogTitle>
-        <DialogDescription>
-          Scan this code with your authenticator app, then enter the 6-digit verification code
-          below.
-        </DialogDescription>
+        <DialogTitle>{t("totp.scanQr")}</DialogTitle>
+        <DialogDescription>{t("totp.scanDescription")}</DialogDescription>
       </DialogHeader>
       <QrCodeDisplay totpUri={totpUri} />
       {secret && <ManualEntryCode secret={secret} />}
@@ -96,7 +96,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Verification code</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("totp.codeLabel")}</FieldLabel>
               <InputOTP
                 {...field}
                 id={field.name}
@@ -128,7 +128,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
             disabled={isSubmitting || !(isDirty && isValid)}
           >
             {isSubmitting && <Spinner />}
-            Verify code
+            {t("totp.verifyCode")}
           </Button>
         </DialogFooter>
       </form>

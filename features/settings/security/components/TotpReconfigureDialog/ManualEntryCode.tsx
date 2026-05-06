@@ -2,6 +2,8 @@
 
 import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Button, CopyIcon, Typography } from "@/components/ui"
 
 type ManualEntryCodeProps = {
@@ -9,11 +11,13 @@ type ManualEntryCodeProps = {
 }
 
 const ManualEntryCode = ({ secret }: ManualEntryCodeProps) => {
+  const { t } = useTranslation()
+
   const { copied: isSecretCopied, copy: copySecret } = useCopyWithFeedback()
 
   return (
     <div className="dark:bg-input/30 rounded-lg border p-3">
-      <Typography affects={["small", "muted"]}>Manual entry code</Typography>
+      <Typography affects={["small", "muted"]}>{t("totp.manualEntryCode")}</Typography>
       <div className="mt-1 flex items-center gap-3">
         <Typography
           variant="p"

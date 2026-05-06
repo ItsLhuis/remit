@@ -4,18 +4,18 @@ import { useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import {
-  accountDetailsSchema,
-  type AccountDetailsValues
-} from "@/features/settings/profile/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import { accountDetailsSchema, type AccountDetailsValues } from "../../schemas"
 
 import { authClient } from "@/lib/authClient"
 
 import { type User } from "@/lib/auth"
 
-import { changeEmailAddress } from "@/features/settings/profile/actions"
+import { changeEmailAddress } from "../../actions"
 
 import {
   Button,
@@ -23,7 +23,6 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-  Icon,
   Input,
   Spinner,
   toast,
@@ -36,6 +35,8 @@ type AccountDetailsSectionProps = {
 }
 
 const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionProps) => {
+  const { t } = useTranslation()
+
   const [isPending, startTransition] = useTransition()
 
   const router = useRouter()
@@ -79,8 +80,8 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
           return
         }
 
-        toast.success("Verification email sent", {
-          description: "Check your inbox to confirm the new address"
+        toast.success(t("settings.profile.verificationEmailSent"), {
+          description: t("settings.profile.verificationEmailSentDescription")
         })
       }
 
@@ -91,26 +92,26 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
       router.refresh()
 
       if (nameChanged && !emailChanged) {
-        toast.success("Profile updated")
+        toast.success(t("settings.profile.profileUpdated"))
       }
     })
   }
 
   return (
     <section className="space-y-4">
-      <Typography variant="h4">Account details</Typography>
+      <Typography variant="h4">{t("settings.profile.accountDetails")}</Typography>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Controller
           name="name"
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("settings.profile.displayName")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="text"
-                placeholder="Your name"
+                placeholder={t("auth.register.namePlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isPending}
               />
@@ -123,24 +124,21 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Email address</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("settings.profile.emailAddress")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="Your email"
+                placeholder={t("auth.register.emailPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isPending || !emailConfigured}
               />
               <FieldDescription className="text-muted-foreground text-sm">
                 {emailConfigured ? (
-                  "A verification email will be sent to the new address."
+                  t("settings.profile.emailVerificationDescription")
                 ) : (
                   <Typography affects={["small"]}>
-                    Email changes require an email provider to be configured in{" "}
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                      Settings <Icon name="ArrowRight" /> Email.
-                    </span>
+                    {t("settings.profile.emailProviderRequired")}
                   </Typography>
                 )}
               </FieldDescription>
@@ -151,7 +149,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending || !(isDirty && isValid)}>
             {isPending && <Spinner />}
-            Save changes
+            {t("common.actions.saveChanges")}
           </Button>
         </div>
       </form>

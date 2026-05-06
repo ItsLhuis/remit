@@ -2,14 +2,14 @@
 
 import { Fragment, useState } from "react"
 
-import { authClient } from "@/lib/authClient"
-
-import {
-  confirmPasswordSchema,
-  type ConfirmPasswordValues
-} from "@/features/settings/security/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { confirmPasswordSchema, type ConfirmPasswordValues } from "../../schemas"
 
 import {
   Button,
@@ -29,6 +29,8 @@ type ConfirmStepProps = {
 }
 
 const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
+  const { t } = useTranslation()
+
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm<ConfirmPasswordValues>({
@@ -47,12 +49,12 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
     const { data, error } = await authClient.twoFactor.enable({ password: values.password })
 
     if (error) {
-      setSubmitError(error.message ?? "Failed to start reconfiguration. Check your password.")
+      setSubmitError(error.message ?? t("settings.security.dialog.startFailed"))
       return
     }
 
     if (!data?.totpURI) {
-      setSubmitError("Something went wrong. Please try again.")
+      setSubmitError(t("errors.somethingWentWrong"))
 
       return
     }
@@ -63,11 +65,8 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
   return (
     <Fragment>
       <DialogHeader>
-        <DialogTitle>Reconfigure two-factor authentication</DialogTitle>
-        <DialogDescription>
-          Your current TOTP secret will be replaced immediately. Do not close this dialog until you
-          have scanned the new QR code and saved your recovery codes.
-        </DialogDescription>
+        <DialogTitle>{t("settings.security.dialog.confirmTitle")}</DialogTitle>
+        <DialogDescription>{t("settings.security.dialog.confirmDescription")}</DialogDescription>
       </DialogHeader>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Controller
@@ -75,12 +74,14 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Confirm your password</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("settings.security.dialog.confirmPassword")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Your password"
+                placeholder={t("auth.register.passwordPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -96,7 +97,7 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
             disabled={isSubmitting || !(isDirty && isValid)}
           >
             {isSubmitting && <Spinner />}
-            Continue
+            {t("common.actions.continue")}
           </Button>
         </DialogFooter>
       </form>

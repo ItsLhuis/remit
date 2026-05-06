@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
 import { auth } from "@/lib/auth"
+import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
 import { uploads } from "@/database/schema"
@@ -20,7 +21,8 @@ export async function changeEmailAddress(
 
     return { success: true, pendingVerification: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to initiate email change."
+    const message =
+      error instanceof Error ? error.message : t("settings.profile.errors.emailChangeFailed")
 
     return { error: message }
   }
@@ -36,7 +38,7 @@ export async function confirmAvatarUpload(
 
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) return { error: "Unauthorized." }
+  if (!session) return { error: t("settings.profile.errors.unauthorized") }
 
   try {
     await database.insert(uploads).values({
@@ -46,7 +48,8 @@ export async function confirmAvatarUpload(
       sizeBytes
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update profile picture."
+    const message =
+      error instanceof Error ? error.message : t("settings.profile.errors.avatarUpdateFailed")
 
     return { error: message }
   }

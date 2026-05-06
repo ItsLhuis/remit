@@ -2,6 +2,8 @@
 
 import { type ReactNode } from "react"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { useAppearance, type FontSize } from "@/providers/AppearanceProvider"
 
 import { ToggleGroup, ToggleGroupItem, Typography } from "@/components/ui"
@@ -10,17 +12,31 @@ import { FontSizePreview } from "./FontSizePreview"
 
 type FontSizeOption = {
   value: FontSize
-  label: string
+  labelKey: string
   preview: ReactNode
 }
 
-const fontSizeOptions: FontSizeOption[] = [
-  { value: "compact", label: "Compact", preview: <FontSizePreview textSize="11px" /> },
-  { value: "default", label: "Default", preview: <FontSizePreview textSize="14px" /> },
-  { value: "comfortable", label: "Comfortable", preview: <FontSizePreview textSize="18px" /> }
-]
+const fontSizeOptions = [
+  {
+    value: "compact",
+    labelKey: "settings.appearance.fontSizeCompact",
+    preview: <FontSizePreview textSize="11px" />
+  },
+  {
+    value: "default",
+    labelKey: "settings.appearance.fontSizeDefault",
+    preview: <FontSizePreview textSize="14px" />
+  },
+  {
+    value: "comfortable",
+    labelKey: "settings.appearance.fontSizeComfortable",
+    preview: <FontSizePreview textSize="18px" />
+  }
+] as const satisfies readonly FontSizeOption[]
 
 const FontSizeSection = () => {
+  const { t } = useTranslation()
+
   const { fontSize, setFontSize } = useAppearance()
 
   const handleFontSizeChange = (value: string) => {
@@ -32,9 +48,9 @@ const FontSizeSection = () => {
   return (
     <section className="space-y-4">
       <div className="space-y-1">
-        <Typography variant="h4">Font size</Typography>
+        <Typography variant="h4">{t("settings.appearance.fontSize")}</Typography>
         <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
-          Adjust the base font size of the interface.
+          {t("settings.appearance.fontSizeDescription")}
         </Typography>
       </div>
       <ToggleGroup
@@ -52,7 +68,7 @@ const FontSizeSection = () => {
             className="data-[state=on]:border-primary h-auto max-w-32 flex-1 basis-0 flex-col gap-2 p-2"
           >
             {option.preview}
-            <Typography affects="small">{option.label}</Typography>
+            <Typography affects="small">{t(option.labelKey)}</Typography>
           </ToggleGroupItem>
         ))}
       </ToggleGroup>

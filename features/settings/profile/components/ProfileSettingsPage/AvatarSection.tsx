@@ -4,13 +4,15 @@ import { useRef, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { authClient } from "@/lib/authClient"
 import { resolveStorageUrl } from "@/lib/storage"
 import { getInitials } from "@/lib/utils"
 
 import { type User } from "@/lib/auth"
 
-import { confirmAvatarUpload } from "@/features/settings/profile/actions"
+import { confirmAvatarUpload } from "../../actions"
 
 import {
   Avatar,
@@ -27,6 +29,8 @@ type AvatarSectionProps = {
 }
 
 const AvatarSection = ({ user }: AvatarSectionProps) => {
+  const { t } = useTranslation()
+
   const [isPending, startTransition] = useTransition()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,7 +58,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
         const message =
           typeof data === "object" && data !== null && "error" in data
             ? String((data as Record<string, unknown>).error)
-            : "Failed to get upload URL."
+            : t("settings.profile.uploadUrlFailed")
 
         toast.error(message)
 
@@ -73,7 +77,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
       })
 
       if (!putResponse.ok) {
-        toast.error("Failed to upload file")
+        toast.error(t("settings.profile.uploadFailed"))
 
         return
       }
@@ -98,13 +102,13 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
 
       router.refresh()
 
-      toast.success("Avatar updated")
+      toast.success(t("settings.profile.avatarUpdated"))
     })
   }
 
   return (
     <section className="space-y-4">
-      <Typography variant="h4">Avatar</Typography>
+      <Typography variant="h4">{t("settings.profile.avatar")}</Typography>
       <div className="flex items-center gap-4">
         <Avatar className="size-20 text-base">
           {user.image && <AvatarImage src={resolveStorageUrl(user.image) ?? ""} alt={user.name} />}
@@ -126,9 +130,9 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
             onClick={() => fileInputRef.current?.click()}
           >
             {isPending && <Spinner />}
-            Upload photo
+            {t("settings.profile.uploadPhoto")}
           </Button>
-          <Typography affects={["muted", "small"]}>JPG, PNG, WebP or GIF. Max 5MB.</Typography>
+          <Typography affects={["muted", "small"]}>{t("settings.profile.avatarHelp")}</Typography>
         </div>
       </div>
     </section>
