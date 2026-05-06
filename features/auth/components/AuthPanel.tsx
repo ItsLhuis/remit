@@ -1,8 +1,14 @@
+"use client"
+
 import Image from "next/image"
+
+import { useTranslation } from "@/lib/i18n"
 
 import { AuroraText, Typography } from "@/components/ui"
 
 const AuthPanel = () => {
+  const { t } = useTranslation()
+
   return (
     <div className="relative hidden h-screen w-1/3 flex-col overflow-hidden lg:flex">
       <Image
@@ -41,33 +47,32 @@ const AuthPanel = () => {
         }}
       />
       <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5">
-        <Image src="/logo.png" width={32} height={32} alt="Remit" />
+        <Image src="/logo.png" width={32} height={32} alt={t("app.logoAlt")} />
         <Typography variant="h5" className="tracking-tight text-white">
           Remit
         </Typography>
       </div>
       <div className="absolute inset-x-8 bottom-8 z-20 flex flex-col items-start">
         <Typography variant="h1" className="leading-[1.15] text-white">
-          Your work.
+          {t("auth.panel.taglineFirst")}
           <br />
-          <AuroraText>Your terms.</AuroraText>
+          <AuroraText>{t("auth.panel.taglineSecond")}</AuroraText>
         </Typography>
         <div className="bg-primary my-4 h-px w-8" />
         <Typography className="max-w-67 leading-relaxed text-white/55">
-          Manage clients, projects, proposals and invoices &mdash; self-hosted and fully yours. No
-          subscriptions, no lock-in.
+          {t("auth.panel.description")}
         </Typography>
         <div className="mt-6 flex items-center gap-3">
           <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
-            Self-hosted
+            {t("auth.panel.selfHosted")}
           </Typography>
           <Typography className="text-white/20">·</Typography>
           <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
-            Open source
+            {t("auth.panel.openSource")}
           </Typography>
           <Typography className="text-white/20">·</Typography>
           <Typography affects={["small", "uppercase"]} className="tracking-widest text-white/35">
-            Own your data
+            {t("auth.panel.ownYourData")}
           </Typography>
         </div>
       </div>

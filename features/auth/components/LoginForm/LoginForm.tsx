@@ -2,21 +2,25 @@
 
 import { useState } from "react"
 
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 
-import { authClient } from "@/lib/authClient"
-
-import { loginSchema, type LoginValues } from "@/features/auth/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { loginSchema, type LoginValues } from "../../schemas"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
 
 import { TotpForm } from "./TotpForm"
 
 const LoginForm = () => {
+  const { t } = useTranslation()
+
   const [authError, setAuthError] = useState<string | null>(null)
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
 
@@ -41,7 +45,7 @@ const LoginForm = () => {
     })
 
     if (error) {
-      setAuthError(error.message ?? "Invalid email or password.")
+      setAuthError(error.message ?? t("auth.login.invalidCredentials"))
 
       return
     }
@@ -62,12 +66,12 @@ const LoginForm = () => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Welcome Back
+          {t("auth.login.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          Enter your email and password to access your account
+          {t("auth.login.description")}
         </Typography>
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -76,12 +80,12 @@ const LoginForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.email")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="Your email"
+                placeholder={t("auth.register.emailPlaceholder")}
                 autoComplete="email"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -95,12 +99,12 @@ const LoginForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Your password"
+                placeholder={t("auth.register.passwordPlaceholder")}
                 autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -116,7 +120,7 @@ const LoginForm = () => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          Sign in
+          {t("auth.login.submit")}
         </Button>
         {authError && (
           <FieldError className="text-center" role="alert">

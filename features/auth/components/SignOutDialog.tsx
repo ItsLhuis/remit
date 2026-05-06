@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslation } from "@/lib/i18n"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,19 +20,19 @@ type SignOutDialogProps = {
 }
 
 const SignOutDialog = ({ open, onOpenChange, onConfirm }: SignOutDialogProps) => {
+  const { t } = useTranslation()
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent size="sm">
         <AlertDialogHeader>
-          <AlertDialogTitle>Sign out</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to sign out of your account?
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t("auth.signOut.title")}</AlertDialogTitle>
+          <AlertDialogDescription>{t("auth.signOut.description")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.actions.cancel")}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            Sign out
+            {t("auth.signOut.submit")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

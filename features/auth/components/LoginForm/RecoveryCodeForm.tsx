@@ -1,10 +1,13 @@
 "use client"
 
-import { authClient } from "@/lib/authClient"
-
-import { recoveryCodeSchema, type RecoveryCodeValues } from "@/features/auth/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { recoveryCodeSchema, type RecoveryCodeValues } from "../../schemas"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner } from "@/components/ui"
 
@@ -13,6 +16,8 @@ type RecoveryCodeFormProps = {
 }
 
 const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
+  const { t } = useTranslation()
+
   const form = useForm<RecoveryCodeValues>({
     resolver: zodResolver(recoveryCodeSchema),
     mode: "onSubmit",
@@ -27,7 +32,7 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
     const { error } = await authClient.twoFactor.verifyBackupCode({ code: values.code })
 
     if (error) {
-      form.setError("code", { message: error.message ?? "Invalid recovery code." })
+      form.setError("code", { message: error.message ?? t("recoveryCode.invalid") })
 
       return
     }
@@ -42,7 +47,7 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
         control={form.control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor={field.name}>Recovery code</FieldLabel>
+            <FieldLabel htmlFor={field.name}>{t("recoveryCode.label")}</FieldLabel>
             <Input
               {...field}
               id={field.name}
@@ -65,7 +70,7 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
         disabled={isSubmitting || !(isDirty && isValid)}
       >
         {isSubmitting && <Spinner />}
-        Verify recovery code
+        {t("recoveryCode.verify")}
       </Button>
     </form>
   )

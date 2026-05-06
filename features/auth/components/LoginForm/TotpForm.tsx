@@ -2,13 +2,16 @@
 
 import { useState } from "react"
 
-import { authClient } from "@/lib/authClient"
+import Image from "next/image"
 
-import { totpSchema, type TotpValues } from "@/features/auth/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { totpSchema, type TotpValues } from "../../schemas"
 
 import {
   Button,
@@ -29,6 +32,8 @@ type TotpFormProps = {
 }
 
 const TotpForm = ({ onSuccess }: TotpFormProps) => {
+  const { t } = useTranslation()
+
   const [useRecovery, setUseRecovery] = useState(false)
 
   const form = useForm<TotpValues>({
@@ -45,7 +50,7 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
     const { error } = await authClient.twoFactor.verifyTotp({ code: values.code })
 
     if (error) {
-      form.setError("code", { message: error.message ?? "Invalid code. Please try again." })
+      form.setError("code", { message: error.message ?? t("totp.invalidCode") })
 
       return
     }
@@ -56,14 +61,12 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Two-factor authentication
+          {t("totp.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          {useRecovery
-            ? "Enter one of your saved recovery codes."
-            : "Enter the 6-digit code from your authenticator app."}
+          {useRecovery ? t("recoveryCode.description") : t("auth.totp.authenticatorDescription")}
         </Typography>
       </div>
       {useRecovery ? (
@@ -75,7 +78,7 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>Verification code</FieldLabel>
+                <FieldLabel htmlFor={field.name}>{t("totp.codeLabel")}</FieldLabel>
                 <InputOTP
                   {...field}
                   id={field.name}
@@ -106,7 +109,7 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
             disabled={isSubmitting || !(isDirty && isValid)}
           >
             {isSubmitting && <Spinner />}
-            Verify code
+            {t("totp.verifyCode")}
           </Button>
         </form>
       )}
@@ -116,7 +119,7 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
           className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-3"
           onClick={() => setUseRecovery((v) => !v)}
         >
-          {useRecovery ? "Use authenticator app instead" : "Use a recovery code instead"}
+          {useRecovery ? t("totp.useAuthenticator") : t("totp.useRecoveryCode")}
         </button>
       </div>
     </div>

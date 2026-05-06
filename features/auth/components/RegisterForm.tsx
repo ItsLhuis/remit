@@ -2,15 +2,17 @@
 
 import { useMemo, useState } from "react"
 
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 
-import { authClient } from "@/lib/authClient"
-
-import { accountSchema, passwordRules, type AccountValues } from "@/features/auth/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { accountSchema, passwordRules, type AccountValues } from "../schemas"
 
 import {
   Button,
@@ -25,6 +27,8 @@ import {
 } from "@/components/ui"
 
 const RegisterForm = () => {
+  const { t } = useTranslation()
+
   const [serverError, setServerError] = useState<string | null>(null)
 
   const router = useRouter()
@@ -46,15 +50,24 @@ const RegisterForm = () => {
   const passwordChecks = useMemo(
     () => [
       {
-        label: `At least ${passwordRules.minLength} characters`,
+        label: t("auth.register.passwordMinLength", { count: passwordRules.minLength }),
         valid: password.length >= passwordRules.minLength
       },
-      { label: "1 uppercase letter", valid: passwordRules.hasUppercase.test(password) },
-      { label: "1 lowercase letter", valid: passwordRules.hasLowercase.test(password) },
-      { label: "1 number", valid: passwordRules.hasNumber.test(password) },
-      { label: "1 special character", valid: passwordRules.hasSpecialChar.test(password) }
+      {
+        label: t("auth.register.passwordUppercase"),
+        valid: passwordRules.hasUppercase.test(password)
+      },
+      {
+        label: t("auth.register.passwordLowercase"),
+        valid: passwordRules.hasLowercase.test(password)
+      },
+      { label: t("auth.register.passwordNumber"), valid: passwordRules.hasNumber.test(password) },
+      {
+        label: t("auth.register.passwordSpecial"),
+        valid: passwordRules.hasSpecialChar.test(password)
+      }
     ],
-    [password]
+    [password, t]
   )
   const passedChecks = passwordChecks.filter((check) => check.valid).length
 
@@ -70,7 +83,7 @@ const RegisterForm = () => {
     })
 
     if (error) {
-      setServerError(error.message ?? "Failed to create account.")
+      setServerError(error.message ?? t("auth.register.failed"))
 
       return
     }
@@ -81,12 +94,12 @@ const RegisterForm = () => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Create your account
+          {t("auth.register.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          Set up your Remit account to get started.
+          {t("auth.register.description")}
         </Typography>
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -95,11 +108,11 @@ const RegisterForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.name")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
-                placeholder="Your name"
+                placeholder={t("auth.register.namePlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -112,12 +125,12 @@ const RegisterForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.email")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="Your email"
+                placeholder={t("auth.register.emailPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -130,19 +143,19 @@ const RegisterForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Your password"
+                placeholder={t("auth.register.passwordPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               <div className="dark:bg-input/30 mt-2 rounded-md border p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <Typography affects="small">Password strength requirements</Typography>
+                  <Typography affects="small">{t("auth.register.passwordRequirements")}</Typography>
                   <Typography affects="small" className="text-foreground font-medium">
                     {passedChecks}/{passwordChecks.length}
                   </Typography>
@@ -150,7 +163,7 @@ const RegisterForm = () => {
                 <Progress
                   className="mb-3"
                   value={(passedChecks / passwordChecks.length) * 100}
-                  aria-label="Password requirements completion"
+                  aria-label={t("auth.register.passwordRequirementsProgress")}
                 />
                 <div className="space-y-1">
                   {passwordChecks.map((check) => (
@@ -184,12 +197,12 @@ const RegisterForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Confirm password</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("auth.register.confirmPassword")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Repeat your password"
+                placeholder={t("auth.register.confirmPasswordPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -204,7 +217,7 @@ const RegisterForm = () => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          Create account
+          {t("auth.register.submit")}
         </Button>
         {serverError && (
           <FieldError className="text-center" role="alert">

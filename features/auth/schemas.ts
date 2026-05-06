@@ -1,14 +1,16 @@
 import { z } from "zod"
 
+import { t } from "@/lib/i18n/server"
+
 export const loginSchema = z.object({
-  email: z.email("Enter a valid email address."),
-  password: z.string().min(1, "Password is required.")
+  email: z.email(t("auth.login.validation.emailInvalid")),
+  password: z.string().min(1, t("auth.login.validation.passwordRequired"))
 })
 
 export type LoginValues = z.infer<typeof loginSchema>
 
 export const totpSchema = z.object({
-  code: z.string().length(6, "Enter the 6-digit code.")
+  code: z.string().length(6, t("totp.validation.codeLength"))
 })
 
 export type TotpValues = z.infer<typeof totpSchema>
@@ -16,8 +18,8 @@ export type TotpValues = z.infer<typeof totpSchema>
 export const recoveryCodeSchema = z.object({
   code: z
     .string()
-    .min(8, "Enter your recovery code.")
-    .regex(/^[a-zA-Z0-9-]+$/, "Invalid recovery code format.")
+    .min(8, t("recoveryCode.validation.required"))
+    .regex(/^[a-zA-Z0-9-]+$/, t("recoveryCode.validation.format"))
 })
 
 export type RecoveryCodeValues = z.infer<typeof recoveryCodeSchema>
@@ -32,35 +34,35 @@ export const passwordRules = {
 
 export const accountSchema = z
   .object({
-    name: z.string().min(1, "Name is required."),
-    email: z.email("Enter a valid email address."),
+    name: z.string().min(1, t("auth.register.validation.nameRequired")),
+    email: z.email(t("auth.register.validation.emailInvalid")),
     password: z
       .string()
       .min(
         passwordRules.minLength,
-        `Password must be at least ${passwordRules.minLength} characters.`
+        t("auth.register.validation.passwordMin", { count: passwordRules.minLength })
       )
       .max(128)
       .refine((value) => passwordRules.hasUppercase.test(value), {
-        message: "Password must include at least 1 uppercase letter."
+        message: t("auth.register.validation.passwordUppercase")
       })
       .refine((value) => passwordRules.hasLowercase.test(value), {
-        message: "Password must include at least 1 lowercase letter."
+        message: t("auth.register.validation.passwordLowercase")
       })
       .refine((value) => passwordRules.hasNumber.test(value), {
-        message: "Password must include at least 1 number."
+        message: t("auth.register.validation.passwordNumber")
       })
       .refine((value) => passwordRules.hasSpecialChar.test(value), {
-        message: "Password must include at least 1 special character."
+        message: t("auth.register.validation.passwordSpecial")
       }),
-    confirmPassword: z.string().min(1, "Please confirm your password.")
+    confirmPassword: z.string().min(1, t("auth.register.validation.confirmPasswordRequired"))
   })
   .superRefine((values, ctx) => {
     if (values.password !== values.confirmPassword) {
       ctx.addIssue({
         code: "custom",
         path: ["confirmPassword"],
-        message: "Passwords do not match."
+        message: t("auth.register.validation.passwordsMatch")
       })
     }
   })
