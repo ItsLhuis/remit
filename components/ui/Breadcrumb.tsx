@@ -4,10 +4,17 @@ import { cn } from "@/lib/utils"
 
 import { Slot } from "radix-ui"
 
+import { t } from "@/lib/i18n/server"
+
 import { Icon } from "@/components/ui/Icon"
 
 const Breadcrumb = ({ className, ...props }: ComponentProps<"nav">) => (
-  <nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
+  <nav
+    aria-label={t("common.navigation.breadcrumb")}
+    data-slot="breadcrumb"
+    className={cn(className)}
+    {...props}
+  />
 )
 
 const BreadcrumbList = ({ className, ...props }: ComponentProps<"ol">) => (
@@ -79,7 +86,7 @@ const BreadcrumbEllipsis = ({ className, ...props }: ComponentProps<"span">) => 
     {...props}
   >
     <Icon name="MoreHorizontal" />
-    <span className="sr-only">More</span>
+    <span className="sr-only">{t("common.navigation.more")}</span>
   </span>
 )
 

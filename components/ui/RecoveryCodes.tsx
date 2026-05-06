@@ -4,6 +4,8 @@ import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
 import { cn } from "@/lib/utils"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Alert, AlertDescription } from "@/components/ui/Alert"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -41,16 +43,18 @@ type RecoveryCodesProps = {
 }
 
 const RecoveryCodes = ({ codes, className }: RecoveryCodesProps) => {
+  const { t } = useTranslation()
+
   const { copied, copy } = useCopyWithFeedback()
 
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold">Recovery codes</p>
-          <p className="text-muted-foreground text-sm">Save these somewhere safe</p>
+          <p className="text-sm font-semibold">{t("backupCodes.listTitle")}</p>
+          <p className="text-muted-foreground text-sm">{t("backupCodes.saveShort")}</p>
         </div>
-        <Badge variant="outline">{codes.length} codes</Badge>
+        <Badge variant="outline">{t("backupCodes.count", { count: codes.length })}</Badge>
       </div>
       <div className="dark:bg-input/30 divide-y overflow-hidden rounded-lg border">
         {Array.from({ length: Math.ceil(codes.length / 2) }, (_, i) => (
@@ -68,13 +72,12 @@ const RecoveryCodes = ({ codes, className }: RecoveryCodesProps) => {
         onClick={() => copy(codes.join("\n"))}
       >
         <CopyIcon copied={copied} />
-        {copied ? "Copied!" : "Copy all codes"}
+        {copied ? t("common.status.copied") : t("common.actions.copyAllCodes")}
       </Button>
       <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
         <Icon name="CircleAlert" />
         <AlertDescription className="text-amber-900 dark:text-amber-50">
-          Each code can only be used once. Store them offline &mdash; they won&apos;t be shown
-          again.
+          {t("backupCodes.singleUseWarning")}
         </AlertDescription>
       </Alert>
     </div>

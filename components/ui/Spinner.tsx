@@ -2,6 +2,8 @@ import { type ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
+import { t } from "@/lib/i18n/server"
+
 import { Icon } from "@/components/ui/Icon"
 
 const Spinner = ({ className }: Pick<ComponentProps<"svg">, "className">) => {
@@ -9,7 +11,7 @@ const Spinner = ({ className }: Pick<ComponentProps<"svg">, "className">) => {
     <Icon
       name="Loader2"
       role="status"
-      aria-label="Loading"
+      aria-label={t("common.status.loading")}
       className={cn("size-4 animate-spin", className)}
     />
   )

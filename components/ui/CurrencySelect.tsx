@@ -4,6 +4,8 @@ import { type Ref, useMemo, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
+import { useTranslation } from "@/lib/i18n"
+
 import {
   Select,
   SelectContent,
@@ -95,14 +97,17 @@ const CurrencySelect = ({
   onValueChangeAction,
   onCurrencySelectAction,
   name,
-  placeholder = "Select currency",
+  placeholder,
   currencies = "all",
   variant = "default",
   valid = true,
   disabled,
   ...props
 }: CurrencySelectProps) => {
+  const { t } = useTranslation()
+
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null)
+  const resolvedPlaceholder = placeholder ?? t("common.fields.selectCurrency")
 
   const uniqueCurrencies = useMemo<Currency[]>(() => {
     const currencyMap = new Map<string, Currency>()
@@ -158,11 +163,11 @@ const CurrencySelect = ({
         aria-invalid={!valid}
       >
         {value && variant === "small" ? (
-          <SelectValue placeholder={placeholder}>
+          <SelectValue placeholder={resolvedPlaceholder}>
             <span>{value}</span>
           </SelectValue>
         ) : (
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={resolvedPlaceholder} />
         )}
       </SelectTrigger>
       <SelectContent>

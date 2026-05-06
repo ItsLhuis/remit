@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils"
 
 import { Slot } from "radix-ui"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { Input } from "@/components/ui/Input"
@@ -159,6 +161,8 @@ const Sidebar = ({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none" | "panel"
 }) => {
+  const { t } = useTranslation()
+
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   if (collapsible === "none") {
@@ -189,8 +193,8 @@ const Sidebar = ({
             side={side}
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Sidebar</SheetTitle>
-              <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+              <SheetTitle>{t("common.navigation.sidebar")}</SheetTitle>
+              <SheetDescription>{t("common.navigation.sidebarDescription")}</SheetDescription>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
@@ -225,8 +229,8 @@ const Sidebar = ({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>{t("common.navigation.sidebar")}</SheetTitle>
+            <SheetDescription>{t("common.navigation.sidebarDescription")}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -279,6 +283,8 @@ const Sidebar = ({
 }
 
 const SidebarTrigger = ({ className, onClick, ...props }: ComponentProps<typeof Button>) => {
+  const { t } = useTranslation()
+
   const { toggleSidebar, state, isMobile, openMobile } = useSidebar()
 
   const iconName = isMobile
@@ -303,22 +309,24 @@ const SidebarTrigger = ({ className, onClick, ...props }: ComponentProps<typeof 
       {...props}
     >
       <Icon name={iconName} />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">{t("common.navigation.toggleSidebar")}</span>
     </Button>
   )
 }
 
 const SidebarRail = ({ className, ...props }: ComponentProps<"button">) => {
+  const { t } = useTranslation()
+
   const { toggleSidebar } = useSidebar()
 
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
+      aria-label={t("common.navigation.toggleSidebar")}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title={t("common.navigation.toggleSidebar")}
       className={cn(
         "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:inset-s-1/2 after:w-0.5 sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

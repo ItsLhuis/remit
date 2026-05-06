@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 import { Dialog as SheetPrimitive } from "radix-ui"
 
+import { t } from "@/lib/i18n/server"
+
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 
@@ -62,7 +64,7 @@ const SheetContent = ({
         <SheetPrimitive.Close data-slot="sheet-close" asChild>
           <Button variant="ghost" className="absolute top-3 right-3" size="icon-sm">
             <Icon name="X" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("common.actions.close")}</span>
           </Button>
         </SheetPrimitive.Close>
       )}

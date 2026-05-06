@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 import { Dialog as DialogPrimitive } from "radix-ui"
 
+import { t } from "@/lib/i18n/server"
+
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 
@@ -59,7 +61,7 @@ const DialogContent = ({
         <DialogPrimitive.Close data-slot="dialog-close" asChild>
           <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
             <Icon name="X" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("common.actions.close")}</span>
           </Button>
         </DialogPrimitive.Close>
       )}
@@ -90,7 +92,7 @@ const DialogFooter = ({
     {children}
     {showCloseButton && (
       <DialogPrimitive.Close asChild>
-        <Button variant="outline">Close</Button>
+        <Button variant="outline">{t("common.actions.close")}</Button>
       </DialogPrimitive.Close>
     )}
   </div>

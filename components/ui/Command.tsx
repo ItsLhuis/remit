@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 import { Command as CommandPrimitive } from "cmdk"
 
+import { t } from "@/lib/i18n/server"
+
 import {
   Dialog,
   DialogContent,
@@ -28,8 +30,8 @@ const Command = ({ className, ...props }: ComponentProps<typeof CommandPrimitive
 )
 
 const CommandDialog = ({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = t("common.navigation.commandPalette"),
+  description = t("common.navigation.commandSearchPlaceholder"),
   children,
   className,
   showCloseButton = false,

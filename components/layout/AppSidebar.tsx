@@ -2,23 +2,21 @@
 
 import { Fragment, useState } from "react"
 
-import { SignOutDialog } from "@/features/auth/components"
-
-import { cn, getInitials } from "@/lib/utils"
-
-import { resolveStorageUrl } from "@/lib/storage"
+import Image from "next/image"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
-import { useScroll } from "@/hooks/useScroll"
-
-import { usePathname, useRouter } from "next/navigation"
+import { useTranslation } from "@/lib/i18n"
 
 import { signOut, useSession } from "@/lib/authClient"
+import { resolveStorageUrl } from "@/lib/storage"
+import { cn, getInitials } from "@/lib/utils"
 
-import Image from "next/image"
+import { useScroll } from "@/hooks/useScroll"
 
-import Link from "next/link"
+import { SignOutDialog } from "@/features/auth/components"
 
 import {
   Avatar,
@@ -60,17 +58,17 @@ import {
 } from "@/components/ui"
 
 const mainNavItems = [
-  { label: "Dashboard", href: "/", icon: "LayoutDashboard" as const },
-  { label: "Clients", href: "/clients", icon: "Users" as const },
-  { label: "Projects", href: "/projects", icon: "FolderOpen" as const },
-  { label: "Proposals", href: "/proposals", icon: "FileText" as const },
-  { label: "Invoices", href: "/invoices", icon: "Receipt" as const }
-]
+  { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },
+  { labelKey: "app.navigation.clients", href: "/clients", icon: "Users" as const },
+  { labelKey: "app.navigation.projects", href: "/projects", icon: "FolderOpen" as const },
+  { labelKey: "app.navigation.proposals", href: "/proposals", icon: "FileText" as const },
+  { labelKey: "app.navigation.invoices", href: "/invoices", icon: "Receipt" as const }
+] as const
 
 const configNavItems = [
-  { label: "Templates", href: "/templates", icon: "LayoutTemplate" as const },
-  { label: "Settings", href: "/settings", icon: "Settings2" as const }
-]
+  { labelKey: "common.navigation.templates", href: "/templates", icon: "LayoutTemplate" as const },
+  { labelKey: "app.navigation.settings", href: "/settings", icon: "Settings2" as const }
+] as const
 
 type NavUserProps = {
   name?: string | null
@@ -81,6 +79,8 @@ type NavUserProps = {
 }
 
 const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
+  const { t } = useTranslation()
+
   const { isMobile } = useSidebar()
 
   const [signOutOpen, setSignOutOpen] = useState(false)
@@ -94,7 +94,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-foreground"
-                tooltip={name ?? "Account"}
+                tooltip={name ?? t("common.navigation.account")}
               >
                 <Avatar>
                   <AvatarImage src={image ?? ""} alt={name ?? ""} />
@@ -135,7 +135,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
               <DropdownMenuGroup>
                 <DropdownMenuItem variant="destructive" onSelect={() => setSignOutOpen(true)}>
                   <Icon name="LogOut" />
-                  Sign out
+                  {t("auth.signOut.submit")}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -148,6 +148,8 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
 }
 
 const AppSidebar = () => {
+  const { t } = useTranslation()
+
   const pathname = usePathname()
 
   const router = useRouter()
@@ -187,7 +189,7 @@ const AppSidebar = () => {
               exit
               className="flex items-center gap-2 overflow-hidden"
             >
-              <Image src="/logo.png" width={32} height={32} alt="Remit" />
+              <Image src="/logo.png" width={32} height={32} alt={t("app.logoAlt")} />
             </Fade>
             <SidebarTrigger className="ml-auto shrink-0" />
           </div>
@@ -201,12 +203,12 @@ const AppSidebar = () => {
                 className="text-muted-foreground hover:text-foreground w-full justify-start overflow-hidden transition-all group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:shrink-0"
               >
                 <Icon name="Search" />
-                <Typography className="flex-1 text-left">Search</Typography>
+                <Typography className="flex-1 text-left">{t("common.actions.search")}</Typography>
                 <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" align="center" hidden={!isCollapsed || isMobile}>
-              Search
+              {t("common.actions.search")}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -218,7 +220,7 @@ const AppSidebar = () => {
             viewportRef={viewportRef}
           >
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>{t("app.navigation.navigation")}</SidebarGroupLabel>
               <SidebarMenu>
                 {mainNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
@@ -227,11 +229,11 @@ const AppSidebar = () => {
                       isActive={
                         item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
                       }
-                      tooltip={item.label}
+                      tooltip={t(item.labelKey)}
                     >
                       <Link href={item.href}>
                         <Icon name={item.icon} />
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -239,18 +241,18 @@ const AppSidebar = () => {
               </SidebarMenu>
             </SidebarGroup>
             <SidebarGroup>
-              <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+              <SidebarGroupLabel>{t("app.navigation.configuration")}</SidebarGroupLabel>
               <SidebarMenu>
                 {configNavItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname.startsWith(item.href)}
-                      tooltip={item.label}
+                      tooltip={t(item.labelKey)}
                     >
                       <Link href={item.href}>
                         <Icon name={item.icon} />
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -283,10 +285,10 @@ const AppSidebar = () => {
       </Sidebar>
       <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
         <Command>
-          <CommandInput placeholder="Search" />
+          <CommandInput placeholder={t("common.actions.search")} />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="Navigation">
+            <CommandEmpty>{t("common.status.noResults")}</CommandEmpty>
+            <CommandGroup heading={t("app.navigation.navigation")}>
               {mainNavItems.map((item) => (
                 <CommandItem
                   key={item.href}
@@ -296,11 +298,11 @@ const AppSidebar = () => {
                   }}
                 >
                   <Icon name={item.icon} />
-                  {item.label}
+                  {t(item.labelKey)}
                 </CommandItem>
               ))}
             </CommandGroup>
-            <CommandGroup heading="Configuration">
+            <CommandGroup heading={t("app.navigation.configuration")}>
               {configNavItems.map((item) => (
                 <CommandItem
                   key={item.href}
@@ -310,7 +312,7 @@ const AppSidebar = () => {
                   }}
                 >
                   <Icon name={item.icon} />
-                  {item.label}
+                  {t(item.labelKey)}
                 </CommandItem>
               ))}
             </CommandGroup>

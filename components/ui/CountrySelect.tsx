@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 import { CircleFlag } from "react-circle-flags"
 
+import { useTranslation } from "@/lib/i18n"
+
 import {
   Select,
   SelectContent,
@@ -49,11 +51,15 @@ const CountrySelect = ({
   onChangeAction,
   value,
   disabled = false,
-  placeholder = "Select a country",
+  placeholder,
   slim = false,
   valid = true,
   ref
 }: CountrySelectProps) => {
+  const { t } = useTranslation()
+
+  const resolvedPlaceholder = placeholder ?? t("common.fields.selectCountry")
+
   const handleValueChange = (alpha2: string) => {
     const country = options.find((c) => c.alpha2 === alpha2)
 
@@ -79,11 +85,11 @@ const CountrySelect = ({
         aria-invalid={!valid}
       >
         {currentCountry && slim ? (
-          <SelectValue placeholder={placeholder}>
+          <SelectValue placeholder={resolvedPlaceholder}>
             <span>{currentCountry.alpha2}</span>
           </SelectValue>
         ) : (
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={resolvedPlaceholder} />
         )}
       </SelectTrigger>
       <SelectContent>

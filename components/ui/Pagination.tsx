@@ -2,13 +2,15 @@ import { type ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
+import { t } from "@/lib/i18n/server"
+
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 
 const Pagination = ({ className, ...props }: ComponentProps<"nav">) => (
   <nav
     role="navigation"
-    aria-label="pagination"
+    aria-label={t("common.navigation.pagination")}
     data-slot="pagination"
     className={cn("mx-auto flex w-full justify-center", className)}
     {...props}
@@ -45,11 +47,11 @@ const PaginationLink = ({ className, isActive, size = "icon", ...props }: Pagina
 
 const PaginationPrevious = ({
   className,
-  text = "Previous",
+  text = t("common.actions.previous"),
   ...props
 }: ComponentProps<typeof PaginationLink> & { text?: string }) => (
   <PaginationLink
-    aria-label="Go to previous page"
+    aria-label={t("common.navigation.goToPreviousPage")}
     size="default"
     className={cn("pl-1.5!", className)}
     {...props}
@@ -61,11 +63,11 @@ const PaginationPrevious = ({
 
 const PaginationNext = ({
   className,
-  text = "Next",
+  text = t("common.actions.next"),
   ...props
 }: ComponentProps<typeof PaginationLink> & { text?: string }) => (
   <PaginationLink
-    aria-label="Go to next page"
+    aria-label={t("common.navigation.goToNextPage")}
     size="default"
     className={cn("pr-1.5!", className)}
     {...props}
@@ -86,7 +88,7 @@ const PaginationEllipsis = ({ className, ...props }: ComponentProps<"span">) => 
     {...props}
   >
     <Icon name="MoreHorizontal" />
-    <span className="sr-only">More pages</span>
+    <span className="sr-only">{t("common.navigation.morePages")}</span>
   </span>
 )
 

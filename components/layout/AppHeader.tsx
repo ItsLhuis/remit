@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation"
 
+import { useTranslation } from "@/lib/i18n"
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,26 +14,29 @@ import {
   SidebarTrigger
 } from "@/components/ui"
 
-const routeLabels: Record<string, string> = {
-  "/": "Dashboard",
-  "/clients": "Clients",
-  "/projects": "Projects",
-  "/proposals": "Proposals",
-  "/invoices": "Invoices",
-  "/settings": "Settings"
-}
+const routeLabels = {
+  "/": "app.navigation.dashboard",
+  "/clients": "app.navigation.clients",
+  "/projects": "app.navigation.projects",
+  "/proposals": "app.navigation.proposals",
+  "/invoices": "app.navigation.invoices",
+  "/settings": "app.navigation.settings"
+} as const
 
-const getPageLabel = (pathname: string): string => {
-  if (routeLabels[pathname]) return routeLabels[pathname]
+const getPageLabelKey = (pathname: string): (typeof routeLabels)[keyof typeof routeLabels] => {
+  const exactMatch = routeLabels[pathname as keyof typeof routeLabels]
+  if (exactMatch) return exactMatch
 
   const segments = pathname.split("/").filter(Boolean)
-  if (segments.length === 0) return "Dashboard"
+  if (segments.length === 0) return "app.navigation.dashboard"
 
   const base = `/${segments[0]}`
-  return routeLabels[base] ?? segments[0].charAt(0).toUpperCase() + segments[0].slice(1)
+  return routeLabels[base as keyof typeof routeLabels] ?? "app.navigation.dashboard"
 }
 
 const AppHeader = () => {
+  const { t } = useTranslation()
+
   const pathname = usePathname()
 
   return (
@@ -40,14 +45,14 @@ const AppHeader = () => {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>{getPageLabel(pathname)}</BreadcrumbPage>
+            <BreadcrumbPage>{t(getPageLabelKey(pathname))}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <div className="ml-auto">
         <Button variant="ghost" size="icon">
           <Icon name="Bell" />
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">{t("app.navigation.notifications")}</span>
         </Button>
       </div>
     </header>
