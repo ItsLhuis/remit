@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 
-import { RecoveryCodesStep } from "@/features/setup/components/RecoveryCodesStep"
-import { TotpEnableStep, type TotpEnableData } from "@/features/setup/components/TotpEnableStep"
-import { TotpVerifyStep } from "@/features/setup/components/TotpVerifyStep"
+import { RecoveryCodesStep } from "./RecoveryCodesStep"
+import { TotpEnableStep, type TotpEnableData } from "./TotpEnableStep"
+import { TotpVerifyStep } from "./TotpVerifyStep"
 
 type TotpStepProps = {
   onComplete: () => void

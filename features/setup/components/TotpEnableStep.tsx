@@ -2,13 +2,16 @@
 
 import { useState } from "react"
 
-import { authClient } from "@/lib/authClient"
+import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { totpEnableSchema, type TotpEnableValues } from "@/features/setup/schemas"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/authClient"
+
+import { totpEnableSchema, type TotpEnableValues } from "../schemas"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
 
@@ -22,6 +25,8 @@ type TotpEnableStepProps = {
 }
 
 const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
+  const { t } = useTranslation()
+
   const [enableError, setEnableError] = useState<string | null>(null)
 
   const form = useForm<TotpEnableValues>({
@@ -42,17 +47,17 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
     })
 
     if (enableErr) {
-      setEnableError(enableErr.message ?? "Failed to enable two-factor authentication.")
+      setEnableError(enableErr.message ?? t("setup.errors.totpEnableFailed"))
       return
     }
 
     if (!enableData?.totpURI) {
-      setEnableError("Something went wrong. Please try again.")
+      setEnableError(t("setup.errors.totpUriMissing"))
       return
     }
 
     if (!enableData.backupCodes?.length) {
-      setEnableError("Recovery codes could not be generated. Please try again.")
+      setEnableError(t("setup.errors.recoveryCodesMissing"))
       return
     }
 
@@ -63,13 +68,12 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Two-factor authentication
+          {t("totp.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          Add an extra layer of security to your account with a one-time code from your
-          authenticator app.
+          {t("setup.totp.description")}
         </Typography>
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -78,12 +82,12 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder="Your password"
+                placeholder={t("setup.totp.passwordPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -98,13 +102,13 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          Set up authenticator
+          {t("setup.totp.setupAuthenticator")}
         </Button>
       </form>
       {enableError && <FieldError className="mt-4 text-center">{enableError}</FieldError>}
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 2 of 4
+          {t("setup.progress", { current: 2, total: 4 })}
         </Typography>
       </div>
     </div>

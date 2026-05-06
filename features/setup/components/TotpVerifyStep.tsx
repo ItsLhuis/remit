@@ -2,17 +2,19 @@
 
 import { useMemo } from "react"
 
+import Image from "next/image"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { QRCodeSVG } from "qrcode.react"
+import { Controller, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
 import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
 import { authClient } from "@/lib/authClient"
 
-import { totpVerifySchema, type TotpVerifyValues } from "@/features/setup/schemas"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-
-import { QRCodeSVG } from "qrcode.react"
-
-import Image from "next/image"
+import { totpVerifySchema, type TotpVerifyValues } from "../schemas"
 
 import {
   Button,
@@ -33,6 +35,8 @@ type TotpVerifyStepProps = {
 }
 
 const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
+  const { t } = useTranslation()
+
   const { copied: isSecretCopied, copy: copySecret } = useCopyWithFeedback()
 
   const secret = useMemo(() => {
@@ -57,7 +61,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
     const { error } = await authClient.twoFactor.verifyTotp({ code: values.code })
 
     if (error) {
-      form.setError("code", { message: error.message ?? "Invalid code. Please try again." })
+      form.setError("code", { message: error.message ?? t("totp.invalidCode") })
       return
     }
 
@@ -67,13 +71,12 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Scan QR code
+          {t("totp.scanQr")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          Scan this code with your authenticator app, then enter the 6-digit verification code
-          below.
+          {t("totp.scanDescription")}
         </Typography>
       </div>
       <div className="mx-auto mb-6 flex w-fit justify-center rounded-lg border bg-white p-4">
@@ -82,7 +85,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
       {secret && (
         <div className="dark:bg-input/30 mb-6 rounded-lg border p-3">
           <Typography affects="small" className="text-muted-foreground">
-            Manual entry code
+            {t("totp.manualEntryCode")}
           </Typography>
           <div className="mt-1 flex items-center gap-3">
             <Typography
@@ -111,7 +114,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Verification code</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("totp.codeLabel")}</FieldLabel>
               <InputOTP
                 {...field}
                 id={field.name}
@@ -142,12 +145,12 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          Verify code
+          {t("totp.verifyCode")}
         </Button>
       </form>
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 3 of 4
+          {t("setup.progress", { current: 3, total: 4 })}
         </Typography>
       </div>
     </div>

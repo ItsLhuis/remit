@@ -6,7 +6,10 @@ import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { businessProfileSchema, type BusinessProfileValues } from "@/features/setup/schemas"
+
+import { useTranslation } from "@/lib/i18n"
+
+import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
 
 import {
   Button,
@@ -25,6 +28,8 @@ type BusinessStepProps = {
 }
 
 const BusinessStep = ({ onComplete }: BusinessStepProps) => {
+  const { t } = useTranslation()
+
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<BusinessProfileValues>({
@@ -54,7 +59,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
 
     if (!res.ok) {
       const data = await res.json()
-      setServerError(data.error ?? "Something went wrong.")
+      setServerError(data.error ?? t("setup.errors.businessSaveFailed"))
       return
     }
 
@@ -64,12 +69,12 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt="Remit logo" width={64} height={64} className="mb-4" />
+        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          Business profile
+          {t("setup.businessProfile.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          Tell us about your business to personalize your experience.
+          {t("setup.businessProfile.description")}
         </Typography>
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -78,11 +83,13 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Business name</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("setup.businessProfile.businessName")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
-                placeholder="Your business name"
+                placeholder={t("setup.businessProfile.businessNamePlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -95,12 +102,14 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Business email</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("setup.businessProfile.businessEmail")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="email"
-                placeholder="Your business email"
+                placeholder={t("setup.businessProfile.businessEmailPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -113,11 +122,13 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Tax ID</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("setup.businessProfile.businessTaxId")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
-                placeholder="Your tax ID"
+                placeholder={t("setup.businessProfile.businessTaxIdPlaceholder")}
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -130,7 +141,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Country</FieldLabel>
+              <FieldLabel htmlFor={field.name}>{t("common.fields.country")}</FieldLabel>
               <CountrySelect
                 ref={field.ref}
                 id={field.name}
@@ -148,7 +159,9 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Default currency</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("setup.businessProfile.defaultCurrency")}
+              </FieldLabel>
               <CurrencySelect
                 ref={field.ref}
                 id={field.name}
@@ -170,7 +183,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          Continue
+          {t("common.actions.continue")}
         </Button>
         {serverError && (
           <FieldError className="text-center" role="alert">
@@ -180,7 +193,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
       </form>
       <div className="mt-6 text-center">
         <Typography affects="small" className="text-muted-foreground">
-          Step 1 of 4
+          {t("setup.progress", { current: 1, total: 4 })}
         </Typography>
       </div>
     </div>
