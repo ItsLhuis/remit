@@ -1,34 +1,9 @@
-import i18n from "i18next"
-import ICU from "i18next-icu"
 import { initReactI18next } from "react-i18next"
 
-import { Locales, type LocaleKeys } from "./locales"
+import i18n from "./i18n"
 
-import { getTranslationResources } from "./resources"
-
-import { type Translations } from "./types"
-
-declare module "i18next" {
-  interface CustomTypeOptions {
-    defaultNS: "translation"
-    resources: {
-      translation: Translations
-    }
-  }
+if (!i18n.modules.external.includes(initReactI18next)) {
+  i18n.use(initReactI18next)
 }
-
-void i18n
-  .use(ICU)
-  .use(initReactI18next)
-  .init({
-    resources: getTranslationResources(),
-    lng: "en",
-    fallbackLng: "en",
-    supportedLngs: Object.keys(Locales) as LocaleKeys[],
-    defaultNS: "translation",
-    interpolation: {
-      escapeValue: false
-    }
-  })
 
 export default i18n
