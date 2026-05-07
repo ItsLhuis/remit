@@ -77,7 +77,7 @@ function isStaticAsset(pathname: string): boolean {
 }
 
 function isPublicApiRoute(pathname: string): boolean {
-  return pathname.startsWith("/api/auth/")
+  return pathname === "/api/health" || pathname.startsWith("/api/auth/")
 }
 
 function isPublicAppRoute(pathname: string): boolean {
