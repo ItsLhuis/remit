@@ -1,0 +1,14 @@
+services:
+  database_test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: remit_test
+      POSTGRES_PASSWORD: remit_test
+      POSTGRES_DB: remit_test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U remit_test -d remit_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
