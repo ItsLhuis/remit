@@ -7,7 +7,9 @@ import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/authClient"
+
 import { resolveStorageUrl } from "@/lib/storage"
+
 import { getInitials } from "@/lib/utils"
 
 import { type User } from "@/lib/auth"

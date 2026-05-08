@@ -1,15 +1,81 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { eq } from "drizzle-orm"
+
 import { auth } from "@/lib/auth"
+
+import { writeAudit } from "@/lib/audit"
+
+import { rateLimitInstance } from "@/lib/rateLimit"
 
 import { database } from "@/database"
 import { settings, users } from "@/database/schema"
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://react-circle-flags.pages.dev",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+].join("; ")
+
+export function applySecurityHeaders(
+  response: NextResponse,
+  isPublicTokenRoute: boolean
+): NextResponse {
+  response.headers.set("X-Content-Type-Options", "nosniff")
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+  response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+
+  if (isPublicTokenRoute) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow")
+    response.headers.delete("X-Frame-Options")
+  } else {
+    response.headers.set("X-Frame-Options", "DENY")
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    )
+  }
+
+  return response
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (isStaticAsset(pathname) || isPublicApiRoute(pathname) || isPublicAppRoute(pathname)) {
+  const isPublicToken = isPublicTokenRoute(pathname)
+
+  if (isStaticAsset(pathname)) {
     return NextResponse.next()
+  }
+
+  if (isPublicApiRoute(pathname)) {
+    return applySecurityHeaders(NextResponse.next(), false)
+  }
+
+  if (isPublicToken) {
+    const ipAddress = getIpAddress(request)
+    const rateLimitResult = await rateLimitInstance.consume(ipAddress, 60, 60000)
+
+    if (!rateLimitResult.allowed) {
+      await writeAudit("auth.rate_limit.tripped", {
+        ipAddress,
+        metadata: { route: pathname }
+      })
+
+      return applySecurityHeaders(new NextResponse("Too many requests", { status: 429 }), true)
+    }
+
+    return applySecurityHeaders(NextResponse.next(), true)
   }
 
   const existingUser = await database
@@ -20,27 +86,31 @@ export async function proxy(request: NextRequest) {
 
   if (!existingUser) {
     if (pathname !== "/register") {
-      return NextResponse.redirect(new URL("/register", request.url))
+      return applySecurityHeaders(NextResponse.redirect(new URL("/register", request.url)), false)
     }
-    return NextResponse.next()
+
+    return applySecurityHeaders(NextResponse.next(), false)
   }
 
   const session = await auth.api.getSession({ headers: request.headers })
 
   if (pathname === "/register") {
-    return NextResponse.redirect(new URL(session ? "/setup" : "/login", request.url))
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL(session ? "/setup" : "/login", request.url)),
+      false
+    )
   }
 
   if (!session) {
     if (pathname.startsWith("/login")) {
-      return NextResponse.next()
+      return applySecurityHeaders(NextResponse.next(), false)
     }
 
-    return NextResponse.redirect(new URL("/login", request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL("/login", request.url)), false)
   }
 
   if (pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/setup", request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL("/setup", request.url)), false)
   }
 
   const userSettings = await database
@@ -53,17 +123,51 @@ export async function proxy(request: NextRequest) {
 
   if (!setupComplete) {
     if (pathname === "/setup" || pathname.startsWith("/api/setup/")) {
-      return NextResponse.next()
+      return applySecurityHeaders(NextResponse.next(), false)
     }
 
-    return NextResponse.redirect(new URL("/setup", request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL("/setup", request.url)), false)
   }
 
   if (pathname === "/setup") {
-    return NextResponse.redirect(new URL("/", request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL("/", request.url)), false)
   }
 
-  return NextResponse.next()
+  const mustChangePassword = await getMustChangePassword(session.user.id)
+
+  if (mustChangePassword) {
+    if (pathname.startsWith("/change-password")) {
+      return applySecurityHeaders(NextResponse.next(), false)
+    }
+
+    return applySecurityHeaders(
+      NextResponse.redirect(new URL("/change-password", request.url)),
+      false
+    )
+  }
+
+  if (pathname.startsWith("/change-password")) {
+    return applySecurityHeaders(NextResponse.redirect(new URL("/", request.url)), false)
+  }
+
+  return applySecurityHeaders(NextResponse.next(), false)
+}
+
+function getIpAddress(request: NextRequest): string {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+
+  return forwardedFor || request.headers.get("x-real-ip") || "unknown"
+}
+
+async function getMustChangePassword(userId: string): Promise<boolean> {
+  const user = await database
+    .select({ mustChangePassword: users.mustChangePassword })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .then((rows) => rows[0] ?? null)
+
+  return user?.mustChangePassword ?? false
 }
 
 function isStaticAsset(pathname: string): boolean {
@@ -80,8 +184,13 @@ function isPublicApiRoute(pathname: string): boolean {
   return pathname === "/api/health" || pathname.startsWith("/api/auth/")
 }
 
-function isPublicAppRoute(pathname: string): boolean {
-  return pathname.startsWith("/i/") || pathname.startsWith("/p/")
+function isPublicTokenRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith("/i/") ||
+    pathname.startsWith("/p/") ||
+    pathname.startsWith("/c/") ||
+    pathname.startsWith("/s/")
+  )
 }
 
 export const config = {

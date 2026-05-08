@@ -13,7 +13,9 @@ import { useHotkey } from "@tanstack/react-hotkeys"
 import { useTranslation } from "@/lib/i18n"
 
 import { signOut, useSession } from "@/lib/authClient"
+
 import { resolveStorageUrl } from "@/lib/storage"
+
 import { cn, getInitials } from "@/lib/utils"
 
 import { useScroll } from "@/hooks/useScroll"

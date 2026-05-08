@@ -23,6 +23,9 @@ tests/e2e/results/
 .DS_Store
 *.pem
 
+# cache
+.cache
+
 # debug
 npm-debug.log*
 yarn-debug.log*

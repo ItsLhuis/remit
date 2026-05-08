@@ -1,5 +1,7 @@
 import { betterAuth } from "better-auth"
+
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+
 import {
   organization as organizationPlugin,
   twoFactor as twoFactorPlugin
@@ -62,6 +64,16 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60
+    }
+  },
+  rateLimit: {
+    enabled: true,
+    window: 900,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 900, max: 10 },
+      "/sign-up/email": { window: 3600, max: 3 },
+      "/request-password-reset": { window: 3600, max: 5 }
     }
   }
 })
