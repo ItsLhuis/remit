@@ -3,7 +3,9 @@
 import { Fragment, useState } from "react"
 
 import Image from "next/image"
+
 import Link from "next/link"
+
 import { usePathname, useRouter } from "next/navigation"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
@@ -16,7 +18,7 @@ import { cn, getInitials } from "@/lib/utils"
 
 import { useScroll } from "@/hooks/useScroll"
 
-import { SignOutDialog } from "@/features/auth/components"
+import { SignOutDialog } from "@/features/auth"
 
 import {
   Avatar,

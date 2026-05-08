@@ -1,4 +1,5 @@
 import { type Metadata } from "next"
+
 import { redirect } from "next/navigation"
 
 import { t } from "@/lib/i18n/server"
