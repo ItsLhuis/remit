@@ -23,7 +23,10 @@ Within each group, sort alphabetically.
 ## Feature-internal vs. cross-feature imports
 
 Sibling files within the same feature import by direct path to avoid circular dependencies.
-Cross-feature imports always use the feature's public barrel.
+Cross-feature imports always use the feature's public barrel:
+
+- `@/features/<feature>` for client-safe exports.
+- `@/features/<feature>/server` for server-only exports.
 
 ```ts
 // within features/invoicing/components/InvoiceForm.tsx

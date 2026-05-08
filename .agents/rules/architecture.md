@@ -22,14 +22,19 @@ file:
 - `schemas.ts` - Zod schemas and their inferred types (see `forms.md`).
 - `types.ts` - Public types of the module not derivable from schemas.
 - `events.ts` - Event subscriptions and emissions for this feature.
-- `index.ts` - Public barrel; re-exports only what other features may consume.
+- `index.ts` - Public client-safe barrel; re-exports only components, schemas, types, and other code
+  safe for client graphs.
+- `server.ts` - Optional public server-only barrel; re-exports queries and other server-only
+  entrypoints that may import `@/database`, `next/headers`, auth server APIs, or other IO/server
+  modules.
 
 Not every feature needs every file - add only what the feature requires.
 
 ## Boundary rule
 
-`features/A` may only import from `features/B` via `features/B/index.ts`. Sibling files inside a
-feature import by direct path to avoid circular dependencies.
+`features/A` may only import from `features/B` via `features/B/index.ts` for client-safe code, or
+`features/B/server.ts` for server-only code. Never export database/auth/server-only code from
+`index.ts`. Sibling files inside a feature import by direct path to avoid circular dependencies.
 
 This rule applies to code imports. Types from `database/schema` are the shared data substrate and
 may be imported directly by any feature. This boundary is enforced by ESLint
