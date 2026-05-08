@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   createdAt: timestamp("created_at", authTimestamp).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", authTimestamp)
     .defaultNow()

@@ -15,6 +15,13 @@
       "when": 1777580759949,
       "tag": "0001_pale_the_enforcers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778234093071,
+      "tag": "0002_dapper_ronan",
+      "breakpoints": true
     }
   ]
 }
