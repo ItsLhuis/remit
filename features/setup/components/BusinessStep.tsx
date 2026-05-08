@@ -9,6 +9,7 @@ import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { saveBusinessProfile } from "../mutations"
 import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
 
 import {
@@ -51,15 +52,10 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
 
     setServerError(null)
 
-    const res = await fetch("/api/setup/business", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values)
-    })
+    const result = await saveBusinessProfile(values)
 
-    if (!res.ok) {
-      const data = await res.json()
-      setServerError(data.error ?? t("setup.errors.businessSaveFailed"))
+    if ("error" in result) {
+      setServerError(result.error)
       return
     }
 
