@@ -8,7 +8,7 @@ const featureBoundaryRule = [
   {
     patterns: [
       {
-        group: ["@/features/*/*"],
+        group: ["@/features/*/*", "!@/features/*/server"],
         message:
           "Import feature code through the feature root barrel (@/features/<feature>). Use relative imports within the same feature."
       }
@@ -71,7 +71,7 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": pureServicesRule
     }
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"])
+  globalIgnores([".next/**", "coverage/**", "out/**", "build/**", "next-env.d.ts"])
 ])
 
 export default eslintConfig
