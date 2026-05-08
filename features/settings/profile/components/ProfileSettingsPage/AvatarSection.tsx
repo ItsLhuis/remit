@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useTransition } from "react"
+import { type ChangeEvent, useRef, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -12,7 +12,7 @@ import { getInitials } from "@/lib/utils"
 
 import { type User } from "@/lib/auth"
 
-import { confirmAvatarUpload } from "../../actions"
+import { confirmAvatarUpload } from "../../mutations"
 
 import {
   Avatar,
@@ -39,7 +39,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
 
   const { refetch: refetchSession } = authClient.useSession()
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
 
     if (!file) return
@@ -82,7 +82,12 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
         return
       }
 
-      const result = await confirmAvatarUpload(objectKey, file.name, file.type, file.size)
+      const result = await confirmAvatarUpload({
+        objectKey,
+        filename: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size
+      })
 
       if ("error" in result) {
         toast.error(result.error)
@@ -90,7 +95,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
         return
       }
 
-      const { error: updateError } = await authClient.updateUser({ image: result.storageKey })
+      const { error: updateError } = await authClient.updateUser({ image: result.data.storageKey })
 
       if (updateError) {
         toast.error(updateError.message)

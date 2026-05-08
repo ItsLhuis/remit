@@ -5,8 +5,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-import { auth } from "@/lib/auth"
 import { t } from "@/lib/i18n/server"
+
+import { auth } from "@/lib/auth"
 
 import { MINIO_BUCKET, s3 } from "@/lib/s3"
 

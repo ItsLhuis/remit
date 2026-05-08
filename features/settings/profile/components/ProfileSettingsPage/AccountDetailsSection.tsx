@@ -15,7 +15,7 @@ import { authClient } from "@/lib/authClient"
 
 import { type User } from "@/lib/auth"
 
-import { changeEmailAddress } from "../../actions"
+import { changeEmailAddress } from "../../mutations"
 
 import {
   Button,
@@ -73,7 +73,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
       }
 
       if (emailChanged) {
-        const result = await changeEmailAddress(values.email)
+        const result = await changeEmailAddress({ email: values.email })
 
         if ("error" in result) {
           form.setError("email", { message: result.error })
