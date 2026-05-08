@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
-
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,115 +11,101 @@ import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/authClient"
 
-import { accountSchema, type AccountValues } from "../schemas"
+import { changePasswordSchema, type ChangePasswordValues } from "../schemas"
 import { PasswordRequirements } from "./PasswordRequirements"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
 
-const RegisterForm = () => {
+const ChangePasswordForm = () => {
   const { t } = useTranslation()
 
-  const [serverError, setServerError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const router = useRouter()
 
-  const form = useForm<AccountValues>({
-    resolver: zodResolver(accountSchema),
+  const form = useForm<ChangePasswordValues>({
+    resolver: zodResolver(changePasswordSchema),
     mode: "onTouched",
-    defaultValues: { name: "", email: "", password: "", confirmPassword: "" }
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" }
   })
 
   const { isSubmitting, isDirty, isValid } = form.formState
 
-  const password =
+  const newPassword =
     useWatch({
       control: form.control,
-      name: "password"
+      name: "newPassword"
     }) ?? ""
 
-  const onSubmit = async (values: AccountValues) => {
+  const onSubmit = async (values: ChangePasswordValues) => {
     if (!isDirty || !isValid) return
 
-    setServerError(null)
+    setSubmitError(null)
 
-    const { error } = await authClient.signUp.email({
-      name: values.name,
-      email: values.email,
-      password: values.password
+    const { error } = await authClient.changePassword({
+      currentPassword: values.currentPassword,
+      newPassword: values.newPassword,
+      revokeOtherSessions: true
     })
 
     if (error) {
-      setServerError(error.message ?? t("auth.register.failed"))
+      setSubmitError(error.message ?? t("errors.somethingWentWrong"))
 
       return
     }
 
-    router.push("/setup")
+    router.push("/")
   }
 
   return (
     <div className="w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Image src="/logo.png" alt={t("app.logoAlt")} width={64} height={64} className="mb-4" />
         <Typography variant="h2" className="mb-2">
-          {t("auth.register.title")}
+          {t("auth.changePassword.title")}
         </Typography>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          {t("auth.register.description")}
+          {t("auth.changePassword.description")}
         </Typography>
       </div>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Controller
-          name="name"
+          name="currentPassword"
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{t("common.fields.name")}</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                placeholder={t("auth.register.namePlaceholder")}
-                aria-invalid={fieldState.invalid}
-                disabled={isSubmitting}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-        <Controller
-          name="email"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{t("common.fields.email")}</FieldLabel>
-              <Input
-                {...field}
-                id={field.name}
-                type="email"
-                placeholder={t("auth.register.emailPlaceholder")}
-                aria-invalid={fieldState.invalid}
-                disabled={isSubmitting}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-        <Controller
-          name="password"
-          control={form.control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("auth.changePassword.currentPassword")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder={t("auth.register.passwordPlaceholder")}
+                placeholder={t("auth.changePassword.currentPasswordPlaceholder")}
+                autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              <PasswordRequirements password={password} />
+            </Field>
+          )}
+        />
+        <Controller
+          name="newPassword"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>{t("auth.changePassword.newPassword")}</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                type="password"
+                placeholder={t("auth.changePassword.newPasswordPlaceholder")}
+                autoComplete="new-password"
+                aria-invalid={fieldState.invalid}
+                disabled={isSubmitting}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              <PasswordRequirements password={newPassword} />
             </Field>
           )}
         />
@@ -130,12 +114,15 @@ const RegisterForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{t("auth.register.confirmPassword")}</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {t("auth.changePassword.confirmPassword")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder={t("auth.register.confirmPasswordPlaceholder")}
+                placeholder={t("auth.changePassword.confirmPasswordPlaceholder")}
+                autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -150,11 +137,11 @@ const RegisterForm = () => {
           disabled={isSubmitting || !(isDirty && isValid)}
         >
           {isSubmitting && <Spinner />}
-          {t("auth.register.submit")}
+          {t("auth.changePassword.submit")}
         </Button>
-        {serverError && (
+        {submitError && (
           <FieldError className="text-center" role="alert">
-            {serverError}
+            {submitError}
           </FieldError>
         )}
       </form>
@@ -162,4 +149,4 @@ const RegisterForm = () => {
   )
 }
 
-export { RegisterForm }
+export { ChangePasswordForm }

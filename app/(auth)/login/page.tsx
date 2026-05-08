@@ -9,11 +9,15 @@ import { getSession } from "@/lib/session"
 import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel, LoginForm } from "@/features/auth"
+import { getProfileEmailConfigured } from "@/features/settings/server"
 
 export const metadata: Metadata = { title: t("auth.login.metadataTitle") }
 
 const LoginPage = async () => {
-  const session = await getSession()
+  const [session, passwordResetAvailable] = await Promise.all([
+    getSession(),
+    getProfileEmailConfigured()
+  ])
 
   if (session) redirect("/setup")
 
@@ -22,7 +26,7 @@ const LoginPage = async () => {
       <AuthPanel />
       <ScrollArea className="bg-background h-full w-full lg:w-2/3">
         <div className="flex min-h-screen flex-col items-center justify-center px-8 py-12">
-          <LoginForm />
+          <LoginForm passwordResetAvailable={passwordResetAvailable} />
         </div>
       </ScrollArea>
     </div>

@@ -56,6 +56,7 @@
     "database:test:up": "docker compose -f docker-compose.test.yml up -d",
     "database:test:down": "docker compose -f docker-compose.test.yml down -v",
     "database:test:migrate": "drizzle-kit migrate --config drizzle.test.config.ts",
+    "remit:reset-password": "tsx ./scripts/reset-password.ts",
     "version:patch": "tsx ./scripts/bump-version.ts patch",
     "version:minor": "tsx ./scripts/bump-version.ts minor",
     "version:major": "tsx ./scripts/bump-version.ts major"
@@ -92,7 +93,9 @@
     "@aws-sdk/client-s3": "^3.1030.0",
     "@aws-sdk/s3-request-presigner": "^3.1030.0",
     "@base-ui/react": "^1.3.0",
+    "@clack/prompts": "^1.3.0",
     "@hookform/resolvers": "^5.2.2",
+    "@next/env": "16.1.6",
     "@tanstack/react-hotkeys": "^0.9.1",
     "better-auth": "^1.5.6",
     "class-variance-authority": "^0.7.1",

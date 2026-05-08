@@ -134,9 +134,35 @@ export const english: Language = {
         description: "Enter your email and password to access your account",
         submit: "Sign in",
         invalidCredentials: "Invalid email or password.",
+        forgotPassword: "Forgot password?",
+        noSmtpHelpPrefix: "Lost access? Run",
+        noSmtpHelpCommand: "docker exec remit-app pnpm remit:reset-password",
+        noSmtpHelpSuffix: "on your server.",
         validation: {
           emailInvalid: "Enter a valid email address.",
           passwordRequired: "Password is required."
+        }
+      },
+      changePassword: {
+        metadataTitle: "Change Password",
+        title: "Change your password",
+        description: "Your account requires a new password before you can continue.",
+        currentPassword: "Current temporary password",
+        newPassword: "New password",
+        confirmPassword: "Confirm new password",
+        currentPasswordPlaceholder: "Your current temporary password",
+        newPasswordPlaceholder: "Your new password",
+        confirmPasswordPlaceholder: "Repeat your new password",
+        submit: "Set new password",
+        validation: {
+          currentPasswordRequired: "Current password is required.",
+          passwordMin: "Password must be at least {count} characters.",
+          passwordUppercase: "Password must include at least 1 uppercase letter.",
+          passwordLowercase: "Password must include at least 1 lowercase letter.",
+          passwordNumber: "Password must include at least 1 number.",
+          passwordSpecial: "Password must include at least 1 special character.",
+          confirmPasswordRequired: "Please confirm your password.",
+          passwordsMatch: "Passwords do not match."
         }
       },
       register: {

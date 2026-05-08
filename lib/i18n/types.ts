@@ -131,9 +131,35 @@ export type Translations = {
       description: string
       submit: string
       invalidCredentials: string
+      forgotPassword: string
+      noSmtpHelpPrefix: string
+      noSmtpHelpCommand: string
+      noSmtpHelpSuffix: string
       validation: {
         emailInvalid: string
         passwordRequired: string
+      }
+    }
+    changePassword: {
+      metadataTitle: string
+      title: string
+      description: string
+      currentPassword: string
+      newPassword: string
+      confirmPassword: string
+      currentPasswordPlaceholder: string
+      newPasswordPlaceholder: string
+      confirmPasswordPlaceholder: string
+      submit: string
+      validation: {
+        currentPasswordRequired: string
+        passwordMin: string
+        passwordUppercase: string
+        passwordLowercase: string
+        passwordNumber: string
+        passwordSpecial: string
+        confirmPasswordRequired: string
+        passwordsMatch: string
       }
     }
     register: {

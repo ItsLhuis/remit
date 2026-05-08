@@ -19,7 +19,11 @@ import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } fro
 
 import { TotpForm } from "./TotpForm"
 
-const LoginForm = () => {
+type LoginFormProps = {
+  passwordResetAvailable: boolean
+}
+
+const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
   const { t } = useTranslation()
 
   const [authError, setAuthError] = useState<string | null>(null)
@@ -58,6 +62,13 @@ const LoginForm = () => {
     }
 
     router.push("/setup")
+  }
+
+  const requestPasswordReset = async () => {
+    await authClient.requestPasswordReset({
+      email: form.getValues("email"),
+      redirectTo: "/reset-password"
+    })
   }
 
   if (requiresTwoFactor) {
@@ -128,6 +139,25 @@ const LoginForm = () => {
             {authError}
           </FieldError>
         )}
+        <div className="flex justify-center text-center">
+          {passwordResetAvailable ? (
+            <Button type="button" variant="link" size="sm" onClick={requestPasswordReset}>
+              {t("auth.login.forgotPassword")}
+            </Button>
+          ) : (
+            <Typography
+              variant="p"
+              affects={["muted", "small", "removePMargin"]}
+              className="text-center leading-relaxed"
+            >
+              {t("auth.login.noSmtpHelpPrefix")}{" "}
+              <code className="bg-muted text-muted-foreground inline-flex h-5 w-fit items-center rounded-sm px-1.5 font-mono text-xs font-medium select-all">
+                {t("auth.login.noSmtpHelpCommand")}
+              </code>{" "}
+              {t("auth.login.noSmtpHelpSuffix")}
+            </Typography>
+          )}
+        </div>
       </form>
     </div>
   )
