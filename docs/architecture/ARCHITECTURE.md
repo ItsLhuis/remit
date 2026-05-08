@@ -761,7 +761,7 @@ Three coexisting paths, in order of availability:
 1. **Email reset link** — available only when SMTP is configured and a test send has succeeded. The
    UI conditionally shows "Forgot password?" when this condition is met.
 
-2. **CLI/admin reset** - `docker exec remit-app pnpm remit:reset-password` for self-hosted
+2. **CLI/admin reset** - `docker compose exec app pnpm remit:reset-password` for self-hosted
    complete-lockout cases or environments without SMTP. Generates a temporary password, marks the
    user `mustChangePasswordOnNextLogin`, writes audit log.
 

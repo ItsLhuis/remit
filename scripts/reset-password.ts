@@ -48,7 +48,7 @@ async function main(): Promise<void> {
       }
     })
   )
-  const email = emailInput.toLowerCase()
+  const email = emailInput.trim().toLowerCase()
 
   const lookup = p.spinner()
   lookup.start("Looking up user...")
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
     process.exit(0)
   }
 
-  const tempPassword = randomBytes(12).toString("base64url")
+  const tempPassword = randomBytes(18).toString("base64url")
 
   const reset = p.spinner()
   reset.start("Resetting password...")

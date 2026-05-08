@@ -18,6 +18,7 @@ tests/e2e/results/
 
 # production
 /build
+/scripts/dist/
 
 # misc
 .DS_Store

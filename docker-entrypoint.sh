@@ -5,7 +5,7 @@
 set -e
 
 echo "[entrypoint] Running database migrations..."
-node scripts/migrate.js
+node scripts/dist/migrate.js
 
 echo "[entrypoint] Starting Remit..."
 # `exec` replaces the shell process with node, so the node process becomes

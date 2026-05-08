@@ -1,0 +1,16 @@
+import { defineConfig } from "tsup"
+
+export default defineConfig({
+  entry: {
+    migrate: "scripts/migrate.ts",
+    "reset-password": "scripts/reset-password.ts"
+  },
+  outDir: "scripts/dist",
+  format: ["esm"],
+  platform: "node",
+  target: "node24",
+  clean: true,
+  dts: false,
+  sourcemap: false,
+  splitting: false
+})

@@ -136,7 +136,7 @@ export const english: Language = {
         invalidCredentials: "Invalid email or password.",
         forgotPassword: "Forgot password?",
         noSmtpHelpPrefix: "Lost access? Run",
-        noSmtpHelpCommand: "docker exec remit-app pnpm remit:reset-password",
+        noSmtpHelpCommand: "docker compose exec app pnpm remit:reset-password",
         noSmtpHelpSuffix: "on your server.",
         validation: {
           emailInvalid: "Enter a valid email address.",
