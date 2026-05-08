@@ -1,0 +1,10 @@
+packages:
+  - "."
+
+minimumReleaseAge: 1440
+engineStrict: true
+packageManagerStrict: true
+packageManagerStrictVersion: true
+managePackageManagerVersions: true
+verifyStoreIntegrity: true
+strictStorePkgContentCheck: true
