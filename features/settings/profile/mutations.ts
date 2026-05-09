@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
+import { env } from "@/lib/env"
 import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
+import { logger } from "@/lib/logger"
 
 import { database } from "@/database"
 import { uploads } from "@/database/schema"
@@ -23,12 +25,18 @@ export async function changeEmailAddress(
   try {
     await auth.api.changeEmail({
       headers: await headers(),
-      body: { newEmail: parsed.data.email, callbackURL: "/settings/profile" }
+      body: {
+        newEmail: parsed.data.email,
+        callbackURL: new URL("/settings/profile", env.BETTER_AUTH_URL).toString()
+      }
     })
 
     return { data: { pendingVerification: true } }
   } catch (error) {
-    console.error("changeEmailAddress: auth.api.changeEmail failed", { error })
+    logger.error(
+      { action: "changeEmailAddress", err: error },
+      "Profile email change request failed"
+    )
 
     return { error: t("settings.profile.errors.emailChangeFailed") }
   }
@@ -55,10 +63,15 @@ export async function confirmAvatarUpload(
       sizeBytes: parsed.data.sizeBytes
     })
   } catch (error) {
-    console.error("confirmAvatarUpload: database insert failed", {
-      objectKey: parsed.data.objectKey,
-      error
-    })
+    logger.error(
+      {
+        action: "confirmAvatarUpload",
+        userId: session.user.id,
+        objectKey: parsed.data.objectKey,
+        err: error
+      },
+      "Avatar upload confirmation failed"
+    )
 
     return { error: t("settings.profile.errors.avatarUpdateFailed") }
   }

@@ -9,3 +9,4 @@ export { TaxRatesSettingsPage } from "./tax-rates/components"
 export { TemplatesSettingsPage } from "./templates/components"
 
 export { totpVerifySchema, type TotpVerifyValues } from "./security/schemas"
+export { isEmailConfigured } from "./services/isEmailConfigured"
