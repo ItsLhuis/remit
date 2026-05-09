@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { logger } from "@/lib/logger"
+
 const encryptionKeySchema = z
   .string()
   .trim()
@@ -23,6 +25,7 @@ const schema = z.object({
     .string()
     .default("false")
     .transform((value) => value === "true" || value === "1"),
+  REMIT_DATA_DIR: z.string().min(1).default("data"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   MINIO_ENDPOINT: z.url(),
   MINIO_ROOT_USER: z.string().min(1),
@@ -35,11 +38,16 @@ const schema = z.object({
 const parsed = schema.safeParse(process.env)
 
 if (!parsed.success) {
-  const message = parsed.error.issues
-    .map((issue) => `  ${issue.path.join(".")}: ${issue.message}`)
-    .join("\n")
-
-  console.error(`[env] Invalid environment variables:\n${message}`)
+  logger.fatal(
+    {
+      action: "env.validate",
+      issues: parsed.error.issues.map((issue) => ({
+        name: issue.path.join("."),
+        message: issue.message
+      }))
+    },
+    "Invalid environment variables"
+  )
   process.exit(1)
 }
 
