@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 import { betterAuth } from "better-auth"
 
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
@@ -6,6 +8,9 @@ import {
   organization as organizationPlugin,
   twoFactor as twoFactorPlugin
 } from "better-auth/plugins"
+import { defaultAc, ownerAc } from "better-auth/plugins/organization/access"
+
+import { sendTransactionalEmail } from "@/features/email/server"
 
 import { env } from "@/lib/env"
 
@@ -21,13 +26,21 @@ import {
   verifications
 } from "@/database/schema"
 
+const limitedOrganizationRole = defaultAc.newRole({
+  organization: [],
+  member: [],
+  invitation: [],
+  team: [],
+  ac: ["read"]
+})
+
 export const auth = betterAuth({
   appName: "Remit",
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   advanced: {
     database: {
-      generateId: () => crypto.randomUUID()
+      generateId: () => randomUUID()
     }
   },
   database: drizzleAdapter(database, {
@@ -45,7 +58,30 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    autoSignIn: true
+    autoSignIn: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendAuthLinkEmail({
+        to: user.email,
+        subject: "Reset your Remit password",
+        intro: "We received a request to reset your Remit password.",
+        cta: "Reset password",
+        url
+      })
+    }
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendAuthLinkEmail({
+        to: user.email,
+        subject: "Verify your Remit email address",
+        intro: "Confirm this email address to finish the requested Remit account change.",
+        cta: "Verify email address",
+        url
+      })
+    }
   },
   user: {
     changeEmail: {
@@ -56,7 +92,14 @@ export const auth = betterAuth({
     twoFactorPlugin({
       issuer: "Remit"
     }),
-    organizationPlugin()
+    organizationPlugin({
+      creatorRole: "owner",
+      roles: {
+        owner: ownerAc,
+        accountant: limitedOrganizationRole,
+        assistant: limitedOrganizationRole
+      }
+    })
   ],
   session: {
     expiresIn: 60 * 60 * 24 * 30,
@@ -77,6 +120,36 @@ export const auth = betterAuth({
     }
   }
 })
+
+type AuthLinkEmail = {
+  to: string
+  subject: string
+  intro: string
+  cta: string
+  url: string
+}
+
+async function sendAuthLinkEmail({ to, subject, intro, cta, url }: AuthLinkEmail): Promise<void> {
+  await sendTransactionalEmail({
+    to,
+    subject,
+    text: `${intro}\n\n${cta}: ${url}\n\nIf you did not request this, you can ignore this email.`,
+    html: [
+      `<p>${escapeHtml(intro)}</p>`,
+      `<p><a href="${escapeHtml(url)}">${escapeHtml(cta)}</a></p>`,
+      "<p>If you did not request this, you can ignore this email.</p>"
+    ].join("\n")
+  })
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
 
 export type Session = typeof auth.$Infer.Session
 export type User = typeof auth.$Infer.Session.user
