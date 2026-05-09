@@ -162,6 +162,29 @@ export type Translations = {
         passwordsMatch: string
       }
     }
+    resetPassword: {
+      metadataTitle: string
+      title: string
+      description: string
+      newPassword: string
+      confirmPassword: string
+      newPasswordPlaceholder: string
+      confirmPasswordPlaceholder: string
+      submit: string
+      failed: string
+      invalidTitle: string
+      invalidDescription: string
+      backToLogin: string
+      validation: {
+        passwordMin: string
+        passwordUppercase: string
+        passwordLowercase: string
+        passwordNumber: string
+        passwordSpecial: string
+        confirmPasswordRequired: string
+        passwordsMatch: string
+      }
+    }
     register: {
       metadataTitle: string
       title: string

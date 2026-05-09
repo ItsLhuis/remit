@@ -165,6 +165,29 @@ export const english: Language = {
           passwordsMatch: "Passwords do not match."
         }
       },
+      resetPassword: {
+        metadataTitle: "Reset password",
+        title: "Reset your password",
+        description: "Choose a new password for your Remit account.",
+        newPassword: "New password",
+        confirmPassword: "Confirm new password",
+        newPasswordPlaceholder: "Your new password",
+        confirmPasswordPlaceholder: "Repeat your new password",
+        submit: "Reset password",
+        failed: "Failed to reset password.",
+        invalidTitle: "Reset link is invalid",
+        invalidDescription: "Request a new reset link from the sign-in page.",
+        backToLogin: "Back to sign in",
+        validation: {
+          passwordMin: "Password must be at least {count} characters.",
+          passwordUppercase: "Password must include at least 1 uppercase letter.",
+          passwordLowercase: "Password must include at least 1 lowercase letter.",
+          passwordNumber: "Password must include at least 1 number.",
+          passwordSpecial: "Password must include at least 1 special character.",
+          confirmPasswordRequired: "Please confirm your password.",
+          passwordsMatch: "Passwords do not match."
+        }
+      },
       register: {
         metadataTitle: "Register",
         title: "Create your account",
