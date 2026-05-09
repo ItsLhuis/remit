@@ -20,16 +20,28 @@ pnpm lint:fix           # ESLint auto-fix
 pnpm format             # Prettier
 pnpm format:check       # Prettier check
 pnpm typecheck          # TypeScript check (no emit)
-pnpm database:generate  # Generate Drizzle migration from schema changes
-pnpm database:migrate   # Apply pending migrations
-pnpm database:studio    # Drizzle Studio UI
-pnpm version:patch      # Bump app version patch
-pnpm version:minor      # Bump app version minor
-pnpm version:major      # Bump app version major
+pnpm check              # Lint, typecheck, and unit tests
+pnpm ci                 # Lint, typecheck, unit tests, and production build
+pnpm test               # Vitest unit suite
+pnpm test:watch         # Vitest watch mode
+pnpm test:coverage      # Vitest unit suite with coverage
+pnpm test:integration   # Vitest integration suite against test Postgres
+pnpm test:e2e           # Playwright end-to-end suite
+pnpm test:e2e:ui        # Playwright UI mode
+pnpm database:generate     # Generate Drizzle migration from schema changes
+pnpm database:migrate      # Apply pending migrations
+pnpm database:studio       # Drizzle Studio UI
+pnpm database:test:up      # Start Dockerized test Postgres
+pnpm database:test:down    # Stop and remove Dockerized test Postgres volume
+pnpm database:test:migrate # Apply migrations to the test database
+pnpm version:patch         # Bump app version patch
+pnpm version:minor         # Bump app version minor
+pnpm version:major         # Bump app version major
 ```
 
-Node >=22.0.0. Package manager: pnpm. No test scripts are configured in `package.json` yet, even
-though the architecture document defines the intended future test strategy.
+Node >=24.11.1 <25. Package manager: pnpm 10.33.4. Test scripts are configured in `package.json`:
+Vitest covers unit and integration tests, Playwright covers E2E flows, and `docker-compose.test.yml`
+provides the Postgres service used by integration tests.
 
 ## Directory Map
 
@@ -79,6 +91,7 @@ Detailed shared project rules live canonically in `.agents/rules/`:
 - [.agents/rules/accessibility.md](.agents/rules/accessibility.md)
 - [.agents/rules/actions.md](.agents/rules/actions.md)
 - [.agents/rules/architecture.md](.agents/rules/architecture.md)
+- [.agents/rules/auth.md](.agents/rules/auth.md)
 - [.agents/rules/code-style.md](.agents/rules/code-style.md)
 - [.agents/rules/components.md](.agents/rules/components.md)
 - [.agents/rules/database.md](.agents/rules/database.md)

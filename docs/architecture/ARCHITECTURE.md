@@ -443,7 +443,7 @@ proceeds.
 | Layer      | Technology                        | Rationale                                                                                                                               |
 | ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework  | Next.js 16 (App Router)           | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes                  |
-| Runtime    | Node.js ≥ 22                      | Required by better-auth; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                                                 |
+| Runtime    | Node.js ≥ 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
 | Language   | TypeScript (strict)               | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                                    |
 | ORM        | Drizzle                           | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                                      |
 | Database   | PostgreSQL                        | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search                              |
@@ -478,7 +478,7 @@ features/<feature>/
 ```
 
 File-level conventions (component naming, hook naming, import order, type rules) are codified in the
-rule files under `.claude/rules/` — see in particular `architecture.md`, `components.md`,
+rule files under `.agents/rules/` — see in particular `architecture.md`, `components.md`,
 `hooks.md`, `imports.md`, and `types.md`.
 
 ### The boundary rule
@@ -754,20 +754,34 @@ POST /login
   └── emit auth.login.succeeded → audit log
 ```
 
+### Better Auth ownership
+
+Better Auth is the source of truth for authentication-owned state: user credentials, sessions,
+password hashing and reset tokens, email verification and change-email verification, TOTP secrets,
+backup codes, organizations, memberships, active organization state, invitations, and member roles.
+Runtime code manipulates that state through Better Auth APIs, client methods, and helpers. Direct
+writes to Better Auth-owned tables are allowed only in generated migrations and explicit operational
+recovery scripts.
+
+Remit-owned auth-adjacent fields may still be maintained by Remit code. For example,
+`users.mustChangePassword` is an application recovery flag used by the password reset CLI, but the
+credential password hash and session lifecycle remain Better Auth-owned.
+
 ### Password reset paths
 
-Three coexisting paths, in order of availability:
+Two coexisting paths, in order of availability:
 
-1. **Email reset link** — available only when SMTP is configured and a test send has succeeded. The
-   UI conditionally shows "Forgot password?" when this condition is met.
+1. **Email reset link** - available when the configured SMTP or Resend transport is complete. Better
+   Auth generates the token and owns the reset flow; Remit only delivers the email.
 
 2. **CLI/admin reset** - `docker compose exec app pnpm remit:reset-password` for self-hosted
-   complete-lockout cases or environments without SMTP. Generates a temporary password, marks the
-   user `mustChangePasswordOnNextLogin`, writes audit log.
+   complete-lockout cases or environments without email transport. This is an explicit operational
+   recovery script: it generates a temporary password with Better Auth's password hasher, marks the
+   user `mustChangePassword`, and writes an audit log entry.
 
 TOTP is **never optional**. There is no UI to disable it. Password reset and second-factor fallback
-are separate concerns: password reset happens by email or CLI/admin action, while second-factor
-fallback uses Better Auth backup codes.
+are separate concerns: password reset happens through Better Auth email/password APIs or the
+operational CLI fallback, while second-factor fallback uses Better Auth backup codes.
 
 Better Auth **backup codes** remain enabled as part of the TOTP plugin and are stored in
 `two_factors.backup_codes`. They are used only as a second-factor fallback during login when the
@@ -892,18 +906,23 @@ seats.
 ### Implementation: Better Auth organization plugin
 
 Multi-user is implemented via the Better Auth organization plugin, with **a single organization per
-Remit instance**. The organization is created automatically during `/setup` (named after the
-business profile) and every authenticated user is a member of it. The session always carries an
-`activeOrganizationId` and it is always that one organization.
+Remit instance**. The organization is created automatically during `/setup` through Better Auth's
+organization API (named after the business profile), the first setup user becomes `owner`, and the
+active organization is set through Better Auth. Every authenticated user is a member of that one
+organization. The session always carries an `activeOrganizationId` and it is always that one
+organization.
 
-This deliberately uses the plugin in a degenerate mode - multi-org-per-user is not exercised,
+This deliberately uses the plugin in single-organization mode - multi-org-per-user is not exercised,
 because a Remit instance is a single business. The benefit is inheriting the plugin's invitation
-flow, role propagation, and member tables for free, while keeping the conceptual model trivial.
+flow, role propagation, active organization state, active member role, and member tables for free,
+while keeping the conceptual model trivial.
 
 The installed Better Auth version is the schema contract for these tables. Remit customizes the
 allowed business roles at the plugin boundary, but it does **not** invent a parallel schema for the
-plugin-owned tables. If Better Auth expects `text` role/status fields, a required `slug`, or a
-session-level `activeOrganizationId`, the Remit schema mirrors that exactly.
+plugin-owned tables. Runtime code creates organizations, activates organizations, manages
+memberships, changes roles, and sends invitations through Better Auth organization APIs. If Better
+Auth expects `text` role/status fields, a required `slug`, or a session-level
+`activeOrganizationId`, the Remit schema mirrors that exactly.
 
 The plugin contributes the following tables to the schema:
 
@@ -949,9 +968,10 @@ export async function listInvoices() {
 }
 ```
 
-`requireRole` reads the session, extracts the `activeMemberRole`, and returns
-`{ error: "Not authorized" }` if the caller's role is insufficient. Audit log entries always include
-the actor's user id and role.
+`requireRole` reads the session and delegates role lookup to Better Auth's active member role for
+the active organization. It does not silently create organizations, repair memberships, or infer
+roles from Remit-owned tables. It returns `{ error: "Not authorized" }` if the caller's role is
+insufficient. Audit log entries always include the actor's user id and role.
 
 ### Invitation flow
 
@@ -1367,15 +1387,16 @@ Tier 5 - Never tested
 ```
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
-`testing.md`.
+`.agents/rules/testing.md`. The project currently ships Vitest unit tests, Vitest integration tests
+against Dockerized Postgres, and Playwright E2E tests.
 
 ### CI gates
 
-| Command                 | Runs                               | Gate                      |
-| ----------------------- | ---------------------------------- | ------------------------- |
-| `pnpm test`             | Vitest unit suite                  | Every PR                  |
-| `pnpm test:integration` | Integration suite against Postgres | Every PR                  |
-| `pnpm test:e2e`         | Playwright against built image     | PRs to `master` + nightly |
+| Command                 | Runs                               | Gate                    |
+| ----------------------- | ---------------------------------- | ----------------------- |
+| `pnpm test`             | Vitest unit suite                  | Every PR                |
+| `pnpm test:integration` | Integration suite against Postgres | Every PR                |
+| `pnpm test:e2e`         | Playwright against built image     | PRs to `main` + nightly |
 
 ---
 

@@ -188,11 +188,11 @@ test("marks an invoice as paid", async () => {
 
 Expected scripts:
 
-| Script                  | Runs                                              | Required for                         |
-| ----------------------- | ------------------------------------------------- | ------------------------------------ |
-| `pnpm test`             | Vitest unit suite (services + components + hooks) | Every PR                             |
-| `pnpm test:integration` | Integration suite against Dockerized Postgres     | Every PR                             |
-| `pnpm test:e2e`         | Playwright suite against a built image            | PRs into `master`; nightly otherwise |
+| Script                  | Runs                                              | Required for                       |
+| ----------------------- | ------------------------------------------------- | ---------------------------------- |
+| `pnpm test`             | Vitest unit suite (services + components + hooks) | Every PR                           |
+| `pnpm test:integration` | Integration suite against Dockerized Postgres     | Every PR                           |
+| `pnpm test:e2e`         | Playwright suite against a built image            | PRs into `main`; nightly otherwise |
 
 Coverage is tracked for all tiers but only enforced as a hard gate for `features/*/services/`, which
 must remain above 90%.

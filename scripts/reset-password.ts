@@ -23,6 +23,7 @@ function exitOnCancel<T>(value: T | symbol): T {
 async function main(): Promise<void> {
   p.intro("Remit password reset")
 
+  // Operational recovery exception: this CLI repairs credential access when email reset is unavailable.
   const [{ database }, { accounts, auditLogs, users }, { auth }] = await Promise.all([
     import("@/database"),
     import("@/database/schema"),
