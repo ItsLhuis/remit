@@ -1,21 +1,34 @@
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
-const values = vi.fn().mockResolvedValue(undefined)
-const insert = vi.fn().mockReturnValue({ values })
+const mocks = vi.hoisted(() => {
+  const values = vi.fn().mockResolvedValue(undefined)
+
+  return {
+    values,
+    insert: vi.fn().mockReturnValue({ values }),
+    loggerError: vi.fn()
+  }
+})
 
 vi.mock("@/database", () => ({
-  database: { insert }
+  database: { insert: mocks.insert }
 }))
 
 vi.mock("@/database/schema", () => ({
   auditLogs: "auditLogsTable"
 }))
 
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: mocks.loggerError
+  }
+}))
+
 describe("writeAudit", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    values.mockResolvedValue(undefined)
-    insert.mockReturnValue({ values })
+    mocks.values.mockResolvedValue(undefined)
+    mocks.insert.mockReturnValue({ values: mocks.values })
   })
 
   test("inserts a row with the provided event and options", async () => {
@@ -31,9 +44,9 @@ describe("writeAudit", () => {
       userAgent: "Mozilla/5.0"
     })
 
-    expect(insert).toHaveBeenCalledOnce()
-    expect(insert).toHaveBeenCalledWith("auditLogsTable")
-    expect(values).toHaveBeenCalledWith({
+    expect(mocks.insert).toHaveBeenCalledOnce()
+    expect(mocks.insert).toHaveBeenCalledWith("auditLogsTable")
+    expect(mocks.values).toHaveBeenCalledWith({
       event: "auth.login.succeeded",
       actorUserId: "00000000-0000-0000-0000-000000000001",
       actorRole: "owner",
@@ -46,14 +59,11 @@ describe("writeAudit", () => {
   })
 
   test("does not throw when the database insert fails", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined)
-    values.mockRejectedValueOnce(new Error("DB down"))
+    mocks.values.mockRejectedValueOnce(new Error("DB down"))
 
     const { writeAudit } = await import("../index")
 
     await expect(writeAudit("auth.login.failed")).resolves.toBeUndefined()
-    expect(consoleError).toHaveBeenCalledOnce()
-
-    consoleError.mockRestore()
+    expect(mocks.loggerError).toHaveBeenCalledOnce()
   })
 })

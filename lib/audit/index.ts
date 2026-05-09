@@ -1,6 +1,8 @@
 import { database } from "@/database"
 import { auditLogs } from "@/database/schema"
 
+import { logger } from "@/lib/logger"
+
 export type AuditEvent =
   | "auth.login.succeeded"
   | "auth.login.failed"
@@ -37,6 +39,6 @@ export async function writeAudit(
       userAgent: options.userAgent ?? null
     })
   } catch (error) {
-    console.error("writeAudit: insert failed", { event, error })
+    logger.error({ action: "writeAudit", event, err: error }, "Audit log insert failed")
   }
 }
