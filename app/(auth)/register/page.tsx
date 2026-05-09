@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: t("auth.register.metadataTitle") }
 
 const RegisterPage = async () => {
+  // Read-only bootstrap gate: registration is open only until the first Better Auth user exists.
   const existingUser = await database.query.users.findFirst({ columns: { id: true } })
 
   if (existingUser) {

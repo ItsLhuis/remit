@@ -112,6 +112,7 @@ type WriteAuditContext = AuditContext & {
   targetEntityId?: string
 }
 
+// Remit-owned recovery flag; Better Auth remains responsible for password and session state.
 async function clearMustChangePassword(userId: string): Promise<void> {
   await database.update(users).set({ mustChangePassword: false }).where(eq(users.id, userId))
 }
