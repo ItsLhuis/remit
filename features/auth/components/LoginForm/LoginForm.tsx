@@ -67,7 +67,7 @@ const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
   const requestPasswordReset = async () => {
     await authClient.requestPasswordReset({
       email: form.getValues("email"),
-      redirectTo: "/reset-password"
+      redirectTo: new URL("/reset-password", window.location.origin).toString()
     })
   }
 

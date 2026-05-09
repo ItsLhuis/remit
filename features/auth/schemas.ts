@@ -68,6 +68,40 @@ export const changePasswordSchema = z
 
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>
 
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(
+        passwordRules.minLength,
+        t("auth.resetPassword.validation.passwordMin", { count: passwordRules.minLength })
+      )
+      .max(128)
+      .refine((value) => passwordRules.hasUppercase.test(value), {
+        message: t("auth.resetPassword.validation.passwordUppercase")
+      })
+      .refine((value) => passwordRules.hasLowercase.test(value), {
+        message: t("auth.resetPassword.validation.passwordLowercase")
+      })
+      .refine((value) => passwordRules.hasNumber.test(value), {
+        message: t("auth.resetPassword.validation.passwordNumber")
+      })
+      .refine((value) => passwordRules.hasSpecialChar.test(value), {
+        message: t("auth.resetPassword.validation.passwordSpecial")
+      }),
+    confirmPassword: z.string().min(1, t("auth.resetPassword.validation.confirmPasswordRequired"))
+  })
+  .superRefine((values, ctx) => {
+    if (values.newPassword !== values.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: t("auth.resetPassword.validation.passwordsMatch")
+      })
+    }
+  })
+
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>
 export const accountSchema = z
   .object({
     name: z.string().min(1, t("auth.register.validation.nameRequired")),
