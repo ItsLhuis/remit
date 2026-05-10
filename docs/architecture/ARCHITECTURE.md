@@ -1079,7 +1079,6 @@ application-level interactions. API routes exist only for specific, justified ca
 | `/api/webhooks/stripe` | Stripe webhook event receiver                |
 | `/api/health`          | Uptime monitor health check (public)         |
 | `/api/metrics`         | Prometheus metrics (opt-in, token-protected) |
-| `/admin/health`        | Detailed health dashboard (authenticated)    |
 
 ### Public API
 
@@ -1183,7 +1182,7 @@ connection) so configuration is verifiable in place.
 
 ### Health and status
 
-`/admin/health` (authenticated, owner-only) provides a human-readable status dashboard:
+`/settings/system` (authenticated, owner-only) provides a human-readable status dashboard:
 
 - Database connectivity.
 - SMTP/Resend reachability and last successful send timestamp.
@@ -1226,8 +1225,8 @@ docker exec remit-app pnpm remit:upgrade
 ```
 
 It performs: a snapshot backup, image pull, migration run, and restart. Auto-upgrade is opt-in;
-manual is the default. The CHANGELOG is published in the repository and surfaced in `/admin/health`
-when an update is available.
+manual is the default. The CHANGELOG is published in the repository and surfaced in
+`/settings/system` when an update is available.
 
 ### CLI scripts
 

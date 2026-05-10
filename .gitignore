@@ -20,6 +20,9 @@ tests/e2e/results/
 /build
 /scripts/dist/
 
+# local runtime data
+/data/
+
 # misc
 .DS_Store
 *.pem

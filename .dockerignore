@@ -8,6 +8,7 @@ node_modules
 drizzle/migrations/meta
 *.log
 coverage
+data
 .turbo
 .vscode
 .idea

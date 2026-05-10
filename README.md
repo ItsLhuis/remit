@@ -160,7 +160,7 @@ Beyond install, Remit ships:
   S3, R2, or Backblaze B2. Configurable retention (daily, weekly, monthly).
 - **One-command upgrades** — `remit:upgrade` snapshots a backup, pulls the new image, runs
   forward-compatible migrations, and restarts. Auto-upgrade is opt-in.
-- **Health dashboard** — `/admin/health` shows database connectivity, email/Stripe/storage
+- **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
   reachability, last successful backup, disk usage, encryption key fingerprint, and update
   availability.
 - **CLI tools** — interactive password reset for the lost-everything case, encryption key rotation,

@@ -86,16 +86,17 @@ timestamps helper** here — better-auth manages its own timestamp shape.
 
 ### `users`
 
-| Column             | Type        | Null | Default             | Notes                                                        |
-| ------------------ | ----------- | ---- | ------------------- | ------------------------------------------------------------ |
-| id                 | uuid        | no   | `gen_random_uuid()` | PK                                                           |
-| name               | text        | no   |                     |                                                              |
-| email              | text        | no   |                     | Unique                                                       |
-| email_verified     | boolean     | no   | `false`             |                                                              |
-| image              | text        | yes  |                     |                                                              |
-| two_factor_enabled | boolean     | yes  | `false`             | Required for authenticated app access once setup is complete |
-| created_at         | timestamptz | no   | `now()`             |                                                              |
-| updated_at         | timestamptz | no   | `now()` (autobump)  |                                                              |
+| Column               | Type        | Null | Default             | Notes                                                        |
+| -------------------- | ----------- | ---- | ------------------- | ------------------------------------------------------------ |
+| id                   | uuid        | no   | `gen_random_uuid()` | PK                                                           |
+| name                 | text        | no   |                     |                                                              |
+| email                | text        | no   |                     | Unique                                                       |
+| email_verified       | boolean     | no   | `false`             |                                                              |
+| image                | text        | yes  |                     |                                                              |
+| two_factor_enabled   | boolean     | yes  | `false`             | Required for authenticated app access once setup is complete |
+| must_change_password | boolean     | no   | `false`             | Remit-owned recovery flag set by the CLI/admin reset flow    |
+| created_at           | timestamptz | no   | `now()`             |                                                              |
+| updated_at           | timestamptz | no   | `now()` (autobump)  |                                                              |
 
 ### `sessions`
 
@@ -117,11 +118,36 @@ Index: `sessions_user_id_idx` on `user_id`.
 
 OAuth/credential accounts as managed by better-auth. Schema unchanged from upstream.
 
+| Column                   | Type        | Null | Default            | Notes                                  |
+| ------------------------ | ----------- | ---- | ------------------ | -------------------------------------- |
+| id                       | text        | no   |                    | PK (better-auth-managed)               |
+| account_id               | text        | no   |                    | Provider account identifier            |
+| provider_id              | text        | no   |                    | Provider identifier, e.g. `credential` |
+| user_id                  | uuid        | no   |                    | FK → `users.id` (cascade)              |
+| access_token             | text        | yes  |                    | OAuth access token                     |
+| refresh_token            | text        | yes  |                    | OAuth refresh token                    |
+| id_token                 | text        | yes  |                    | OAuth/OpenID Connect ID token          |
+| access_token_expires_at  | timestamptz | yes  |                    |                                        |
+| refresh_token_expires_at | timestamptz | yes  |                    |                                        |
+| scope                    | text        | yes  |                    | OAuth scopes                           |
+| password                 | text        | yes  |                    | Better Auth credential password hash   |
+| created_at               | timestamptz | no   | `now()`            |                                        |
+| updated_at               | timestamptz | no   | `now()` (autobump) |                                        |
+
 Index: `accounts_user_id_idx` on `user_id`.
 
 ### `verifications`
 
 Email verification and password reset tokens as managed by better-auth.
+
+| Column     | Type        | Null | Default            | Notes                    |
+| ---------- | ----------- | ---- | ------------------ | ------------------------ |
+| id         | text        | no   |                    | PK (better-auth-managed) |
+| identifier | text        | no   |                    | Token lookup identifier  |
+| value      | text        | no   |                    | Verification token value |
+| expires_at | timestamptz | no   |                    |                          |
+| created_at | timestamptz | no   | `now()`            |                          |
+| updated_at | timestamptz | no   | `now()` (autobump) |                          |
 
 Index: `verifications_identifier_idx` on `identifier`.
 
@@ -160,6 +186,8 @@ allowed business roles at the application boundary.
 | metadata   | text        | yes  |                     | JSON serialized as text by Better Auth |
 | created_at | timestamptz | no   | `now()`             |                                        |
 
+Index: unique `organization_slug_idx` on `slug`.
+
 ### `members`
 
 Maps a user to a role within the (single) organization.
@@ -172,7 +200,8 @@ Maps a user to a role within the (single) organization.
 | role            | text        | no   |                     | Better Auth role string. Remit constrains values to `owner \| accountant \| assistant` |
 | created_at      | timestamptz | no   | `now()`             |                                                                                        |
 
-Indexes: `member_user_id_idx`, `member_organization_id_idx`. Unique on `(user_id, organization_id)`.
+Indexes: `member_user_id_idx`, `member_organization_id_idx`, unique `member_user_organization_idx`
+on `(user_id, organization_id)`.
 
 Constraint: at most one member with role `owner` per organization. Enforced via partial unique index
 `uq_member_owner_per_org` on `organization_id` where `role = 'owner'`.

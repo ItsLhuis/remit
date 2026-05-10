@@ -55,6 +55,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      REMIT_ENCRYPTION_KEY: ${REMIT_ENCRYPTION_KEY}
+      REMIT_HOSTED_MODE: ${REMIT_HOSTED_MODE:-false}
+      REMIT_DATA_DIR: /app/data
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
@@ -63,6 +66,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-remit}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     volumes:
+      - ${REMIT_DATA_DIR:-./data}:/app/data
       - uploads:/app/uploads
     depends_on:
       db:

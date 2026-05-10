@@ -52,7 +52,7 @@ RUN corepack enable pnpm
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+RUN mkdir -p /app/data /app/uploads && chown nextjs:nodejs /app/data /app/uploads
 
 # All COPY instructions include --chown so files are owned by the runtime
 # user from the start, not by root.
