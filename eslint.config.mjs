@@ -71,7 +71,14 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": pureServicesRule
     }
   },
-  globalIgnores([".next/**", "coverage/**", "out/**", "build/**", "next-env.d.ts"])
+  globalIgnores([
+    ".next/**",
+    "coverage/**",
+    "out/**",
+    "build/**",
+    "scripts/dist/**",
+    "next-env.d.ts"
+  ])
 ])
 
 export default eslintConfig
