@@ -2,13 +2,13 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type User } from "@/lib/auth"
-
 import { Separator, SidebarTrigger, Typography } from "@/components/ui"
 
 import { AccountDetailsSection } from "./AccountDetailsSection"
 import { AvatarSection } from "./AvatarSection"
 import { LogoutSection } from "./LogoutSection"
+
+import { type User } from "@/lib/auth"
 
 type ProfileSettingsPageProps = {
   user: User

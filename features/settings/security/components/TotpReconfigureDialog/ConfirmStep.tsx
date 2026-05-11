@@ -2,13 +2,12 @@
 
 import { Fragment, useState } from "react"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
 import { confirmPasswordSchema, type ConfirmPasswordValues } from "../../schemas"
 
 import {

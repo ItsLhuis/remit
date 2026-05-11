@@ -2,18 +2,17 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
-
 import { useRouter } from "next/navigation"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
 import { loginSchema, type LoginValues } from "../../schemas"
+
+import Image from "next/image"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
 

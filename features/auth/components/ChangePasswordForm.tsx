@@ -4,14 +4,14 @@ import { useState } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm, useWatch } from "react-hook-form"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { changePasswordSchema, type ChangePasswordValues } from "../schemas"
+
 import { PasswordRequirements } from "./PasswordRequirements"
 
 import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"

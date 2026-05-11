@@ -2,18 +2,17 @@
 
 import { useState } from "react"
 
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { resetPasswordSchema, type ResetPasswordValues } from "../schemas"
-import { PasswordRequirements } from "./PasswordRequirements"
+
+import Link from "next/link"
 
 import {
   Alert,
@@ -27,6 +26,8 @@ import {
   Spinner,
   Typography
 } from "@/components/ui"
+
+import { PasswordRequirements } from "./PasswordRequirements"
 
 type ResetPasswordFormProps = {
   token: string | null

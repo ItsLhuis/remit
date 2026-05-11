@@ -4,16 +4,13 @@ import { useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-
 import { useTranslation } from "@/lib/i18n"
 
+import { authClient } from "@/lib/auth/client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
 import { accountDetailsSchema, type AccountDetailsValues } from "../../schemas"
-
-import { authClient } from "@/lib/authClient"
-
-import { type User } from "@/lib/auth"
 
 import { changeEmailAddress } from "../../mutations"
 
@@ -28,6 +25,8 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { type User } from "@/lib/auth"
 
 type AccountDetailsSectionProps = {
   user: User

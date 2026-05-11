@@ -2,17 +2,13 @@
 
 import { Fragment, useState } from "react"
 
-import Image from "next/image"
-
-import Link from "next/link"
-
 import { usePathname, useRouter } from "next/navigation"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { signOut, useSession } from "@/lib/authClient"
+import { signOut, useSession } from "@/lib/auth/client"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
@@ -20,7 +16,9 @@ import { cn, getInitials } from "@/lib/utils"
 
 import { useScroll } from "@/hooks/useScroll"
 
-import { SignOutDialog } from "@/features/auth"
+import Image from "next/image"
+
+import Link from "next/link"
 
 import {
   Avatar,
@@ -60,6 +58,8 @@ import {
   Typography,
   useSidebar
 } from "@/components/ui"
+
+import { SignOutDialog } from "@/features/auth"
 
 const mainNavItems = [
   { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },

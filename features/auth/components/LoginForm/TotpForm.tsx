@@ -2,16 +2,15 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/authClient"
-
 import { totpSchema, type TotpValues } from "../../schemas"
+
+import Image from "next/image"
 
 import {
   Button,

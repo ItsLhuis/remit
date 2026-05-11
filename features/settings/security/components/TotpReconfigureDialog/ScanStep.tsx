@@ -2,13 +2,12 @@
 
 import { Fragment, useMemo, useState } from "react"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
 import { totpVerifySchema, type TotpVerifyValues } from "../../schemas"
 
 import {

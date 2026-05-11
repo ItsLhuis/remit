@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
 import { SignOutDialog } from "@/features/auth"
 

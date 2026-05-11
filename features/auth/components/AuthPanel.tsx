@@ -1,8 +1,8 @@
 "use client"
 
-import Image from "next/image"
-
 import { useTranslation } from "@/lib/i18n"
+
+import Image from "next/image"
 
 import { AuroraText, Typography } from "@/components/ui"
 
