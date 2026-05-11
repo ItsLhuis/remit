@@ -13,6 +13,8 @@ unrecoverable boot-time failures - environment variable validation failure in `l
 missing encryption key at startup. Everything else is caught and returned as `{ error }`.
 
 ```ts
+import { logger } from "@/lib/logger"
+
 // ✓ - unexpected failure caught and returned
 try {
   const [row] = await database.insert(invoices).values(data).returning()
@@ -21,7 +23,10 @@ try {
 
   return { data: row }
 } catch (error) {
-  console.error("createInvoice: insert failed", { projectId: data.projectId, error })
+  logger.error(
+    { action: "createInvoice", projectId: data.projectId, err: error },
+    "Invoice insert failed"
+  )
 
   return { error: "Something went wrong" }
 }
@@ -70,23 +75,22 @@ strings.
 
 ## Server-side logging
 
-Use `console.error` with a structured context object. Always include the action or function name and
-the relevant entity ids. Never log sensitive data: passwords, tokens, API keys, encryption keys, or
-full secret strings.
-
-This will migrate to `pino` with structured JSON output per `docs/architecture/ARCHITECTURE.md`
-(Observability). Write `console.error` now; the migration will be mechanical.
+In application server-side code, use `logger.error` from `@/lib/logger`. Always include structured
+context with `action`, relevant ids (`userId`, `invoiceId`, `projectId`, `targetEntityId`, etc.)
+when they exist, and `err` for the raw error. Never log sensitive data: passwords, tokens, API keys,
+encryption keys, or full secret strings.
 
 ```ts
+import { logger } from "@/lib/logger"
+
 // ✓
-console.error("sendInvoiceEmail: provider failed", {
-  invoiceId: invoice.id,
-  provider: settings.emailProvider,
-  error
-})
+logger.error(
+  { action: "sendInvoiceEmail", invoiceId: invoice.id, err: error },
+  "Email provider failed"
+)
 
 // ✗ - secret embedded in log output
-console.error("SMTP failed", { smtpPass: settings.smtpPass, error })
+logger.error({ action: "sendInvoiceEmail", smtpPass: settings.smtpPass, err: error }, "SMTP failed")
 ```
 
 ## Database errors
@@ -99,7 +103,7 @@ Common cases to handle explicitly:
 
 - Unique violation on `users.email` → `"Email address is already in use"`
 - Foreign key violation → `"Related record not found"`
-- Everything else → `"Something went wrong"` + `console.error` with context
+- Everything else → `"Something went wrong"` + `logger.error` with structured context
 
 ## Route error boundaries
 

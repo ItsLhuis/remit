@@ -90,6 +90,8 @@ import { createInvoiceSchema } from "@/features/invoicing/schemas"
 import { calculateInvoiceTotal } from "@/features/invoicing/services/calculateInvoiceTotal"
 import { generateInvoiceNumber } from "@/features/invoicing/services/generateInvoiceNumber"
 
+import { logger } from "@/lib/logger"
+
 import { emit } from "@/lib/events"
 
 import { type Invoice } from "@/features/invoicing"
@@ -116,7 +118,10 @@ export async function createInvoice(
 
     created = row
   } catch (error) {
-    console.error("createInvoice: insert failed", { projectId: parsed.data.projectId, error })
+    logger.error(
+      { action: "createInvoice", projectId: parsed.data.projectId, err: error },
+      "Invoice insert failed"
+    )
 
     return { error: "Something went wrong" }
   }
