@@ -1,10 +1,11 @@
 import net, { type Socket } from "node:net"
 import tls from "node:tls"
 
-import { database } from "@/database"
+import { env } from "@/lib/config/env"
 
-import { env } from "@/lib/env"
 import { logger } from "@/lib/logger"
+
+import { database } from "@/database"
 
 import { isEmailConfigured } from "@/features/settings"
 
@@ -70,11 +71,13 @@ export async function sendTransactionalEmail(email: TransactionalEmail): Promise
 
   if (settings.emailProvider === "smtp") {
     await sendWithSmtp(getSmtpConfig(settings), email)
+
     return
   }
 
   if (settings.emailProvider === "resend") {
     await sendWithResend(getResendConfig(settings), email)
+
     return
   }
 
@@ -170,6 +173,7 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
 
   try {
     await client.read([220])
+
     let ehlo = await client.command(`EHLO ${getSmtpClientName()}`, [250])
 
     if (!config.secure) {
@@ -178,6 +182,7 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
       }
 
       await client.command("STARTTLS", [220])
+
       client = await client.upgradeToTls(config.host)
       ehlo = await client.command(`EHLO ${getSmtpClientName()}`, [250])
     }
@@ -186,8 +191,11 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
     await client.command(`MAIL FROM:<${config.fromAddress}>`, [250])
     await client.command(`RCPT TO:<${email.to}>`, [250, 251])
     await client.command("DATA", [354])
+
     await client.writeData(buildSmtpMessage(config.from, email))
+
     await client.read([250])
+
     await client.command("QUIT", [221])
   } catch (error) {
     logger.error(
@@ -311,6 +319,7 @@ class SmtpClient {
 
         this.pending = null
         pending.resolve(response)
+
         return
       }
 

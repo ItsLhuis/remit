@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { env } from "@/lib/env"
 import { t } from "@/lib/i18n/server"
 
+import { env } from "@/lib/config/env"
+
 import { auth } from "@/lib/auth"
+
 import { logger } from "@/lib/logger"
 
 import { database } from "@/database"

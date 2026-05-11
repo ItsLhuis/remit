@@ -1,4 +1,4 @@
-import { env } from "@/lib/env"
+import { env } from "@/lib/config/env"
 
 import { decryptString, encryptString } from "./aes"
 

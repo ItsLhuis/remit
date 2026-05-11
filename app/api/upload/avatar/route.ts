@@ -9,7 +9,7 @@ import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
 
-import { MINIO_BUCKET, s3 } from "@/lib/s3"
+import { MINIO_BUCKET, s3 } from "@/lib/storage/s3"
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 

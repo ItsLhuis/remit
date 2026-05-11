@@ -29,6 +29,7 @@ export function decryptString(payload: string, key: Uint8Array): string {
   }
 
   const [ivHex, ciphertextHex, authTagHex] = parts
+
   const iv = decodeHexComponent(ivHex, IV_BYTE_LENGTH, "IV")
   const ciphertext = decodeHexComponent(ciphertextHex, ciphertextHex.length / 2, "ciphertext")
   const authTag = decodeHexComponent(authTagHex, AUTH_TAG_BYTE_LENGTH, "auth tag")

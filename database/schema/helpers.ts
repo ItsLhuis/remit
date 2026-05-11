@@ -1,6 +1,6 @@
 import { customType, timestamp } from "drizzle-orm/pg-core"
 
-import { env } from "@/lib/env"
+import { env } from "@/lib/config/env"
 
 import { decryptString, encryptString } from "@/lib/encryption/aes"
 
