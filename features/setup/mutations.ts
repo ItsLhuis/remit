@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm"
 import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
+
 import { logger } from "@/lib/logger"
 
 import { database } from "@/database"

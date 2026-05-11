@@ -2,18 +2,28 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/authClient"
-
 import { totpEnableSchema, type TotpEnableValues } from "../schemas"
 
-import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
+import Image from "next/image"
+
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  Spinner,
+  StepProgress,
+  Typography
+} from "@/components/ui"
 
 export type TotpEnableData = {
   totpUri: string
@@ -106,11 +116,13 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
         </Button>
       </form>
       {enableError && <FieldError className="mt-4 text-center">{enableError}</FieldError>}
-      <div className="mt-6 text-center">
-        <Typography affects="small" className="text-muted-foreground">
-          {t("setup.progress", { current: 2, total: 4 })}
-        </Typography>
-      </div>
+      <StepProgress
+        className="mt-6 text-center"
+        label={t("setup.progress", {
+          current: ONBOARDING_STEPS.totpEnable,
+          total: ONBOARDING_TOTAL_STEPS
+        })}
+      />
     </div>
   )
 }

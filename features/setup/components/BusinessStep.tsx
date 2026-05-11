@@ -2,15 +2,17 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+
+import { saveBusinessProfile } from "../mutations"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-
-import { useTranslation } from "@/lib/i18n"
-
-import { saveBusinessProfile } from "../mutations"
 import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
+
+import Image from "next/image"
 
 import {
   Button,
@@ -21,6 +23,7 @@ import {
   FieldLabel,
   Input,
   Spinner,
+  StepProgress,
   Typography
 } from "@/components/ui"
 
@@ -56,6 +59,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
 
     if ("error" in result) {
       setServerError(result.error)
+
       return
     }
 
@@ -187,11 +191,13 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
           </FieldError>
         )}
       </form>
-      <div className="mt-6 text-center">
-        <Typography affects="small" className="text-muted-foreground">
-          {t("setup.progress", { current: 1, total: 4 })}
-        </Typography>
-      </div>
+      <StepProgress
+        className="mt-6 text-center"
+        label={t("setup.progress", {
+          current: ONBOARDING_STEPS.businessProfile,
+          total: ONBOARDING_TOTAL_STEPS
+        })}
+      />
     </div>
   )
 }

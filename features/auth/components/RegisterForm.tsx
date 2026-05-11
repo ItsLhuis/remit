@@ -2,21 +2,32 @@
 
 import { useState } from "react"
 
-import Image from "next/image"
-
 import { useRouter } from "next/navigation"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "@/features/setup"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { accountSchema, type AccountValues } from "../schemas"
-import { PasswordRequirements } from "./PasswordRequirements"
 
-import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
+import Image from "next/image"
+
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  Spinner,
+  StepProgress,
+  Typography
+} from "@/components/ui"
+
+import { PasswordRequirements } from "./PasswordRequirements"
 
 const RegisterForm = () => {
   const { t } = useTranslation()
@@ -158,6 +169,13 @@ const RegisterForm = () => {
           </FieldError>
         )}
       </form>
+      <StepProgress
+        className="mt-6 text-center"
+        label={t("setup.progress", {
+          current: ONBOARDING_STEPS.account,
+          total: ONBOARDING_TOTAL_STEPS
+        })}
+      />
     </div>
   )
 }

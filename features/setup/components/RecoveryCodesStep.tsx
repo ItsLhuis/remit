@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react"
 
-import Image from "next/image"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { Button, Checkbox, Label, RecoveryCodes, Typography } from "@/components/ui"
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+
+import Image from "next/image"
+
+import { Button, Checkbox, Label, RecoveryCodes, StepProgress, Typography } from "@/components/ui"
 
 type RecoveryCodesStepProps = {
   backupCodes: string[]
@@ -65,11 +67,13 @@ const RecoveryCodesStep = ({ backupCodes, onComplete }: RecoveryCodesStepProps) 
       <Button size="lg" className="w-full" disabled={!acknowledged} onClick={onComplete}>
         {t("common.actions.continue")}
       </Button>
-      <div className="mt-6 text-center">
-        <Typography affects="small" className="text-muted-foreground">
-          {t("setup.progress", { current: 4, total: 4 })}
-        </Typography>
-      </div>
+      <StepProgress
+        className="mt-6 text-center"
+        label={t("setup.progress", {
+          current: ONBOARDING_STEPS.recoveryCodes,
+          total: ONBOARDING_TOTAL_STEPS
+        })}
+      />
     </div>
   )
 }

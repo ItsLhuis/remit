@@ -4,7 +4,7 @@ import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Button, CopyIcon, Typography } from "@/components/ui"
+import { CopyIcon, IconButton, Typography } from "@/components/ui"
 
 type ManualEntryCodeProps = {
   secret: string
@@ -27,15 +27,16 @@ const ManualEntryCode = ({ secret }: ManualEntryCodeProps) => {
         >
           {secret}
         </Typography>
-        <Button
+        <IconButton
           type="button"
           variant="outline"
           size="icon"
           className="shrink-0"
           onClick={() => copySecret(secret)}
+          label={t("totp.copyManualEntryCode")}
         >
           <CopyIcon copied={isSecretCopied} />
-        </Button>
+        </IconButton>
       </div>
     </div>
   )

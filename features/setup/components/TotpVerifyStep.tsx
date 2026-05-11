@@ -2,19 +2,21 @@
 
 import { useMemo } from "react"
 
-import Image from "next/image"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { QRCodeSVG } from "qrcode.react"
-import { Controller, useForm } from "react-hook-form"
-
 import { useTranslation } from "@/lib/i18n"
 
 import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
-import { authClient } from "@/lib/authClient"
+import { authClient } from "@/lib/auth/client"
 
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
 import { totpVerifySchema, type TotpVerifyValues } from "../schemas"
+
+import { QRCodeSVG } from "qrcode.react"
+
+import Image from "next/image"
 
 import {
   Button,
@@ -22,10 +24,12 @@ import {
   Field,
   FieldError,
   FieldLabel,
+  IconButton,
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
   Spinner,
+  StepProgress,
   Typography
 } from "@/components/ui"
 
@@ -96,15 +100,16 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
             >
               {secret}
             </Typography>
-            <Button
+            <IconButton
               type="button"
               variant="outline"
               size="icon"
               className="shrink-0"
               onClick={() => secret && copySecret(secret)}
+              label={t("totp.copyManualEntryCode")}
             >
               <CopyIcon copied={isSecretCopied} />
-            </Button>
+            </IconButton>
           </div>
         </div>
       )}
@@ -148,11 +153,13 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
           {t("totp.verifyCode")}
         </Button>
       </form>
-      <div className="mt-6 text-center">
-        <Typography affects="small" className="text-muted-foreground">
-          {t("setup.progress", { current: 3, total: 4 })}
-        </Typography>
-      </div>
+      <StepProgress
+        className="mt-6 text-center"
+        label={t("setup.progress", {
+          current: ONBOARDING_STEPS.totpVerify,
+          total: ONBOARDING_TOTAL_STEPS
+        })}
+      />
     </div>
   )
 }

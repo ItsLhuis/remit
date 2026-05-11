@@ -10,3 +10,5 @@ export {
   type TotpEnableValues,
   type TotpVerifyValues
 } from "./schemas"
+
+export { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "./constants/onboarding"
