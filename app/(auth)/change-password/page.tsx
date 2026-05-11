@@ -2,7 +2,7 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
-import { requireSession } from "@/lib/session"
+import { requireSession } from "@/lib/auth/session"
 
 import { ScrollArea } from "@/components/ui"
 

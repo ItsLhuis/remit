@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
 
-import { requireSession } from "@/lib/session"
+import { requireSession } from "@/lib/auth/session"
 
 import { ScrollArea } from "@/components/ui"
 

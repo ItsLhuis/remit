@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 import { t } from "@/lib/i18n/server"
 
-import { getSession } from "@/lib/session"
+import { getSession } from "@/lib/auth/session"
 
 import { ScrollArea } from "@/components/ui"
 
