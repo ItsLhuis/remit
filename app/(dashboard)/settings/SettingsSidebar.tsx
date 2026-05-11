@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 
-import Link from "next/link"
-
 import { usePathname } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
@@ -11,6 +9,8 @@ import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 import { useScroll } from "@/hooks/useScroll"
+
+import Link from "next/link"
 
 import {
   Icon,
@@ -70,10 +70,24 @@ const navGroups = [
   {
     label: "settings.navigation.email",
     items: [{ labelKey: "settings.navigation.email", href: "/settings/email", icon: "Mail" }]
+  },
+  {
+    label: "settings.navigation.system",
+    items: [
+      {
+        labelKey: "settings.navigation.system",
+        href: "/settings/system",
+        icon: "Activity"
+      }
+    ]
   }
 ] as const satisfies readonly NavGroup[]
 
-const SettingsSidebar = () => {
+type SettingsSidebarProps = {
+  showSystem: boolean
+}
+
+const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
   const { t } = useTranslation()
 
   const pathname = usePathname()
@@ -84,7 +98,11 @@ const SettingsSidebar = () => {
 
   const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
 
-  const filteredGroups = navGroups
+  const visibleGroups = showSystem
+    ? navGroups
+    : navGroups.filter((group) => group.label !== "settings.navigation.system")
+
+  const filteredGroups = visibleGroups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>

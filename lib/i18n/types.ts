@@ -90,6 +90,7 @@ export type Translations = {
     scanQr: string
     scanDescription: string
     manualEntryCode: string
+    copyManualEntryCode: string
     useRecoveryCode: string
     useAuthenticator: string
     validation: {
@@ -115,6 +116,122 @@ export type Translations = {
     saveShort: string
     count: string
     singleUseWarning: string
+  }
+  health: {
+    dashboard: {
+      title: string
+      description: string
+      readyTitle: string
+      readyDescription: string
+      attentionTitle: string
+      dataAttentionTitle: string
+      issueSummary: string
+    }
+    status: {
+      healthy: string
+      attention: string
+      error: string
+      notSetup: string
+      optional: string
+      info: string
+    }
+    sections: {
+      core: {
+        title: string
+        description: string
+      }
+      safety: {
+        title: string
+        description: string
+      }
+      integrations: {
+        title: string
+        description: string
+      }
+      instance: {
+        title: string
+        description: string
+      }
+      empty: string
+    }
+    actions: {
+      configureEmail: string
+      configurePayments: string
+    }
+    fingerprint: {
+      copyLabel: string
+      copyTooltip: string
+    }
+    checks: {
+      database: {
+        title: string
+        reachable: string
+        unavailable: string
+        reachableDetail: string
+        unavailableDetail: string
+      }
+      email: {
+        title: string
+        notConfigured: string
+        notConfiguredDetail: string
+        testedOk: string
+        testedDetail: string
+        configured: string
+        configuredDetail: string
+      }
+      stripe: {
+        title: string
+        notConfigured: string
+        notConfiguredDetail: string
+        testedOk: string
+        testedDetail: string
+        configured: string
+        configuredDetail: string
+      }
+      storage: {
+        title: string
+        notConfigured: string
+        localWritable: string
+        localWritableDetail: string
+        localUnavailable: string
+        localUnavailableDetail: string
+        backupStorageMissing: string
+        bucketReachable: string
+        bucketReachableDetail: string
+        bucketUnavailable: string
+        bucketUnavailableDetail: string
+      }
+      backup: {
+        title: string
+        missing: string
+        frequencyDetail: string
+        lastSuccess: string
+        staleDetail: string
+        freshDetail: string
+      }
+      disk: {
+        title: string
+        used: string
+        usageDetail: string
+        highUsageDetail: string
+        unavailable: string
+        unavailableDetail: string
+      }
+      encryption: {
+        title: string
+        detail: string
+      }
+      version: {
+        title: string
+        detail: string
+      }
+      publicUrl: {
+        title: string
+        detail: string
+        invalid: string
+        invalidDetail: string
+      }
+    }
   }
   auth: {
     panel: {
@@ -294,6 +411,7 @@ export type Translations = {
       taxRates: string
       templates: string
       email: string
+      system: string
     }
     navigation: {
       business: string
@@ -304,6 +422,7 @@ export type Translations = {
       appearance: string
       payment: string
       taxRates: string
+      system: string
     }
     profile: {
       title: string
@@ -392,6 +511,9 @@ export type Translations = {
       title: string
     }
     email: {
+      title: string
+    }
+    system: {
       title: string
     }
   }

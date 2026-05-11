@@ -2,28 +2,37 @@ import { createHash, randomUUID } from "node:crypto"
 import { mkdir, statfs, unlink, writeFile } from "node:fs/promises"
 import path from "node:path"
 
+import pkg from "@/package.json"
+
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3"
 
 import { sql } from "drizzle-orm"
 
-import { database } from "@/database"
-import { type settings } from "@/database/schema"
+import { env } from "@/lib/config/env"
 
-import { env } from "@/lib/env"
+import i18n from "@/lib/i18n/i18n"
+
+import { t } from "@/lib/i18n/server"
 
 import { logger } from "@/lib/logger"
 
+import { database } from "@/database"
+import { type settings } from "@/database/schema"
+
 import { isEmailConfigured } from "@/features/settings"
 
-export type HealthStatus = "ok" | "warning" | "error" | "info"
+import { formatBytes, formatDate } from "@/lib/utils"
 
-export type HealthCheckResult = {
-  id: string
-  title: string
-  status: HealthStatus
-  summary: string
-  detail: string
-}
+import {
+  evaluateBackupFreshness,
+  evaluateDiskUsage,
+  evaluateEmailHealth,
+  evaluatePublicUrl,
+  evaluateRemoteStorageConfiguration,
+  evaluateStripeHealth
+} from "./services/evaluateHealth"
+
+import { type HealthCheckResult } from "./types"
 
 type SettingsRow = typeof settings.$inferSelect
 
@@ -32,13 +41,15 @@ type DatabaseConnectivityResult = { ok: true } | { ok: false; reason: string; er
 const BACKUP_WARNING_AGE_MS = 7 * 24 * 60 * 60 * 1000
 const DATA_DIR = path.resolve(env.REMIT_DATA_DIR)
 
+const getHealthLocale = (): string => i18n.resolvedLanguage ?? i18n.language ?? "en"
+
 export async function checkDatabaseConnectivity(): Promise<DatabaseConnectivityResult> {
   try {
     await database.execute(sql`SELECT 1`)
 
     return { ok: true }
   } catch (error) {
-    return { ok: false, reason: "Database unreachable", error }
+    return { ok: false, reason: "Database unavailable", error }
   }
 }
 
@@ -55,13 +66,14 @@ export async function getHealthChecks(): Promise<HealthCheckResult[]> {
 
   return [
     databaseCheck,
+    storageCheck,
+    diskCheck,
+    getBackupHealthCheck(settingsRow),
+    getEncryptionFingerprintHealthCheck(),
     getEmailHealthCheck(settingsRow),
     getStripeHealthCheck(settingsRow),
-    storageCheck,
-    getBackupHealthCheck(settingsRow),
-    diskCheck,
-    getEncryptionFingerprintHealthCheck(),
-    getUpdatesHealthCheck()
+    getAppVersionHealthCheck(),
+    getPublicUrlHealthCheck(settingsRow)
   ]
 }
 
@@ -71,10 +83,12 @@ async function getDatabaseHealthCheck(): Promise<HealthCheckResult> {
   if (result.ok) {
     return {
       id: "database",
-      title: "Database connectivity",
-      status: "ok",
-      summary: "Reachable",
-      detail: "The application can run SELECT 1 against PostgreSQL"
+      category: "core",
+      title: t("health.checks.database.title"),
+      status: "healthy",
+      summary: t("health.checks.database.reachable"),
+      detail: t("health.checks.database.reachableDetail"),
+      countsAsIssue: false
     }
   }
 
@@ -85,10 +99,12 @@ async function getDatabaseHealthCheck(): Promise<HealthCheckResult> {
 
   return {
     id: "database",
-    title: "Database connectivity",
+    category: "core",
+    title: t("health.checks.database.title"),
     status: "error",
-    summary: "Unavailable",
-    detail: result.reason
+    summary: t("health.checks.database.unavailable"),
+    detail: t("health.checks.database.unavailableDetail"),
+    countsAsIssue: true
   }
 }
 
@@ -106,66 +122,100 @@ async function getSettingsForHealth(): Promise<SettingsRow | null> {
 }
 
 function getEmailHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
-  if (!settingsRow || !isEmailConfigured(settingsRow)) {
+  const health = evaluateEmailHealth({
+    hasSettingsRow: Boolean(settingsRow),
+    isConfigured: settingsRow ? isEmailConfigured(settingsRow) : false,
+    hasSuccessfulTest: Boolean(settingsRow?.emailTestSendAt)
+  })
+
+  if (health === "notSetup") {
     return {
       id: "email",
-      title: "SMTP/Resend reachability",
-      status: "warning",
-      summary: "Not configured",
-      detail: "No complete SMTP or Resend provider configuration was found"
+      category: "integrations",
+      title: t("health.checks.email.title"),
+      status: "notSetup",
+      summary: t("health.checks.email.notConfigured"),
+      detail: t("health.checks.email.notConfiguredDetail"),
+      countsAsIssue: false,
+      actionLabel: t("health.actions.configureEmail"),
+      actionHref: "/settings/email"
     }
   }
 
-  const provider = settingsRow.emailProvider === "smtp" ? "SMTP" : "Resend"
+  const provider = settingsRow?.emailProvider === "smtp" ? "SMTP" : "Resend"
 
-  if (settingsRow.emailTestSendAt) {
+  if (health === "healthy" && settingsRow?.emailTestSendAt) {
     return {
       id: "email",
-      title: "SMTP/Resend reachability",
-      status: "ok",
-      summary: `Tested OK on ${formatDate(settingsRow.emailTestSendAt)}`,
-      detail: `${provider} is configured and has a successful test send timestamp`
+      category: "integrations",
+      title: t("health.checks.email.title"),
+      status: "healthy",
+      summary: t("health.checks.email.testedOk", {
+        date: formatDate(settingsRow.emailTestSendAt, { locale: getHealthLocale() })
+      }),
+      detail: t("health.checks.email.testedDetail", { provider }),
+      countsAsIssue: false
     }
   }
 
   return {
     id: "email",
-    title: "SMTP/Resend reachability",
-    status: "info",
-    summary: "Configured",
-    detail: `${provider} is configured, but no successful test send has been recorded yet`
+    category: "integrations",
+    title: t("health.checks.email.title"),
+    status: "attention",
+    summary: t("health.checks.email.configured"),
+    detail: t("health.checks.email.configuredDetail", { provider }),
+    countsAsIssue: false,
+    actionLabel: t("health.actions.configureEmail"),
+    actionHref: "/settings/email"
   }
 }
 
 function getStripeHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
-  const stripeConfigured = Boolean(settingsRow?.stripePublishableKey && settingsRow.stripeSecretKey)
+  const health = evaluateStripeHealth({
+    hasSettingsRow: Boolean(settingsRow),
+    isConfigured: Boolean(settingsRow?.stripePublishableKey && settingsRow?.stripeSecretKey),
+    hasSuccessfulTest: Boolean(settingsRow?.stripeTestConnectionAt)
+  })
 
-  if (!settingsRow || !stripeConfigured) {
+  if (health === "optional") {
     return {
       id: "stripe",
-      title: "Stripe reachability",
-      status: "warning",
-      summary: "Not configured",
-      detail: "No complete Stripe key configuration was found"
+      category: "integrations",
+      title: t("health.checks.stripe.title"),
+      status: "optional",
+      summary: t("health.checks.stripe.notConfigured"),
+      detail: t("health.checks.stripe.notConfiguredDetail"),
+      countsAsIssue: false,
+      actionLabel: t("health.actions.configurePayments"),
+      actionHref: "/settings/payment"
     }
   }
 
-  if (settingsRow.stripeTestConnectionAt) {
+  if (health === "healthy" && settingsRow?.stripeTestConnectionAt) {
     return {
       id: "stripe",
-      title: "Stripe reachability",
-      status: "ok",
-      summary: `Tested OK on ${formatDate(settingsRow.stripeTestConnectionAt)}`,
-      detail: "Stripe is configured and has a successful connection test timestamp"
+      category: "integrations",
+      title: t("health.checks.stripe.title"),
+      status: "healthy",
+      summary: t("health.checks.stripe.testedOk", {
+        date: formatDate(settingsRow.stripeTestConnectionAt, { locale: getHealthLocale() })
+      }),
+      detail: t("health.checks.stripe.testedDetail"),
+      countsAsIssue: false
     }
   }
 
   return {
     id: "stripe",
-    title: "Stripe reachability",
-    status: "info",
-    summary: "Configured",
-    detail: "Stripe is configured, but no successful connection test has been recorded yet"
+    category: "integrations",
+    title: t("health.checks.stripe.title"),
+    status: "attention",
+    summary: t("health.checks.stripe.configured"),
+    detail: t("health.checks.stripe.configuredDetail"),
+    countsAsIssue: false,
+    actionLabel: t("health.actions.configurePayments"),
+    actionHref: "/settings/payment"
   }
 }
 
@@ -176,7 +226,7 @@ async function getStorageHealthCheck(settingsRow: SettingsRow | null): Promise<H
     return await getLocalStorageHealthCheck()
   }
 
-  return await getS3StorageHealthCheck(settingsRow)
+  return await getRemoteStorageHealthCheck(settingsRow)
 }
 
 async function getLocalStorageHealthCheck(): Promise<HealthCheckResult> {
@@ -189,10 +239,12 @@ async function getLocalStorageHealthCheck(): Promise<HealthCheckResult> {
 
     return {
       id: "storage",
-      title: "Storage backend",
-      status: "ok",
-      summary: "Local filesystem writable",
-      detail: `Touched a temporary file in ${DATA_DIR}`
+      category: "core",
+      title: t("health.checks.storage.title"),
+      status: "healthy",
+      summary: t("health.checks.storage.localWritable"),
+      detail: t("health.checks.storage.localWritableDetail"),
+      countsAsIssue: false
     }
   } catch (error) {
     logger.error(
@@ -202,107 +254,136 @@ async function getLocalStorageHealthCheck(): Promise<HealthCheckResult> {
 
     return {
       id: "storage",
-      title: "Storage backend",
+      category: "core",
+      title: t("health.checks.storage.title"),
       status: "error",
-      summary: "Local filesystem unavailable",
-      detail: `Could not write a temporary file in ${DATA_DIR}`
+      summary: t("health.checks.storage.localUnavailable"),
+      detail: t("health.checks.storage.localUnavailableDetail"),
+      countsAsIssue: true
     }
   }
 }
 
-async function getS3StorageHealthCheck(
+async function getRemoteStorageHealthCheck(
   settingsRow: SettingsRow | null
 ): Promise<HealthCheckResult> {
-  const destination = settingsRow?.backupDestination ?? "s3"
-  const bucket = settingsRow?.backupS3Bucket
-  const region = settingsRow?.backupS3Region
-  const endpoint = settingsRow?.backupS3Endpoint
-  const accessKeyId = settingsRow?.backupS3AccessKey
-  const secretAccessKey = settingsRow?.backupS3SecretKey
+  const remoteStorageConfiguration = {
+    destination: settingsRow?.backupDestination ?? "s3",
+    accessKeyId: settingsRow?.backupS3AccessKey ?? null,
+    bucket: settingsRow?.backupS3Bucket ?? null,
+    endpoint: settingsRow?.backupS3Endpoint ?? null,
+    region: settingsRow?.backupS3Region ?? null,
+    secretAccessKey: settingsRow?.backupS3SecretKey ?? null
+  }
 
-  if (
-    !bucket ||
-    !region ||
-    !accessKeyId ||
-    !secretAccessKey ||
-    (destination !== "s3" && !endpoint)
-  ) {
+  if (!evaluateRemoteStorageConfiguration(remoteStorageConfiguration)) {
     return {
       id: "storage",
-      title: "Storage backend",
-      status: "warning",
-      summary: "Not configured",
-      detail: `${destination.toUpperCase()} backup storage is selected but missing required connection settings`
+      category: "core",
+      title: t("health.checks.storage.title"),
+      status: "attention",
+      summary: t("health.checks.storage.notConfigured"),
+      detail: t("health.checks.storage.backupStorageMissing", {
+        destination: remoteStorageConfiguration.destination.toUpperCase()
+      }),
+      countsAsIssue: true
     }
   }
 
   const client = new S3Client({
-    region,
-    endpoint: endpoint ?? undefined,
+    region: remoteStorageConfiguration.region,
+    endpoint: remoteStorageConfiguration.endpoint ?? undefined,
     credentials: {
-      accessKeyId,
-      secretAccessKey
+      accessKeyId: remoteStorageConfiguration.accessKeyId,
+      secretAccessKey: remoteStorageConfiguration.secretAccessKey
     },
-    forcePathStyle: Boolean(endpoint)
+    forcePathStyle: Boolean(remoteStorageConfiguration.endpoint)
   })
 
   try {
-    await client.send(new HeadBucketCommand({ Bucket: bucket }))
+    await client.send(new HeadBucketCommand({ Bucket: remoteStorageConfiguration.bucket }))
 
     return {
       id: "storage",
-      title: "Storage backend",
-      status: "ok",
-      summary: `${destination.toUpperCase()} bucket reachable`,
-      detail: "The configured backup bucket responded to a head request"
+      category: "core",
+      title: t("health.checks.storage.title"),
+      status: "healthy",
+      summary: t("health.checks.storage.bucketReachable", {
+        destination: remoteStorageConfiguration.destination.toUpperCase()
+      }),
+      detail: t("health.checks.storage.bucketReachableDetail"),
+      countsAsIssue: false
     }
   } catch (error) {
     logger.error(
-      { action: "getS3StorageHealthCheck", check: "storage", destination, err: error },
-      "S3-compatible storage health check failed"
+      {
+        action: "getRemoteStorageHealthCheck",
+        check: "storage",
+        destination: remoteStorageConfiguration.destination,
+        err: error
+      },
+      "Remote storage health check failed"
     )
 
     return {
       id: "storage",
-      title: "Storage backend",
+      category: "core",
+      title: t("health.checks.storage.title"),
       status: "error",
-      summary: `${destination.toUpperCase()} bucket unavailable`,
-      detail: "The configured backup bucket did not respond to a head request"
+      summary: t("health.checks.storage.bucketUnavailable", {
+        destination: remoteStorageConfiguration.destination.toUpperCase()
+      }),
+      detail: t("health.checks.storage.bucketUnavailableDetail"),
+      countsAsIssue: true
     }
   }
 }
 
 function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
-  const lastSuccessAt = settingsRow?.backupLastSuccessAt
+  const lastSuccessAt = settingsRow?.backupLastSuccessAt ?? null
 
   if (!lastSuccessAt) {
     return {
       id: "backup",
-      title: "Last successful backup",
-      status: "warning",
-      summary: "No successful backup recorded",
-      detail: "Backups should run successfully at least once every 7 days"
+      category: "safety",
+      title: t("health.checks.backup.title"),
+      status: "attention",
+      summary: t("health.checks.backup.missing"),
+      detail: t("health.checks.backup.frequencyDetail"),
+      countsAsIssue: true
     }
   }
 
-  const ageMs = Date.now() - lastSuccessAt.getTime()
+  const freshness = evaluateBackupFreshness({
+    lastSuccessAt,
+    now: new Date(),
+    warningAgeMs: BACKUP_WARNING_AGE_MS
+  })
 
-  if (ageMs > BACKUP_WARNING_AGE_MS) {
+  if (freshness === "stale") {
     return {
       id: "backup",
-      title: "Last successful backup",
-      status: "warning",
-      summary: `Last success on ${formatDate(lastSuccessAt)}`,
-      detail: "The last successful backup is older than 7 days"
+      category: "safety",
+      title: t("health.checks.backup.title"),
+      status: "attention",
+      summary: t("health.checks.backup.lastSuccess", {
+        date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
+      }),
+      detail: t("health.checks.backup.staleDetail"),
+      countsAsIssue: true
     }
   }
 
   return {
     id: "backup",
-    title: "Last successful backup",
-    status: "ok",
-    summary: `Last success on ${formatDate(lastSuccessAt)}`,
-    detail: "Backups have completed successfully within the last 7 days"
+    category: "safety",
+    title: t("health.checks.backup.title"),
+    status: "healthy",
+    summary: t("health.checks.backup.lastSuccess", {
+      date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
+    }),
+    detail: t("health.checks.backup.freshDetail"),
+    countsAsIssue: false
   }
 }
 
@@ -311,18 +392,27 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
     await mkdir(DATA_DIR, { recursive: true })
 
     const stats = await statfs(DATA_DIR)
-    const totalBytes = stats.blocks * stats.bsize
-    const availableBytes = stats.bavail * stats.bsize
-    const usedBytes = totalBytes - availableBytes
-    const usedPercent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0
-    const status: HealthStatus = usedPercent >= 90 ? "warning" : "ok"
+    const diskUsage = evaluateDiskUsage({
+      availableBytes: stats.bavail * stats.bsize,
+      totalBytes: stats.blocks * stats.bsize
+    })
 
     return {
       id: "disk",
-      title: "Disk usage of data volume",
-      status,
-      summary: `${usedPercent.toFixed(1)}% used`,
-      detail: `${formatBytes(availableBytes)} available of ${formatBytes(totalBytes)} at ${DATA_DIR}`
+      category: "core",
+      title: t("health.checks.disk.title"),
+      status: diskUsage.needsAttention ? "attention" : "healthy",
+      summary: t("health.checks.disk.used", { percent: diskUsage.usedPercent.toFixed(1) }),
+      detail: diskUsage.needsAttention
+        ? t("health.checks.disk.highUsageDetail", {
+            available: formatBytes(diskUsage.availableBytes, getHealthLocale()),
+            total: formatBytes(diskUsage.totalBytes, getHealthLocale())
+          })
+        : t("health.checks.disk.usageDetail", {
+            available: formatBytes(diskUsage.availableBytes, getHealthLocale()),
+            total: formatBytes(diskUsage.totalBytes, getHealthLocale())
+          }),
+      countsAsIssue: diskUsage.needsAttention
     }
   } catch (error) {
     logger.error(
@@ -332,10 +422,12 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
 
     return {
       id: "disk",
-      title: "Disk usage of data volume",
-      status: "warning",
-      summary: "Unavailable",
-      detail: `Could not read filesystem statistics for ${DATA_DIR}`
+      category: "core",
+      title: t("health.checks.disk.title"),
+      status: "attention",
+      summary: t("health.checks.disk.unavailable"),
+      detail: t("health.checks.disk.unavailableDetail"),
+      countsAsIssue: true
     }
   }
 }
@@ -343,39 +435,49 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
 function getEncryptionFingerprintHealthCheck(): HealthCheckResult {
   return {
     id: "encryption-key",
-    title: "Encryption key fingerprint",
+    category: "safety",
+    title: t("health.checks.encryption.title"),
     status: "info",
     summary: createHash("sha256").update(env.REMIT_ENCRYPTION_KEY).digest("hex").slice(0, 8),
-    detail: "This fingerprint should not change between deploys"
+    detail: t("health.checks.encryption.detail"),
+    countsAsIssue: false
   }
 }
 
-function getUpdatesHealthCheck(): HealthCheckResult {
+function getAppVersionHealthCheck(): HealthCheckResult {
   return {
-    id: "updates",
-    title: "Available updates",
+    id: "app-version",
+    category: "instance",
+    title: t("health.checks.version.title"),
     status: "info",
-    summary: "Update checks not configured",
-    detail: "The real update check will be added with the update flow"
+    summary: pkg.version,
+    detail: t("health.checks.version.detail"),
+    countsAsIssue: false
   }
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(date)
-}
+function getPublicUrlHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
+  const configuredUrl = settingsRow?.baseUrl ?? env.NEXT_PUBLIC_APP_URL
 
-function formatBytes(bytes: number): string {
-  const units = ["B", "KB", "MB", "GB", "TB"]
-  let value = bytes
-  let unitIndex = 0
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024
-    unitIndex += 1
+  if (!evaluatePublicUrl(configuredUrl)) {
+    return {
+      id: "public-url",
+      category: "instance",
+      title: t("health.checks.publicUrl.title"),
+      status: "attention",
+      summary: t("health.checks.publicUrl.invalid"),
+      detail: t("health.checks.publicUrl.invalidDetail"),
+      countsAsIssue: true
+    }
   }
 
-  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+  return {
+    id: "public-url",
+    category: "instance",
+    title: t("health.checks.publicUrl.title"),
+    status: "healthy",
+    summary: new URL(configuredUrl).origin,
+    detail: t("health.checks.publicUrl.detail"),
+    countsAsIssue: false
+  }
 }

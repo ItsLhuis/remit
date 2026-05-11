@@ -90,6 +90,7 @@ export const english: Language = {
       scanDescription:
         "Scan this code with your authenticator app, then enter the 6-digit verification code below.",
       manualEntryCode: "Manual entry code",
+      copyManualEntryCode: "Copy manual entry code",
       useRecoveryCode: "Use a recovery code instead",
       useAuthenticator: "Use authenticator app instead",
       validation: {
@@ -117,6 +118,133 @@ export const english: Language = {
       count: "{count} codes",
       singleUseWarning:
         "Each code can only be used once. Store them offline - they won't be shown again."
+    },
+    health: {
+      dashboard: {
+        title: "System",
+        description: "Check whether this Remit instance is ready and safe to run.",
+        readyTitle: "Core system is ready",
+        readyDescription: "Remit can run normally. Optional setup can still be completed later.",
+        attentionTitle:
+          "{count, plural, one {# item needs attention} other {# items need attention}}",
+        dataAttentionTitle: "Your data needs attention",
+        issueSummary:
+          "{count, plural, one {# important item needs a next step.} other {# important items need next steps.}}"
+      },
+      status: {
+        healthy: "Ready",
+        attention: "Needs attention",
+        error: "Issue",
+        notSetup: "Not set up",
+        optional: "Optional",
+        info: "Info"
+      },
+      sections: {
+        core: {
+          title: "Core system",
+          description: "The essentials Remit needs to store data and keep running."
+        },
+        safety: {
+          title: "Data safety",
+          description: "Signals that help you protect business data during hosting changes."
+        },
+        integrations: {
+          title: "Sending and payments",
+          description: "Optional setup for email delivery and online card payments."
+        },
+        instance: {
+          title: "Instance",
+          description: "Basic information that helps with support, links, and upgrades."
+        },
+        empty: "No checks in this section."
+      },
+      actions: {
+        configureEmail: "Configure email",
+        configurePayments: "Configure payments"
+      },
+      fingerprint: {
+        copyLabel: "Copy encryption key fingerprint",
+        copyTooltip: "Copy fingerprint"
+      },
+      checks: {
+        database: {
+          title: "Database",
+          reachable: "Remit can connect to the database.",
+          unavailable: "Remit cannot connect to the database.",
+          reachableDetail: "Invoices, clients, projects, and settings can be read and saved.",
+          unavailableDetail:
+            "Check that the database is running and that this Remit instance can reach it."
+        },
+        email: {
+          title: "Email sending",
+          notConfigured: "Email is not set up.",
+          notConfiguredDetail:
+            "Remit uses email for invoices, proposals, contracts, reminders, and account recovery. The app still works without it.",
+          testedOk: "Email was tested successfully on {date}.",
+          testedDetail: "{provider} is ready to send Remit email.",
+          configured: "Email is configured, but has not been tested.",
+          configuredDetail: "Send a test email from Settings > Email before relying on {provider}."
+        },
+        stripe: {
+          title: "Online payments",
+          notConfigured: "Stripe is not set up.",
+          notConfiguredDetail:
+            "Manual payments still work. Set up Stripe only if you want clients to pay online by card.",
+          testedOk: "Stripe was tested successfully on {date}.",
+          testedDetail: "Online card payments are ready. Manual payments still remain available.",
+          configured: "Stripe is configured, but has not been tested.",
+          configuredDetail: "Test the Stripe connection before adding online payment links."
+        },
+        storage: {
+          title: "File storage",
+          notConfigured: "Backup file storage needs setup.",
+          localWritable: "Remit can write files for this instance.",
+          localWritableDetail: "Uploads and local backups can be saved.",
+          localUnavailable: "Remit cannot write files for this instance.",
+          localUnavailableDetail:
+            "Check that the data folder exists and that Remit has permission to write to it.",
+          backupStorageMissing:
+            "{destination} backup storage is selected, but the connection settings are incomplete.",
+          bucketReachable: "{destination} backup storage is reachable.",
+          bucketReachableDetail: "Remit can reach the configured backup storage.",
+          bucketUnavailable: "{destination} backup storage is not reachable.",
+          bucketUnavailableDetail:
+            "Check the backup storage credentials, bucket name, region, and network access."
+        },
+        backup: {
+          title: "Backups",
+          missing: "No successful backup has been recorded.",
+          frequencyDetail:
+            "Run a backup and confirm it completes before trusting this instance with live business data.",
+          lastSuccess: "Last successful backup: {date}",
+          staleDetail: "Run a fresh backup. The last successful backup is more than 7 days old.",
+          freshDetail: "A recent backup exists."
+        },
+        disk: {
+          title: "Disk space",
+          used: "{percent}% used",
+          usageDetail: "{available} available of {total}.",
+          highUsageDetail:
+            "{available} available of {total}. Free up space or expand storage soon.",
+          unavailable: "Disk space could not be checked.",
+          unavailableDetail: "Check the data folder and host permissions."
+        },
+        encryption: {
+          title: "Encryption key fingerprint",
+          detail:
+            "Use this fingerprint to confirm your encryption key did not change after moving or upgrading the instance."
+        },
+        version: {
+          title: "App version",
+          detail: "Use this version when checking release notes or asking for support."
+        },
+        publicUrl: {
+          title: "Public URL",
+          detail: "Public invoice, proposal, contract, and portal links should use this address.",
+          invalid: "The public URL is not valid.",
+          invalidDetail: "Update the configured app URL before sending public links to clients."
+        }
+      }
     },
     auth: {
       panel: {
@@ -297,7 +425,8 @@ export const english: Language = {
         invoicing: "Invoicing",
         taxRates: "Tax Rates",
         templates: "Templates",
-        email: "Email"
+        email: "Email",
+        system: "System"
       },
       navigation: {
         business: "Business",
@@ -307,7 +436,8 @@ export const english: Language = {
         security: "Security",
         appearance: "Appearance",
         payment: "Payment",
-        taxRates: "Tax Rates"
+        taxRates: "Tax Rates",
+        system: "System"
       },
       profile: {
         title: "Profile",
@@ -401,6 +531,9 @@ export const english: Language = {
       },
       email: {
         title: "Email"
+      },
+      system: {
+        title: "System"
       }
     }
   }

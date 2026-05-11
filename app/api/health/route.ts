@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { checkDatabaseConnectivity } from "@/features/health"
-
+import { checkDatabaseConnectivity } from "@/features/health/server"
 import { logger } from "@/lib/logger"
 
 export const dynamic = "force-dynamic"
