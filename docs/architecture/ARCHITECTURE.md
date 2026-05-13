@@ -609,7 +609,7 @@ this directory.
 | Timestamp type   | `{ withTimezone: true, mode: "date" }`                                  | Correct timezone handling; `Date` type in TypeScript                            |
 | Foreign keys     | `{ onDelete: "cascade" }` by default                                    | Prevents orphaned records; explicit exception required for non-cascade cases    |
 | Soft delete      | `deletedAt` via the `softDelete` helper                                 | Data is restorable; financial records survive deletion for legal retention      |
-| Money            | `bigint` storing integer cents                                          | No floating-point rounding; exact arithmetic for all financial calculations     |
+| Money            | `bigint` storing integer minor units                                    | No floating-point rounding; exact arithmetic for all financial calculations     |
 | Currency         | `varchar(3)` on the parent entity                                       | ISO 4217 code (e.g., `"EUR"`) stored once, not duplicated on every money column |
 | Encrypted fields | `encryptedColumn()` Drizzle helper                                      | Transparent AES-256-GCM; no plaintext secrets in the database                   |
 | Indexes          | Explicit for every FK used in joins and every `WHERE`/`ORDER BY` column | Prevents table scans on foreign key joins in a growing dataset                  |
@@ -619,10 +619,10 @@ rules, live in `database.md`.
 
 ### Money storage in depth
 
-Floating-point types (`numeric`, `real`, `double precision`) accumulate rounding errors in financial
+Floating-point types (`real`, `double precision`) accumulate rounding errors in financial
 calculations. `10.00 * 0.23` can produce `2.3000000000000003` in IEEE 754 arithmetic. Storing money
-as integer cents eliminates this entire class of bug. `1000` cents is always `€10.00`. Arithmetic on
-cents is exact integer arithmetic. See ADR-0009.
+as integer minor units eliminates this entire class of bug. For EUR, `1000` minor units is always
+`€10.00`. Arithmetic on minor units is exact integer arithmetic. See ADR-0009.
 
 Display formatting always uses `Intl.NumberFormat` with the entity's currency code:
 
@@ -1060,15 +1060,15 @@ visible; modals trap focus. Full conventions in `accessibility.md`.
 Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
 application-level interactions. API routes exist only for specific, justified cases:
 
-| Route                  | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| `/i/[token]`           | Public invoice view (anonymous)              |
-| `/p/[token]`           | Public proposal acceptance (anonymous + OTP) |
-| `/c/[token]`           | Public contract signing (anonymous)          |
-| `/s/[token]`           | Client portal (anonymous, read-only)         |
-| `/api/webhooks/stripe` | Stripe webhook event receiver                |
-| `/api/health`          | Uptime monitor health check (public)         |
-| `/api/metrics`         | Prometheus metrics (opt-in, token-protected) |
+| Route                  | Purpose                                                        |
+| ---------------------- | -------------------------------------------------------------- |
+| `/i/[token]`           | Public invoice view (anonymous)                                |
+| `/p/[token]`           | Public proposal acceptance (anonymous + OTP)                   |
+| `/c/[token]`           | Public contract signing (anonymous)                            |
+| `/s/[token]`           | Client portal (anonymous, read-only)                           |
+| `/api/webhooks/stripe` | Stripe webhook event receiver                                  |
+| `/api/health`          | Uptime monitor health check (public)                           |
+| `/api/metrics`         | Reserved Prometheus metrics endpoint (opt-in, token-protected) |
 
 ### Public API
 
@@ -1081,7 +1081,7 @@ Zod schemas via `zod-openapi`.
 ```
 Browser input  ──►  Zod schema in features/*/schemas.ts   ──►  server action
 URL params     ──►  Zod schema in the route handler        ──►  query function
-Env vars       ──►  Zod schema in lib/env.ts               ──►  process fails fast at boot
+Env vars       ──►  Zod schema in lib/config/env.ts        ──►  process fails fast at boot
 Settings read  ──►  Zod schema on read and write           ──►  defensive against old data
 ```
 
@@ -1104,19 +1104,23 @@ The primary deployment unit is a Docker image published to GitHub Container Regi
 ### Configuration hierarchy
 
 ```
-lib/env.ts           Zod-validated boot secrets. Process exits on failure.
+lib/config/env.ts    Zod-validated deployment configuration. Process exits on failure.
 /setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
-/settings/**         Ongoing configuration stored in the settings table.
-.env                 Only: DB connection string, encryption key, auth secret.
+/settings/**         Ongoing instance configuration stored in the settings table.
+.env                 Deployment-owned configuration: database URL, auth URL/secret, encryption key,
+                     data/storage bootstrap, Hosted mode, optional Sentry DSN, optional metrics token.
 ```
 
-No feature reads `process.env` directly. All environment access is through `lib/env.ts`.
+No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
+Environment variables are for boot-time and operator-owned infrastructure concerns. Settings are for
+instance behavior that an owner can reasonably manage through the product UI, such as SMTP/Resend,
+Stripe, bank-transfer details, invoice defaults, backup policy, and template customization.
 
 ### Data residency
 
 All data is stored in the PostgreSQL instance owned and operated by the user. No analytics,
-telemetry, or usage data leaves the instance without explicit configuration. Error tracking (Sentry
-DSN) and update checks are opt-in.
+telemetry, or usage data leaves the instance without explicit configuration. Error tracking is
+opt-in through `SENTRY_DSN`; update checks are opt-in.
 
 ---
 
@@ -1316,17 +1320,21 @@ The full convention is in `errors.md`.
 
 ### Error tracking
 
-Sentry-compatible interface, disabled by default. User configures a DSN in `/settings/hosting` to
-enable. Self-hosted Sentry and GlitchTip work identically via the same DSN-based configuration.
+Sentry-compatible interface, disabled by default. The deployment operator sets `SENTRY_DSN` to
+enable error tracking. Without a DSN, the Sentry SDK must not transmit events. Self-hosted Sentry
+and GlitchTip work via the same DSN-based configuration.
 
 ### Metrics
 
-`/api/metrics` (Prometheus format, opt-in, bearer-token protected) exposes:
+`/api/metrics` is reserved for Prometheus-format metrics. It is opt-in and bearer-token protected by
+`REMIT_METRICS_TOKEN`. When implemented and enabled, it exposes:
 
 - HTTP request counters by route and status code.
 - Error counters by feature and error type.
 - Queue depth for the outbound email queue.
 - Recurring job execution counts and last-run timestamps.
+
+If `REMIT_METRICS_TOKEN` is unset, the metrics endpoint remains unavailable rather than public.
 
 ### Health checks
 
@@ -1428,7 +1436,7 @@ Three small affordances inside the application acknowledge the Hosted context:
 
 - **Read-only configuration items in Hosted mode.** The encryption key fingerprint, the base URL,
   and the database connection are user-editable on a self-host but read-only on Hosted (the operator
-  manages them). A boolean flag in `lib/env.ts` (`REMIT_HOSTED_MODE`) drives this.
+  manages them). A boolean flag in `lib/config/env.ts` (`REMIT_HOSTED_MODE`) drives this.
 - **Backup section.** On Hosted, the backup destination is operator-managed; the UI shows that
   status rather than asking the user to configure S3/R2 credentials.
 - **Update section.** On Hosted, the update flow is operator-managed; the UI shows the running
@@ -1498,27 +1506,27 @@ recorded, it is never deleted or rewritten - later decisions create new ADRs tha
 refine earlier ones. Each ADR follows the standard template: **Context**, **Decision**,
 **Consequences**, **Alternatives considered**.
 
-| ADR                                          | Title                                                                       | Status   |
-| -------------------------------------------- | --------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)        | No cookies for routing state                                                | Accepted |
-| [0002](adr/0002-single-instance-model.md)    | Single-instance model is structural                                         | Accepted |
-| [0003](adr/0003-mandatory-totp.md)           | Mandatory TOTP — no opt-out                                                 | Accepted |
-| [0004](adr/0004-feature-module-structure.md) | Closed feature modules with ESLint enforcement                              | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)       | AES-256-GCM encryption via Drizzle column helper                            | Accepted |
-| [0006](adr/0006-internal-event-bus.md)       | Typed in-process event bus for cross-feature effects                        | Accepted |
-| [0007](adr/0007-pure-services.md)            | Pure business logic in `services/` — no framework imports                   | Accepted |
-| [0008](adr/0008-email-adapters.md)           | SMTP and Resend as interchangeable adapter implementations                  | Accepted |
-| [0009](adr/0009-money-as-integer-cents.md)   | Money stored as integer cents — no floating-point                           | Accepted |
-| [0010](adr/0010-soft-delete.md)              | Soft delete by default — hard delete after retention window                 | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)        | Single Next.js app until a second artefact requires its own build           | Accepted |
-| [0012](adr/0012-password-reset-paths.md)     | Password reset via email when available, CLI fallback otherwise             | Accepted |
-| [0013](adr/0013-better-auth-organization.md) | Better Auth organization plugin for multi-user role storage                 | Accepted |
-| [0014](adr/0014-hosted-offering.md)          | Hosted offering as per-instance isolation, not row-level tenancy            | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)       | i18next + ICU with TypeScript-typed message keys                            | Accepted |
-| [0016](adr/0016-server-actions-canonical.md) | Server actions as canonical write path; API routes for public/webhooks only | Accepted |
-| [0017](adr/0017-polymorphic-line-items.md)   | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
-| [0018](adr/0018-no-telemetry.md)             | No telemetry or analytics by default                                        | Accepted |
-| [0019](adr/0019-storage-backend-adapters.md) | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
+| ADR                                              | Title                                                                       | Status   |
+| ------------------------------------------------ | --------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)            | No cookies for routing state                                                | Accepted |
+| [0002](adr/0002-single-instance-model.md)        | Single-instance model is structural                                         | Accepted |
+| [0003](adr/0003-mandatory-totp.md)               | Mandatory TOTP — no opt-out                                                 | Accepted |
+| [0004](adr/0004-feature-module-structure.md)     | Closed feature modules with ESLint enforcement                              | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)           | AES-256-GCM encryption via Drizzle column helper                            | Accepted |
+| [0006](adr/0006-internal-event-bus.md)           | Typed in-process event bus for cross-feature effects                        | Accepted |
+| [0007](adr/0007-pure-services.md)                | Pure business logic in `services/` — no framework imports                   | Accepted |
+| [0008](adr/0008-email-adapters.md)               | SMTP and Resend as interchangeable adapter implementations                  | Accepted |
+| [0009](adr/0009-money-as-integer-minor-units.md) | Money stored as integer minor units — no floating-point                     | Accepted |
+| [0010](adr/0010-soft-delete.md)                  | Soft delete by default — hard delete after retention window                 | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)            | Single Next.js app until a second artefact requires its own build           | Accepted |
+| [0012](adr/0012-password-reset-paths.md)         | Password reset via email when available, CLI fallback otherwise             | Accepted |
+| [0013](adr/0013-better-auth-organization.md)     | Better Auth organization plugin for multi-user role storage                 | Accepted |
+| [0014](adr/0014-hosted-offering.md)              | Hosted offering as per-instance isolation, not row-level tenancy            | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)           | i18next + ICU with TypeScript-typed message keys                            | Accepted |
+| [0016](adr/0016-server-actions-canonical.md)     | Server actions as canonical write path; API routes for public/webhooks only | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)       | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
+| [0018](adr/0018-no-telemetry.md)                 | No telemetry or analytics by default                                        | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md)     | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
 
 ---
 

@@ -178,7 +178,7 @@ documented in [`docs/architecture/`](./docs/architecture/):
   model, multi-user model, hosted offering, all major decisions.
 - [`SCHEMA.md`](./docs/architecture/SCHEMA.md) — authoritative table-by-table specification of every
   column, constraint, and index in the database.
-- `adr/` — Architecture Decision Records, numbered and immutable.
+- [`adr/`](./docs/adr) — Architecture Decision Records, numbered and immutable.
 
 Coding conventions for the codebase live in [`.claude/rules/`](./.claude/rules/) and are enforced
 through ESLint and the test suite.

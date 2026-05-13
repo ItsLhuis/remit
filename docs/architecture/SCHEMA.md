@@ -57,8 +57,9 @@ These apply to every table unless explicitly overridden.
   helper. Tables explicitly noted as **insert-only** (audit logs, OTPs) and infrastructure tables
   (auth) do not have `deleted_at`.
 - **Foreign keys.** Default to `ON DELETE CASCADE`. Exceptions explicitly noted.
-- **Money.** `bigint` storing the smallest currency unit (cents for EUR/USD). The ISO 4217 currency
-  code is on the parent entity, not on each money column.
+- **Money.** `bigint` storing the smallest currency unit (cents for EUR/USD). Column names use the
+  `_cents` suffix in the v1 schema, but the semantic contract is integer minor units for the parent
+  entity's ISO 4217 currency. The currency code is on the parent entity, not on each money column.
 - **Tenant scoping.** Domain tables have **no `tenant_id`**. Ownership is implicit to the instance.
   Multi-user is implemented via the organization plugin; the organization scopes membership and
   roles, not domain queries.
