@@ -12,11 +12,32 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { changePasswordSchema, type ChangePasswordValues } from "../schemas"
 
+import {
+  Button,
+  DialogFooter,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  Spinner,
+  toast,
+  Typography
+} from "@/components/ui"
+
 import { PasswordRequirements } from "./PasswordRequirements"
 
-import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
+type ChangePasswordFormProps = {
+  variant?: "auth" | "settings"
+  onSuccess?: () => void | Promise<void>
+}
 
-const ChangePasswordForm = () => {
+const DEFAULT_VALUES: ChangePasswordValues = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+}
+
+const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormProps) => {
   const { t } = useTranslation()
 
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -25,8 +46,8 @@ const ChangePasswordForm = () => {
 
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
-    mode: "onTouched",
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" }
+    mode: variant === "settings" ? "onBlur" : "onSubmit",
+    defaultValues: DEFAULT_VALUES
   })
 
   const { isSubmitting, isDirty, isValid } = form.formState
@@ -38,7 +59,7 @@ const ChangePasswordForm = () => {
     }) ?? ""
 
   const onSubmit = async (values: ChangePasswordValues) => {
-    if (!isDirty || !isValid) return
+    if (!isDirty || (variant === "settings" && !isValid)) return
 
     setSubmitError(null)
 
@@ -54,19 +75,38 @@ const ChangePasswordForm = () => {
       return
     }
 
+    if (variant === "settings") {
+      form.reset(DEFAULT_VALUES)
+
+      if (onSuccess) {
+        await onSuccess()
+      } else {
+        toast.success(t("settings.security.changePassword.changed"), {
+          description: t("settings.security.changePassword.changedDescription")
+        })
+      }
+
+      return
+    }
+
     router.push("/")
   }
 
+  const isSubmitDisabled =
+    variant === "settings" ? isSubmitting || !(isDirty && isValid) : isSubmitting || !isDirty
+
   return (
-    <div className="w-full max-w-sm">
-      <div className="mb-8 flex flex-col items-center text-center">
-        <Typography variant="h2" className="mb-2">
-          {t("auth.changePassword.title")}
-        </Typography>
-        <Typography variant="p" affects={["muted", "removePMargin"]}>
-          {t("auth.changePassword.description")}
-        </Typography>
-      </div>
+    <div className={variant === "auth" ? "w-full max-w-sm" : "w-full max-w-md"}>
+      {variant === "auth" && (
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Typography variant="h2" className="mb-2">
+            {t("auth.changePassword.title")}
+          </Typography>
+          <Typography variant="p" affects={["muted", "removePMargin"]}>
+            {t("auth.changePassword.description")}
+          </Typography>
+        </div>
+      )}
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Controller
           name="currentPassword"
@@ -74,13 +114,19 @@ const ChangePasswordForm = () => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>
-                {t("auth.changePassword.currentPassword")}
+                {variant === "settings"
+                  ? t("settings.security.changePassword.currentPassword")
+                  : t("auth.changePassword.currentPassword")}
               </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder={t("auth.changePassword.currentPasswordPlaceholder")}
+                placeholder={
+                  variant === "settings"
+                    ? t("settings.security.changePassword.currentPasswordPlaceholder")
+                    : t("auth.changePassword.currentPasswordPlaceholder")
+                }
                 autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -94,12 +140,20 @@ const ChangePasswordForm = () => {
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>{t("auth.changePassword.newPassword")}</FieldLabel>
+              <FieldLabel htmlFor={field.name}>
+                {variant === "settings"
+                  ? t("settings.security.changePassword.newPassword")
+                  : t("auth.changePassword.newPassword")}
+              </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder={t("auth.changePassword.newPasswordPlaceholder")}
+                placeholder={
+                  variant === "settings"
+                    ? t("settings.security.changePassword.newPasswordPlaceholder")
+                    : t("auth.changePassword.newPasswordPlaceholder")
+                }
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -115,13 +169,19 @@ const ChangePasswordForm = () => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>
-                {t("auth.changePassword.confirmPassword")}
+                {variant === "settings"
+                  ? t("settings.security.changePassword.confirmPassword")
+                  : t("auth.changePassword.confirmPassword")}
               </FieldLabel>
               <Input
                 {...field}
                 id={field.name}
                 type="password"
-                placeholder={t("auth.changePassword.confirmPasswordPlaceholder")}
+                placeholder={
+                  variant === "settings"
+                    ? t("settings.security.changePassword.confirmPasswordPlaceholder")
+                    : t("auth.changePassword.confirmPasswordPlaceholder")
+                }
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
@@ -130,19 +190,23 @@ const ChangePasswordForm = () => {
             </Field>
           )}
         />
-        <Button
-          type="submit"
-          size="lg"
-          className="mt-2 w-full"
-          disabled={isSubmitting || !(isDirty && isValid)}
-        >
-          {isSubmitting && <Spinner />}
-          {t("auth.changePassword.submit")}
-        </Button>
         {submitError && (
-          <FieldError className="text-center" role="alert">
+          <FieldError className={variant === "auth" ? "text-center" : undefined}>
             {submitError}
           </FieldError>
+        )}
+        {variant === "settings" ? (
+          <DialogFooter>
+            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitDisabled}>
+              {isSubmitting && <Spinner />}
+              {t("settings.security.changePassword.submit")}
+            </Button>
+          </DialogFooter>
+        ) : (
+          <Button type="submit" size="lg" className="mt-2 w-full" disabled={isSubmitDisabled}>
+            {isSubmitting && <Spinner />}
+            {t("auth.changePassword.submit")}
+          </Button>
         )}
       </form>
     </div>

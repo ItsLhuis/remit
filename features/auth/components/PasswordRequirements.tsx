@@ -42,8 +42,8 @@ const PasswordRequirements = ({ password }: PasswordRequirementsProps) => {
   return (
     <div className="dark:bg-input/30 mt-2 rounded-md border p-3">
       <div className="mb-2 flex items-center justify-between">
-        <Typography affects="small">{t("auth.register.passwordRequirements")}</Typography>
-        <Typography affects="small" className="text-foreground font-medium">
+        <Typography affects="tiny">{t("auth.register.passwordRequirements")}</Typography>
+        <Typography affects="tiny" className="text-foreground font-medium">
           {passedChecks}/{passwordChecks.length}
         </Typography>
       </div>
@@ -57,14 +57,10 @@ const PasswordRequirements = ({ password }: PasswordRequirementsProps) => {
           <div key={check.label} className="flex items-center gap-2 rounded-sm px-1 py-0.5">
             <Icon
               name={check.valid ? "CheckCircle2" : "Circle"}
-              className={
-                check.valid
-                  ? "size-3.5 text-emerald-600 dark:text-emerald-500"
-                  : "text-muted-foreground size-3.5"
-              }
+              className={check.valid ? "text-success-foreground" : "text-muted-foreground"}
             />
             <Typography
-              affects="small"
+              affects="tiny"
               className={check.valid ? "text-foreground" : "text-muted-foreground"}
             >
               {check.label}
