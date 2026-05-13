@@ -471,6 +471,21 @@ export const english: Language = {
       },
       security: {
         title: "Security",
+        password: "Password",
+        changePassword: {
+          title: "Change password",
+          description:
+            "Update the password you use to sign in. Other active sessions will be signed out after the change.",
+          currentPassword: "Current password",
+          newPassword: "New password",
+          confirmPassword: "Confirm new password",
+          currentPasswordPlaceholder: "Your current password",
+          newPasswordPlaceholder: "Your new password",
+          confirmPasswordPlaceholder: "Repeat your new password",
+          submit: "Change password",
+          changed: "Password changed",
+          changedDescription: "Other active sessions have been signed out"
+        },
         twoFactor: "Two-factor authentication",
         authenticatorApp: "Authenticator app",
         authenticatorDescription:

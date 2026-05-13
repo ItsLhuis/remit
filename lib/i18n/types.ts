@@ -455,6 +455,20 @@ export type Translations = {
     }
     security: {
       title: string
+      password: string
+      changePassword: {
+        title: string
+        description: string
+        currentPassword: string
+        newPassword: string
+        confirmPassword: string
+        currentPasswordPlaceholder: string
+        newPasswordPlaceholder: string
+        confirmPasswordPlaceholder: string
+        submit: string
+        changed: string
+        changedDescription: string
+      }
       twoFactor: string
       authenticatorApp: string
       authenticatorDescription: string
