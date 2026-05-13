@@ -13,13 +13,15 @@ unrecoverable boot-time failures - environment variable validation failure in `l
 missing encryption key at startup. Everything else is caught and returned as `{ error }`.
 
 ```ts
+import { t } from "@/lib/i18n/server"
+
 import { logger } from "@/lib/logger"
 
-// ✓ - unexpected failure caught and returned
+// ✓ - unexpected failure caught and returned; error translated server-side
 try {
   const [row] = await database.insert(invoices).values(data).returning()
 
-  if (!row) return { error: "Something went wrong" }
+  if (!row) return { error: t("errors.somethingWentWrong") }
 
   return { data: row }
 } catch (error) {
@@ -28,7 +30,7 @@ try {
     "Invoice insert failed"
   )
 
-  return { error: "Something went wrong" }
+  return { error: t("errors.somethingWentWrong") }
 }
 
 // ✗ - throwing from a server action sends a stack trace to the client in development
@@ -57,12 +59,12 @@ toast.info("Could not send invoice")
 
 ## Error message style
 
-Error messages are complete sentences, sentence case, and have no terminal period. Use plain
-language; never expose internal identifiers, error codes, or stack information in user-facing
-strings.
+Error message translation values are complete sentences, sentence case, and have no terminal period.
+Use plain language; never expose internal identifiers, error codes, or stack information in
+user-facing strings.
 
 ```ts
-// ✓
+// ✓ - translation values in en.tsx
 "Invoice not found"
 "Email address is already in use"
 "Something went wrong"
@@ -101,9 +103,9 @@ server-side.
 
 Common cases to handle explicitly:
 
-- Unique violation on `users.email` → `"Email address is already in use"`
-- Foreign key violation → `"Related record not found"`
-- Everything else → `"Something went wrong"` + `logger.error` with structured context
+- Unique violation on `users.email` → `t("errors.emailAlreadyInUse")`
+- Foreign key violation → `t("errors.relatedRecordNotFound")`
+- Everything else → `t("errors.somethingWentWrong")` + `logger.error` with structured context
 
 ## Route error boundaries
 

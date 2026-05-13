@@ -11,6 +11,7 @@ Detailed shared rules live canonically in `.agents/rules/`. They are imported he
 Claude Code can load the same guidance without duplicating rule content.
 
 @.agents/rules/accessibility.md @.agents/rules/actions.md @.agents/rules/architecture.md
-@.agents/rules/code-style.md @.agents/rules/components.md @.agents/rules/database.md
-@.agents/rules/errors.md @.agents/rules/forms.md @.agents/rules/hooks.md @.agents/rules/imports.md
-@.agents/rules/security.md @.agents/rules/testing.md @.agents/rules/types.md
+@.agents/rules/auth.md @.agents/rules/code-style.md @.agents/rules/components.md
+@.agents/rules/database.md @.agents/rules/errors.md @.agents/rules/events.md @.agents/rules/forms.md
+@.agents/rules/hooks.md @.agents/rules/i18n.md @.agents/rules/imports.md @.agents/rules/security.md
+@.agents/rules/testing.md @.agents/rules/types.md

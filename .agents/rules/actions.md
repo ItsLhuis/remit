@@ -18,6 +18,7 @@ use `parse` - it throws. On failure, return the first issue message:
 
 ```ts
 const parsed = createInvoiceSchema.safeParse(input)
+
 if (!parsed.success) return { error: parsed.error.issues[0].message }
 ```
 
@@ -64,9 +65,10 @@ await emit("invoice.created", { invoiceId: created.id })
 ## Error handling
 
 Raw database error messages are never exposed to the client. Known constraint violations (unique
-violation, foreign key violation) map to user-friendly strings. Every unexpected error is logged
-server-side with structured context (action name, relevant entity ids) and returns a generic
-`"Something went wrong"` to the caller. See `errors.md` for the full error handling convention.
+violation, foreign key violation) map to translated strings via `t()` from `@/lib/i18n/server`.
+Every unexpected error is logged server-side with structured context (action name, relevant entity
+ids) and returns `t("errors.somethingWentWrong")` to the caller. See `errors.md` for the full error
+handling convention.
 
 ## Naming
 
@@ -86,13 +88,15 @@ import { eq } from "drizzle-orm"
 import { database } from "@/database"
 import { invoices } from "@/database/schema"
 
-import { createInvoiceSchema } from "@/features/invoicing/schemas"
-import { calculateInvoiceTotal } from "@/features/invoicing/services/calculateInvoiceTotal"
-import { generateInvoiceNumber } from "@/features/invoicing/services/generateInvoiceNumber"
+import { t } from "@/lib/i18n/server"
 
 import { logger } from "@/lib/logger"
 
 import { emit } from "@/lib/events"
+
+import { createInvoiceSchema } from "@/features/invoicing/schemas"
+import { calculateInvoiceTotal } from "@/features/invoicing/services/calculateInvoiceTotal"
+import { generateInvoiceNumber } from "@/features/invoicing/services/generateInvoiceNumber"
 
 import { type Invoice } from "@/features/invoicing"
 
@@ -114,7 +118,7 @@ export async function createInvoice(
       .values({ ...parsed.data, ...totals, number, status: "draft" })
       .returning()
 
-    if (!row) return { error: "Something went wrong" }
+    if (!row) return { error: t("errors.somethingWentWrong") }
 
     created = row
   } catch (error) {
@@ -123,7 +127,7 @@ export async function createInvoice(
       "Invoice insert failed"
     )
 
-    return { error: "Something went wrong" }
+    return { error: t("errors.somethingWentWrong") }
   }
 
   await emit("invoice.created", { invoiceId: created.id })
