@@ -34,10 +34,9 @@
 15. [Internationalization](#15-internationalization)
 16. [Observability](#16-observability)
 17. [Testing strategy](#17-testing-strategy)
-18. [Plugin system](#18-plugin-system)
-19. [Hosted offering](#19-hosted-offering)
-20. [Open architectural questions](#20-open-architectural-questions)
-21. [Architecture Decision Records](#21-architecture-decision-records)
+18. [Hosted offering](#18-hosted-offering)
+19. [Open architectural questions](#19-open-architectural-questions)
+20. [Architecture Decision Records](#20-architecture-decision-records)
 
 ---
 
@@ -717,15 +716,6 @@ Each handler is owned by its feature. Adding a new consumer requires no change t
 | Execution   | Synchronous; async handlers awaited in series | Handler failures surface as action errors; no silent background failures                  |
 | Topology    | In-process, no broker                         | Correct for single-instance deployment; extractable to a queue when load demands it       |
 
-### The bus as the foundation for plugins
-
-The same event bus that wires cross-feature side effects today is the contract that future plugins
-subscribe to. Adding ATCUD generation for Portuguese invoicing, AI-drafted proposal text, or OCR for
-expense receipts is a matter of installing a plugin that registers handlers for `invoice.created`,
-`proposal.created`, or `expense.created`. The event bus is therefore not just a decoupling mechanism
-
-- it is the public extensibility surface of Remit. see the Plugin system section.
-
 ---
 
 ## 9. Security architecture
@@ -1399,57 +1389,7 @@ against Dockerized Postgres, and Playwright E2E tests.
 
 ---
 
-## 18. Plugin system
-
-### Why a plugin system
-
-Several capabilities are valuable but should not live in the core:
-
-- **Country-specific fiscal compliance.** Portuguese ATCUD codes, AT communication, certified
-  software requirements. Brazilian NFS-e/NFe issuance. Spanish Verifactu/SII. These are large
-  surfaces relevant to a small slice of users each.
-- **AI features.** Local-LLM-powered proposal drafts, email replies, document summarisation. Not
-  every user wants AI; those who do prefer a local Ollama setup over a hosted API.
-- **OCR.** Receipt scanning for expenses. Useful, optional, dependency-heavy.
-- **Bank synchronisation.** Read-only transaction import. Per-bank adapters that few users need.
-
-Pulling all of this into the core would balloon the bundle, the surface area, and the maintenance
-burden. Plugins solve this cleanly.
-
-### Plugin contract
-
-A plugin is an npm package that may do any combination of:
-
-- **Register handlers on the event bus** - react to `invoice.created`, `expense.created`, etc.
-- **Add Drizzle schema extensions** - additive columns or new tables. Plugins do not modify existing
-  schemas; they extend.
-- **Register Next.js routes** - under a reserved `/plugins/<n>/` namespace.
-- **Add settings sections** - render in `/settings` automatically.
-- **Add template variants and merge variables** - plug into the template editor.
-
-The internal interfaces that wire features together (the event bus type map, the settings extension
-API, the schema barrel) are the same surfaces that the plugin SDK exposes. The design constraint is
-simple: **everything new in core must remain extensible**.
-
-### Loading model
-
-Plugins are listed in `remit.config.ts` and bundled at build time. There is no runtime plugin
-loading from arbitrary URLs - that would be a serious security hole in a self-hosted application.
-Self-hosters explicitly add plugins to their config and rebuild.
-
-### Anchor plugins
-
-| Plugin                       | Responsibility                                                                         |
-| ---------------------------- | -------------------------------------------------------------------------------------- |
-| `@remit/plugin-pt-invoicing` | ATCUD generation, QR code, AT communication, certificação de software, recibos verdes. |
-| `@remit/plugin-br-nfe`       | Brazilian NFS-e/NFe issuance.                                                          |
-| `@remit/plugin-ai-drafts`    | Local LLM (Ollama) integration for proposal drafts and email replies.                  |
-| `@remit/plugin-ocr`          | Receipt OCR for expense entries.                                                       |
-| `@remit/plugin-bank-sync`    | Read-only bank transaction import (per-bank adapters).                                 |
-
----
-
-## 19. Hosted offering
+## 18. Hosted offering
 
 Remit is open-source and self-hostable first. A Hosted offering exists alongside self-hosting for
 users who do not want to operate their own infrastructure. The Hosted offering does not displace
@@ -1509,7 +1449,7 @@ See ADR-0014.
 
 ---
 
-## 20. Open architectural questions
+## 19. Open architectural questions
 
 Honest record of decisions that are not yet made. Each becomes an ADR when decided. Listing them
 here serves three purposes: it forces awareness of the trade-off space, it prevents accidental
@@ -1551,7 +1491,7 @@ duplicate emails). Until then, simpler is better.
 
 ---
 
-## 21. Architecture Decision Records
+## 20. Architecture Decision Records
 
 ADRs are numbered, immutable, and append-only. They live in `docs/architecture/adr/`. Once an ADR is
 recorded, it is never deleted or rewritten - later decisions create new ADRs that supersede or
@@ -1578,6 +1518,7 @@ refine earlier ones. Each ADR follows the standard template: **Context**, **Deci
 | [0016](adr/0016-server-actions-canonical.md) | Server actions as canonical write path; API routes for public/webhooks only | Accepted |
 | [0017](adr/0017-polymorphic-line-items.md)   | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
 | [0018](adr/0018-no-telemetry.md)             | No telemetry or analytics by default                                        | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md) | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
 
 ---
 

@@ -36,9 +36,6 @@ against these.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
-- **Open and extensible.** A plugin system enables country-specific fiscal compliance (Portuguese
-  ATCUD, Brazilian NFS-e, etc.), AI-assisted drafting, OCR for receipts, and more — without bloating
-  the core.
 
 ## What Remit covers
 
