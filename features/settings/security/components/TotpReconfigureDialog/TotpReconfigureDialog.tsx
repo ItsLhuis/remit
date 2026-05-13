@@ -42,7 +42,9 @@ const TotpReconfigureDialog = () => {
 
   const handleDone = () => {
     setOpen(false)
+
     reset()
+
     toast.success(t("settings.security.reconfigured"), {
       description: t("settings.security.reconfiguredDescription")
     })
