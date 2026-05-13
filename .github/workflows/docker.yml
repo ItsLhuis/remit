@@ -1,0 +1,73 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: remit
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          image="${REGISTRY}/${owner}/${IMAGE_NAME}"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tags="${image}:${GITHUB_REF_NAME}"
+          else
+            tags="${image}:latest"$'\n'"${image}:${GITHUB_SHA}"
+          fi
+
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          # NEXT_PUBLIC_* are baked at build time by Next.js. The published image
+          # intentionally omits them so operators set their own values via
+          # docker-compose build (which reads from their .env file).
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

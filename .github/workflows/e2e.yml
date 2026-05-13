@@ -1,0 +1,87 @@
+name: E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24.11.1
+  POSTGRES_USER: remit_e2e
+  POSTGRES_PASSWORD: remit_e2e
+  POSTGRES_DB: remit_e2e
+  BETTER_AUTH_SECRET: e2e-secret-not-used-outside-ci
+  BETTER_AUTH_URL: http://localhost:3000
+  REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  REMIT_HOSTED_MODE: "false"
+  REMIT_DATA_DIR: ./data/e2e
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  NEXT_PUBLIC_STORAGE_BASE_URL: http://localhost:9000/remit
+  MINIO_ENDPOINT: http://minio:9000
+  MINIO_ROOT_USER: minioadmin
+  MINIO_ROOT_PASSWORD: minioadmin
+  MINIO_BUCKET: remit
+  MINIO_PUBLIC_URL: http://localhost:9000/remit
+  PLAYWRIGHT_BASE_URL: http://localhost:3000
+  PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Docker image
+        run: docker compose build app
+
+      - name: Start stack
+        run: docker compose up -d
+
+      - name: Wait for stack health
+        run: |
+          timeout 180 bash -c 'until curl -fsS http://localhost:3000/api/health; do docker compose ps; sleep 5; done'
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            tests/e2e/results
+          if-no-files-found: ignore
+
+      - name: Dump compose logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
