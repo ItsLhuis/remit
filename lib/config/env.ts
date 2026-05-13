@@ -32,7 +32,9 @@ const schema = z.object({
   MINIO_ROOT_PASSWORD: z.string().min(1),
   MINIO_BUCKET: z.string().min(1).default("remit"),
   MINIO_PUBLIC_URL: z.url(),
-  NEXT_PUBLIC_STORAGE_BASE_URL: z.url()
+  NEXT_PUBLIC_STORAGE_BASE_URL: z.url(),
+  SENTRY_DSN: z.string().url().optional(),
+  REMIT_METRICS_TOKEN: z.string().min(1).optional()
 })
 
 const parsed = schema.safeParse(process.env)

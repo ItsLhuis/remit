@@ -73,7 +73,7 @@ export async function getHealthChecks(): Promise<HealthCheckResult[]> {
     getEmailHealthCheck(settingsRow),
     getStripeHealthCheck(settingsRow),
     getAppVersionHealthCheck(),
-    getPublicUrlHealthCheck(settingsRow)
+    getPublicUrlHealthCheck()
   ]
 }
 
@@ -456,8 +456,8 @@ function getAppVersionHealthCheck(): HealthCheckResult {
   }
 }
 
-function getPublicUrlHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
-  const configuredUrl = settingsRow?.baseUrl ?? env.NEXT_PUBLIC_APP_URL
+function getPublicUrlHealthCheck(): HealthCheckResult {
+  const configuredUrl = env.BETTER_AUTH_URL
 
   if (!evaluatePublicUrl(configuredUrl)) {
     return {

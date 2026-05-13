@@ -88,12 +88,6 @@ export const settings = pgTable(
       .notNull()
       .default(sql`ARRAY[7, 14, 30]`),
 
-    // Hosting
-    baseUrl: text("base_url"),
-    sentryDsn: text("sentry_dsn"),
-    metricsToken: encryptedColumn("metrics_token"),
-    hostedMode: boolean("hosted_mode").notNull().default(false),
-
     // Backups
     backupDestination: backupDestination("backup_destination").notNull().default("local"),
     backupCadence: backupCadence("backup_cadence").notNull().default("daily"),
