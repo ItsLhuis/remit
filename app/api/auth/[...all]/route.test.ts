@@ -174,6 +174,7 @@ describe("auth route audit wrapper", () => {
     expect(mocks.eq).toHaveBeenCalledWith("users.id", USER_ID)
     expect(mocks.where).toHaveBeenCalledWith(USER_ID_PREDICATE)
     expect(mocks.writeAudit).toHaveBeenCalledWith("auth.password.changed", userAuditContext)
+    expect(mocks.writeAudit).toHaveBeenCalledTimes(1)
   })
 
   test("does not clear mustChangePassword or audit password change after failed change", async () => {
@@ -187,7 +188,7 @@ describe("auth route audit wrapper", () => {
     })
 
     expect(mocks.update).not.toHaveBeenCalled()
-    expect(mocks.writeAudit).not.toHaveBeenCalledWith("auth.password.changed", userAuditContext)
+    expect(mocks.writeAudit).not.toHaveBeenCalled()
   })
 
   test.each([
