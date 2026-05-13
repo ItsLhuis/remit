@@ -129,6 +129,11 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_STORAGE_BASE_URL: http://localhost:9000/remit
       REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_BUCKET: remit
+      MINIO_PUBLIC_URL: http://localhost:9000/remit
     steps:
       - name: Checkout
         uses: actions/checkout@v5

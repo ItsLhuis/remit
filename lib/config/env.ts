@@ -14,6 +14,15 @@ const encryptionKeySchema = z
     return key.length === 32 && key.toString("base64") === value
   }, "Must be a base64-encoded 32-byte key")
 
+const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
+  z.preprocess((value) => {
+    if (typeof value !== "string") return value
+
+    const trimmed = value.trim()
+
+    return trimmed.length > 0 ? trimmed : undefined
+  }, schema.optional())
+
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
@@ -33,11 +42,30 @@ const schema = z.object({
   MINIO_BUCKET: z.string().min(1).default("remit"),
   MINIO_PUBLIC_URL: z.url(),
   NEXT_PUBLIC_STORAGE_BASE_URL: z.url(),
-  SENTRY_DSN: z.string().url().optional(),
-  REMIT_METRICS_TOKEN: z.string().min(1).optional()
+  SENTRY_DSN: optionalEnvString(z.url()),
+  REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1))
 })
 
-const parsed = schema.safeParse(process.env)
+const isBuildEnvValidationSkipped =
+  process.env.REMIT_BUILD_ENV_VALIDATION === "skip" && process.env.npm_lifecycle_event === "build"
+
+const parsed = isBuildEnvValidationSkipped
+  ? schema.safeParse({
+      ...process.env,
+      DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+      BETTER_AUTH_SECRET: "build-time-placeholder-secret",
+      BETTER_AUTH_URL: "http://localhost:3000",
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+      REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      MINIO_ENDPOINT: "http://localhost:9000",
+      MINIO_ROOT_USER: "build-time-placeholder-user",
+      MINIO_ROOT_PASSWORD: "build-time-placeholder-password",
+      MINIO_BUCKET: "remit",
+      MINIO_PUBLIC_URL: process.env.NEXT_PUBLIC_STORAGE_BASE_URL || "http://localhost:9000/remit",
+      NEXT_PUBLIC_STORAGE_BASE_URL:
+        process.env.NEXT_PUBLIC_STORAGE_BASE_URL || "http://localhost:9000/remit"
+    })
+  : schema.safeParse(process.env)
 
 if (!parsed.success) {
   logger.fatal(
