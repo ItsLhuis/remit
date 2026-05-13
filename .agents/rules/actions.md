@@ -7,134 +7,126 @@ paths:
 
 # Server Action Rules
 
-## File header
+## File header and imports
 
-Every server action file begins with `"use server"` as the first line.
-
-## Input validation
-
-Always validate input with the Zod schema from the feature's `schemas.ts` using `safeParse`. Never
-use `parse` - it throws. On failure, return the first issue message:
-
-```ts
-const parsed = createInvoiceSchema.safeParse(input)
-
-if (!parsed.success) return { error: parsed.error.issues[0].message }
-```
-
-## Return type
-
-The return type is always a discriminated union `{ data: T } | { error: string }`. Actions never
-throw to the client. All errors, including unexpected ones, are caught and returned as `{ error }`.
-
-```ts
-// ✓
-export async function createInvoice(input: unknown): Promise<{ data: Invoice } | { error: string }>
-
-// ✗ - void return type with a throw leaks a stack trace to the client in development
-export async function createInvoice(input: unknown): Promise<void>
-```
-
-## Revalidation
-
-After every successful mutation, call `revalidatePath` or `revalidateTag` for every route and cache
-tag that displays the mutated data. Place revalidation calls after all writes succeed and before
-returning `{ data }`.
-
-## Audit logging
-
-Actions that are security-sensitive write an audit log entry before returning. Security-sensitive
-actions include: any auth change (password, TOTP, sessions), settings that touch SMTP, Stripe, or
-payment information, any deletion or export, and public token rotations. See
-`docs/architecture/ARCHITECTURE.md` (Security Architecture) for the `audit_log` schema and required
-fields (`actorUserId`, `targetEntityType`, `targetEntityId`, `metadata`, `ipAddress`, `userAgent`).
-
-## Domain events
-
-Emit a domain event on the typed event bus for any state transition that other features may want to
-react to. Emit after all writes succeed. Event names follow `<entity>.<past_tense_verb>`:
-
-- `invoice.paid`, `invoice.sent`, `invoice.overdue`
-- `proposal.accepted`, `proposal.rejected`
-- `time.logged`, `expense.created`
-
-```ts
-await emit("invoice.created", { invoiceId: created.id })
-```
-
-## Error handling
-
-Raw database error messages are never exposed to the client. Known constraint violations (unique
-violation, foreign key violation) map to translated strings via `t()` from `@/lib/i18n/server`.
-Every unexpected error is logged server-side with structured context (action name, relevant entity
-ids) and returns `t("errors.somethingWentWrong")` to the caller. See `errors.md` for the full error
-handling convention.
-
-## Naming
-
-Action names are verb + noun, present indicative: `createInvoice`, `markAsPaid`, `convertToInvoice`,
-`deleteProject`. See `code-style.md`, Naming section, for the broader naming conventions used
-throughout the codebase.
-
-## Canonical example
+Server action files begin with `"use server"` as the first line, followed by a blank line and the
+imports. Preserve the repository's import rhythm: Next server utilities first, then translation,
+auth/config/logger concerns, then database imports, then local schemas or helpers.
 
 ```ts
 "use server"
 
 import { revalidatePath } from "next/cache"
 
-import { eq } from "drizzle-orm"
-
-import { database } from "@/database"
-import { invoices } from "@/database/schema"
+import { headers } from "next/headers"
 
 import { t } from "@/lib/i18n/server"
 
+import { auth } from "@/lib/auth"
+
 import { logger } from "@/lib/logger"
 
-import { emit } from "@/lib/events"
+import { database } from "@/database"
+import { uploads } from "@/database/schema"
 
-import { createInvoiceSchema } from "@/features/invoicing/schemas"
-import { calculateInvoiceTotal } from "@/features/invoicing/services/calculateInvoiceTotal"
-import { generateInvoiceNumber } from "@/features/invoicing/services/generateInvoiceNumber"
+import { confirmAvatarUploadSchema } from "./schemas"
+```
 
-import { type Invoice } from "@/features/invoicing"
+## Public action shape
 
-export async function createInvoice(
+Export server actions directly as named `async function` declarations. Keep private helper types and
+helper functions below the public action when they only support that action.
+
+```ts
+export async function confirmAvatarUpload(
   input: unknown
-): Promise<{ data: Invoice } | { error: string }> {
-  const parsed = createInvoiceSchema.safeParse(input)
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
-  const totals = calculateInvoiceTotal(parsed.data.lineItems)
-  const number = await generateInvoiceNumber()
-
-  let created: Invoice
-
-  try {
-    const [row] = await database
-      .insert(invoices)
-      .values({ ...parsed.data, ...totals, number, status: "draft" })
-      .returning()
-
-    if (!row) return { error: t("errors.somethingWentWrong") }
-
-    created = row
-  } catch (error) {
-    logger.error(
-      { action: "createInvoice", projectId: parsed.data.projectId, err: error },
-      "Invoice insert failed"
-    )
-
-    return { error: t("errors.somethingWentWrong") }
-  }
-
-  await emit("invoice.created", { invoiceId: created.id })
-
-  revalidatePath("/invoices")
-  revalidatePath(`/projects/${created.projectId}`)
-
-  return { data: created }
+): Promise<{ data: { storageKey: string } } | { error: string }> {
+  // ...
 }
 ```
+
+Return type is `{ data: T } | { error: string }`. Actions do not throw expected user-facing errors
+to the client.
+
+## Validation and authorization order
+
+Validate with the feature's Zod schema using `safeParse`. Return the first issue message on failure:
+
+```ts
+const parsed = confirmAvatarUploadSchema.safeParse(input)
+
+if (!parsed.success) return { error: parsed.error.issues[0].message }
+```
+
+Authorization/session reads may appear before or after validation depending on what the action needs
+first. Follow nearby actions in the same feature. Reused headers are named `requestHeaders`.
+
+```ts
+const requestHeaders = await headers()
+
+const session = await auth.api.getSession({ headers: requestHeaders })
+
+if (!session) return { error: t("errors.unauthorized") }
+```
+
+## Logic and error handling
+
+Use straight-line action logic with early returns:
+
+1. Read request/session context.
+2. Validate input.
+3. Destructure or normalize `parsed.data`.
+4. Perform writes inside `try` when failures need logging.
+5. Log unexpected failures with `logger.error` and structured context.
+6. Revalidate paths after successful writes.
+7. Return `{ data }` last.
+
+Keep `try` blocks focused around the IO that can fail. Do not expose raw database, provider, or auth
+errors to the client.
+
+```ts
+try {
+  await database.insert(uploads).values({
+    filename: parsed.data.filename,
+    path: parsed.data.objectKey,
+    mimeType: parsed.data.mimeType,
+    sizeBytes: parsed.data.sizeBytes
+  })
+} catch (error) {
+  logger.error(
+    {
+      action: "confirmAvatarUpload",
+      userId: session.user.id,
+      objectKey: parsed.data.objectKey,
+      err: error
+    },
+    "Avatar upload confirmation failed"
+  )
+
+  return { error: t("settings.profile.errors.avatarUpdateFailed") }
+}
+```
+
+## Revalidation
+
+Call `revalidatePath` after all writes succeed and before the final success return. Keep multiple
+revalidation calls as adjacent statements.
+
+```ts
+revalidatePath("/setup")
+revalidatePath("/")
+
+return { data: { success: true } }
+```
+
+## Audit logging and domain events
+
+When an action is security-sensitive or emits domain state changes, keep audit/event work after the
+write succeeds and before revalidation/final return. Use the existing event and audit helpers for
+that feature. Do not add broad event plumbing just to satisfy a generic pattern.
+
+## Naming
+
+Action names are verb phrases that describe the user operation: `saveBusinessProfile`,
+`changeEmailAddress`, `confirmAvatarUpload`. Client-side callers store the action return in `result`
+and branch on `"error" in result` when the action uses the discriminated union shape.

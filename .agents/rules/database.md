@@ -6,81 +6,68 @@ paths:
 
 # Database Rules
 
-- Create one schema file per domain in `database/schema/`. Export it from
+## Schema file organization
+
+- Create one schema file per domain in `database/schema/` and export it from
   `database/schema/index.ts`.
-- Spread `timestamps` from `@/database/schema/helpers` on every domain table - never redefine
-  `createdAt`/`updatedAt`.
-- All foreign keys use `{ onDelete: "cascade" }`.
-- Use `uuid` primary keys with `.defaultRandom()` for new domain tables.
-- All `timestamp` columns use `{ withTimezone: true, mode: "date" }`.
-- Table names: snake_case. Column names: camelCase in TypeScript mapped to snake_case strings.
-- After any schema change: run `pnpm database:generate` to create a migration file. Never edit
-  generated migration SQL.
-- Import the database instance as `database` from `@/database` - never instantiate `drizzle` or
-  `postgres` in feature code.
+- Database schema files import Drizzle column builders first, then Drizzle helpers such as
+  `relations` or `sql`, then relative enum/helper/table imports.
+- Define table constants before relation constants.
+- Large domain tables group columns with blank lines and short section comments when the domain has
+  clear sections, such as business profile, locale, invoicing, payments, email, reminders, and
+  backups.
+- Keep table option arrays dense and ordered by purpose: indexes first, then checks/constraints.
 
-## Indexes
+## Columns and tables
 
-Every foreign key column that is used in a join must have a covering index declared in the table
-options object using Drizzle's `index().on(...)`. Every column that appears in a `WHERE` or
-`ORDER BY` clause of a frequent query must also have an index. Composite indexes must match the
-column order of the query that motivated them.
+- Table names are snake_case.
+- TypeScript column properties are camelCase and map to snake_case database column names.
+- Use `uuid(...).primaryKey().defaultRandom()` for new domain table IDs unless the table is owned by
+  an external library schema that requires a different shape.
+- Use `timestamp(..., { withTimezone: true, mode: "date" })` for timestamp columns.
+- Spread `timestamps` from `@/database/schema/helpers` on normal domain tables instead of redefining
+  `createdAt` and `updatedAt`.
+- Use `softDelete` only for domains that actually support soft deletion.
+- Do not add `tenantId` columns or row-level tenancy.
+
+## Foreign keys
+
+Foreign key `onDelete` behavior follows the relationship semantics, not a single global default:
+
+- Use `{ onDelete: "cascade" }` for owned child rows that should disappear with the parent, such as
+  auth sessions/accounts tied to users.
+- Use `{ onDelete: "set null" }` for optional business references that should preserve the record,
+  such as invoices pointing to clients, projects, proposals, recurring invoices, templates, or
+  uploads.
+- Match the nearest existing table in the same domain before choosing behavior.
+
+## Indexes and checks
+
+Every foreign key used in joins should have an index declared in the table options array unless the
+local schema has a deliberate reason not to. Frequent `WHERE` and `ORDER BY` columns should also be
+indexed.
+
+Use named checks for domain invariants and keep check names prefixed with `chk_<table>_...`:
 
 ```ts
-// ✓ - FK used in joins has a covering index; filtered column indexed separately
-export const timeEntries = pgTable(
-  "time_entries",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id, { onDelete: "cascade" }),
-    billable: boolean("billable").notNull().default(true),
-    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }).notNull(),
-    ...timestamps
-  },
-  (table) => [
-    index("time_entries_project_id_idx").on(table.projectId),
-    index("time_entries_started_at_idx").on(table.startedAt)
-  ]
-)
-
-// ✗ - FK defined but no index; table scans on every join
-export const timeEntries = pgTable("time_entries", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  projectId: uuid("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  ...timestamps
-})
+check("chk_invoices_view_count", sql`${table.viewCount} >= 0`)
 ```
 
 ## Money
 
-Monetary values are stored as `bigint` representing the smallest currency unit (cents for EUR/USD).
-Never use `numeric`, `real`, or `double precision` for money columns - floating-point representation
-causes rounding errors in financial calculations.
+Monetary values are stored as `bigint` representing the smallest currency unit, usually cents. Do
+not use floating point columns for money.
 
-The ISO 4217 currency code (three uppercase letters, e.g. `"EUR"`, `"USD"`) lives on the parent
-entity, not on each individual money column. When displaying a value, format it using
-`Intl.NumberFormat` with the entity's currency.
+The ISO 4217 currency code lives on the parent entity when values share a currency. Format display
+values with `Intl.NumberFormat` at the application boundary.
 
-```ts
-// ✓ - amount stored as bigint cents; currency on the parent entity
-export const invoices = pgTable("invoices", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
-  subtotalCents: bigint("subtotal_cents", { mode: "number" }).notNull(),
-  taxCents: bigint("tax_cents", { mode: "number" }).notNull(),
-  totalCents: bigint("total_cents", { mode: "number" }).notNull(),
-  ...timestamps,
-})
+## Migrations
 
-// Display - format with the entity's currency
-new Intl.NumberFormat("pt-PT", { style: "currency", currency: invoice.currency }).format(
-  invoice.totalCents / 100
-)
+After any schema change, run `pnpm database:generate` to create a migration file. Never edit
+generated migration SQL manually. Do not run `pnpm database:migrate` without confirming the target
+environment first.
 
-// ✗ - numeric stores a float; rounding errors accumulate across calculations
-totalAmount: numeric("total_amount", { precision: 10, scale: 2 }),
-```
+## Database access
+
+Import the database instance as `database` from `@/database`. Feature code does not instantiate
+Drizzle or `postgres` directly.

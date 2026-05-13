@@ -8,9 +8,9 @@ import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/auth/client"
 
-import { SignOutDialog } from "@/features/auth"
-
 import { Button, Spinner, Typography } from "@/components/ui"
+
+import { SignOutDialog } from "@/features/auth"
 
 const LogoutSection = () => {
   const { t } = useTranslation()

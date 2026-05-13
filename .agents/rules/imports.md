@@ -6,69 +6,119 @@ paths:
 
 # Import Rules
 
-## Group order
+## Import rhythm
 
-Imports are organized into five groups separated by a blank line, in this order:
+Imports follow the local file's visual rhythm more than a universal package-category sort. Before
+adding imports, inspect the nearest comparable file in the same folder or feature and mirror its
+header shape.
 
-1. **React and Next** - `react`, `next/*`
-2. **External packages** - any package from `node_modules`, alphabetical
-3. **Internal absolute** - paths starting with `@/`, alphabetical
-4. **Relative** - paths starting with `./` or `../`
+The dominant style is one conceptual group per paragraph, separated by a blank line. A group may be
+a single import. Keep imports adjacent only when they form one local context:
 
-Type-only imports stay inline with the value imports they belong to using the `type` modifier (see
-`types.md`). They are not grouped separately.
+- Multiple imports from the same ecosystem, such as `@hookform/resolvers/zod`, `react-hook-form`,
+  and the local form schema.
+- Database imports, such as `database` and the schema tables used by the query or mutation.
+- UI primitive imports from `@/components/ui`.
+- Sibling components from the same folder.
+- Related relative schema/helper imports from the same feature layer.
 
-Within each group, sort alphabetically.
+Do not collapse unrelated internal imports into one large `@/` block. In this codebase,
+`@/lib/i18n`, `@/lib/auth`, `@/lib/logger`, `@/database`, hooks, UI, and feature imports are often
+visually separated because they play different roles.
 
-## Feature-internal vs. cross-feature imports
+## Typical ordering
 
-Sibling files within the same feature import by direct path to avoid circular dependencies.
-Cross-feature imports always use the feature's public barrel:
+Use this as a default, then let the nearest local precedent win:
 
-- `@/features/<feature>` for client-safe exports.
-- `@/features/<feature>/server` for server-only exports.
+1. React imports, after `"use client"` when present.
+2. Next.js imports that are fundamental to the component or route.
+3. External packages that form a cohesive concern.
+4. Internal services/utilities, grouped by role rather than alphabetically.
+5. Database imports when the file performs data access.
+6. Feature imports.
+7. Relative imports for sibling components, local schemas, local services, and local types.
+8. Side-effect imports such as CSS at the end of the import block.
 
-```ts
-// within features/invoicing/components/InvoiceForm.tsx
+Ordering is contextual, not strictly alphabetical. For example, a form component commonly keeps the
+resolver, `Controller`/`useForm`, and its schema together even though that mixes external and
+relative imports:
 
-// ✓ - sibling import inside the same feature: direct path
-import { createInvoiceSchema } from "@/features/invoicing/schemas"
-import { calculateInvoiceTotal } from "@/features/invoicing/services/calculateInvoiceTotal"
-
-// ✓ - cross-feature import: barrel only
-import { type Client } from "@/features/clients"
+```tsx
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+import { loginSchema, type LoginValues } from "../../schemas"
 ```
 
-## Canonical example
+Server modules often keep server primitives, translation/auth/logging, then database, then local
+feature code:
 
 ```ts
-// ✓ - correctly ordered import header for a feature component
-import { Fragment, useState } from "react"
+import { revalidatePath } from "next/cache"
 
-import { useRouter } from "next/navigation"
+import { headers } from "next/headers"
 
+import { t } from "@/lib/i18n/server"
+
+import { auth } from "@/lib/auth"
+
+import { logger } from "@/lib/logger"
+
+import { database } from "@/database"
+import { uploads } from "@/database/schema"
+
+import { changeEmailSchema } from "./schemas"
+```
+
+## Internal import separation
+
+Separated internal imports are intentional when the roles differ:
+
+```ts
 import { useTranslation } from "@/lib/i18n"
 
-import { useInvoiceTotals } from "./useInvoiceTotals"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { createInvoiceSchema, type CreateInvoiceValues } from "@/features/invoicing/schemas"
-
-import { createInvoice } from "@/features/invoicing/mutations"
-
-import { InvoiceLineItemRow } from "./InvoiceLineItemRow"
-
-import { Button, Field, FieldError, FieldLabel, Input, Spinner } from "@/components/ui"
-
-import { type Client } from "@/features/clients"
-
-// ✗ - groups mixed, no blank-line separation, type import separate
-import type { CreateInvoiceValues } from "@/features/invoicing/schemas"
-import { useRouter } from "next/navigation"
-import { InvoiceLineItemRow } from "./InvoiceLineItemRow"
-import { Button } from "@/components/ui"
-import { Fragment, useState } from "react"
-import { createInvoice } from "@/features/invoicing/mutations"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { authClient } from "@/lib/auth/client"
 ```
+
+Keep internal imports adjacent when they are one layer or one consumer-facing surface:
+
+```ts
+import { SidebarInset, SidebarProvider } from "@/components/ui"
+
+import { AppHeader, AppSidebar } from "@/components/layout"
+```
+
+```ts
+import { database } from "@/database"
+import { settings } from "@/database/schema"
+```
+
+## Type imports
+
+Use inline `type` modifiers in the same import statement. Do not create a separate
+`import type { ... }` statement unless a tool-generated file already does so and local precedent
+requires it.
+
+```ts
+import { type ReactNode } from "react"
+import { Button, type ButtonProps } from "@/components/ui"
+```
+
+## Feature boundaries
+
+Sibling files inside the same feature may import by direct relative path or direct feature-local
+path, following the surrounding files. Cross-feature imports use the public feature barrel when the
+dependency is intended to be shared:
+
+```ts
+import { isEmailConfigured } from "@/features/settings"
+```
+
+Do not reach into another feature's private component/service file unless nearby code already does
+so for the same integration point.
+
+## Barrel files
+
+Barrels are simple `export` lists with no extra spacing inside a contiguous section. UI barrels are
+alphabetical. Feature barrels often put component exports first, then schema/types/service exports,
+with a blank line between sections. Small folder barrels usually export the folder's public entry
+component only.

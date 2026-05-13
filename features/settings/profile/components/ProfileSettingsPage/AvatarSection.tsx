@@ -139,7 +139,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
             {isPending && <Spinner />}
             {t("settings.profile.uploadPhoto")}
           </Button>
-          <Typography affects={["muted", "small"]}>{t("settings.profile.avatarHelp")}</Typography>
+          <Typography affects={["muted", "tiny"]}>{t("settings.profile.avatarHelp")}</Typography>
         </div>
       </div>
     </section>

@@ -6,197 +6,235 @@ paths:
 
 # Code Style Rules
 
-## Early Returns
+## Local precedent first
 
-- Always prefer early returns to reduce nesting. Exit as soon as a condition is met rather than
-  wrapping the remaining logic in an `else` or deep `if` block.
+The author's strongest habit is local imitation. Before adding or reshaping code, inspect the
+nearest comparable file in the same feature and layer, then mirror its order, spacing, naming, and
+export style. Prefer the local pattern over an abstract rule when they conflict.
 
-```ts
-// ✓
-const handleOpenChange = (next: boolean) => {
-  if (!next && step !== "confirm") return
+This matters most for:
 
-  if (!next) reset()
+- Import grouping and blank lines.
+- Whether a component is a compact expression body or a block with `return`.
+- Whether helpers sit before or after exported functions.
+- Barrel export order.
+- How many blank lines separate hooks and derived values.
 
-  setOpen(next)
-}
+## File-level organization
 
-// ✗
-const handleOpenChange = (next: boolean) => {
-  if (next || step === "confirm") {
-    if (!next) reset()
-    setOpen(next)
-  }
-}
-```
-
-## Blank Lines Between Logical Groups
-
-- Separate logically distinct statements with a blank line. This applies to hooks, variable
-  declarations, and imperative logic alike.
-- Group items together **only** when they are tightly coupled (e.g. a `ref` and the derived value
-  from it, or two `useState` calls that always change together).
-- A blank line is required after the last early return guard before the main logic body.
+Use directives first, then imports:
 
 ```ts
-// ✓
-const [open, setOpen] = useState(false)
+"use server"
 
-const [step, setStep] = useState<Step>("confirm")
-
-const ref = useRef<HTMLDivElement>(null)
-
-const isLastStep = step === "confirm"
-
-// ✓ - tightly coupled, no blank line needed
-const [isPending, setIsPending] = useState(false)
-const [error, setError] = useState<string | null>(null)
+import { revalidatePath } from "next/cache"
 ```
-
-## Hook Declaration Order in Components
-
-Declare hooks and derived values in this order, with a blank line between each group:
-
-1. `useState` / `useReducer`
-2. `useRef`
-3. Custom hooks (`useMyHook`)
-4. Derived constants from the above
-5. `useEffect` / `useCallback` / `useMemo`
 
 ```tsx
-// ✓
-const [open, setOpen] = useState(false)
+"use client"
 
-const [step, setStep] = useState<Step>("confirm")
-
-const containerRef = useRef<HTMLDivElement>(null)
-
-const { data, isPending } = useMyQuery()
-
-const isLastStep = step === "confirm"
-
-useEffect(() => { ... }, [open])
+import { useState } from "react"
 ```
 
-## Function Body Spacing
+After imports, files usually follow this order:
 
-- Add a blank line between every top-level statement group inside a function when they represent
-  different concerns.
-- Single-line functions or trivially short functions (≤ 2 statements, same concern) may omit blank
-  lines.
+1. File-private constants and variant definitions that support the public export.
+2. File-private types for props, options, rows, configs, and result objects.
+3. The main exported function/component when it is the file's public API.
+4. Private helpers below the public API when they exist only to support that API.
+5. Bottom named export blocks for components and UI primitives.
 
-## Naming - No Abbreviations
+There are layer-specific exceptions:
 
-- Always use full, descriptive names for parameters, callbacks, and map/filter/reduce arguments.
-  Never use abbreviations or single-letter shorthands.
+- App route files export `metadata`, `dynamic`, HTTP handlers, or default page/layout components in
+  the order expected by Next.js.
+- Schema files export each `schema` immediately followed by its inferred `Values` type.
+- Pure service files may export several small named functions directly, especially when each
+  function is the public API.
+- Large configuration files define constants and inline callback helpers first, then private helper
+  functions after the exported config object.
+
+## React component body structure
+
+Component bodies are grouped by concern, not by a rigid hook-type order. The common sequence is:
+
+1. Translation hook first when present: `const { t } = useTranslation()`.
+2. Router/path/session/context hooks near the top, in the order the component reads conceptually.
+3. Local state for UI or server errors.
+4. Form setup with `useForm`, followed immediately by
+   `const { isSubmitting, isDirty, isValid } = form.formState` when needed.
+5. Custom hooks and refs near the values they support.
+6. Derived values and computed booleans after hooks.
+7. Event handlers and submit handlers.
+8. Effect or hotkey registration when it reads handlers/state.
+9. Guard returns, then the JSX return.
+
+Do not insert blank lines between every hook mechanically. Related state values can stay together:
+
+```tsx
+const [authError, setAuthError] = useState<string | null>(null)
+const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
+```
+
+Separate different concerns with a blank line:
+
+```tsx
+const { t } = useTranslation()
+
+const router = useRouter()
+
+const form = useForm<LoginValues>({
+  resolver: zodResolver(loginSchema),
+  mode: "onSubmit",
+  defaultValues: { email: "", password: "" }
+})
+
+const { isSubmitting, isDirty, isValid } = form.formState
+```
+
+Computed UI flags are declared after the hooks/data they depend on and before handlers:
+
+```tsx
+const isCollapsed = state === "collapsed"
+
+const user = session?.user
+const initials = user?.name ? getInitials(user.name) : "?"
+```
+
+## Function and logic structure
+
+Prefer early returns, including compact one-line guards when the body is trivial:
 
 ```ts
-// ✓
-onChange={(event) => setSearch(event.target.value)}
-users.map((user) => user.name)
-items.filter((item) => item.active)
-values.reduce((accumulator, value) => accumulator + value, 0)
-
-// ✗
-onChange={(e) => setSearch(e.target.value)}
-users.map((u) => u.name)
-items.filter((i) => i.active)
-values.reduce((acc, val) => acc + val, 0)
+if (!settings) return false
+if (response.ok) return
 ```
 
-- This applies everywhere: event handlers, array methods, promise chains, function parameters.
-- Exception: loop indices (`i`, `j`) in `for` loops are acceptable.
-
-## Naming
-
-### Query functions
-
-Use `get` for single-record-by-id lookups, `list` for collections, and `find` for filtered queries
-that may return null or an empty set. The suffix is the entity, not the operation.
+Use braced guards when returning objects, doing multiple statements, or improving readability:
 
 ```ts
-// ✓
-getInvoiceById(id)
-listInvoices()
-findOverdueInvoices()
-
-// ✗ - wrong prefix for the semantics
-fetchInvoiceById(id) // use get
-getInvoices() // use list for collections
-getOverdueInvoices() // use find when result may be empty
+if (!session) {
+  return NextResponse.json({ error: t("settings.profile.errors.unauthorized") }, { status: 401 })
+}
 ```
 
-### Service functions
+Place a blank line after a guard before moving to the next concern. Keep tightly coupled statements
+adjacent, especially value normalization followed by a return object.
 
-Service function names describe what they do as an action, not what they are as a noun.
+Async flows use a straight-line shape:
+
+1. Read request/session/context data.
+2. Validate or narrow input.
+3. Derive normalized values.
+4. Perform IO inside `try` when failures need logging or user-safe errors.
+5. Return early on known error states.
+6. Revalidate or emit after successful writes.
+7. Return the success object last.
+
+`try` blocks are scoped around the IO that can fail. `catch` blocks log with structured context and
+then return or throw a sanitized error. Logging appears immediately before the sanitized failure.
 
 ```ts
-// ✓
-calculateInvoiceTotal(lineItems)
-generateInvoiceNumber(prefix, lastNumber)
-canTransitionInvoiceStatus(current, next)
+try {
+  await database.insert(uploads).values({ filename, path, mimeType, sizeBytes })
+} catch (error) {
+  logger.error(
+    { action: "confirmAvatarUpload", userId: session.user.id, objectKey, err: error },
+    "Avatar upload confirmation failed"
+  )
 
-// ✗ - noun forms that read as objects, not actions
-invoiceCalculator(lineItems)
-InvoiceTotalService.calculate(lineItems)
+  return { error: t("settings.profile.errors.avatarUpdateFailed") }
+}
 ```
 
-### Booleans
+## Formatting rhythm
 
-Boolean variables and props use `is`, `has`, `can`, or `should` as a prefix.
+The author favors short visual blocks. Use blank lines to separate concerns, but keep cohesive
+statement clusters dense.
+
+Use a blank line between:
+
+- Import groups.
+- Type aliases and runtime constants when they are distinct concepts.
+- Hook groups with different roles.
+- Guards and the next body section.
+- Database reads, derived values, and writes.
+- Logger calls and the following return.
+- JSX sections such as a header block, form, and footer/progress block.
+
+Do not add blank lines inside compact object literals unless the file already groups fields by
+section. Database schemas are an exception: large tables use blank lines and comments to separate
+column groups.
+
+JSX favors readable vertical structure for multi-prop components. Keep simple components compact:
+
+```tsx
+const BusinessSettingsPage = () => {
+  return (
+    <div className="flex flex-col gap-8 p-4 md:p-8">
+      <header className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+        <Typography variant="h2">{t("settings.business.title")}</Typography>
+      </header>
+    </div>
+  )
+}
+```
+
+Use explicit `null` for conditional JSX branches when the surrounding file does:
+
+```tsx
+{
+  isFingerprint ? <FingerprintCopyButton fingerprint={check.summary} /> : null
+}
+```
+
+## Naming patterns
+
+Use names that match the domain object or operation instead of abstract placeholders.
+
+- Parsed validation results are named `parsed`.
+- Server action return values are named `result` on the client.
+- Request headers are named `requestHeaders` when they are reused.
+- Database settings rows are commonly named `settingsRow` when `settings` would shadow a table or
+  module name.
+- Configuration objects use noun names such as `remoteStorageConfiguration`, `statuses`, or
+  `routeLabels`.
+- Booleans usually use `is`, `has`, `can`, `should`, or a clear noun phrase such as
+  `passwordResetAvailable`.
+- Internal UI handlers use `handle<Event>` except form submit handlers, which are commonly named
+  `onSubmit` to pair with `form.handleSubmit(onSubmit)`.
+- Props use `on<Event>` names: `onComplete`, `onSuccess`, `onLogout`, `onOpenChange`.
+- Query functions use `get` for single values or computed read models and `list` for collections
+  when that convention exists in the feature.
+- Service functions are verbs or predicate-style functions: `evaluateEmailHealth`,
+  `isEmailConfigured`, `formatBytes`, `resolveStorageUrl`.
+
+Avoid single-letter or vague names except for established local conventions such as `t`, `cn`,
+`ctx`, `ref`, callback `prev`, and the structured log key `err`.
+
+## Schemas
+
+Zod schemas are runtime exports. Put the inferred type immediately after its schema:
 
 ```ts
-// ✓
-;(isPaid, hasOverdueInvoices, canEdit, shouldRevalidate, isSubmitting)
+export const totpVerifySchema = z.object({
+  code: z
+    .string()
+    .length(6, t("totp.validation.codeLength"))
+    .regex(/^\d{6}$/, t("totp.validation.codeDigits"))
+})
 
-// ✗
-;(paid, overdueInvoices, editable, revalidate)
+export type TotpVerifyValues = z.infer<typeof totpVerifySchema>
 ```
 
-### Event handlers
+Shared constants used by several schemas, such as password rules, appear before the dependent
+schemas. Re-export bridge schemas at the top only when a feature intentionally exposes another
+feature's schema through its own surface.
 
-Props that accept an event callback use `on` + the event name. Handlers defined inside a component
-use `handle` + the event name.
+## Barrels
 
-```ts
-// ✓ - prop
-<InvoiceForm onSubmit={handleSubmit} onStatusChange={handleStatusChange} />
-
-// ✓ - internal handler
-const handleSubmit = async (values: InvoiceValues) => { ... }
-const handleStatusChange = (status: InvoiceStatus) => { ... }
-
-// ✗ - inconsistent prefix
-<InvoiceForm submitHandler={handleSubmit} />
-const submitForm = () => { ... }
-```
-
-### Status enum values
-
-Status values are `snake_case` lowercase strings, matching the domain model in
-`docs/architecture/ARCHITECTURE.md` (Domain model).
-
-```ts
-// ✓
-type InvoiceStatus = "draft" | "sent" | "paid" | "overdue"
-type ProjectStatus = "active" | "completed" | "on_hold" | "cancelled"
-
-// ✗
-type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue"
-type ProjectStatus = "ACTIVE" | "COMPLETED" | "ON_HOLD" | "CANCELLED"
-```
-
-### Folder names
-
-Feature folders use `camelCase`. Next.js route segments use `kebab-case`.
-
-```
-features/timeTracking/    ✓
-features/time-tracking/   ✗
-
-app/(dashboard)/time-tracking/   ✓
-app/(dashboard)/timeTracking/    ✗
-```
-
-Action naming (verb + noun, present indicative: `createInvoice`, `markAsPaid`) is documented in
-`actions.md`.
+Keep barrels boring. Use `export * from "./Thing"` in component folders. Use explicit grouped
+exports in feature root barrels when exporting a curated public surface. Preserve the local order:
+components first, then schemas/types/services with a blank line between sections when the barrel is
+already grouped that way.

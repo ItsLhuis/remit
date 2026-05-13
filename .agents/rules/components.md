@@ -7,84 +7,102 @@ paths:
 
 # Component Rules
 
-- Component filenames are PascalCase: `Button.tsx`, not `button.tsx`.
-- Props must be defined as a named type outside the component: `type ComponentProps = { ... }` then
-  `const Component = (props: ComponentProps) => ...`. Never use inline object types in the function
-  signature.
-- Use named export at the bottom of the file: `export { ComponentName }`. No default exports. Never
-  use `export` directly on the component declaration - the bottom export is mandatory for
-  components.
-- Add every new `components/ui/` component to `components/ui/index.ts` immediately after creating
-  it.
-- Every `features/<name>/components/` folder must have a barrel `index.ts` that re-exports all
-  components with `export * from "./ComponentName"`. External callers import from the barrel
-  (`@/features/<name>/components`); sibling components within the same feature import by direct path
-  (e.g. `@/features/<name>/components/ComponentName`) to avoid circular dependencies.
-- Use `Slot.Root` from `radix-ui` for the `asChild` pattern - not from `@radix-ui/react-slot`.
-- Add `data-slot="component-name"` to the root element of every UI primitive.
-- Use `<Icon name="IconName" />` for all Lucide icons - never import from `lucide-react` directly.
-- Tailwind v4: all design tokens are CSS variables defined in `app/globals.css`. There is no
-  `tailwind.config.js`.
-- Add new shadcn components with `pnpm shadcn add <component>` - do not copy-paste manually.
-- Dark mode uses the `dark` class strategy; add both light and dark variant classes inline.
-- Never use `<>` shorthand fragments - always use `<Fragment>` from React explicitly.
+## Component files
 
-## Always Prefer Existing UI Components
+- Component filenames are PascalCase: `Button.tsx`, `SecuritySettingsPage.tsx`.
+- Feature and layout components usually define a named `type ComponentProps = { ... }` immediately
+  before the component when props are needed.
+- UI primitives may use inline `ComponentProps<...>` intersections in the parameter type when that
+  keeps the wrapper compact. Do not force a named props type into an existing UI primitive style.
+- Components are normally declared as `const ComponentName = (...) => { ... }` and exported at the
+  bottom with `export { ComponentName }`.
+- Next.js page/layout/error files follow Next conventions and may use default exports.
+- Hook files export the hook directly as a named function; follow `hooks.md` there.
 
-- Before writing any JSX that renders visual UI, check `components/ui/index.ts` for an existing
-  primitive. If one exists, use it - never reimplement it with raw HTML elements or `div`s.
-- This applies to every visual concept: badges, buttons, avatars, separators, tooltips, cards,
-  inputs, etc.
+## Component body shape
+
+Mirror the closest component in the same feature. The common body order is translation/context
+hooks, state/form hooks, derived values, handlers, guard returns, JSX return. Keep related state
+values adjacent and separate different concerns with a blank line.
+
+Small server components often use an explicit block body with `return`, even when the render is
+simple:
 
 ```tsx
-// ✓
-<Badge variant="secondary">Active</Badge>
+const EmailSettingsPage = () => {
+  return (
+    <div className="flex flex-col gap-8 p-4 md:p-8">
+      <header className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+        <Typography variant="h2">{t("settings.email.title")}</Typography>
+      </header>
+    </div>
+  )
+}
+```
 
-// ✗ - Badge already exists
-<div className="rounded-full bg-secondary px-2 py-0.5 text-xs">Active</div>
+UI primitives often use compact expression bodies for simple wrappers:
+
+```tsx
+const DialogTrigger = ({ ...props }: ComponentProps<typeof DialogPrimitive.Trigger>) => (
+  <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+)
+```
+
+## UI primitives
+
+- Add every new `components/ui/` component to `components/ui/index.ts` immediately after creating
+  it.
+- Add `data-slot="component-name"` to the root element of UI primitives and sub-primitives.
+- Use `Slot.Root` from `radix-ui` for the `asChild` pattern, not `@radix-ui/react-slot`.
+- Use `cva` for variant-heavy UI primitives, with the variants constant above the component.
+- Use `cn(...)` for class composition and keep long Tailwind strings inside the call, following the
+  surrounding primitive's wrapping style.
+- Use `<Icon name="IconName" />` for Lucide icons. Do not import icons from `lucide-react` directly.
+- Tailwind v4 tokens are CSS variables defined in `app/globals.css`. There is no
+  `tailwind.config.js`.
+- Add new shadcn components with `pnpm shadcn add <component>` when using shadcn as the source.
+
+## Existing UI components first
+
+Before writing visual JSX, check `components/ui/index.ts` for an existing primitive. Use the
+primitive instead of recreating badges, buttons, cards, inputs, tooltips, separators, scroll areas,
+and similar UI with raw elements.
+
+```tsx
+<Badge variant="secondary">Active</Badge>
 ```
 
 ## Typography
 
-- Always use the `Typography` component for standalone text - never raw `<p>`, `<span>`, `<h1>`...
-  outside of a UI primitive's internal implementation.
-- The `variant` prop sets both the semantic element and its default style (`h1`–`h6`, `p`,
-  `blockquote`, `code`, `pre`, `span`). Defaults to `span` when omitted.
-- Use `affects` for additional visual modifiers (`muted`, `bold`, `large`, `small`, etc.). Accepts a
-  single value or an array for combining modifiers.
-- Only pass `variant` when you need a specific semantic element. For generic inline text, omit it
-  and rely on the `span` default.
+- Use `Typography` for standalone user-facing text in application components.
+- Use raw semantic elements inside UI primitives when the primitive itself owns the semantics, such
+  as `FieldDescription` rendering a `p`.
+- The `variant` prop controls semantics. Omit it for generic inline text.
+- Use `affects` for visual modifiers such as `muted`, `small`, `medium`, `removePMargin`, and arrays
+  of modifiers.
 
 ```tsx
-// ✓
-<Typography variant="h2">Section title</Typography>
-<Typography variant="p" affects="muted">Supporting text</Typography>
-<Typography affects={["bold", "uppercase"]}>Label</Typography>
-<Typography affects="muted">Inline muted text</Typography>
-
-// ✓ - variant overrides semantics when visual hierarchy differs
-<Typography variant="h2" affects="large">Visually large but h2</Typography>
-
-// ✗ - never use raw elements for standalone text
-<p className="text-sm text-muted-foreground">Some description</p>
-<span className="font-bold uppercase">Label</span>
+<Typography variant="h2">{t("settings.appearance.title")}</Typography>
+<Typography variant="p" affects={["muted", "removePMargin", "small"]}>
+  {t("settings.appearance.themeDescription")}
+</Typography>
 ```
 
-## Component decomposition
+## Decomposition and folders
 
-- Every distinct visual section, preview, or logical group must become its own component - no
-  exceptions.
-- A component must do exactly one thing. If it renders a labelled section with controls, that
-  section is a component; if it renders a preview thumbnail, that is a separate component.
-- Prefer many small focused files over fewer large ones - even a 10-line component warrants its own
-  file if it has a distinct responsibility. Inline JSX that can be named and extracted must be
-  extracted.
-- **Single-file rule**: when a component has no sub-components, place it directly as
-  `ComponentName.tsx`.
-- **Folder rule**: when a component requires its own sub-components, create a `ComponentName/`
-  folder. Place `ComponentName.tsx` inside alongside each sub-component file. Add `index.ts` with
-  barrel exports for everything consumed from outside the folder.
-- Internal helper components (used only within the folder, not by external callers) must not appear
-  in the folder's `index.ts`.
-- The folder-vs-file trigger is solely whether the component needs co-located sub-components - not
-  file size alone.
+- Extract distinct visual sections into focused components when they represent reusable or named
+  page sections.
+- If a component has no colocated sub-components, keep it as `ComponentName.tsx`.
+- If a component owns several sub-components, create `ComponentName/ComponentName.tsx` plus sibling
+  sub-component files and an `index.ts` for the public component exports.
+- Folder `index.ts` files export only the public components consumed from outside that folder.
+  Internal-only helpers stay unexported.
+- Do not split a tiny wrapper just to satisfy a size rule; split when the surrounding feature uses
+  named sections or previews as separate files.
+
+## Fragments and conditionals
+
+Use `Fragment` from React when a component needs a fragment and nearby files do so. Conditional JSX
+often uses explicit `: null` when there is an either/or expression. Preserve the local style instead
+of converting everything to `&&` or fragment shorthand.
