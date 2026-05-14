@@ -21,6 +21,7 @@ export const clients = pgTable(
     postalCode: text("postal_code"),
     country: text("country"),
     currency: varchar("currency", { length: 3 }),
+    locale: text("locale"),
     notes: encryptedColumn("notes"),
     portalToken: text("portal_token"),
     ...softDelete,
