@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n/server"
 
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
+import { IconButton } from "@/components/ui/IconButton"
 
 const Dialog = ({ ...props }: ComponentProps<typeof DialogPrimitive.Root>) => (
   <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -59,10 +60,14 @@ const DialogContent = ({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close data-slot="dialog-close" asChild>
-          <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm">
+          <IconButton
+            variant="ghost"
+            className="absolute top-2 right-2"
+            size="icon-sm"
+            label={t("common.actions.close")}
+          >
             <Icon name="X" />
-            <span className="sr-only">{t("common.actions.close")}</span>
-          </Button>
+          </IconButton>
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>

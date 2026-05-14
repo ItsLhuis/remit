@@ -33,6 +33,7 @@ const IconButton = ({
       <TooltipTrigger asChild>
         <Button {...props} type={type} variant={variant} size={size} aria-label={label}>
           {children}
+          <span className="sr-only">{label}</span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>{content}</TooltipContent>

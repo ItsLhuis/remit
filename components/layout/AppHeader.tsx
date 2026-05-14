@@ -9,8 +9,8 @@ import {
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-  Button,
   Icon,
+  IconButton,
   SidebarTrigger
 } from "@/components/ui"
 
@@ -50,10 +50,9 @@ const AppHeader = () => {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="ml-auto">
-        <Button variant="ghost" size="icon">
+        <IconButton variant="ghost" label={t("app.navigation.notifications")}>
           <Icon name="Bell" />
-          <span className="sr-only">{t("app.navigation.notifications")}</span>
-        </Button>
+        </IconButton>
       </div>
     </header>
   )

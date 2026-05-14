@@ -8,8 +8,8 @@ import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { t } from "@/lib/i18n/server"
 
-import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
+import { IconButton } from "@/components/ui/IconButton"
 
 const Sheet = ({ ...props }: ComponentProps<typeof SheetPrimitive.Root>) => (
   <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -62,10 +62,14 @@ const SheetContent = ({
       {children}
       {showCloseButton && (
         <SheetPrimitive.Close data-slot="sheet-close" asChild>
-          <Button variant="ghost" className="absolute top-3 right-3" size="icon-sm">
+          <IconButton
+            variant="ghost"
+            className="absolute top-3 right-3"
+            size="icon-sm"
+            label={t("common.actions.close")}
+          >
             <Icon name="X" />
-            <span className="sr-only">{t("common.actions.close")}</span>
-          </Button>
+          </IconButton>
         </SheetPrimitive.Close>
       )}
     </SheetPrimitive.Content>

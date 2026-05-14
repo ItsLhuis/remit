@@ -21,8 +21,8 @@ import { Slot } from "radix-ui"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
+import { IconButton } from "@/components/ui/IconButton"
 import { Input } from "@/components/ui/Input"
 import { Separator } from "@/components/ui/Separator"
 import {
@@ -282,7 +282,11 @@ const Sidebar = ({
   )
 }
 
-const SidebarTrigger = ({ className, onClick, ...props }: ComponentProps<typeof Button>) => {
+const SidebarTrigger = ({
+  className,
+  onClick,
+  ...props
+}: Omit<ComponentProps<typeof IconButton>, "children" | "label">) => {
   const { t } = useTranslation()
 
   const { toggleSidebar, state, isMobile, openMobile } = useSidebar()
@@ -296,11 +300,12 @@ const SidebarTrigger = ({ className, onClick, ...props }: ComponentProps<typeof 
       : "ChevronsRight"
 
   return (
-    <Button
+    <IconButton
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
+      label={t("common.navigation.toggleSidebar")}
       className={cn(className)}
       onClick={(event) => {
         onClick?.(event)
@@ -309,8 +314,7 @@ const SidebarTrigger = ({ className, onClick, ...props }: ComponentProps<typeof 
       {...props}
     >
       <Icon name={iconName} />
-      <span className="sr-only">{t("common.navigation.toggleSidebar")}</span>
-    </Button>
+    </IconButton>
   )
 }
 

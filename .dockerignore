@@ -5,7 +5,6 @@ node_modules
 .env
 .env.*
 !.env.example
-drizzle/migrations/meta
 *.log
 coverage
 data
