@@ -511,6 +511,80 @@ export type Translations = {
     }
     business: {
       title: string
+      description: string
+      logo: string
+      logoDescription: string
+      logoAlt: string
+      fallbackBusinessName: string
+      uploadLogo: string
+      logoHelp: string
+      uploadUrlFailed: string
+      uploadFailed: string
+      logoUpdated: string
+      invalidLogoFileType: string
+      saved: string
+      saveProfile: string
+      profileSaved: string
+      saveDefaults: string
+      defaultsSaved: string
+      saveTaxDetails: string
+      taxDetailsSaved: string
+      saveAddress: string
+      addressSaved: string
+      profileSection: string
+      profileDescription: string
+      localeSection: string
+      localeDescription: string
+      taxSection: string
+      taxDescription: string
+      addressSection: string
+      addressDescription: string
+      businessName: string
+      businessNamePlaceholder: string
+      businessEmail: string
+      businessEmailPlaceholder: string
+      businessPhone: string
+      businessPhonePlaceholder: string
+      businessWebsite: string
+      businessWebsitePlaceholder: string
+      defaultCurrency: string
+      defaultLocale: string
+      selectLocale: string
+      defaultTimezone: string
+      selectTimezone: string
+      businessTaxId: string
+      businessTaxIdPlaceholder: string
+      addressLine1: string
+      addressLine1Placeholder: string
+      addressLine2: string
+      addressLine2Placeholder: string
+      city: string
+      cityPlaceholder: string
+      state: string
+      statePlaceholder: string
+      postalCode: string
+      postalCodePlaceholder: string
+      country: string
+      errors: {
+        updateFailed: string
+        logoUpdateFailed: string
+      }
+      validation: {
+        nameRequired: string
+        emailInvalid: string
+        websiteInvalid: string
+        currencyRequired: string
+        localeRequired: string
+        localeInvalid: string
+        timezoneRequired: string
+        timezoneInvalid: string
+        countryRequired: string
+        logoFilenameRequired: string
+        logoContentTypeRequired: string
+        logoSizeInvalid: string
+        logoTooLarge: string
+        logoObjectKeyRequired: string
+      }
     }
     payment: {
       title: string

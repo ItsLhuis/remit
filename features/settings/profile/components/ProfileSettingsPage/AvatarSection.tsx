@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/auth/client"
+import { type User } from "@/lib/auth"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
@@ -23,8 +24,6 @@ import {
   toast,
   Typography
 } from "@/components/ui"
-
-import { type User } from "@/lib/auth"
 
 type AvatarSectionProps = {
   user: User
@@ -117,7 +116,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
     <section className="space-y-4">
       <Typography variant="h4">{t("settings.profile.avatar")}</Typography>
       <div className="flex items-center gap-4">
-        <Avatar className="size-20 text-base">
+        <Avatar className="size-20">
           {user.image && <AvatarImage src={resolveStorageUrl(user.image) ?? ""} alt={user.name} />}
           <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
         </Avatar>

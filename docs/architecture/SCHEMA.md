@@ -284,68 +284,68 @@ Single-row instance configuration. Exists exactly once per instance.
 
 ### `settings`
 
-| Group            | Column                     | Type             | Null | Notes                                             |
-| ---------------- | -------------------------- | ---------------- | ---- | ------------------------------------------------- |
-|                  | id                         | uuid             | no   | PK                                                |
-| Business profile | business_name              | text             | yes  |                                                   |
-|                  | business_email             | text             | yes  |                                                   |
-|                  | business_phone             | text             | yes  |                                                   |
-|                  | business_website           | text             | yes  |                                                   |
-|                  | business_tax_id            | text             | yes  |                                                   |
-|                  | business_logo_upload_id    | uuid             | yes  | FK → `uploads.id` (set null)                      |
-|                  | business_address_line1     | text             | yes  |                                                   |
-|                  | business_address_line2     | text             | yes  |                                                   |
-|                  | business_city              | text             | yes  |                                                   |
-|                  | business_state             | text             | yes  |                                                   |
-|                  | business_postal_code       | text             | yes  |                                                   |
-|                  | business_country           | text             | yes  | ISO 3166-1 alpha-2                                |
-| Locale           | default_currency           | varchar(3)       | no   | Default `'EUR'`. ISO 4217.                        |
-|                  | default_locale             | text             | no   | Default `'en'`                                    |
-|                  | default_timezone           | text             | no   | Default `'UTC'`. IANA tz name.                    |
-| Invoicing        | payment_terms_days         | integer          | no   | Default `30`. ≥ 0                                 |
-|                  | proposal_validity_days     | integer          | no   | Default `30`. ≥ 0                                 |
-|                  | default_notes_invoice      | text             | yes  |                                                   |
-|                  | default_notes_proposal     | text             | yes  |                                                   |
-|                  | invoice_prefix             | text             | no   | Default `'INV-'`                                  |
-|                  | proposal_prefix            | text             | no   | Default `'PROP-'`                                 |
-|                  | credit_note_prefix         | text             | no   | Default `'CN-'`                                   |
-|                  | next_invoice_number        | integer          | no   | Default `1`. ≥ 1                                  |
-|                  | next_proposal_number       | integer          | no   | Default `1`. ≥ 1                                  |
-|                  | next_credit_note_number    | integer          | no   | Default `1`. ≥ 1                                  |
-|                  | number_padding_width       | integer          | no   | Default `4`. 1–10                                 |
-| Payments         | payment_iban               | text (encrypted) | yes  |                                                   |
-|                  | payment_bank_name          | text             | yes  |                                                   |
-|                  | payment_instructions       | text             | yes  |                                                   |
-|                  | stripe_publishable_key     | text             | yes  |                                                   |
-|                  | stripe_secret_key          | text (encrypted) | yes  |                                                   |
-|                  | stripe_webhook_secret      | text (encrypted) | yes  |                                                   |
-|                  | stripe_test_connection_at  | timestamptz      | yes  | Last successful test                              |
-| Email            | email_provider             | enum             | yes  | `smtp \| resend`                                  |
-|                  | smtp_host                  | text             | yes  |                                                   |
-|                  | smtp_port                  | integer          | yes  |                                                   |
-|                  | smtp_user                  | text             | yes  |                                                   |
-|                  | smtp_pass                  | text (encrypted) | yes  |                                                   |
-|                  | smtp_secure                | boolean          | no   | Default `true`                                    |
-|                  | resend_api_key             | text (encrypted) | yes  |                                                   |
-|                  | email_from_name            | text             | yes  |                                                   |
-|                  | email_from_address         | text             | yes  |                                                   |
-|                  | email_test_send_at         | timestamptz      | yes  | Last successful test                              |
-| Reminders        | reminder_before_due_days   | integer[]        | no   | Default `[3, 0]`. Days before/at due_at to send.  |
-|                  | reminder_after_due_days    | integer[]        | no   | Default `[7, 14, 30]`. Days after due_at to send. |
-| Backups          | backup_destination         | enum             | no   | Default `'local'`. `local \| s3 \| r2 \| b2`      |
-|                  | backup_cadence             | enum             | no   | Default `'daily'`. `daily \| weekly`              |
-|                  | backup_retention_daily     | integer          | no   | Default `7`                                       |
-|                  | backup_retention_weekly    | integer          | no   | Default `4`                                       |
-|                  | backup_retention_monthly   | integer          | no   | Default `12`                                      |
-|                  | backup_s3_bucket           | text             | yes  |                                                   |
-|                  | backup_s3_region           | text             | yes  |                                                   |
-|                  | backup_s3_endpoint         | text             | yes  | For R2/B2/MinIO                                   |
-|                  | backup_s3_access_key       | text (encrypted) | yes  |                                                   |
-|                  | backup_s3_secret_key       | text (encrypted) | yes  |                                                   |
-|                  | backup_last_success_at     | timestamptz      | yes  |                                                   |
-|                  | backup_last_failure_at     | timestamptz      | yes  |                                                   |
-|                  | backup_last_failure_reason | text             | yes  |                                                   |
-|                  | created_at, updated_at     | timestamptz      | no   | Standard `timestamps`                             |
+| Group            | Column                     | Type             | Null | Notes                                                                                                                                                                                    |
+| ---------------- | -------------------------- | ---------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|                  | id                         | uuid             | no   | PK                                                                                                                                                                                       |
+| Business profile | business_name              | text             | yes  |                                                                                                                                                                                          |
+|                  | business_email             | text             | yes  |                                                                                                                                                                                          |
+|                  | business_phone             | text             | yes  |                                                                                                                                                                                          |
+|                  | business_website           | text             | yes  |                                                                                                                                                                                          |
+|                  | business_tax_id            | text             | yes  |                                                                                                                                                                                          |
+|                  | business_logo_upload_id    | uuid             | yes  | FK → `uploads.id` (set null)                                                                                                                                                             |
+|                  | business_address_line1     | text             | yes  |                                                                                                                                                                                          |
+|                  | business_address_line2     | text             | yes  |                                                                                                                                                                                          |
+|                  | business_city              | text             | yes  |                                                                                                                                                                                          |
+|                  | business_state             | text             | yes  |                                                                                                                                                                                          |
+|                  | business_postal_code       | text             | yes  |                                                                                                                                                                                          |
+|                  | business_country           | text             | yes  | ISO 3166-1 alpha-2                                                                                                                                                                       |
+| Locale           | default_currency           | varchar(3)       | no   | Default `'EUR'`. ISO 4217.                                                                                                                                                               |
+|                  | default_locale             | text             | no   | Default `'en'`. BCP 47 locale tag. Controls number/date formatting and document language in generated PDFs and emails. Not the app UI language — that is handled by i18next client-side. |
+|                  | default_timezone           | text             | no   | Default `'UTC'`. IANA tz name.                                                                                                                                                           |
+| Invoicing        | payment_terms_days         | integer          | no   | Default `30`. ≥ 0                                                                                                                                                                        |
+|                  | proposal_validity_days     | integer          | no   | Default `30`. ≥ 0                                                                                                                                                                        |
+|                  | default_notes_invoice      | text             | yes  |                                                                                                                                                                                          |
+|                  | default_notes_proposal     | text             | yes  |                                                                                                                                                                                          |
+|                  | invoice_prefix             | text             | no   | Default `'INV-'`                                                                                                                                                                         |
+|                  | proposal_prefix            | text             | no   | Default `'PROP-'`                                                                                                                                                                        |
+|                  | credit_note_prefix         | text             | no   | Default `'CN-'`                                                                                                                                                                          |
+|                  | next_invoice_number        | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
+|                  | next_proposal_number       | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
+|                  | next_credit_note_number    | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
+|                  | number_padding_width       | integer          | no   | Default `4`. 1–10                                                                                                                                                                        |
+| Payments         | payment_iban               | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | payment_bank_name          | text             | yes  |                                                                                                                                                                                          |
+|                  | payment_instructions       | text             | yes  |                                                                                                                                                                                          |
+|                  | stripe_publishable_key     | text             | yes  |                                                                                                                                                                                          |
+|                  | stripe_secret_key          | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | stripe_webhook_secret      | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | stripe_test_connection_at  | timestamptz      | yes  | Last successful test                                                                                                                                                                     |
+| Email            | email_provider             | enum             | yes  | `smtp \| resend`                                                                                                                                                                         |
+|                  | smtp_host                  | text             | yes  |                                                                                                                                                                                          |
+|                  | smtp_port                  | integer          | yes  |                                                                                                                                                                                          |
+|                  | smtp_user                  | text             | yes  |                                                                                                                                                                                          |
+|                  | smtp_pass                  | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | smtp_secure                | boolean          | no   | Default `true`                                                                                                                                                                           |
+|                  | resend_api_key             | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | email_from_name            | text             | yes  |                                                                                                                                                                                          |
+|                  | email_from_address         | text             | yes  |                                                                                                                                                                                          |
+|                  | email_test_send_at         | timestamptz      | yes  | Last successful test                                                                                                                                                                     |
+| Reminders        | reminder_before_due_days   | integer[]        | no   | Default `[3, 0]`. Days before/at due_at to send.                                                                                                                                         |
+|                  | reminder_after_due_days    | integer[]        | no   | Default `[7, 14, 30]`. Days after due_at to send.                                                                                                                                        |
+| Backups          | backup_destination         | enum             | no   | Default `'local'`. `local \| s3 \| r2 \| b2`                                                                                                                                             |
+|                  | backup_cadence             | enum             | no   | Default `'daily'`. `daily \| weekly`                                                                                                                                                     |
+|                  | backup_retention_daily     | integer          | no   | Default `7`                                                                                                                                                                              |
+|                  | backup_retention_weekly    | integer          | no   | Default `4`                                                                                                                                                                              |
+|                  | backup_retention_monthly   | integer          | no   | Default `12`                                                                                                                                                                             |
+|                  | backup_s3_bucket           | text             | yes  |                                                                                                                                                                                          |
+|                  | backup_s3_region           | text             | yes  |                                                                                                                                                                                          |
+|                  | backup_s3_endpoint         | text             | yes  | For R2/B2/MinIO                                                                                                                                                                          |
+|                  | backup_s3_access_key       | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | backup_s3_secret_key       | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | backup_last_success_at     | timestamptz      | yes  |                                                                                                                                                                                          |
+|                  | backup_last_failure_at     | timestamptz      | yes  |                                                                                                                                                                                          |
+|                  | backup_last_failure_reason | text             | yes  |                                                                                                                                                                                          |
+|                  | created_at, updated_at     | timestamptz      | no   | Standard `timestamps`                                                                                                                                                                    |
 
 Constraints (named):
 
@@ -508,23 +508,24 @@ Indexes: `leads_email_idx`, `leads_status_idx`, `leads_created_at_idx` on `creat
 
 ### `clients`
 
-| Column        | Type             | Null | Default             | Notes                                            |
-| ------------- | ---------------- | ---- | ------------------- | ------------------------------------------------ |
-| id            | uuid             | no   | `gen_random_uuid()` | PK                                               |
-| name          | text             | no   |                     |                                                  |
-| email         | text             | no   |                     |                                                  |
-| phone         | text             | yes  |                     |                                                  |
-| website       | text             | yes  |                     |                                                  |
-| tax_id        | text             | yes  |                     |                                                  |
-| address_line1 | text             | yes  |                     |                                                  |
-| address_line2 | text             | yes  |                     |                                                  |
-| city          | text             | yes  |                     |                                                  |
-| state         | text             | yes  |                     |                                                  |
-| postal_code   | text             | yes  |                     |                                                  |
-| country       | text             | yes  |                     | ISO 3166-1 alpha-2                               |
-| currency      | varchar(3)       | yes  |                     | Override of instance default                     |
-| notes         | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level |
-| portal_token  | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`        |
+| Column        | Type             | Null | Default             | Notes                                                                                                              |
+| ------------- | ---------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| id            | uuid             | no   | `gen_random_uuid()` | PK                                                                                                                 |
+| name          | text             | no   |                     |                                                                                                                    |
+| email         | text             | no   |                     |                                                                                                                    |
+| phone         | text             | yes  |                     |                                                                                                                    |
+| website       | text             | yes  |                     |                                                                                                                    |
+| tax_id        | text             | yes  |                     |                                                                                                                    |
+| address_line1 | text             | yes  |                     |                                                                                                                    |
+| address_line2 | text             | yes  |                     |                                                                                                                    |
+| city          | text             | yes  |                     |                                                                                                                    |
+| state         | text             | yes  |                     |                                                                                                                    |
+| postal_code   | text             | yes  |                     |                                                                                                                    |
+| country       | text             | yes  |                     | ISO 3166-1 alpha-2                                                                                                 |
+| currency      | varchar(3)       | yes  |                     | Override of `settings.default_currency` for this client's documents                                                |
+| locale        | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default. |
+| notes         | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                   |
+| portal_token  | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`                                                                          |
 
 Standard `timestamps` and `softDelete`.
 

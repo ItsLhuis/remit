@@ -1245,20 +1245,35 @@ test invoice.
 
 ## 15. Internationalization
 
+### Two distinct locale concerns
+
+Remit separates two concepts that are often conflated:
+
+**App UI language** — which language the dashboard, labels, and error messages appear in. Controlled
+by i18next client-side. Currently English only; additional languages are additive.
+
+**Document locale** — the BCP 47 locale tag used for number and date formatting (`1.234,56 €` vs
+`1,234.56`) and the language of text labels in generated PDFs and emails ("Fatura" vs "Invoice",
+column headers, notes). Stored in `settings.default_locale`. Clients can override this with their
+own `locale` field for when a Portuguese freelancer invoices a German client and wants the PDF in
+German. Null on a client means use the instance default.
+
+These can and often do diverge: the owner may run the app in English while generating invoices in
+`pt-PT` format for their local clients.
+
+### App UI language stack
+
 Remit ships with full i18n infrastructure from day one, configured for English with the structure
 ready for additional locales. Adding a new language is purely additive — adding a new locale file
 and registering it.
-
-### Stack
 
 - **i18next** — translation engine. Locale resources, fallback handling, plural rules.
 - **react-i18next** — React bindings. Provider, `useTranslation` hook.
 - **i18next-icu** — ICU MessageFormat support for plurals and parameters (e.g.
   `"{count} item{count, plural, one {} other{s}}"`).
 
-This is the same stack used in other internal projects. It runs in Next.js without locale routing
-(no `/en/...`, `/pt/...` URL prefixes) - locale selection lives in user settings and is applied
-client-side.
+Runs in Next.js without locale routing (no `/en/...`, `/pt/...` URL prefixes) - locale selection
+lives in user settings and is applied client-side.
 
 ### Type-safe message keys
 
@@ -1303,6 +1318,8 @@ carries ICU parameters.
   object can carry an optional formatter override if a particular locale needs it.
 - **URL-based locale routing** (e.g. `/pt/dashboard`) is out of scope. Locale is a user preference,
   not a URL property.
+- **Per-user UI language preference** — `settings.default_locale` is the instance-level document
+  locale set by the owner. UI language preference is a separate concern.
 
 ---
 

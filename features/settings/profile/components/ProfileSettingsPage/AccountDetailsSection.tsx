@@ -44,7 +44,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 
   const form = useForm<AccountDetailsValues>({
     resolver: zodResolver(accountDetailsSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       name: user.name,
       email: user.email

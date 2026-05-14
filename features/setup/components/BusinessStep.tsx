@@ -38,7 +38,7 @@ const BusinessStep = ({ onComplete }: BusinessStepProps) => {
 
   const form = useForm<BusinessProfileValues>({
     resolver: zodResolver(businessProfileSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       businessName: "",
       businessEmail: "",

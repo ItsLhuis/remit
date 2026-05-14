@@ -1,5 +1,4 @@
 export { AppearanceSettingsPage } from "./appearance/components"
-export { BusinessSettingsPage } from "./business/components"
 export { EmailSettingsPage } from "./email/components"
 export { InvoicingSettingsPage } from "./invoicing/components"
 export { PaymentSettingsPage } from "./payment/components"
