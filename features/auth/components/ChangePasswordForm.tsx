@@ -46,7 +46,7 @@ const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormP
 
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
-    mode: variant === "settings" ? "onBlur" : "onSubmit",
+    mode: variant === "settings" ? "onChange" : "onSubmit",
     defaultValues: DEFAULT_VALUES
   })
 

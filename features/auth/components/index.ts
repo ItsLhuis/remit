@@ -1,7 +1,6 @@
 export * from "./AuthPanel"
 export * from "./ChangePasswordForm"
 export * from "./LoginForm"
-export * from "./PasswordRequirements"
 export * from "./RegisterForm"
 export * from "./ResetPasswordForm"
 export * from "./SignOutDialog"

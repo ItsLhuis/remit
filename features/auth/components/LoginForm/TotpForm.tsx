@@ -37,7 +37,7 @@ const TotpForm = ({ onSuccess }: TotpFormProps) => {
 
   const form = useForm<TotpValues>({
     resolver: zodResolver(totpSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { code: "" }
   })
 

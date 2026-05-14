@@ -42,7 +42,7 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
 
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
-    mode: "onTouched",
+    mode: "onChange",
     defaultValues: { newPassword: "", confirmPassword: "" }
   })
 

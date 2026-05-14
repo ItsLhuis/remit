@@ -41,7 +41,7 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
 
   const form = useForm<TotpEnableValues>({
     resolver: zodResolver(totpEnableSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { password: "" }
   })
 

@@ -34,7 +34,7 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
 
   const form = useForm<ConfirmPasswordValues>({
     resolver: zodResolver(confirmPasswordSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { password: "" }
   })
 

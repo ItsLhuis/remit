@@ -53,7 +53,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
 
   const form = useForm<TotpVerifyValues>({
     resolver: zodResolver(totpVerifySchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { code: "" }
   })
 

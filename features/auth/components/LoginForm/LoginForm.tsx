@@ -32,7 +32,7 @@ const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { email: "", password: "" }
   })
 

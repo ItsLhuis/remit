@@ -49,7 +49,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
 
   const form = useForm<TotpVerifyValues>({
     resolver: zodResolver(totpVerifySchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { code: "" }
   })
 

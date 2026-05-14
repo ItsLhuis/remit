@@ -38,7 +38,7 @@ const RegisterForm = () => {
 
   const form = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
-    mode: "onTouched",
+    mode: "onChange",
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" }
   })
 

@@ -19,7 +19,7 @@ const RecoveryCodeForm = ({ onSuccess }: RecoveryCodeFormProps) => {
 
   const form = useForm<RecoveryCodeValues>({
     resolver: zodResolver(recoveryCodeSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: { code: "" }
   })
 
