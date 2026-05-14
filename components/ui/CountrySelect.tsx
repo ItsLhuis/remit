@@ -4,9 +4,9 @@ import { type Ref } from "react"
 
 import { cn } from "@/lib/utils"
 
-import { CircleFlag } from "react-circle-flags"
-
 import { useTranslation } from "@/lib/i18n"
+
+import { CircleFlag } from "react-circle-flags"
 
 import {
   Select,

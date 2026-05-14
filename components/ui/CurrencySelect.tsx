@@ -1,6 +1,6 @@
 "use client"
 
-import { type Ref, useMemo, useState } from "react"
+import { type Ref, useCallback, useMemo } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -101,12 +101,10 @@ const CurrencySelect = ({
   currencies = "all",
   variant = "default",
   valid = true,
-  disabled,
-  ...props
+  disabled
 }: CurrencySelectProps) => {
   const { t } = useTranslation()
 
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null)
   const resolvedPlaceholder = placeholder ?? t("common.fields.selectCurrency")
 
   const uniqueCurrencies = useMemo<Currency[]>(() => {
@@ -134,17 +132,17 @@ const CurrencySelect = ({
     return Array.from(currencyMap.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [currencies])
 
-  const handleValueChange = (newValue: string) => {
-    const fullCurrencyData = uniqueCurrencies.find((curr) => curr.code === newValue)
+  const handleValueChange = useCallback(
+    (newValue: string) => {
+      const fullCurrencyData = uniqueCurrencies.find((curr) => curr.code === newValue)
 
-    if (!fullCurrencyData) return
+      if (!fullCurrencyData) return
 
-    setSelectedCurrency(fullCurrencyData)
-    onValueChangeAction?.(newValue)
-    onCurrencySelectAction?.(fullCurrencyData)
-  }
-
-  void selectedCurrency
+      onValueChangeAction?.(newValue)
+      onCurrencySelectAction?.(fullCurrencyData)
+    },
+    [uniqueCurrencies, onValueChangeAction, onCurrencySelectAction]
+  )
 
   return (
     <Select
@@ -153,7 +151,6 @@ const CurrencySelect = ({
       onValueChange={handleValueChange}
       name={name}
       disabled={disabled}
-      {...props}
     >
       <SelectTrigger
         ref={ref}
@@ -176,7 +173,6 @@ const CurrencySelect = ({
             <SelectItem key={currency.code} value={currency.code}>
               <div className="flex w-full items-center gap-2">
                 <span className="text-muted-foreground w-8 text-left text-sm">{currency.code}</span>
-                <span className="hidden">{currency.symbol}</span>
                 <span>{currency.name}</span>
               </div>
             </SelectItem>
