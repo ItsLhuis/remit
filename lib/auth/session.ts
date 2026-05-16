@@ -13,14 +13,25 @@ export type Role = "owner" | "accountant" | "assistant"
 
 type RequestHeaders = Awaited<ReturnType<typeof headers>>
 
-export async function getSession(requestHeaders?: RequestHeaders) {
+type GetSessionOptions = {
+  disableCookieCache?: boolean
+}
+
+export async function getSession(requestHeaders?: RequestHeaders, options?: GetSessionOptions) {
   return auth.api.getSession({
-    headers: requestHeaders ?? (await headers())
+    headers: requestHeaders ?? (await headers()),
+    ...(options?.disableCookieCache
+      ? {
+          query: {
+            disableCookieCache: true
+          }
+        }
+      : {})
   })
 }
 
-export async function requireSession(requestHeaders?: RequestHeaders) {
-  const session = await getSession(requestHeaders)
+export async function requireSession(requestHeaders?: RequestHeaders, options?: GetSessionOptions) {
+  const session = await getSession(requestHeaders, options)
 
   if (!session) redirect("/login")
 

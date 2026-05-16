@@ -1,0 +1,1 @@
+export { hasRegisteredUser } from "./queries"
