@@ -8,7 +8,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
-import { confirmBusinessLogoUpload } from "../../mutations"
+import { confirmBusinessLogoUpload, removeBusinessLogo } from "../../mutations"
 
 import {
   Avatar,
@@ -58,8 +58,12 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
 
       if (!presignResponse.ok) {
         const data: unknown = await presignResponse.json()
+        const message =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as Record<string, unknown>).error)
+            : t("settings.business.uploadUrlFailed")
 
-        toast.error(getErrorMessage(data, t("settings.business.uploadUrlFailed")))
+        toast.error(message)
 
         return
       }
@@ -95,8 +99,28 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
       }
 
       setLogoStorageKey(result.data.storageKey)
+
       router.refresh()
+
       toast.success(t("settings.business.logoUpdated"))
+    })
+  }
+
+  const handleRemoveLogo = () => {
+    startTransition(async () => {
+      const result = await removeBusinessLogo()
+
+      if ("error" in result) {
+        toast.error(result.error)
+
+        return
+      }
+
+      setLogoStorageKey(null)
+
+      router.refresh()
+
+      toast.success(t("settings.business.logoRemoved"))
     })
   }
 
@@ -106,7 +130,7 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
       <div className="flex items-center gap-4">
         <Avatar className="size-20 rounded-lg after:rounded-lg">
           <AvatarImage
-            src={logoUrl ?? ""}
+            src={logoUrl}
             alt={t("settings.business.logoAlt", {
               name: businessName || t("settings.business.fallbackBusinessName")
             })}
@@ -134,17 +158,23 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
             {isPending && <Spinner />}
             {t("settings.business.uploadLogo")}
           </Button>
+          {logoStorageKey ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={handleRemoveLogo}
+            >
+              {isPending && <Spinner />}
+              {t("settings.business.removeLogo")}
+            </Button>
+          ) : null}
           <Typography affects={["muted", "tiny"]}>{t("settings.business.logoHelp")}</Typography>
         </div>
       </div>
     </section>
   )
-}
-
-function getErrorMessage(data: unknown, fallback: string): string {
-  if (typeof data !== "object" || data === null || !("error" in data)) return fallback
-
-  return String(data.error)
 }
 
 export { LogoSection }

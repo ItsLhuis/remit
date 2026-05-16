@@ -13,6 +13,8 @@ import { getCurrentRole } from "@/lib/auth/session"
 
 import { logger } from "@/lib/logger"
 
+import { deleteStorageObject } from "@/lib/storage/s3"
+
 import { database } from "@/database"
 import { settings, uploads } from "@/database/schema"
 
@@ -120,7 +122,10 @@ export async function confirmBusinessLogoUpload(
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const requestHeaders = await headers()
-  const session = await auth.api.getSession({ headers: requestHeaders })
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+    query: { disableCookieCache: true }
+  })
 
   if (!session) return { error: t("errors.unauthorized") }
 
@@ -128,7 +133,27 @@ export async function confirmBusinessLogoUpload(
 
   if (role !== "owner") return { error: t("errors.forbidden") }
 
+  let existingSettingsId: string | null = null
+  let oldLogoUploadId: string | null = null
+  let oldLogoPath: string | null = null
+
   try {
+    const existingSettings = await database.query.settings.findFirst({
+      columns: { id: true, businessLogoUploadId: true }
+    })
+
+    existingSettingsId = existingSettings?.id ?? null
+    oldLogoUploadId = existingSettings?.businessLogoUploadId ?? null
+
+    if (existingSettings?.businessLogoUploadId) {
+      const oldUpload = await database.query.uploads.findFirst({
+        columns: { path: true },
+        where: eq(uploads.id, existingSettings.businessLogoUploadId)
+      })
+
+      oldLogoPath = oldUpload?.path ?? null
+    }
+
     const [upload] = await database
       .insert(uploads)
       .values({
@@ -139,17 +164,13 @@ export async function confirmBusinessLogoUpload(
       })
       .returning({ id: uploads.id })
 
-    if (!upload) return { error: t("settings.business.errors.logoUpdateFailed") }
+    if (!upload) throw new Error("Business logo upload insert did not return an id")
 
-    const existing = await database.query.settings.findFirst({
-      columns: { id: true }
-    })
-
-    if (existing) {
+    if (existingSettings) {
       await database
         .update(settings)
         .set({ businessLogoUploadId: upload.id })
-        .where(eq(settings.id, existing.id))
+        .where(eq(settings.id, existingSettings.id))
     } else {
       await database.insert(settings).values({ businessLogoUploadId: upload.id })
     }
@@ -159,6 +180,13 @@ export async function confirmBusinessLogoUpload(
       data: { logo: parsed.data.objectKey }
     })
   } catch (error) {
+    await restoreBusinessLogoUpload({
+      userId: session.user.id,
+      settingsId: existingSettingsId,
+      uploadId: oldLogoUploadId
+    })
+    await deleteNewLogoFiles(session.user.id, parsed.data.objectKey)
+
     logger.error(
       {
         action: "confirmBusinessLogoUpload",
@@ -172,10 +200,152 @@ export async function confirmBusinessLogoUpload(
     return { error: t("settings.business.errors.logoUpdateFailed") }
   }
 
+  if (oldLogoPath) {
+    await deleteOldLogoFiles(session.user.id, oldLogoPath)
+  }
+
   revalidatePath("/settings/business")
   revalidatePath("/")
 
   return { data: { storageKey: parsed.data.objectKey } }
+}
+
+export async function removeBusinessLogo(): Promise<
+  { data: { success: true } } | { error: string }
+> {
+  const requestHeaders = await headers()
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+    query: { disableCookieCache: true }
+  })
+
+  if (!session) return { error: t("errors.unauthorized") }
+
+  const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
+
+  if (role !== "owner") return { error: t("errors.forbidden") }
+
+  let existingSettingsId: string | null = null
+  let oldLogoUploadId: string | null = null
+  let oldLogoPath: string | null = null
+
+  try {
+    const existingSettings = await database.query.settings.findFirst({
+      columns: { id: true, businessLogoUploadId: true }
+    })
+
+    if (!existingSettings?.businessLogoUploadId) {
+      return { data: { success: true } }
+    }
+
+    existingSettingsId = existingSettings.id
+    oldLogoUploadId = existingSettings.businessLogoUploadId
+
+    const oldUpload = await database.query.uploads.findFirst({
+      columns: { path: true },
+      where: eq(uploads.id, existingSettings.businessLogoUploadId)
+    })
+
+    oldLogoPath = oldUpload?.path ?? null
+
+    await database
+      .update(settings)
+      .set({ businessLogoUploadId: null })
+      .where(eq(settings.id, existingSettings.id))
+
+    await mirrorBusinessOrganization({
+      headers: requestHeaders,
+      data: { logo: "" }
+    })
+  } catch (error) {
+    await restoreBusinessLogoUpload({
+      userId: session.user.id,
+      settingsId: existingSettingsId,
+      uploadId: oldLogoUploadId
+    })
+
+    logger.error(
+      { action: "removeBusinessLogo", userId: session.user.id, err: error },
+      "Business logo removal failed"
+    )
+
+    return { error: t("settings.business.errors.logoRemoveFailed") }
+  }
+
+  if (oldLogoPath) {
+    await deleteOldLogoFiles(session.user.id, oldLogoPath)
+  }
+
+  revalidatePath("/settings/business")
+  revalidatePath("/")
+
+  return { data: { success: true } }
+}
+
+async function deleteOldLogoFiles(userId: string, objectKey: string): Promise<void> {
+  try {
+    await database.delete(uploads).where(eq(uploads.path, objectKey))
+  } catch (error) {
+    logger.warn(
+      { action: "deleteOldLogoFiles", userId, objectKey, err: error },
+      "Failed to delete old logo upload record"
+    )
+  }
+
+  try {
+    await deleteStorageObject(objectKey)
+  } catch (error) {
+    logger.warn(
+      { action: "deleteOldLogoFiles", userId, objectKey, err: error },
+      "Failed to delete old logo from storage"
+    )
+  }
+}
+
+async function deleteNewLogoFiles(userId: string, objectKey: string): Promise<void> {
+  try {
+    await database.delete(uploads).where(eq(uploads.path, objectKey))
+  } catch (error) {
+    logger.warn(
+      { action: "deleteNewLogoFiles", userId, objectKey, err: error },
+      "Failed to delete new logo upload record after failed update"
+    )
+  }
+
+  try {
+    await deleteStorageObject(objectKey)
+  } catch (error) {
+    logger.warn(
+      { action: "deleteNewLogoFiles", userId, objectKey, err: error },
+      "Failed to delete new logo from storage after failed update"
+    )
+  }
+}
+
+type RestoreBusinessLogoUploadInput = {
+  userId: string
+  settingsId: string | null
+  uploadId: string | null
+}
+
+async function restoreBusinessLogoUpload({
+  userId,
+  settingsId,
+  uploadId
+}: RestoreBusinessLogoUploadInput): Promise<void> {
+  if (!settingsId) return
+
+  try {
+    await database
+      .update(settings)
+      .set({ businessLogoUploadId: uploadId })
+      .where(eq(settings.id, settingsId))
+  } catch (error) {
+    logger.warn(
+      { action: "restoreBusinessLogoUpload", userId, settingsId, uploadId, err: error },
+      "Failed to restore previous business logo after failed update"
+    )
+  }
 }
 
 function toBusinessProfileWrite(

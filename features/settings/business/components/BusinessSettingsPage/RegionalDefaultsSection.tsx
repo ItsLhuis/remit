@@ -82,7 +82,9 @@ const RegionalDefaultsSection = ({ initialValues }: RegionalDefaultsSectionProps
       }
 
       form.reset(result.data.settings)
+
       router.refresh()
+
       toast.success(t("settings.business.defaultsSaved"))
     })
   }

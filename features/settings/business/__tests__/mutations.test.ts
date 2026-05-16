@@ -8,14 +8,19 @@ const mocks = vi.hoisted(() => ({
   listOrganizations: vi.fn(),
   updateOrganization: vi.fn(),
   settingsFindFirst: vi.fn(),
+  uploadsFindFirst: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  delete: vi.fn(),
   insertValues: vi.fn(),
   insertReturning: vi.fn(),
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
+  deleteWhere: vi.fn(),
   eq: vi.fn(),
-  loggerError: vi.fn()
+  deleteStorageObject: vi.fn(),
+  loggerError: vi.fn(),
+  loggerWarn: vi.fn()
 }))
 
 vi.mock("next/headers", () => ({
@@ -50,8 +55,13 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/logger", () => ({
   logger: {
-    error: mocks.loggerError
+    error: mocks.loggerError,
+    warn: mocks.loggerWarn
   }
+}))
+
+vi.mock("@/lib/storage/s3", () => ({
+  deleteStorageObject: mocks.deleteStorageObject
 }))
 
 vi.mock("@/database/schema", () => ({
@@ -68,10 +78,14 @@ vi.mock("@/database", () => ({
     query: {
       settings: {
         findFirst: mocks.settingsFindFirst
+      },
+      uploads: {
+        findFirst: mocks.uploadsFindFirst
       }
     },
     insert: mocks.insert,
-    update: mocks.update
+    update: mocks.update,
+    delete: mocks.delete
   }
 }))
 
@@ -84,6 +98,7 @@ const validProfileSettings = {
 
 const validRegionalDefaults = {
   defaultCurrency: "USD",
+  defaultLocale: "en",
   defaultTimezone: "UTC"
 }
 
@@ -106,6 +121,7 @@ describe("business settings mutations", () => {
     mocks.listOrganizations.mockResolvedValue([{ id: "org-1" }])
     mocks.updateOrganization.mockResolvedValue({ id: "org-1" })
     mocks.settingsFindFirst.mockResolvedValue({ id: "settings-1" })
+    mocks.uploadsFindFirst.mockResolvedValue(null)
     mocks.eq.mockReturnValue("settings-id-predicate")
     mocks.insertReturning.mockResolvedValue([{ id: "upload-1" }])
 
@@ -134,6 +150,13 @@ describe("business settings mutations", () => {
             return Promise.resolve()
           }
         }
+      }
+    }))
+    mocks.delete.mockImplementation((table: unknown) => ({
+      where: (predicate: unknown) => {
+        mocks.deleteWhere(table, predicate)
+
+        return Promise.resolve()
       }
     }))
   })
@@ -181,7 +204,7 @@ describe("business settings mutations", () => {
       businessName: ""
     })
 
-    expect(result).toEqual({ error: "settings.business.validation.nameRequired" })
+    expect(result).toEqual({ error: "Business name is required." })
     expect(mocks.update).not.toHaveBeenCalled()
     expect(mocks.insert).not.toHaveBeenCalled()
   })
@@ -243,5 +266,99 @@ describe("business settings mutations", () => {
         data: { logo: "business-logos/123.png" }
       }
     })
+  })
+
+  test("removes the previous logo from storage after a successful replacement", async () => {
+    mocks.settingsFindFirst.mockResolvedValueOnce({
+      id: "settings-1",
+      businessLogoUploadId: "upload-old"
+    })
+    mocks.uploadsFindFirst.mockResolvedValueOnce({ path: "logos/old.png" })
+
+    const { confirmBusinessLogoUpload } = await import("../mutations")
+
+    await confirmBusinessLogoUpload({
+      objectKey: "business-logos/123.png",
+      filename: "logo.png",
+      contentType: "image/png",
+      sizeBytes: 1024
+    })
+
+    expect(mocks.deleteStorageObject).toHaveBeenCalledWith("logos/old.png")
+  })
+
+  test("cleans up the new logo when confirmation fails", async () => {
+    mocks.update.mockImplementationOnce(() => ({
+      set: () => ({
+        where: () => Promise.reject(new Error("database unavailable"))
+      })
+    }))
+
+    const { confirmBusinessLogoUpload } = await import("../mutations")
+
+    const result = await confirmBusinessLogoUpload({
+      objectKey: "logos/new.png",
+      filename: "logo.png",
+      contentType: "image/png",
+      sizeBytes: 1024
+    })
+
+    expect(result).toEqual({ error: "settings.business.errors.logoUpdateFailed" })
+    expect(mocks.deleteWhere).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "uploads.id" }),
+      "settings-id-predicate"
+    )
+    expect(mocks.deleteStorageObject).toHaveBeenCalledWith("logos/new.png")
+  })
+
+  test("removes the business logo and clears organization logo", async () => {
+    mocks.settingsFindFirst.mockResolvedValueOnce({
+      id: "settings-1",
+      businessLogoUploadId: "upload-old"
+    })
+    mocks.uploadsFindFirst.mockResolvedValueOnce({ path: "logos/old.png" })
+
+    const { removeBusinessLogo } = await import("../mutations")
+
+    const result = await removeBusinessLogo()
+
+    expect(result).toEqual({ data: { success: true } })
+    expect(mocks.updateSet).toHaveBeenCalledWith(expect.objectContaining({ id: "settings.id" }), {
+      businessLogoUploadId: null
+    })
+    expect(mocks.updateOrganization).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+      body: {
+        organizationId: "org-1",
+        data: { logo: "" }
+      }
+    })
+    expect(mocks.deleteStorageObject).toHaveBeenCalledWith("logos/old.png")
+  })
+
+  test("saves tax details and converts empty tax ID to null", async () => {
+    const { saveTaxDetailsSettings } = await import("../mutations")
+
+    const result = await saveTaxDetailsSettings({ businessTaxId: "VAT-DE123" })
+
+    expect(result).toEqual({ data: { settings: { businessTaxId: "VAT-DE123" } } })
+    expect(mocks.updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "settings.id" }),
+      expect.objectContaining({ businessTaxId: "VAT-DE123" })
+    )
+    expect(mocks.updateOrganization).not.toHaveBeenCalled()
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/settings/business")
+  })
+
+  test("returns forbidden when the current user is not the owner", async () => {
+    mocks.getCurrentRole.mockResolvedValueOnce("accountant")
+
+    const { saveTaxDetailsSettings } = await import("../mutations")
+
+    const result = await saveTaxDetailsSettings({ businessTaxId: "VAT123" })
+
+    expect(result).toEqual({ error: "errors.forbidden" })
+    expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.insert).not.toHaveBeenCalled()
   })
 })

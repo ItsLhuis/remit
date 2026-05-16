@@ -8,6 +8,7 @@ const validSettings = {
   businessPhone: "+1 555 0100",
   businessWebsite: "https://example.com",
   defaultCurrency: "USD",
+  defaultLocale: "en",
   defaultTimezone: "UTC",
   businessTaxId: "VAT123",
   businessAddressLine1: "1 Main Street",

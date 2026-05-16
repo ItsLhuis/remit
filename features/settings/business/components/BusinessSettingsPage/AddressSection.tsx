@@ -59,7 +59,9 @@ const AddressSection = ({ initialValues }: AddressSectionProps) => {
       }
 
       form.reset(result.data.settings)
+
       router.refresh()
+
       toast.success(t("settings.business.addressSaved"))
     })
   }

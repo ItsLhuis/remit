@@ -59,7 +59,9 @@ const BusinessProfileSection = ({ initialValues }: BusinessProfileSectionProps) 
       }
 
       form.reset(result.data.settings)
+
       router.refresh()
+
       toast.success(t("settings.business.profileSaved"))
     })
   }
