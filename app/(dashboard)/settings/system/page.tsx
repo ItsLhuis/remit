@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/auth/session"
 
 import { getHealthChecks } from "@/features/health/server"
 
-import { HealthDashboard } from "@/features/health"
+import { HealthSettingsPage } from "@/features/health"
 
 export const dynamic = "force-dynamic"
 
@@ -19,7 +19,7 @@ const SystemSettingsPage = async () => {
 
   const checks = await getHealthChecks()
 
-  return <HealthDashboard checks={checks} />
+  return <HealthSettingsPage checks={checks} />
 }
 
 export default SystemSettingsPage

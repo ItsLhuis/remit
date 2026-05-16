@@ -49,6 +49,7 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
 
     if (error) {
       setSubmitError(error.message ?? t("settings.security.dialog.startFailed"))
+
       return
     }
 

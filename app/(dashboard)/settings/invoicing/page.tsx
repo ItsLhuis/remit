@@ -2,7 +2,7 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
-import { InvoicingSettingsPage } from "@/features/settings"
+import { InvoicingSettingsPage } from "@/features/settings/server"
 
 export const metadata: Metadata = {
   title: t("settings.metadata.invoicing")

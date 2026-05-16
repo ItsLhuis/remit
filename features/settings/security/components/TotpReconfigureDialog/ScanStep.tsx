@@ -66,6 +66,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
       form.setError("code", {
         message: verifyError.message ?? t("totp.invalidCode")
       })
+
       return
     }
 
@@ -75,6 +76,7 @@ const ScanStep = ({ totpUri, password, onSuccess }: ScanStepProps) => {
 
     if (codesError || !codesData?.backupCodes?.length) {
       setSubmitError(t("settings.security.dialog.recoveryGenerationFailed"))
+
       return
     }
 
