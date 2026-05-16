@@ -1,7 +1,5 @@
 export { SetupForm } from "./components"
 
-export { saveBusinessProfile } from "./mutations"
-
 export {
   businessProfileSchema,
   totpEnableSchema,
