@@ -1,5 +1,6 @@
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
   S3Client,
@@ -21,6 +22,25 @@ export const s3 = new S3Client({
 export const MINIO_BUCKET = env.MINIO_BUCKET
 
 export const MINIO_PUBLIC_URL = env.MINIO_PUBLIC_URL
+
+export function toPublicUploadUrl(presignedUrl: string): string {
+  try {
+    const internalOrigin = new URL(env.MINIO_ENDPOINT).origin
+    const publicOrigin = new URL(env.MINIO_PUBLIC_URL).origin
+
+    if (new URL(presignedUrl).origin === internalOrigin) {
+      return presignedUrl.replace(internalOrigin, publicOrigin)
+    }
+
+    return presignedUrl
+  } catch {
+    return presignedUrl
+  }
+}
+
+export async function deleteStorageObject(objectKey: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({ Bucket: MINIO_BUCKET, Key: objectKey }))
+}
 
 export async function ensureBucket(): Promise<void> {
   try {
