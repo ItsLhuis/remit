@@ -11,17 +11,36 @@ import { rateLimitInstance } from "@/lib/rateLimit"
 import { database } from "@/database"
 import { settings, users } from "@/database/schema"
 
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://react-circle-flags.pages.dev",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'"
-].join("; ")
+export function buildContentSecurityPolicy(): string {
+  const storageOrigin = (() => {
+    try {
+      const raw = process.env.NEXT_PUBLIC_STORAGE_BASE_URL
+
+      return raw ? new URL(raw).origin : null
+    } catch {
+      return null
+    }
+  })()
+
+  const connectSrc = storageOrigin ? `connect-src 'self' ${storageOrigin}` : "connect-src 'self'"
+  const imgSrc = storageOrigin
+    ? `img-src 'self' data: blob: https://react-circle-flags.pages.dev ${storageOrigin}`
+    : "img-src 'self' data: blob: https://react-circle-flags.pages.dev"
+
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    imgSrc,
+    "font-src 'self'",
+    connectSrc,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join("; ")
+}
+
+const CONTENT_SECURITY_POLICY = buildContentSecurityPolicy()
 
 export function applySecurityHeaders(
   response: NextResponse,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { describe, expect, test, vi } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
-import { applySecurityHeaders, proxy } from "../proxy"
+import { applySecurityHeaders, buildContentSecurityPolicy, proxy } from "../proxy"
 
 vi.mock("@/lib/auth", () => ({
   auth: {
@@ -21,6 +21,10 @@ vi.mock("@/database/schema", () => ({
 }))
 
 describe("applySecurityHeaders", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   test("sets baseline security headers and frame denial on non-public-token routes", () => {
     const response = NextResponse.next()
 
@@ -50,5 +54,29 @@ describe("applySecurityHeaders", () => {
 
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff")
     expect(response.headers.get("X-Frame-Options")).toBe("DENY")
+  })
+
+  test("includes storage origin in connect-src and img-src when NEXT_PUBLIC_STORAGE_BASE_URL is set", () => {
+    vi.stubEnv("NEXT_PUBLIC_STORAGE_BASE_URL", "http://localhost:9000/remit")
+
+    const csp = buildContentSecurityPolicy()
+
+    expect(csp).toContain("connect-src 'self' http://localhost:9000")
+    expect(csp).toContain(
+      "img-src 'self' data: blob: https://react-circle-flags.pages.dev http://localhost:9000"
+    )
+  })
+
+  test("omits storage origin from connect-src and img-src when NEXT_PUBLIC_STORAGE_BASE_URL is unset", () => {
+    vi.stubEnv("NEXT_PUBLIC_STORAGE_BASE_URL", "")
+
+    const csp = buildContentSecurityPolicy()
+
+    expect(csp).toContain("connect-src 'self'")
+    expect(csp).not.toContain("connect-src 'self' http")
+    expect(csp).toContain("img-src 'self' data: blob: https://react-circle-flags.pages.dev")
+    expect(csp).not.toContain(
+      "img-src 'self' data: blob: https://react-circle-flags.pages.dev http"
+    )
   })
 })
