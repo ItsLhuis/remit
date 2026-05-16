@@ -1,19 +1,17 @@
 "use client"
 
-import { type ChangeEvent, useRef, useTransition } from "react"
+import { type ChangeEvent, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { authClient } from "@/lib/auth/client"
 import { type User } from "@/lib/auth"
-
+import { useSession } from "@/lib/auth/client"
 import { resolveStorageUrl } from "@/lib/storage"
-
 import { getInitials } from "@/lib/utils"
 
-import { confirmAvatarUpload } from "../../mutations"
+import { confirmAvatarUpload, removeAvatar } from "../../mutations"
 
 import {
   Avatar,
@@ -32,13 +30,16 @@ type AvatarSectionProps = {
 const AvatarSection = ({ user }: AvatarSectionProps) => {
   const { t } = useTranslation()
 
+  const { refetch } = useSession()
+
+  const [avatarStorageKey, setAvatarStorageKey] = useState<string | null>(user.image ?? null)
   const [isPending, startTransition] = useTransition()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const router = useRouter()
 
-  const { refetch: refetchSession } = authClient.useSession()
+  const avatarUrl = resolveStorageUrl(avatarStorageKey)
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -51,7 +52,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
       const presignResponse = await fetch("/api/upload/avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, contentType: file.type })
+        body: JSON.stringify({ filename: file.name, contentType: file.type, sizeBytes: file.size })
       })
 
       if (!presignResponse.ok) {
@@ -96,15 +97,9 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
         return
       }
 
-      const { error: updateError } = await authClient.updateUser({ image: result.data.storageKey })
+      setAvatarStorageKey(result.data.storageKey)
 
-      if (updateError) {
-        toast.error(updateError.message)
-
-        return
-      }
-
-      await refetchSession()
+      await refetch({ query: { disableCookieCache: true } })
 
       router.refresh()
 
@@ -112,12 +107,34 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
     })
   }
 
+  const handleRemoveAvatar = () => {
+    startTransition(async () => {
+      const result = await removeAvatar()
+
+      if ("error" in result) {
+        toast.error(result.error)
+
+        return
+      }
+
+      setAvatarStorageKey(null)
+
+      await refetch({ query: { disableCookieCache: true } })
+
+      router.refresh()
+
+      toast.success(t("settings.profile.avatarRemoved"))
+    })
+  }
+
+  const hasAvatar = Boolean(avatarStorageKey)
+
   return (
     <section className="space-y-4">
       <Typography variant="h4">{t("settings.profile.avatar")}</Typography>
       <div className="flex items-center gap-4">
         <Avatar className="size-20">
-          {user.image && <AvatarImage src={resolveStorageUrl(user.image) ?? ""} alt={user.name} />}
+          <AvatarImage src={avatarUrl} alt={user.name} />
           <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col gap-2">
@@ -138,6 +155,18 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
             {isPending && <Spinner />}
             {t("settings.profile.uploadPhoto")}
           </Button>
+          {hasAvatar ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={handleRemoveAvatar}
+            >
+              {isPending && <Spinner />}
+              {t("settings.profile.removePhoto")}
+            </Button>
+          ) : null}
           <Typography affects={["muted", "tiny"]}>{t("settings.profile.avatarHelp")}</Typography>
         </div>
       </div>

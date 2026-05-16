@@ -67,6 +67,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 
         if (error) {
           form.setError("name", { message: error.message })
+
           return
         }
       }
@@ -76,6 +77,7 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 
         if ("error" in result) {
           form.setError("email", { message: result.error })
+
           return
         }
 

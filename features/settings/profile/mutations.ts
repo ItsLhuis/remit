@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
+import { eq } from "drizzle-orm"
+
 import { t } from "@/lib/i18n/server"
 
 import { env } from "@/lib/config/env"
@@ -11,6 +13,8 @@ import { env } from "@/lib/config/env"
 import { auth } from "@/lib/auth"
 
 import { logger } from "@/lib/logger"
+
+import { deleteStorageObject } from "@/lib/storage/s3"
 
 import { database } from "@/database"
 import { uploads } from "@/database/schema"
@@ -53,9 +57,14 @@ export async function confirmAvatarUpload(
 
   const requestHeaders = await headers()
 
-  const session = await auth.api.getSession({ headers: requestHeaders })
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+    query: { disableCookieCache: true }
+  })
 
   if (!session) return { error: t("settings.profile.errors.unauthorized") }
+
+  const oldKey = session.user.image
 
   try {
     await database.insert(uploads).values({
@@ -64,7 +73,14 @@ export async function confirmAvatarUpload(
       mimeType: parsed.data.mimeType,
       sizeBytes: parsed.data.sizeBytes
     })
+
+    await auth.api.updateUser({
+      headers: requestHeaders,
+      body: { image: parsed.data.objectKey }
+    })
   } catch (error) {
+    await deleteNewAvatarFile(session.user.id, parsed.data.objectKey)
+
     logger.error(
       {
         action: "confirmAvatarUpload",
@@ -78,7 +94,92 @@ export async function confirmAvatarUpload(
     return { error: t("settings.profile.errors.avatarUpdateFailed") }
   }
 
+  if (isStorageKey(oldKey)) {
+    await deleteOldAvatarFiles(session.user.id, oldKey)
+  }
+
   revalidatePath("/settings/profile")
 
   return { data: { storageKey: parsed.data.objectKey } }
+}
+
+export async function removeAvatar(): Promise<{ data: { success: true } } | { error: string }> {
+  const requestHeaders = await headers()
+
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+    query: { disableCookieCache: true }
+  })
+
+  if (!session) return { error: t("settings.profile.errors.unauthorized") }
+
+  const oldKey = session.user.image
+
+  try {
+    await auth.api.updateUser({
+      headers: requestHeaders,
+      body: { image: null }
+    })
+  } catch (error) {
+    logger.error(
+      { action: "removeAvatar", userId: session.user.id, err: error },
+      "Avatar removal failed"
+    )
+
+    return { error: t("settings.profile.errors.avatarRemoveFailed") }
+  }
+
+  if (isStorageKey(oldKey)) {
+    await deleteOldAvatarFiles(session.user.id, oldKey)
+  }
+
+  revalidatePath("/settings/profile")
+
+  return { data: { success: true } }
+}
+
+function isStorageKey(value: string | null | undefined): value is string {
+  if (!value) return false
+
+  return !value.startsWith("http://") && !value.startsWith("https://")
+}
+
+async function deleteOldAvatarFiles(userId: string, objectKey: string): Promise<void> {
+  try {
+    await database.delete(uploads).where(eq(uploads.path, objectKey))
+  } catch (error) {
+    logger.warn(
+      { action: "deleteOldAvatarFiles", userId, objectKey, err: error },
+      "Failed to delete old avatar upload record"
+    )
+  }
+
+  try {
+    await deleteStorageObject(objectKey)
+  } catch (error) {
+    logger.warn(
+      { action: "deleteOldAvatarFiles", userId, objectKey, err: error },
+      "Failed to delete old avatar from storage"
+    )
+  }
+}
+
+async function deleteNewAvatarFile(userId: string, objectKey: string): Promise<void> {
+  try {
+    await database.delete(uploads).where(eq(uploads.path, objectKey))
+  } catch (error) {
+    logger.warn(
+      { action: "deleteNewAvatarFile", userId, objectKey, err: error },
+      "Failed to delete new avatar upload record after failed update"
+    )
+  }
+
+  try {
+    await deleteStorageObject(objectKey)
+  } catch (error) {
+    logger.warn(
+      { action: "deleteNewAvatarFile", userId, objectKey, err: error },
+      "Failed to delete new avatar from storage after failed update"
+    )
+  }
 }
