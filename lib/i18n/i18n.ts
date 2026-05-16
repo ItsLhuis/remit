@@ -24,6 +24,7 @@ if (!i18n.isInitialized) {
     supportedLngs: Object.keys(Locales) as LocaleKeys[],
     defaultNS: "translation",
     debug: process.env.NODE_ENV === "development",
+    initAsync: false,
     interpolation: {
       escapeValue: false
     }
