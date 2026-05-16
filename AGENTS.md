@@ -13,8 +13,14 @@ i18next/react-i18next/ICU, and pino.
 
 ```bash
 pnpm dev                # Dev server (Turbopack)
+pnpm dev:setup          # Start dev services and apply migrations
 pnpm build              # Production build
+pnpm build:scripts      # Build operational scripts into scripts/dist
 pnpm start              # Start production server after build
+pnpm services:up        # Start local development Docker services
+pnpm services:down      # Stop local development Docker services
+pnpm services:logs      # Follow local development service logs
+pnpm services:restart   # Restart local development Docker services
 pnpm lint               # ESLint check
 pnpm lint:fix           # ESLint auto-fix
 pnpm format             # Prettier
@@ -34,6 +40,7 @@ pnpm database:studio       # Drizzle Studio UI
 pnpm database:test:up      # Start Dockerized test Postgres
 pnpm database:test:down    # Stop and remove Dockerized test Postgres volume
 pnpm database:test:migrate # Apply migrations to the test database
+pnpm remit:reset-password  # Interactive password reset recovery CLI
 pnpm version:patch         # Bump app version patch
 pnpm version:minor         # Bump app version minor
 pnpm version:major         # Bump app version major

@@ -19,7 +19,7 @@ test.describe("canonical auth flow", () => {
     await expect(page.getByRole("heading", { name: /create your account/i })).toBeVisible()
     await page.getByLabel("Name").fill("Test Owner")
     await page.getByLabel("Email").fill(ownerEmail)
-    await page.getByLabel("Password").fill(ownerPassword)
+    await page.getByLabel("Password", { exact: true }).fill(ownerPassword)
     await page.getByLabel("Confirm password").fill(ownerPassword)
     await page.getByRole("button", { name: /create account/i }).click()
 

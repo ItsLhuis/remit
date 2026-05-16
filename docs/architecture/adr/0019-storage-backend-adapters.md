@@ -5,11 +5,11 @@
 
 ## Context
 
-Remit stores two related categories of files: runtime files such as uploads and generated documents,
-and backup bundles produced by backup jobs.
+Remit stores runtime files such as uploads and generated documents today. The architecture also
+accounts for backup bundles once backup jobs are implemented.
 [Architecture: Self-hosting experience, Backup and restore](../ARCHITECTURE.md#backup-and-restore)
-defines backup and restore around local filesystem storage by default, with Amazon S3, Cloudflare
-R2, and Backblaze B2 as configurable backup destinations.
+defines the planned backup and restore flow around local filesystem storage by default, with Amazon
+S3, Cloudflare R2, and Backblaze B2 as configurable backup destinations.
 
 The existing `lib/storage/` module centralizes runtime storage URL and S3-compatible behavior.
 Runtime object storage connection details are deployment-owned environment configuration, while the
@@ -22,10 +22,10 @@ others need object storage for remote backups, hosted-like durability, or large 
 
 ## Decision
 
-Runtime file storage and backup bundle storage use swappable backend adapters. Local filesystem
-storage is the default. S3-compatible providers such as Amazon S3, Cloudflare R2, and Backblaze B2
-are available through opt-in configuration, with runtime storage owned by deployment environment
-variables and backup storage owned by encrypted settings.
+Runtime file storage uses a swappable backend adapter. Planned backup bundle storage follows the
+same adapter model. Local filesystem storage is the default. S3-compatible providers such as Amazon
+S3, Cloudflare R2, and Backblaze B2 are available through opt-in configuration, with runtime storage
+owned by deployment environment variables and backup storage owned by encrypted settings.
 
 ## Consequences
 

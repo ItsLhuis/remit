@@ -17,7 +17,10 @@ open-source code, same architecture, just operated for you. Each Hosted customer
 isolated instance; there is no shared multi-tenant database. **Self-hosting is and remains the
 first-class deployment model.**
 
-A single command, everything in Docker, nothing to configure manually beyond the basics.
+The target self-hosting experience is a single command, everything in Docker, and nothing to
+configure manually beyond the basics. Today the repository ships Docker Compose assets and the
+password-reset recovery CLI; the full installer, backup, restore, and upgrade command set is still
+planned work.
 
 ## Principles
 
@@ -30,9 +33,9 @@ against these.
 - **Single-instance simplicity.** One Remit instance is one freelance business. No multi-tenancy, no
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
-- **Self-hosting is part of the product.** One-command install. Encrypted automatic backups.
-  In-place upgrades. Health dashboard. Recovery from disaster as a first-class feature, not an
-  afterthought.
+- **Self-hosting is part of the product.** Docker Compose deployment, health checks, and operational
+  recovery exist today. One-command install, encrypted automatic backups, and in-place upgrades are
+  planned product work, not afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -122,8 +125,9 @@ adding a locale is purely additive.
 
 Security is treated as a first-class feature, not a checklist.
 
-- Mandatory TOTP at setup, with no opt-out. Recovery codes generated at setup as the primary
-  password-reset path when SMTP is not configured.
+- Mandatory TOTP at setup, with no opt-out. Backup codes are generated for second-factor recovery;
+  password reset uses email when configured or the `remit:reset-password` operational CLI for
+  self-hosted lockout recovery.
 - AES-256-GCM encryption at rest for all sensitive credentials (SMTP, Resend, Stripe, IBAN, client
   notes).
 - Append-only security audit log separate from the user-facing activity log — captures every
@@ -139,29 +143,29 @@ Security is treated as a first-class feature, not a checklist.
 
 ## Self-hosting
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/itslhuis/remit/main/scripts/install.sh | bash
-```
+The repository currently ships Docker Compose assets for production, development, and test Postgres.
+A one-command install script is planned, but `scripts/install.sh` is not present today.
 
-The install script verifies Docker, prompts for the minimum required configuration (domain, port,
-data directory), generates the `.env` with cryptographically secure secrets, pulls the image, and
-brings the stack up. Total time from clone to login: under a minute.
+The production Compose file exposes the app for an existing reverse proxy and runs PostgreSQL plus
+MinIO alongside the app container.
 
-Two Docker Compose profiles: a default profile that exposes a port for an existing reverse proxy,
-and a `with-proxy` profile that includes Caddy with automatic Let's Encrypt TLS for full HTTPS in
-one command.
+Current operational support:
 
-Beyond install, Remit ships:
+- **Entrypoint migrations** — the app container runs the compiled migration script before starting
+  the Next.js server.
+- **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
+  reachability, last successful backup status, disk usage, and the encryption key fingerprint.
+- **CLI tools** — `pnpm remit:reset-password` provides interactive password reset for the
+  lost-everything case.
+
+Planned operational support:
 
 - **Encrypted automatic backups** — `pg_dump` plus uploads, AES-256-GCM-encrypted, to local disk,
-  S3, R2, or Backblaze B2. Configurable retention (daily, weekly, monthly).
-- **One-command upgrades** — `remit:upgrade` snapshots a backup, pulls the new image, runs
-  forward-compatible migrations, and restarts. Auto-upgrade is opt-in.
-- **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
-  reachability, last successful backup, disk usage, encryption key fingerprint, and update
-  availability.
-- **CLI tools** — interactive password reset for the lost-everything case, encryption key rotation,
-  demo data seeding, and more.
+  S3, R2, or Backblaze B2, with configurable retention.
+- **One-command upgrades** — a future `remit:upgrade` flow that snapshots a backup, pulls the new
+  image, runs forward-compatible migrations, and restarts.
+- **Additional CLIs** — backup, restore, encryption key rotation, and demo data seeding once those
+  flows have real implementations.
 
 ## Stack
 

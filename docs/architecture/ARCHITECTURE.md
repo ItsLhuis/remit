@@ -158,9 +158,10 @@ compiler's guarantees hold all the way from the database schema to the React com
 
 ### 8 — The self-hosting experience is part of the product
 
-Install, upgrade, backup, restore, and recover from disaster are first-class features. The install
-experience is a single command. Nothing beyond database credentials, an encryption key, and an auth
-secret requires editing `.env` for typical use. see the Self-hosting experience section.
+Self-hosting operations are product work, not afterthoughts. The architecture target includes
+install, upgrade, backup, restore, and disaster recovery, but the current shipped operational CLI is
+limited to password-reset recovery. Other operational flows remain planned until backed by code. See
+the Self-hosting experience section.
 
 ---
 
@@ -1120,22 +1121,28 @@ Stripe, bank-transfer details, invoice defaults, backup policy, and template cus
 
 All data is stored in the PostgreSQL instance owned and operated by the user. No analytics,
 telemetry, or usage data leaves the instance without explicit configuration. Error tracking is
-opt-in through `SENTRY_DSN`; update checks are opt-in.
+opt-in through `SENTRY_DSN`; future update checks remain opt-in.
 
 ---
 
 ## 14. Self-hosting experience
 
 The biggest friction in adopting a self-hosted application is not the feature set — it is install,
-upgrade, backup, and recover. Remit treats each of these as a first-class feature.
+upgrade, backup, and recover. Remit treats each of these as first-class product concerns.
 
-### One-command install
+Current implementation status: the repository ships Docker Compose files, an entrypoint migration
+script, the `/settings/system` health surface, and `pnpm remit:reset-password` for credential
+recovery. The one-command installer, automated backup/restore commands, upgrade command, encryption
+key rotation command, demo seed command, and deployment guides are planned operational work and are
+not shipped as package scripts today.
+
+### Planned one-command install
 
 ```bash
 curl -fsSL https://remit.dev/install.sh | bash
 ```
 
-The install script:
+The target install script:
 
 1. Verifies Docker and Docker Compose are present; aborts with friendly instructions otherwise.
 2. Prompts for: domain (or `localhost` for local-only), port, data directory.
@@ -1144,8 +1151,10 @@ The install script:
 5. Runs `docker compose up -d` and waits for the health check.
 6. Opens the browser at `/register`.
 
-Nothing beyond these three secrets requires editing `.env` for typical use. SMTP, Stripe, branding,
-and all other configuration is done through the UI.
+This script is not present in the repository today. Until it exists, production operators use the
+Docker Compose assets directly and provide the required runtime environment values themselves. The
+target remains that nothing beyond these boot secrets requires editing `.env` for typical use; SMTP,
+Stripe, branding, and all other configuration belongs in the UI.
 
 ### Setup wizard — minimal by design
 
@@ -1186,25 +1195,30 @@ connection) so configuration is verifiable in place.
 - Data volume disk usage.
 - Encryption key fingerprint — displayed so the user can confirm it has not silently changed between
   deploys.
-- Available software updates (opt-in update checks).
+- Application version. Future update checks remain opt-in.
 
 `/api/health` (public) returns `200` or `503` with a minimal JSON body for uptime monitors.
 
 ### Backup and restore
 
-A scheduled job (configurable cadence, daily by default) runs `pg_dump` plus an upload tar archive,
-encrypts the bundle using the master AES-256-GCM key, and stores it at the configured destination:
-local filesystem (default), Amazon S3, Cloudflare R2, or Backblaze B2. Retention policy is
-configurable: keep N daily, M weekly, K monthly snapshots.
+Backup configuration and status fields exist in the settings schema, and `/settings/system` can
+surface missing or stale backup status. The actual scheduled backup job, encrypted backup bundle
+writer, retention enforcement, and restore CLI are not implemented yet.
 
-Restore is interactive via the CLI:
+The planned scheduled job (configurable cadence, daily by default) runs `pg_dump` plus an upload tar
+archive, encrypts the bundle using the master AES-256-GCM key, and stores it at the configured
+destination: local filesystem (default), Amazon S3, Cloudflare R2, or Backblaze B2. Retention policy
+is configurable: keep N daily, M weekly, K monthly snapshots.
+
+The planned restore flow is interactive via the CLI:
 
 ```bash
 docker exec remit-app pnpm remit:restore <backup-file>
 ```
 
-The command requires explicit confirmation of the target environment. A missed backup for N
-consecutive days surfaces a banner in the dashboard.
+`remit:restore` is not a package script today. When implemented, the command requires explicit
+confirmation of the target environment. A missed backup for N consecutive days surfaces a banner in
+the dashboard.
 
 ### Updates
 
@@ -1212,7 +1226,10 @@ Drizzle migrations are forward-compatible. Breaking schema changes span two rele
 the column nullable; release N+1 backfills and adds `NOT NULL`. This allows any running instance to
 upgrade without a maintenance window.
 
-The upgrade flow is one command:
+The current container entrypoint applies pending migrations before starting the app. There is no
+`remit:upgrade` package script today.
+
+The planned upgrade flow is one command:
 
 ```bash
 docker exec remit-app pnpm remit:upgrade
@@ -1224,9 +1241,12 @@ manual is the default. The CHANGELOG is published in the repository and surfaced
 
 ### CLI scripts
 
-Shipped as `pnpm` scripts inside the Docker image:
+Currently shipped as `pnpm` scripts inside the Docker image:
 
 - `remit:reset-password` - interactive password reset (for the lost-everything case).
+
+Planned operational scripts, not exposed until backed by implementation:
+
 - `remit:backup` - ad-hoc backup.
 - `remit:restore` - interactive restore.
 - `remit:upgrade` - full upgrade flow.
@@ -1236,8 +1256,9 @@ Shipped as `pnpm` scripts inside the Docker image:
 
 ### Deployment guides
 
-`docs/deploy/` contains tested step-by-step guides for at least: Docker Compose on a Linux VPS,
-Coolify, Dokploy, Railway, Render, Raspberry Pi, behind an existing Nginx reverse proxy, and behind
+`docs/deploy/` is the planned home for tested step-by-step deployment guides. That directory does
+not exist yet. The intended guide set covers at least: Docker Compose on a Linux VPS, Coolify,
+Dokploy, Railway, Render, Raspberry Pi, behind an existing Nginx reverse proxy, and behind
 Cloudflare Tunnel. Each guide ends with verification steps: log in, create a test client, send a
 test invoice.
 
@@ -1400,6 +1421,10 @@ Tier 5 - Never tested
   Snapshot tests of rendered React - banned.
 ```
 
+The coverage model is the target shape as each domain lands. Early-stage placeholders and unbuilt
+domains do not receive placeholder tests; E2E coverage expands only when the corresponding workflow
+exists in the product.
+
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
 `.agents/rules/testing.md`. The project currently ships Vitest unit tests, Vitest integration tests
 against Dockerized Postgres, and Playwright E2E tests.
@@ -1457,7 +1482,7 @@ Three small affordances inside the application acknowledge the Hosted context:
 - **Backup section.** On Hosted, the backup destination is operator-managed; the UI shows that
   status rather than asking the user to configure S3/R2 credentials.
 - **Update section.** On Hosted, the update flow is operator-managed; the UI shows the running
-  version but does not expose `remit:upgrade`.
+  version but does not expose a self-service upgrade command.
 
 These are UI affordances, not feature gates. Every feature exists in both modes.
 
