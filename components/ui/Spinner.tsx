@@ -1,12 +1,16 @@
+"use client"
+
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
-import { t } from "@/lib/i18n/server"
+import { cn } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 
 const Spinner = ({ className }: Pick<ComponentProps<"svg">, "className">) => {
+  const { t } = useTranslation()
+
   return (
     <Icon
       name="Loader2"

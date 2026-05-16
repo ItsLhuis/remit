@@ -4,7 +4,13 @@ import { type ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
+import NextImage, { type ImageProps } from "next/image"
+
 import { Avatar as AvatarPrimitive } from "radix-ui"
+
+type AvatarImageProps = Omit<ImageProps, "src"> & {
+  src?: ImageProps["src"] | null
+}
 
 const Avatar = ({
   className,
@@ -24,13 +30,32 @@ const Avatar = ({
   />
 )
 
-const AvatarImage = ({ className, ...props }: ComponentProps<typeof AvatarPrimitive.Image>) => (
-  <AvatarPrimitive.Image
-    data-slot="avatar-image"
-    className={cn("aspect-square size-full rounded-full object-cover", className)}
-    {...props}
-  />
-)
+const AvatarImage = ({
+  className,
+  src,
+  alt = "",
+  width = 160,
+  height = 160,
+  ...props
+}: AvatarImageProps) => {
+  const imageSrc = src === "" ? null : src
+
+  return (
+    <AvatarPrimitive.Image src={typeof imageSrc === "string" ? imageSrc : undefined} asChild>
+      {imageSrc ? (
+        <NextImage
+          data-slot="avatar-image"
+          src={imageSrc}
+          alt={alt}
+          width={width}
+          height={height}
+          className={cn("aspect-square size-full rounded-full object-cover", className)}
+          {...props}
+        />
+      ) : null}
+    </AvatarPrimitive.Image>
+  )
+}
 
 const AvatarFallback = ({
   className,
@@ -82,4 +107,4 @@ const AvatarGroupCount = ({ className, ...props }: ComponentProps<"div">) => (
   />
 )
 
-export { Avatar, AvatarImage, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarBadge }
+export { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage }

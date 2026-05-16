@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { cn } from "@/lib/utils"
 
 import { Command as CommandPrimitive } from "cmdk"
-
-import { t } from "@/lib/i18n/server"
 
 import {
   Dialog,
@@ -30,8 +30,8 @@ const Command = ({ className, ...props }: ComponentProps<typeof CommandPrimitive
 )
 
 const CommandDialog = ({
-  title = t("common.navigation.commandPalette"),
-  description = t("common.navigation.commandSearchPlaceholder"),
+  title,
+  description,
   children,
   className,
   showCloseButton = false,
@@ -41,20 +41,27 @@ const CommandDialog = ({
   description?: string
   className?: string
   showCloseButton?: boolean
-}) => (
-  <Dialog {...props}>
-    <DialogHeader className="sr-only">
-      <DialogTitle>{title}</DialogTitle>
-      <DialogDescription>{description}</DialogDescription>
-    </DialogHeader>
-    <DialogContent
-      className={cn("top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0", className)}
-      showCloseButton={showCloseButton}
-    >
-      {children}
-    </DialogContent>
-  </Dialog>
-)
+}) => {
+  const { t } = useTranslation()
+
+  const dialogTitle = title ?? t("common.navigation.commandPalette")
+  const dialogDescription = description ?? t("common.navigation.commandSearchPlaceholder")
+
+  return (
+    <Dialog {...props}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>{dialogTitle}</DialogTitle>
+        <DialogDescription>{dialogDescription}</DialogDescription>
+      </DialogHeader>
+      <DialogContent
+        className={cn("top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0", className)}
+        showCloseButton={showCloseButton}
+      >
+        {children}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const CommandInput = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Input>) => (
   <div data-slot="command-input-wrapper" className="p-1 pb-0">
