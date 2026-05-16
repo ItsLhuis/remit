@@ -58,20 +58,24 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
 
     if (enableErr) {
       setEnableError(enableErr.message ?? t("setup.errors.totpEnableFailed"))
+
       return
     }
 
     if (!enableData?.totpURI) {
       setEnableError(t("setup.errors.totpUriMissing"))
+
       return
     }
 
     if (!enableData.backupCodes?.length) {
       setEnableError(t("setup.errors.recoveryCodesMissing"))
+
       return
     }
 
     form.reset()
+
     onSuccess({ totpUri: enableData.totpURI, backupCodes: enableData.backupCodes })
   }
 

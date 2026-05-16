@@ -4,13 +4,12 @@ import { redirect } from "next/navigation"
 
 import { t } from "@/lib/i18n/server"
 
-import { database } from "@/database"
-
 import { getSession } from "@/lib/auth/session"
 
 import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel, RegisterForm } from "@/features/auth"
+import { hasRegisteredUser } from "@/features/auth/server"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +17,7 @@ export const metadata: Metadata = { title: t("auth.register.metadataTitle") }
 
 const RegisterPage = async () => {
   // Read-only bootstrap gate: registration is open only until the first Better Auth user exists.
-  const existingUser = await database.query.users.findFirst({ columns: { id: true } })
+  const existingUser = await hasRegisteredUser()
 
   if (existingUser) {
     const session = await getSession()

@@ -66,6 +66,7 @@ const TotpVerifyStep = ({ totpUri, onComplete }: TotpVerifyStepProps) => {
 
     if (error) {
       form.setError("code", { message: error.message ?? t("totp.invalidCode") })
+
       return
     }
 
