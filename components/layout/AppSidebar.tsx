@@ -101,7 +101,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
                 tooltip={name ?? t("common.navigation.account")}
               >
                 <Avatar>
-                  <AvatarImage src={image ?? ""} alt={name ?? ""} />
+                  <AvatarImage src={image} alt={name ?? ""} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="text-foreground grid flex-1">
@@ -123,7 +123,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
                 <DropdownMenuLabel>
                   <div className="flex items-center gap-2 px-1 py-1.5">
                     <Avatar>
-                      <AvatarImage src={image ?? ""} alt={name ?? ""} />
+                      <AvatarImage src={image} alt={name ?? ""} />
                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="text-foreground grid flex-1">
