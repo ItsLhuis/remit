@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { t } from "@/lib/i18n/server"
+import i18n from "@/lib/i18n/i18n"
 
 import { Locales } from "@/lib/i18n/locales"
 
@@ -8,20 +8,20 @@ const optionalEmailSchema = z
   .string()
   .trim()
   .refine((value) => value === "" || z.email().safeParse(value).success, {
-    message: t("settings.business.validation.emailInvalid")
+    message: i18n.t("settings.business.validation.emailInvalid")
   })
 
 const optionalUrlSchema = z
   .string()
   .trim()
   .refine((value) => value === "" || z.url().safeParse(value).success, {
-    message: t("settings.business.validation.websiteInvalid")
+    message: i18n.t("settings.business.validation.websiteInvalid")
   })
 
 const optionalTextSchema = z.string().trim()
 
 export const businessProfileSettingsSchema = z.object({
-  businessName: z.string().trim().min(1, t("settings.business.validation.nameRequired")),
+  businessName: z.string().trim().min(1, i18n.t("settings.business.validation.nameRequired")),
   businessEmail: optionalEmailSchema,
   businessPhone: optionalTextSchema,
   businessWebsite: optionalUrlSchema
@@ -33,17 +33,17 @@ export const regionalDefaultsSettingsSchema = z.object({
   defaultCurrency: z
     .string()
     .trim()
-    .regex(/^[A-Z]{3}$/, t("settings.business.validation.currencyRequired")),
+    .regex(/^[A-Z]{3}$/, i18n.t("settings.business.validation.currencyRequired")),
   defaultLocale: z
     .string()
     .trim()
-    .min(1, t("settings.business.validation.localeRequired"))
-    .refine(isValidLocale, t("settings.business.validation.localeInvalid")),
+    .min(1, i18n.t("settings.business.validation.localeRequired"))
+    .refine(isValidLocale, i18n.t("settings.business.validation.localeInvalid")),
   defaultTimezone: z
     .string()
     .trim()
-    .min(1, t("settings.business.validation.timezoneRequired"))
-    .refine(isValidTimeZone, t("settings.business.validation.timezoneInvalid"))
+    .min(1, i18n.t("settings.business.validation.timezoneRequired"))
+    .refine(isValidTimeZone, i18n.t("settings.business.validation.timezoneInvalid"))
 })
 
 export type RegionalDefaultsSettingsValues = z.infer<typeof regionalDefaultsSettingsSchema>
@@ -60,7 +60,10 @@ export const businessAddressSettingsSchema = z.object({
   businessCity: optionalTextSchema,
   businessState: optionalTextSchema,
   businessPostalCode: optionalTextSchema,
-  businessCountry: z.string().trim().length(2, t("settings.business.validation.countryRequired"))
+  businessCountry: z
+    .string()
+    .trim()
+    .length(2, i18n.t("settings.business.validation.countryRequired"))
 })
 
 export type BusinessAddressSettingsValues = z.infer<typeof businessAddressSettingsSchema>
@@ -73,19 +76,22 @@ export const businessSettingsSchema = businessProfileSettingsSchema
 export type BusinessSettingsValues = z.infer<typeof businessSettingsSchema>
 
 export const businessLogoUploadRequestSchema = z.object({
-  filename: z.string().trim().min(1, t("settings.business.validation.logoFilenameRequired")),
-  contentType: z.string().trim().min(1, t("settings.business.validation.logoContentTypeRequired")),
+  filename: z.string().trim().min(1, i18n.t("settings.business.validation.logoFilenameRequired")),
+  contentType: z
+    .string()
+    .trim()
+    .min(1, i18n.t("settings.business.validation.logoContentTypeRequired")),
   sizeBytes: z
     .number()
-    .int(t("settings.business.validation.logoSizeInvalid"))
-    .positive(t("settings.business.validation.logoSizeInvalid"))
-    .max(5 * 1024 * 1024, t("settings.business.validation.logoTooLarge"))
+    .int(i18n.t("settings.business.validation.logoSizeInvalid"))
+    .positive(i18n.t("settings.business.validation.logoSizeInvalid"))
+    .max(5 * 1024 * 1024, i18n.t("settings.business.validation.logoTooLarge"))
 })
 
 export type BusinessLogoUploadRequestValues = z.infer<typeof businessLogoUploadRequestSchema>
 
 export const confirmBusinessLogoUploadSchema = businessLogoUploadRequestSchema.extend({
-  objectKey: z.string().trim().min(1, t("settings.business.validation.logoObjectKeyRequired"))
+  objectKey: z.string().trim().min(1, i18n.t("settings.business.validation.logoObjectKeyRequired"))
 })
 
 export type ConfirmBusinessLogoUploadValues = z.infer<typeof confirmBusinessLogoUploadSchema>

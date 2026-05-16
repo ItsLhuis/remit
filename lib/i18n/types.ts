@@ -426,12 +426,15 @@ export type Translations = {
     }
     profile: {
       title: string
+      description: string
       avatar: string
       uploadPhoto: string
+      removePhoto: string
       avatarHelp: string
       uploadUrlFailed: string
       uploadFailed: string
       avatarUpdated: string
+      avatarRemoved: string
       invalidAvatarFileType: string
       accountDetails: string
       displayName: string
@@ -447,14 +450,20 @@ export type Translations = {
         emailChangeFailed: string
         unauthorized: string
         avatarUpdateFailed: string
+        avatarRemoveFailed: string
       }
       validation: {
         nameRequired: string
         emailInvalid: string
+        avatarFilenameRequired: string
+        avatarContentTypeRequired: string
+        avatarSizeInvalid: string
+        avatarTooLarge: string
       }
     }
     security: {
       title: string
+      description: string
       password: string
       changePassword: {
         title: string
@@ -488,6 +497,7 @@ export type Translations = {
     }
     appearance: {
       title: string
+      description: string
       theme: string
       themeDescription: string
       themeSystem: string
@@ -517,10 +527,12 @@ export type Translations = {
       logoAlt: string
       fallbackBusinessName: string
       uploadLogo: string
+      removeLogo: string
       logoHelp: string
       uploadUrlFailed: string
       uploadFailed: string
       logoUpdated: string
+      logoRemoved: string
       invalidLogoFileType: string
       saved: string
       saveProfile: string
@@ -568,6 +580,7 @@ export type Translations = {
       errors: {
         updateFailed: string
         logoUpdateFailed: string
+        logoRemoveFailed: string
       }
       validation: {
         nameRequired: string
@@ -588,18 +601,23 @@ export type Translations = {
     }
     payment: {
       title: string
+      description: string
     }
     invoicing: {
       title: string
+      description: string
     }
     taxRates: {
       title: string
+      description: string
     }
     templates: {
       title: string
+      description: string
     }
     email: {
       title: string
+      description: string
     }
     system: {
       title: string

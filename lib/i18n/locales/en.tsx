@@ -441,12 +441,15 @@ export const english: Language = {
       },
       profile: {
         title: "Profile",
+        description: "Manage your identity, account details, and current session.",
         avatar: "Avatar",
         uploadPhoto: "Upload photo",
+        removePhoto: "Remove photo",
         avatarHelp: "JPG, PNG, WebP or GIF. Max 5MB.",
         uploadUrlFailed: "Failed to get upload URL.",
         uploadFailed: "Failed to upload file",
         avatarUpdated: "Avatar updated",
+        avatarRemoved: "Avatar removed",
         invalidAvatarFileType: "Invalid file type. Use JPG, PNG, WebP, or GIF.",
         accountDetails: "Account details",
         displayName: "Display name",
@@ -462,15 +465,21 @@ export const english: Language = {
         errors: {
           emailChangeFailed: "Failed to initiate email change.",
           unauthorized: "Unauthorized.",
-          avatarUpdateFailed: "Failed to update profile picture."
+          avatarUpdateFailed: "Failed to update profile picture.",
+          avatarRemoveFailed: "Failed to remove profile picture."
         },
         validation: {
           nameRequired: "Name is required.",
-          emailInvalid: "Enter a valid email address."
+          emailInvalid: "Enter a valid email address.",
+          avatarFilenameRequired: "Avatar filename is required.",
+          avatarContentTypeRequired: "Avatar file type is required.",
+          avatarSizeInvalid: "Avatar file size is invalid.",
+          avatarTooLarge: "Avatar must be 5MB or smaller."
         }
       },
       security: {
         title: "Security",
+        description: "Control password access and two-factor authentication for your account.",
         password: "Password",
         changePassword: {
           title: "Change password",
@@ -508,6 +517,7 @@ export const english: Language = {
       },
       appearance: {
         title: "Appearance",
+        description: "Adjust the theme, typography, and interface density for your workspace.",
         theme: "Interface theme",
         themeDescription: "Select your preferred interface theme.",
         themeSystem: "System",
@@ -537,10 +547,12 @@ export const english: Language = {
         logoAlt: "{name} logo",
         fallbackBusinessName: "Business",
         uploadLogo: "Upload logo",
+        removeLogo: "Remove logo",
         logoHelp: "JPG, PNG, WebP or GIF. Max 5MB.",
         uploadUrlFailed: "Failed to get upload URL.",
         uploadFailed: "Failed to upload file",
         logoUpdated: "Business logo updated",
+        logoRemoved: "Business logo removed",
         invalidLogoFileType: "Invalid file type. Use JPG, PNG, WebP, or GIF.",
         saved: "Business settings saved",
         saveProfile: "Save profile",
@@ -588,7 +600,8 @@ export const english: Language = {
         country: "Country",
         errors: {
           updateFailed: "Failed to update business settings",
-          logoUpdateFailed: "Failed to update business logo"
+          logoUpdateFailed: "Failed to update business logo",
+          logoRemoveFailed: "Failed to remove business logo"
         },
         validation: {
           nameRequired: "Business name is required.",
@@ -608,19 +621,24 @@ export const english: Language = {
         }
       },
       payment: {
-        title: "Payment"
+        title: "Payment",
+        description: "Configure payment providers and defaults for getting paid."
       },
       invoicing: {
-        title: "Invoicing"
+        title: "Invoicing",
+        description: "Set invoice numbering, document defaults, and billing preferences."
       },
       taxRates: {
-        title: "Tax Rates"
+        title: "Tax Rates",
+        description: "Manage reusable tax rates for invoices, proposals, and client documents."
       },
       templates: {
-        title: "Templates"
+        title: "Templates",
+        description: "Maintain reusable document templates for client-facing workflows."
       },
       email: {
-        title: "Email"
+        title: "Email",
+        description: "Configure transactional email delivery for notifications and account flows."
       },
       system: {
         title: "System"

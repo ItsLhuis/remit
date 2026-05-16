@@ -1,16 +1,16 @@
 import { z } from "zod"
 
-import { t } from "@/lib/i18n/server"
+import i18n from "@/lib/i18n/i18n"
 
 export const accountDetailsSchema = z.object({
-  name: z.string().min(1, t("settings.profile.validation.nameRequired")),
-  email: z.email(t("settings.profile.validation.emailInvalid"))
+  name: z.string().min(1, i18n.t("settings.profile.validation.nameRequired")),
+  email: z.email(i18n.t("settings.profile.validation.emailInvalid"))
 })
 
 export type AccountDetailsValues = z.infer<typeof accountDetailsSchema>
 
 export const changeEmailSchema = z.object({
-  email: z.email(t("settings.profile.validation.emailInvalid"))
+  email: z.email(i18n.t("settings.profile.validation.emailInvalid"))
 })
 
 export type ChangeEmailValues = z.infer<typeof changeEmailSchema>
