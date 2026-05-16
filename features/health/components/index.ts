@@ -1,2 +1,2 @@
-export * from "./HealthDashboard"
+export * from "./HealthSettingsPage"
 export * from "./FingerprintCopyButton"

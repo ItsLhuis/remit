@@ -1,6 +1,8 @@
+"use client"
+
 import { cn } from "@/lib/utils"
 
-import { t } from "@/lib/i18n/server"
+import { useTranslation } from "@/lib/i18n"
 
 import { Icon, Typography, type IconProps } from "@/components/ui"
 
@@ -31,7 +33,10 @@ const descriptionClassNames = {
   error: "text-error-muted-foreground"
 } satisfies Record<SummaryTone, string>
 
-const getSummary = (checks: HealthCheckResult[]): Summary => {
+const getSummary = (
+  checks: HealthCheckResult[],
+  t: ReturnType<typeof useTranslation>["t"]
+): Summary => {
   const issueChecks = checks.filter((check) => check.countsAsIssue)
 
   const hasError = issueChecks.some((check) => check.status === "error")
@@ -64,7 +69,9 @@ const getSummary = (checks: HealthCheckResult[]): Summary => {
 }
 
 const HealthSummary = ({ checks }: HealthSummaryProps) => {
-  const summary = getSummary(checks)
+  const { t } = useTranslation()
+
+  const summary = getSummary(checks, t)
 
   return (
     <section className={cn("rounded-lg border p-4", toneClassNames[summary.tone])}>

@@ -1,6 +1,8 @@
+"use client"
+
 import { cn } from "@/lib/utils"
 
-import { t } from "@/lib/i18n/server"
+import { useTranslation } from "@/lib/i18n"
 
 import Link from "next/link"
 
@@ -21,7 +23,10 @@ type StatusConfig = {
   iconClassName: string
 }
 
-const getStatusConfig = (status: HealthStatus): StatusConfig => {
+const getStatusConfig = (
+  status: HealthStatus,
+  t: ReturnType<typeof useTranslation>["t"]
+): StatusConfig => {
   const statuses = {
     healthy: {
       icon: "CircleCheck",
@@ -65,7 +70,9 @@ const getStatusConfig = (status: HealthStatus): StatusConfig => {
 }
 
 const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
-  const status = getStatusConfig(check.status)
+  const { t } = useTranslation()
+
+  const status = getStatusConfig(check.status, t)
 
   const isFingerprint = check.id === "encryption-key"
 
