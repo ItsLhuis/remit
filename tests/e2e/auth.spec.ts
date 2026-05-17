@@ -27,7 +27,7 @@ test.describe("canonical auth flow", () => {
     await page.getByLabel(/business name/i).fill("Test Freelance Co")
     await page.getByLabel(/business email/i).fill("billing@test.example")
     await page.getByLabel(/country/i).click()
-    await page.getByRole("option", { name: /united states/i }).click()
+    await page.getByRole("option", { name: /united states$/i }).click()
     await page.getByLabel(/default currency/i).click()
     await page.getByRole("option", { name: /us dollar/i }).click()
     await page.getByRole("button", { name: /continue/i }).click()
