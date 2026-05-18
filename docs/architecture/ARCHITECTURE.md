@@ -1134,10 +1134,10 @@ The biggest friction in adopting a self-hosted application is not the feature se
 upgrade, backup, and recover. Remit treats each of these as first-class product concerns.
 
 Current implementation status: the repository ships Docker Compose files, an entrypoint migration
-script, the `/settings/system` health surface, and `pnpm remit:reset-password` for credential
-recovery. The one-command installer, automated backup/restore commands, upgrade command, encryption
-key rotation command, demo seed command, and deployment guides are planned operational work and are
-not shipped as package scripts today.
+script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
+and `pnpm remit:seed-demo` for deterministic local/demo data. The one-command installer, automated
+backup/restore commands, upgrade command, encryption key rotation command, and deployment guides are
+planned operational work and are not shipped as package scripts today.
 
 ### Planned one-command install
 
@@ -1312,7 +1312,7 @@ The PR description must include the output of `pnpm build:scripts` and the relev
 | `remit:restore`               | Planned | In-container | Safety contract pinned below. Mandatory pre-restore snapshot.            |
 | Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020). |
 | `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.               |
-| `remit:seed-demo`             | Planned | In-container | Demo data for screenshots/screencasts/demo deployments. Lowest priority. |
+| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data for screenshots/screencasts/demo deployments.    |
 
 ### Backup and restore
 
