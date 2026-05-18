@@ -19,7 +19,8 @@ export default defineConfig({
           include: [
             "features/**/services/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
             "lib/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
-            "hooks/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)"
+            "hooks/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
+            "scripts/_lib/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)"
           ],
           environment: "node"
         }

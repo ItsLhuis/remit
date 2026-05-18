@@ -3,7 +3,8 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: {
     migrate: "scripts/migrate.ts",
-    "reset-password": "scripts/reset-password.ts"
+    "reset-password": "scripts/reset-password.ts",
+    "seed-demo": "scripts/seed-demo.ts"
   },
   outDir: "scripts/dist",
   format: ["esm"],

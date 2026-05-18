@@ -60,6 +60,7 @@ COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle/migrations ./drizzle/migrations
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/migrate.js ./scripts/dist/migrate.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/reset-password.js ./scripts/dist/reset-password.js
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
