@@ -1,17 +1,20 @@
 # Remit — Architecture
 
-> This document is the authoritative technical reference for Remit. It describes what the system is,
-> why it is designed the way it is, and how its parts compose into a coherent whole. It is written
-> for engineers who want to understand the system deeply before contributing to it, for evaluators
-> reading the codebase as a portfolio artefact, and for the author as a living record of every
-> significant architectural decision.
+> This document is the authoritative, forward-looking technical reference for Remit. It describes
+> what the system must be, why it is designed that way, and how its parts compose into a coherent
+> whole. What is written here is what the code must implement; the implementation follows the
+> document, not the other way around. It is written for engineers who want to understand the system
+> deeply before contributing, for evaluators reading the codebase as a portfolio artefact, and for
+> the author as the canonical record of every significant architectural decision.
 >
-> Sections are refined in place as the system evolves. Nothing is deleted.
+> Sections are refined in place as decisions evolve; outdated paragraphs are rewritten rather than
+> preserved as history. The historical trail lives in git and in the immutable ADR set under
+> [Architecture: Architecture Decision Records](#20-architecture-decision-records).
 >
-> **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions -
+> **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions —
 > file naming, component patterns, form structure, import order, testing layout — are owned by the
-> rule files in `.claude/rules/` and are referenced from here, not duplicated. The final database
-> schema is owned by `SCHEMA.md` in this directory.
+> rule files in `.agents/rules/` and referenced from here, not duplicated. The final database schema
+> is owned by `SCHEMA.md` in this directory.
 
 ---
 
@@ -70,16 +73,16 @@ section — so that the same simplification holds for both deployment models.
 ### Primary workflow
 
 ```
-Lead ──► Client ──► Project ──► Proposal ──► Contract
-                       │                         │
-                       ├── Time Entries          │
-                       ├── Expenses              │
-                       └── Tasks                 │
-                                ▼                ▼
-                             Invoice ◄───────────┘
-                                │
-                                ├── Payments (manual or Stripe)
-                                └── Credit Notes
+Lead ??? Client ??? Project ??? Proposal ??? Contract
+                       ?                         ?
+                       ??? Time Entries          ?
+                       ??? Expenses              ?
+                       ??? Tasks                 ?
+                                ?                ?
+                             Invoice ?????????????
+                                ?
+                                ??? Payments (manual or Stripe)
+                                ??? Credit Notes
 ```
 
 Any subset of this workflow is valid. A user may create invoices directly from a client without a
@@ -320,48 +323,48 @@ erDiagram
 **Invoice**
 
 ```
-draft ──► sent ──► paid
-            │
-            └──► (overdue - computed, not stored: dueAt < now AND status = sent)
-            └──► (partially_paid - computed: sum(payments) < totalCents AND payments exist)
+draft ??? sent ??? paid
+            ?
+            ???? (overdue - computed, not stored: dueAt < now AND status = sent)
+            ???? (partially_paid - computed: sum(payments) < totalCents AND payments exist)
 ```
 
 **Proposal**
 
 ```
-draft ──► sent ──► accepted
-                └──► rejected
-                └──► expired (computed: expiresAt < now AND status = sent)
+draft ??? sent ??? accepted
+                ???? rejected
+                ???? expired (computed: expiresAt < now AND status = sent)
 ```
 
 **Project**
 
 ```
-active ◄──► on_hold
-  │
-  └──► completed
-  └──► cancelled
+active ???? on_hold
+  ?
+  ???? completed
+  ???? cancelled
 ```
 
 **Lead**
 
 ```
-new ──► contacted ──► qualified ──► proposal_sent ──► won ──► (converted to Client)
-                                                   └──► lost
+new ??? contacted ??? qualified ??? proposal_sent ??? won ??? (converted to Client)
+                                                   ???? lost
 ```
 
 **Contract**
 
 ```
-draft ──► sent ──► signed
-                └──► expired
-                └──► terminated
+draft ??? sent ??? signed
+                ???? expired
+                ???? terminated
 ```
 
 **RecurringInvoice**
 
 ```
-active ──► completed (end condition met: count or date)
+active ??? completed (end condition met: count or date)
 ```
 
 ### Key invariants
@@ -406,36 +409,36 @@ proceeds.
 ### High-level architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                           Browser / Client                               │
-│              React 19  ·  Next.js App Router  ·  Tailwind CSS v4         │
-└───────────────────┬────────────────────────────────┬─────────────────────┘
-                    │  RSC + Server Actions          │  Public / anonymous
-                    ▼                                ▼
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │      Application Layer      │    │           Public Layer               │
-  │   app/(dashboard)/**        │    │   /i/[token]   Invoice view          │
-  │   app/(auth)/**             │    │   /p/[token]   Proposal acceptance   │
-  │   app/(setup)/**            │    │   /c/[token]   Contract signing      │
-  └──────────────┬──────────────┘    │   /s/[token]   Client portal         │
-                 │                   └──────────────────────────────────────┘
-                 │ calls
-                 ▼
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │    Business Logic Layer     │    │            Event Bus                 │
-  │  features/*/services/       │◄───│   lib/events/                        │
-  │  Pure functions             │    │   Typed, in-process pub/sub          │
-  │  No Next / Drizzle / React  │    │   Cross-feature side-effect wiring   │
-  └──────────────┬──────────────┘    └──────────────────────────────────────┘
-                 │
-                 ▼
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │        Data Layer           │    │         External Adapters            │
-  │   Drizzle ORM               │    │   Email  - SMTP or Resend            │
-  │   PostgreSQL                │    │   Payments - Stripe (or others)      │
-  │   database/schema/          │    │   Storage  - local FS or S3          │
-  └─────────────────────────────┘    │   Error tracking - Sentry-compatible │
-                                     └──────────────────────────────────────┘
+????????????????????????????????????????????????????????????????????????????
+?                           Browser / Client                               ?
+?              React 19  —  Next.js App Router  —  Tailwind CSS v4         ?
+????????????????????????????????????????????????????????????????????????????
+                    ?  RSC + Server Actions          ?  Public / anonymous
+                    ?                                ?
+  ???????????????????????????????    ????????????????????????????????????????
+  ?      Application Layer      ?    ?           Public Layer               ?
+  ?   app/(dashboard)/**        ?    ?   /i/[token]   Invoice view          ?
+  ?   app/(auth)/**             ?    ?   /p/[token]   Proposal acceptance   ?
+  ?   app/(setup)/**            ?    ?   /c/[token]   Contract signing      ?
+  ???????????????????????????????    ?   /s/[token]   Client portal         ?
+                 ?                   ????????????????????????????????????????
+                 ? calls
+                 ?
+  ???????????????????????????????    ????????????????????????????????????????
+  ?    Business Logic Layer     ?    ?            Event Bus                 ?
+  ?  features/*/services/       ??????   lib/events/                        ?
+  ?  Pure functions             ?    ?   Typed, in-process pub/sub          ?
+  ?  No Next / Drizzle / React  ?    ?   Cross-feature side-effect wiring   ?
+  ???????????????????????????????    ????????????????????????????????????????
+                 ?
+                 ?
+  ???????????????????????????????    ????????????????????????????????????????
+  ?        Data Layer           ?    ?         External Adapters            ?
+  ?   Drizzle ORM               ?    ?   Email  - SMTP or Resend            ?
+  ?   PostgreSQL                ?    ?   Payments - Stripe (or others)      ?
+  ?   database/schema/          ?    ?   Storage  - local FS or S3          ?
+  ???????????????????????????????    ?   Error tracking - Sentry-compatible ?
+                                     ????????????????????????????????????????
 ```
 
 ### Technology stack
@@ -443,7 +446,7 @@ proceeds.
 | Layer      | Technology                        | Rationale                                                                                                                               |
 | ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework  | Next.js 16 (App Router)           | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes                  |
-| Runtime    | Node.js ≥ 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
+| Runtime    | Node.js ? 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
 | Language   | TypeScript (strict)               | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                                    |
 | ORM        | Drizzle                           | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                                      |
 | Database   | PostgreSQL                        | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search                              |
@@ -465,16 +468,16 @@ module. Not every feature needs every file — add only what the feature require
 
 ```
 features/<feature>/
-  ├── components/          React UI. Barrel at index.ts.
-  ├── hooks/               Feature-scoped hooks.
-  ├── services/            Pure business logic. No framework or IO imports.
-  │   └── __tests__/       Vitest unit tests. Co-located with what they test.
-  ├── queries.ts           Read operations via Drizzle. Server-only.
-  ├── mutations.ts         Write operations (server actions). Server-only.
-  ├── schemas.ts           Zod schemas + inferred types.
-  ├── types.ts             Public types not derivable from schemas.
-  ├── events.ts            Event handler registration for this feature.
-  └── index.ts             Public barrel. Only what other features may consume.
+  ??? components/          React UI. Barrel at index.ts.
+  ??? hooks/               Feature-scoped hooks.
+  ??? services/            Pure business logic. No framework or IO imports.
+  ?   ??? __tests__/       Vitest unit tests. Co-located with what they test.
+  ??? queries.ts           Read operations via Drizzle. Server-only.
+  ??? mutations.ts         Write operations (server actions). Server-only.
+  ??? schemas.ts           Zod schemas + inferred types.
+  ??? types.ts             Public types not derivable from schemas.
+  ??? events.ts            Event handler registration for this feature.
+  ??? index.ts             Public barrel. Only what other features may consume.
 ```
 
 File-level conventions (component naming, hook naming, import order, type rules) are codified in the
@@ -491,9 +494,9 @@ Types from `database/schema` are the shared data substrate and are exempt from t
 feature may import them directly.
 
 ```
-✓  import { type Client }    from "@/features/clients"           ← barrel
-✓  import { type Client }    from "@/database/schema"            ← substrate
-✗  import { clientSchema }   from "@/features/clients/schemas"   ← sibling file
+?  import { type Client }    from "@/features/clients"           ? barrel
+?  import { type Client }    from "@/database/schema"            ? substrate
+?  import { clientSchema }   from "@/features/clients/schemas"   ? sibling file
 ```
 
 ### Why closed modules
@@ -533,22 +536,22 @@ Representative examples by feature:
 
 ```
 features/invoicing/services/
-  calculateInvoiceTotal.ts       ← tax + discount arithmetic on line items
-  generateInvoiceNumber.ts       ← sequence generation given prefix and last number
-  canTransitionInvoiceStatus.ts  ← status transition guard, returns { allowed, reason }
+  calculateInvoiceTotal.ts       ? tax + discount arithmetic on line items
+  generateInvoiceNumber.ts       ? sequence generation given prefix and last number
+  canTransitionInvoiceStatus.ts  ? status transition guard, returns { allowed, reason }
 
 features/proposals/services/
-  isProposalExpired.ts           ← expiresAt vs. a given Date
-  canTransitionProposalStatus.ts ← transition guard
+  isProposalExpired.ts           ? expiresAt vs. a given Date
+  canTransitionProposalStatus.ts ? transition guard
 
 features/timeTracking/services/
-  aggregateBillableHours.ts      ← sum billable seconds, convert to hours
-  resolveHourlyRate.ts           ← rate precedence: entry → task → project → client → default
-  computeInvoiceableEntries.ts   ← filter + group unbilled entries for invoice line item generation
+  aggregateBillableHours.ts      ? sum billable seconds, convert to hours
+  resolveHourlyRate.ts           ? rate precedence: entry ? task ? project ? client ? default
+  computeInvoiceableEntries.ts   ? filter + group unbilled entries for invoice line item generation
 
 features/recurring/services/
-  computeNextRunDate.ts          ← next date from cadence + last run date
-  shouldGenerateInvoice.ts       ← whether a schedule is due as of a given date
+  computeNextRunDate.ts          ? next date from cadence + last run date
+  shouldGenerateInvoice.ts       ? whether a schedule is due as of a given date
 ```
 
 ### Why pure functions here
@@ -572,10 +575,10 @@ logic, `services/` extracts to `packages/core` with no architectural change — 
 Server actions in `mutations.ts` follow a strict four-step pattern with no exceptions:
 
 ```
-1. Validate   → safeParse with the feature's Zod schema. Return { error } on failure.
-2. Compute    → call into services/ for any branching logic.
-3. Persist    → Drizzle writes, wrapped in try/catch. Map known DB errors to friendly strings.
-4. Side-effects → emit event bus event; revalidatePath/revalidateTag; write audit log if needed.
+1. Validate   ? safeParse with the feature's Zod schema. Return { error } on failure.
+2. Compute    ? call into services/ for any branching logic.
+3. Persist    ? Drizzle writes, wrapped in try/catch. Map known DB errors to friendly strings.
+4. Side-effects ? emit event bus event; revalidatePath/revalidateTag; write audit log if needed.
 ```
 
 They return `{ data: T } | { error: string }` and never throw to the caller. The full canonical
@@ -698,11 +701,11 @@ member.invited         member.accepted        member.removed         invitation.
 
 ```
 emit("invoice.paid", { invoiceId })
-  ├── features/activityLog/events.ts   → writes "Invoice #INV-042 marked as paid"
-  ├── features/audit/events.ts         → writes security audit entry
-  ├── features/dashboard/events.ts     → revalidates dashboard KPI cache tags
-  ├── features/email/events.ts         → sends payment receipt if SMTP is configured
-  └── features/projects/events.ts      → checks if all project invoices are paid;
+  ??? features/activityLog/events.ts   ? writes "Invoice #INV-042 marked as paid"
+  ??? features/audit/events.ts         ? writes security audit entry
+  ??? features/dashboard/events.ts     ? revalidates dashboard KPI cache tags
+  ??? features/email/events.ts         ? sends payment receipt if SMTP is configured
+  ??? features/projects/events.ts      ? checks if all project invoices are paid;
                                           suggests marking project as completed
 ```
 
@@ -728,21 +731,21 @@ Security is a first-class feature. The goal is "demonstrably defensible" as a po
 
 ```
 POST /login
-  │
-  ├── Rate limiter check (in-memory or Redis adapter)
-  │
-  ├── better-auth credential verification
-  │     ├── Failure → emit auth.login.failed → audit log (IP, user-agent, timestamp)
-  │     └── Success → continue
-  │
-  ├── TOTP verification (mandatory, no bypass)
-  │     ├── Failure → audit log
-  │     └── Success → continue
-  │
-  ├── Session created (httpOnly, secure, sameSite: lax)
-  │     └── activeOrganizationId set on session (always the instance organization)
-  │
-  └── emit auth.login.succeeded → audit log
+  ?
+  ??? Rate limiter check (in-memory or Redis adapter)
+  ?
+  ??? better-auth credential verification
+  ?     ??? Failure ? emit auth.login.failed ? audit log (IP, user-agent, timestamp)
+  ?     ??? Success ? continue
+  ?
+  ??? TOTP verification (mandatory, no bypass)
+  ?     ??? Failure ? audit log
+  ?     ??? Success ? continue
+  ?
+  ??? Session created (httpOnly, secure, sameSite: lax)
+  ?     ??? activeOrganizationId set on session (always the instance organization)
+  ?
+  ??? emit auth.login.succeeded ? audit log
 ```
 
 ### Better Auth ownership
@@ -848,11 +851,11 @@ Authentication and onboarding state is derived exclusively from the database and
 No routing decisions are stored in cookies. The middleware enforces a strict state machine:
 
 ```
-No user record in DB             → redirect to /register
-No active session                → redirect to /login
-Business profile incomplete      → redirect to /setup (business step)
-TOTP not enrolled                → redirect to /setup (TOTP step)
-All conditions satisfied         → allow to (dashboard)
+No user record in DB             ? redirect to /register
+No active session                ? redirect to /login
+Business profile incomplete      ? redirect to /setup (business step)
+TOTP not enrolled                ? redirect to /setup (TOTP step)
+All conditions satisfied         ? allow to (dashboard)
 ```
 
 This rule is non-negotiable. Adding a cookie to influence routing is a violation. See ADR-0001.
@@ -1005,13 +1008,13 @@ JavaScript shipped to the browser for read-heavy pages — invoice lists, client
 
 ```
 app/(dashboard)/invoices/page.tsx       Server component - fetches, composes
-  └── features/invoicing/components/
-        ├── InvoiceList.tsx              Server component - renders table
-        ├── InvoiceFilters.tsx           Client component - search, filter UI
-        └── InvoiceActions/
-              ├── InvoiceActions.tsx     Client component - send, mark paid, delete
-              └── DeleteInvoiceDialog.tsx  Client component - confirmation dialog
-                    └── components/ui/   Shared primitives (shadcn + Radix UI)
+  ??? features/invoicing/components/
+        ??? InvoiceList.tsx              Server component - renders table
+        ??? InvoiceFilters.tsx           Client component - search, filter UI
+        ??? InvoiceActions/
+              ??? InvoiceActions.tsx     Client component - send, mark paid, delete
+              ??? DeleteInvoiceDialog.tsx  Client component - confirmation dialog
+                    ??? components/ui/   Shared primitives (shadcn + Radix UI)
 ```
 
 Component-level conventions — file naming, decomposition rules, the `Typography` and `Icon`
@@ -1080,10 +1083,10 @@ Zod schemas via `zod-openapi`.
 ### Validation at every boundary
 
 ```
-Browser input  ──►  Zod schema in features/*/schemas.ts   ──►  server action
-URL params     ──►  Zod schema in the route handler        ──►  query function
-Env vars       ──►  Zod schema in lib/config/env.ts        ──►  process fails fast at boot
-Settings read  ──►  Zod schema on read and write           ──►  defensive against old data
+Browser input  ???  Zod schema in features/*/schemas.ts   ???  server action
+URL params     ???  Zod schema in the route handler        ???  query function
+Env vars       ???  Zod schema in lib/config/env.ts        ???  process fails fast at boot
+Settings read  ???  Zod schema on read and write           ???  defensive against old data
 ```
 
 No data crosses a boundary unvalidated.
@@ -1199,26 +1202,306 @@ connection) so configuration is verifiable in place.
 
 `/api/health` (public) returns `200` or `503` with a minimal JSON body for uptime monitors.
 
-### Backup and restore
+### Operational CLI contract
 
-Backup configuration and status fields exist in the settings schema, and `/settings/system` can
-surface missing or stale backup status. The actual scheduled backup job, encrypted backup bundle
-writer, retention enforcement, and restore CLI are not implemented yet.
+Operational behaviour ships as `remit:<operation>` CLI commands governed by a single contract,
+pinned by [ADR-0020](adr/0020-operational-cli-contract.md). The contract covers every command
+intended to run against a real Remit installation — self-hosted or Hosted-managed. It does not cover
+developer ergonomics scripts (`dev`, `services:*`, `database:test:*`), CI helpers, or `version:*`
+bump scripts, which are workflow tooling.
 
-The planned scheduled job (configurable cadence, daily by default) runs `pg_dump` plus an upload tar
-archive, encrypts the bundle using the master AES-256-GCM key, and stores it at the configured
-destination: local filesystem (default), Amazon S3, Cloudflare R2, or Backblaze B2. Retention policy
-is configurable: keep N daily, M weekly, K monthly snapshots.
+#### Naming and shape
 
-The planned restore flow is interactive via the CLI:
+| Rule                | Required form                                                |
+| ------------------- | ------------------------------------------------------------ |
+| `package.json` key  | `remit:<operation>` — colon-separated, lowercase, kebab-case |
+| Source file         | `scripts/<operation>.ts`                                     |
+| Compiled output     | `scripts/dist/<operation>.js`                                |
+| Invocation in image | `node ./scripts/dist/<operation>.js` via `pnpm remit:<op>`   |
 
-```bash
-docker exec remit-app pnpm remit:restore <backup-file>
+Reserved names (claimed by planned work; never reuse for unrelated commands): `remit:reset-password`
+(shipped), `remit:backup`, `remit:restore`, `remit:rotate-encryption-key`, `remit:seed-demo`.
+Deliberately **not reserved**: `remit:upgrade`. Upgrade is host-side per [Updates](#updates) and
+must not appear as a package script.
+
+#### Execution context
+
+Every `remit:*` command declares one execution context.
+
+| Context          | Invocation                                             | Permitted operations                                                                                                |
+| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **In-container** | `docker compose exec app pnpm remit:<op>`              | Anything reachable from inside the app container: database, encryption key, uploads volume, configured object store |
+| **Host-side**    | `bash scripts/host/<op>.sh` or operator-run docs steps | Pulling/pushing Docker images, restarting the compose project, mounting host volumes, image registry access         |
+| **Both**         | Same script, callable from either side                 | Reserved for read-only inspection helpers; no destructive operation may declare "both"                              |
+
+A script that requires Docker socket access, image pulls, or compose restarts is **host-side only**
+— no exception. Mounting the Docker socket into the app container is rejected categorically; the
+privilege escalation surface a single application vulnerability would create is unacceptable against
+the security posture in [`.agents/rules/security.md`](../../.agents/rules/security.md).
+
+#### Promotion criteria
+
+A `remit:<operation>` command becomes a `package.json` script only when **all** of the following
+hold:
+
+1. **Real backing implementation.** The compiled output runs end-to-end against a real Postgres
+   instance and a real uploads volume — no `throw new Error("not implemented")`, no `console.log`
+   stub, no commented-out core logic.
+2. **Test coverage matching the tier per
+   [`.agents/rules/testing.md`](../../.agents/rules/testing.md).** Pure helpers extracted into
+   `scripts/_lib/` or service modules are Tier 1 (>90% coverage). End-to-end script behaviour is
+   Tier 2 integration-tested against the Dockerized test Postgres (`docker-compose.test.yml`).
+3. **Docs accuracy.** `README.md` and this section's [status matrix](#status-matrix) list the
+   command as shipped (move from "planned" to "shipped" in the same PR as the implementation
+   merges).
+4. **Tsup entry.** `tsup.scripts.config.ts` includes the new entry; the entry name matches
+   `<operation>` exactly.
+5. **Runtime image.** `Dockerfile` copies the compiled output into the runtime image when the
+   execution context is **in-container**. Host-side scripts are not copied into the image.
+
+A PR that adds a `package.json` script without satisfying every item above is rejected. No
+placeholder commands.
+
+#### Build and packaging
+
+- Source: TypeScript in `scripts/<operation>.ts`, top-level await allowed, ESM only.
+- Output: `scripts/dist/<operation>.js` via tsup (`platform: "node"`, `target: "node24"`,
+  `format: ["esm"]`, `clean: true`, `splitting: false`).
+- Shared CLI helpers belong in `scripts/_lib/` (prompts, logging, exit handling); they must not
+  depend on `next/*`, `react`, or any client-only module.
+- Pure business logic invoked by a script lives in `features/<feature>/services/` per ADR-0007 and
+  is imported through the feature server barrel.
+- Scripts must call `process.exit(0)` on success and `process.exit(1)` on uncaught failure. They
+  must close the database client explicitly or rely on `pg`'s implicit close.
+- Sensitive output (passwords, encryption keys, tokens) is printed to stdout only when the user
+  explicitly requested it interactively; never logged through `pino`.
+
+For each in-container script, the runtime stage of `Dockerfile` includes one COPY line:
+
+```dockerfile
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/<operation>.js ./scripts/dist/<operation>.js
 ```
 
-`remit:restore` is not a package script today. When implemented, the command requires explicit
-confirmation of the target environment. A missed backup for N consecutive days surfaces a banner in
-the dashboard.
+Host-side scripts (currently: upgrade flow) live under `scripts/host/` as POSIX shell scripts and
+are **not** copied into the image. They are checked out from the repository on the host and executed
+there.
+
+#### Validation baseline
+
+Every later implementation PR for a `remit:*` script must run and pass:
+
+| Check                                                        | Command                                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `package.json` parses as valid JSON                          | `node -e "JSON.parse(require('fs').readFileSync('package.json'))"` |
+| Every `remit:*` script resolves to an existing compiled file | grep `scripts/dist/<name>.js`; assert file exists                  |
+| `tsup` build succeeds                                        | `pnpm build:scripts`                                               |
+| TypeScript passes                                            | `pnpm typecheck`                                                   |
+| Lint passes                                                  | `pnpm lint`                                                        |
+| Unit tests for extracted services pass                       | `pnpm test`                                                        |
+| Integration test for the script passes against test Postgres | `pnpm test:integration`                                            |
+| Docs do not claim unshipped commands are shipped             | Manual review against `README.md` and this section's status matrix |
+
+The PR description must include the output of `pnpm build:scripts` and the relevant test run.
+
+#### Status matrix
+
+| Command                       | Status  | Context      | Notes                                                                    |
+| ----------------------------- | ------- | ------------ | ------------------------------------------------------------------------ |
+| `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.   |
+| `remit:backup`                | Planned | In-container | Archive format pinned below. Local + S3/R2/B2 destinations supported.    |
+| `remit:restore`               | Planned | In-container | Safety contract pinned below. Mandatory pre-restore snapshot.            |
+| Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020). |
+| `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.               |
+| `remit:seed-demo`             | Planned | In-container | Demo data for screenshots/screencasts/demo deployments. Lowest priority. |
+
+### Backup and restore
+
+Backup configuration and status fields exist in the settings schema, and `/settings/system` surfaces
+missing or stale backup status. The scheduled backup job, encrypted bundle writer, retention
+enforcement, and restore CLI are planned work, not yet implemented. This section pins the archive
+format and the restore safety contract so the implementation can be built against a stable spec.
+
+#### Archive file
+
+Every backup is a **single file** on disk:
+
+```
+remit-backup-<YYYYMMDDTHHMMSSZ>-v<appVersion>.remitbak
+```
+
+Extension `.remitbak` is recognizable, unambiguous, and discourages accidental opening with
+unrelated tools. The file is binary; do not gzip it externally — it is already compressed
+internally.
+
+#### Byte layout
+
+```
++----------------------------------------------------------+
+| Plaintext header (fixed, 64 bytes)                       |
+|   offset 0   : magic "REMIT-BAK\0"           (10 bytes)  |
+|   offset 10  : archiveFormatVersion (uint16 BE) (2)      |
+|   offset 12  : encryptionAlgorithm (uint8)   (1)         |
+|                   0x01 = AES-256-GCM                     |
+|   offset 13  : reserved, must be 0           (3 bytes)   |
+|   offset 16  : iv                            (12 bytes)  |
+|   offset 28  : keyFingerprint (first 16 bytes of         |
+|                  SHA-256 of the AES key)     (16 bytes)  |
+|   offset 44  : reserved, must be 0           (20 bytes)  |
++----------------------------------------------------------+
+| Ciphertext body (AES-256-GCM)                            |
+|   The plaintext, after decryption, is a gzip-compressed  |
+|   tar stream with the layout described below.            |
++----------------------------------------------------------+
+| GCM auth tag (16 bytes, appended)                        |
++----------------------------------------------------------+
+```
+
+The plaintext header is **not** authenticated by GCM; it carries no secret data and serves only to
+identify the format and key fingerprint before attempting decryption. The header is re-validated
+against the manifest's `archiveFormatVersion` and `encryption.keyFingerprint` after decryption — a
+mismatch aborts restore.
+
+The initial release uses `archiveFormatVersion = 1`. The format is versioned so future revisions can
+extend it without breaking existing archives.
+
+#### Decrypted payload layout (gzip tar)
+
+```
+manifest.json
+checksums.sha256
+database/
+  remit.dump            (pg_dump --format=custom output)
+uploads/
+  <uploaded-file-1>
+  <uploaded-file-2>
+  ...
+```
+
+- `manifest.json` describes everything else and is the first entry in the tar so restore can stream
+  the manifest and decide before reading the rest.
+- `checksums.sha256` lists `<sha256>  <path>` lines for `database/remit.dump` and every file under
+  `uploads/`. Restore verifies every file's checksum before applying.
+- `database/remit.dump` is the output of `pg_dump --format=custom --no-owner --no-privileges`.
+  Custom format gives a deterministic, restore-friendly binary that `pg_restore --clean --if-exists`
+  consumes without role assumptions on the target instance.
+- `uploads/` is a flat mirror of the runtime uploads directory at the time of backup. The storage
+  adapter (per ADR-0019) is responsible for streaming objects into the tar regardless of the runtime
+  backend.
+
+#### Manifest shape
+
+```json
+{
+  "archiveFormatVersion": 1,
+  "appVersion": "1.2.3",
+  "createdAt": "2026-05-17T10:00:00Z",
+  "createdBy": "remit:backup",
+  "schemaMigrationId": "0042_some_migration",
+  "encryption": {
+    "algorithm": "AES-256-GCM",
+    "keySource": "REMIT_ENCRYPTION_KEY",
+    "keyFingerprint": "sha256:<hex>"
+  },
+  "compression": "gzip",
+  "components": {
+    "database": {
+      "format": "pg_dump-custom",
+      "size": 1234567,
+      "sha256": "<hex>"
+    },
+    "uploads": {
+      "format": "tar-stream",
+      "fileCount": 42,
+      "totalSize": 9876543,
+      "sha256Manifest": "<hex of checksums.sha256>"
+    }
+  },
+  "destination": "local"
+}
+```
+
+`destination` is one of `local`, `s3`, `r2`, `b2`. It records where the archive was **intended** to
+be stored; it does not affect restore, which always reads from a single file path.
+
+#### Encryption
+
+- Algorithm: AES-256-GCM (algorithm byte `0x01`).
+- Key: reuses `REMIT_ENCRYPTION_KEY` per ADR-0005 — the same master key used for column-level
+  encryption at rest. No new secret to manage.
+- IV: 12 random bytes per archive, written into the plaintext header.
+- Auth tag: 16 bytes, appended to the ciphertext.
+- `keyFingerprint`: first 16 bytes of `SHA-256(rawKey)` — sufficient to detect mismatched keys
+  during restore without disclosing the key.
+
+#### Destinations
+
+Destinations match `settings.backup_destination` and ADR-0019:
+
+- `local` — write to a local filesystem path under `REMIT_DATA_DIR`.
+- `s3`, `r2`, `b2` — write to an S3-compatible bucket via the existing storage adapter, using the
+  encrypted backup credentials from `settings.backup_s3_*`.
+
+A single `remit:backup` run writes to exactly one destination: the one configured in `settings`.
+Multi-destination fan-out is deferred; an operator who wants redundant remote backups runs the
+command twice. Retention is configurable: keep N daily, M weekly, K monthly snapshots.
+
+#### Forward compatibility
+
+Older versions of `remit:restore` must refuse archives with an `archiveFormatVersion` they do not
+know how to read. Newer versions must accept every previously released format version. Any change to
+the byte layout, encryption algorithm, manifest schema, or destination model that breaks an existing
+version bumps `archiveFormatVersion` and is recorded in a new ADR that supersedes ADR-0020 on this
+point.
+
+#### Restore safety contract
+
+Restore is destructive. The contract minimises accidental data loss and never silently restores into
+an environment that cannot hold the archive's data.
+
+**Pre-restore snapshot — mandatory.** Before applying any changes, `remit:restore` creates a
+snapshot of the current instance using the same code path as `remit:backup`, writing to `local`
+regardless of the configured destination, with the filename suffix `.pre-restore.remitbak`. If the
+snapshot cannot be created (disk full, key mismatch, database unreachable), restore aborts before
+touching live data. The snapshot path is printed to the operator before the destructive step begins.
+
+**Confirmation requirements.** The operator must confirm the database name and the snapshot path
+with a typed full match — no default-yes prompts. A `--yes` non-interactive flag exists for scripted
+operation but requires `REMIT_ALLOW_UNATTENDED_RESTORE=1` in the environment. The flag combination
+is documented in the help output.
+
+**Refusal rules.** Restore refuses (exit code 1, no destructive action taken) when:
+
+1. `archiveFormatVersion` is greater than the highest version the running build supports.
+2. The archive's `encryption.keyFingerprint` does not match the live `REMIT_ENCRYPTION_KEY`
+   fingerprint. The archive cannot be decrypted; refusing avoids partial restores.
+3. The archive's `appVersion` is **newer** than the running `appVersion`. Downgrading is not
+   supported by Drizzle migrations (forward-only); a newer archive may carry data shapes the current
+   code cannot read.
+4. The plaintext header magic, reserved bytes, or algorithm field do not match the format
+   specification.
+5. The decrypted manifest's `archiveFormatVersion` does not match the plaintext header.
+6. Any file's SHA-256 in `checksums.sha256` fails verification.
+
+Restore **warns but proceeds** (after the typed confirmation) when the archive's `schemaMigrationId`
+is older than the current head. After restore completes, migrations are applied forward; this is the
+same code path the entrypoint already runs.
+
+**Effect on current uploads and data.** Database:
+`pg_restore --clean --if-exists --no-owner --no-privileges` against the live database. This drops
+and recreates objects from the dump. Uploads: the live uploads directory is replaced with the
+archive's contents; files present in the live directory but absent from the archive are deleted as
+part of the replacement. Settings rows containing encrypted columns are valid post-restore because
+the encryption key has already been verified by fingerprint match.
+
+**Logging and redaction.** All restore activity is logged through `pino` per
+[`.agents/rules/errors.md`](../../.agents/rules/errors.md). The following must **never** appear in
+logs: the raw AES key, the typed confirmation echo, password hashes from `accounts`, decrypted
+values of encrypted columns, archive byte contents, or full manifest JSON when it contains encrypted
+credential ciphertext (`settings.backup_s3_*`, etc.). An `audit_log` entry is written before the
+destructive step begins (`actorUserId: null`, `actorRole: null`, `targetEntityType: "instance"`,
+`metadata: { archivePath, archiveAppVersion, snapshotPath }`) and again on completion or abort.
+
+A missed backup for N consecutive days surfaces a banner in the dashboard.
 
 ### Updates
 
@@ -1227,32 +1510,38 @@ the column nullable; release N+1 backfills and adds `NOT NULL`. This allows any 
 upgrade without a maintenance window.
 
 The current container entrypoint applies pending migrations before starting the app. There is no
-`remit:upgrade` package script today.
+`remit:upgrade` package script today, and there will not be one: per ADR-0020, the upgrade flow is
+**host-side**. The app container is not allowed to pull its own image, restart its parent compose
+project, or mount the Docker socket — that would be a substantial privilege escalation surface.
 
-The planned upgrade flow is one command:
+The planned upgrade flow is a host-side script (`scripts/host/upgrade.sh`) executed by the operator
+on the host that owns the compose project:
 
 ```bash
-docker exec remit-app pnpm remit:upgrade
+bash scripts/host/upgrade.sh
 ```
 
-It performs: a snapshot backup, image pull, migration run, and restart. Auto-upgrade is opt-in;
-manual is the default. The CHANGELOG is published in the repository and surfaced in
-`/settings/system` when an update is available.
+It performs:
 
-### CLI scripts
+1. Take an ad-hoc backup via `docker compose exec app pnpm remit:backup`. Refuse to proceed if the
+   backup fails.
+2. `docker compose pull`.
+3. `docker compose up -d`. The container entrypoint applies pending migrations before serving
+   traffic.
+4. Wait for the health check; print success or rollback instructions on failure.
 
-Currently shipped as `pnpm` scripts inside the Docker image:
+Host-side scripts are not copied into the runtime image. Auto-upgrade is opt-in; manual is the
+default. The CHANGELOG is published in the repository and surfaced in `/settings/system` when an
+update is available.
 
-- `remit:reset-password` - interactive password reset (for the lost-everything case).
+### Encryption key rotation
 
-Planned operational scripts, not exposed until backed by implementation:
-
-- `remit:backup` - ad-hoc backup.
-- `remit:restore` - interactive restore.
-- `remit:upgrade` - full upgrade flow.
-- `remit:rotate-encryption-key` - re-encrypt all encrypted fields with a new key (advanced).
-- `remit:seed-demo` - populate the instance with realistic demo data (for screenshots, screencasts,
-  and demo deployments).
+Key rotation is reserved as `remit:rotate-encryption-key`. The script will re-encrypt every
+encrypted column and every existing backup archive with a new master key. The semantics — a two-key
+window for read-old-write-new, settings-row migration, audit-log behaviour, and refusal-to-start
+with a mid-rotation database — are substantial enough to require their own ADR when implementation
+begins. No package script ships before that ADR. ADR-0020 reserves the name; the rotation ADR will
+be numbered at design time and must merge before the implementation.
 
 ### Deployment guides
 
@@ -1315,7 +1604,7 @@ editors out of the box.
 lib/i18n/
   config.ts         i18next initialization, ICU plugin, defaults
   types.ts          Translations type definition (single source of truth for key shape)
-  locales.ts        Map of locale code → Language object (English only initially)
+  locales.ts        Map of locale code ? Language object (English only initially)
   resources.ts      Translation resources for i18next consumption
   hooks.ts          useTranslation hook (re-export with locales)
   index.ts          Public barrel
@@ -1401,9 +1690,9 @@ Tier 2 - Integration (every server action)
   IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
 
 Tier 3 - E2E (Playwright, five canonical flows)
-  1. Register → setup wizard → TOTP + backup codes → first dashboard
-  2. Client → project → proposal → acceptance → invoice → paid
-  3. Time entry → invoice → send → paid
+  1. Register ? setup wizard ? TOTP + backup codes ? first dashboard
+  2. Client ? project ? proposal ? acceptance ? invoice ? paid
+  3. Time entry ? invoice ? send ? paid
   4. Recurring invoice generates expected draft on next-run date
   5. Password reset via email or CLI/admin reset
 
@@ -1543,10 +1832,12 @@ duplicate emails). Until then, simpler is better.
 
 ## 20. Architecture Decision Records
 
-ADRs are numbered, immutable, and append-only. They live in `docs/architecture/adr/`. Once an ADR is
-recorded, it is never deleted or rewritten - later decisions create new ADRs that supersede or
-refine earlier ones. Each ADR follows the standard template: **Context**, **Decision**,
-**Consequences**, **Alternatives considered**.
+ADRs are numbered and live in `docs/architecture/adr/`. Once a decision has shipped against an ADR,
+that ADR is immutable: later changes create new ADRs that supersede or refine earlier ones, never
+rewrite-in-place. ADRs that still record decisions in the design phase (no implementation has
+shipped against them yet) may be consolidated or rewritten in place — the goal is a clean decision
+record at the moment implementation begins, not a frozen history of every draft. Each ADR follows
+the standard template: **Context**, **Decision**, **Consequences**, **Alternatives considered**.
 
 | ADR                                              | Title                                                                       | Status   |
 | ------------------------------------------------ | --------------------------------------------------------------------------- | -------- |
@@ -1569,9 +1860,14 @@ refine earlier ones. Each ADR follows the standard template: **Context**, **Deci
 | [0017](adr/0017-polymorphic-line-items.md)       | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
 | [0018](adr/0018-no-telemetry.md)                 | No telemetry or analytics by default                                        | Accepted |
 | [0019](adr/0019-storage-backend-adapters.md)     | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
+| [0020](adr/0020-operational-cli-contract.md)     | Operational CLI contract                                                    | Accepted |
 
 ---
 
-_This document is the authoritative reference for Remit's technical architecture. When a significant
-architectural decision is made, this document is updated and a new ADR is recorded. Sections are
-refined in place; nothing is deleted._
+_This document is the authoritative, forward-looking reference for Remit's technical architecture.
+It describes the system as it must be — what is written here is what the code must implement.
+Sections are refined in place as decisions evolve; outdated paragraphs are rewritten rather than
+preserved as history (the git log is the historical record). When a significant architectural
+decision is made, this document is updated and a new ADR is recorded; ADRs that have shipped against
+existing code remain immutable per
+[Architecture: Architecture Decision Records](#20-architecture-decision-records)._

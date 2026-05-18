@@ -160,12 +160,20 @@ Current operational support:
 
 Planned operational support:
 
-- **Encrypted automatic backups** — `pg_dump` plus uploads, AES-256-GCM-encrypted, to local disk,
-  S3, R2, or Backblaze B2, with configurable retention.
-- **One-command upgrades** — a future `remit:upgrade` flow that snapshots a backup, pulls the new
-  image, runs forward-compatible migrations, and restarts.
+- **Encrypted automatic backups** — `pg_dump --format=custom` plus uploads, AES-256-GCM-encrypted
+  with the master `REMIT_ENCRYPTION_KEY`, to local disk, S3, R2, or Backblaze B2, with configurable
+  retention. Archive format pinned by
+  [ARCHITECTURE.md §14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience) (Backup and
+  restore).
+- **Host-side upgrades** — a `scripts/host/upgrade.sh` flow that snapshots a backup, pulls the new
+  image, restarts the compose project, and relies on the existing entrypoint to run forward-only
+  migrations. Per
+  [ARCHITECTURE.md §14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience) (Updates),
+  upgrade is host-side: no `remit:upgrade` package script, no Docker socket mount.
 - **Additional CLIs** — backup, restore, encryption key rotation, and demo data seeding once those
-  flows have real implementations.
+  flows have real implementations. New `remit:*` scripts follow the contract in
+  [ARCHITECTURE.md §14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience) (Operational
+  CLI contract), formalised by [ADR-0020](./docs/architecture/adr/0020-operational-cli-contract.md).
 
 ## Stack
 
@@ -184,7 +192,7 @@ documented in [`docs/architecture/`](./docs/architecture/):
   column, constraint, and index in the database.
 - [`adr/`](./docs/adr) — Architecture Decision Records, numbered and immutable.
 
-Coding conventions for the codebase live in [`.claude/rules/`](./.claude/rules/) and are enforced
+Coding conventions for the codebase live in [`.agent/rules/`](./.agent/rules/) and are enforced
 through ESLint and the test suite.
 
 ## License
