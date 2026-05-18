@@ -73,6 +73,7 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     ".next/**",
+    ".corepack/**",
     "coverage/**",
     "out/**",
     "build/**",

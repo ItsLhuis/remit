@@ -29,6 +29,7 @@ tests/e2e/results/
 
 # cache
 .cache
+.corepack
 
 # debug
 npm-debug.log*
