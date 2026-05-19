@@ -1135,9 +1135,13 @@ upgrade, backup, and recover. Remit treats each of these as first-class product 
 
 Current implementation status: the repository ships Docker Compose files, an entrypoint migration
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
-and `pnpm remit:seed-demo` for deterministic local/demo data. The one-command installer, automated
-backup/restore commands, upgrade command, encryption key rotation command, and deployment guides are
-planned operational work and are not shipped as package scripts today.
+`pnpm remit:backup` for encrypted local backup archives, and `pnpm remit:seed-demo` for
+deterministic local/demo data. The demo seed defaults to the original small dataset and supports
+`--size medium` and `--size large` when operators need more records for reports, screenshots, or
+performance-flavored demos. It also supports bounded numeric overrides for synthetic load, capped at
+1,000 clients, 4,000 projects, and 20,000 invoices. The one-command installer, restore command,
+remote backup destinations, upgrade command, encryption key rotation command, and deployment guides
+are planned operational work and are not shipped as package scripts today.
 
 ### Planned one-command install
 
@@ -1308,11 +1312,11 @@ The PR description must include the output of `pnpm build:scripts` and the relev
 | Command                       | Status  | Context      | Notes                                                                    |
 | ----------------------------- | ------- | ------------ | ------------------------------------------------------------------------ |
 | `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.   |
-| `remit:backup`                | Planned | In-container | Archive format pinned below. Local + S3/R2/B2 destinations supported.    |
+| `remit:backup`                | Shipped | In-container | Local encrypted `.remitbak` destination. S3/R2/B2 destinations deferred. |
 | `remit:restore`               | Planned | In-container | Safety contract pinned below. Mandatory pre-restore snapshot.            |
 | Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020). |
 | `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.               |
-| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data for screenshots/screencasts/demo deployments.    |
+| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.    |
 
 ### Backup and restore
 
@@ -1387,6 +1391,8 @@ uploads/
 - `uploads/` is a flat mirror of the runtime uploads directory at the time of backup. The storage
   adapter (per ADR-0019) is responsible for streaming objects into the tar regardless of the runtime
   backend.
+- The runtime image installs `postgresql16-client` so in-container `remit:backup` can invoke
+  `pg_dump` against the PostgreSQL 16 service pinned in `docker-compose.yml`.
 
 #### Manifest shape
 

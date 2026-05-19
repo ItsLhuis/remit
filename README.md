@@ -19,8 +19,8 @@ first-class deployment model.**
 
 The target self-hosting experience is a single command, everything in Docker, and nothing to
 configure manually beyond the basics. Today the repository ships Docker Compose assets, the
-password-reset recovery CLI, and deterministic demo-data seeding; the full installer, backup,
-restore, and upgrade command set is still planned work.
+password-reset recovery CLI, encrypted local backups, and deterministic demo-data seeding; the full
+installer, restore, remote backup destinations, and upgrade command set is still planned work.
 
 ## Principles
 
@@ -34,8 +34,8 @@ against these.
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
 - **Self-hosting is part of the product.** Docker Compose deployment, health checks, and operational
-  recovery exist today. One-command install, encrypted automatic backups, and in-place upgrades are
-  planned product work, not afterthoughts.
+  recovery exist today. One-command install, remote backup destinations, restore, and in-place
+  upgrades are planned product work, not afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -156,15 +156,17 @@ Current operational support:
 - **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
   reachability, last successful backup status, disk usage, and the encryption key fingerprint.
 - **CLI tools** — shipped in-container commands:
+  - `pnpm remit:backup` writes an AES-256-GCM encrypted local `.remitbak` archive containing
+    `pg_dump --format=custom` output and uploads.
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
-    demo deployments.
+    demo deployments. Use `--size medium` or `--size large` for preset growth, or numeric overrides
+    such as `--clients 1000 --projects 4000 --invoices 20000` for bounded stress-test datasets.
 
 Planned operational support:
 
-- **Encrypted automatic backups** — `pg_dump --format=custom` plus uploads, AES-256-GCM-encrypted
-  with the master `REMIT_ENCRYPTION_KEY`, to local disk, S3, R2, or Backblaze B2, with configurable
-  retention. Archive format pinned by
+- **Remote and scheduled backups** — S3, R2, or Backblaze B2 destinations, scheduled execution, and
+  configurable retention. Archive format pinned by
   [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
   (Backup and restore).
 - **Host-side upgrades** — a `scripts/host/upgrade.sh` flow that snapshots a backup, pulls the new
@@ -172,7 +174,7 @@ Planned operational support:
   migrations. Per
   [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
   (Updates), upgrade is host-side: no `remit:upgrade` package script, no Docker socket mount.
-- **Additional CLIs** — backup, restore, and encryption key rotation once those flows have real
+- **Additional CLIs** — restore and encryption key rotation once those flows have real
   implementations. New `remit:*` scripts follow the contract in
   [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
   (Operational CLI contract), formalised by
