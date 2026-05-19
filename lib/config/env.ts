@@ -61,7 +61,7 @@ const parsed = isBuildEnvValidationSkipped
       MINIO_ROOT_USER: "build-time-placeholder-user",
       MINIO_ROOT_PASSWORD: "build-time-placeholder-password",
       MINIO_BUCKET: "remit",
-      MINIO_PUBLIC_URL: process.env.NEXT_PUBLIC_STORAGE_BASE_URL || "http://localhost:9000/remit",
+      MINIO_PUBLIC_URL: "http://localhost:9000",
       NEXT_PUBLIC_STORAGE_BASE_URL:
         process.env.NEXT_PUBLIC_STORAGE_BASE_URL || "http://localhost:9000/remit"
     })

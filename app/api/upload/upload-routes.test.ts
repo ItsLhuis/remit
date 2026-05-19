@@ -5,7 +5,8 @@ import { NextRequest } from "next/server"
 const mocks = vi.hoisted(() => ({
   headers: vi.fn(),
   getSession: vi.fn(),
-  getSignedUrl: vi.fn()
+  getSignedUrl: vi.fn(),
+  s3UploadPresigner: {}
 }))
 
 vi.mock("next/headers", () => ({
@@ -26,8 +27,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/storage/s3", () => ({
   MINIO_BUCKET: "remit-test",
-  s3: {},
-  toPublicUploadUrl: (url: string) => url
+  s3UploadPresigner: mocks.s3UploadPresigner
 }))
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -77,7 +77,32 @@ describe("avatar upload route", () => {
     expect(body.objectKey).toMatch(
       /^avatars\/user-1\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/
     )
-    expect(mocks.getSignedUrl).toHaveBeenCalled()
+    expect(mocks.getSignedUrl).toHaveBeenCalledWith(mocks.s3UploadPresigner, expect.any(Object), {
+      expiresIn: 60
+    })
+  })
+
+  test("returns the presigned upload URL without rewriting its host", async () => {
+    mocks.getSignedUrl.mockResolvedValueOnce(
+      "http://minio:9000/remit/avatars/user-1/photo.png?X-Amz-Signature=signed"
+    )
+
+    const { POST } = await import("./[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/avatar", {
+        filename: "photo.png",
+        contentType: "image/png",
+        sizeBytes: 1024
+      }),
+      avatarParams()
+    )
+    const body = (await response.json()) as { uploadUrl: string }
+
+    expect(response.status).toBe(200)
+    expect(body.uploadUrl).toBe(
+      "http://minio:9000/remit/avatars/user-1/photo.png?X-Amz-Signature=signed"
+    )
   })
 
   test("rejects unsupported avatar file types without calling storage", async () => {

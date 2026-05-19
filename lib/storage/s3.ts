@@ -19,24 +19,17 @@ export const s3 = new S3Client({
   forcePathStyle: true
 })
 
+export const s3UploadPresigner = new S3Client({
+  endpoint: env.MINIO_PUBLIC_URL,
+  region: "us-east-1",
+  credentials: {
+    accessKeyId: env.MINIO_ROOT_USER,
+    secretAccessKey: env.MINIO_ROOT_PASSWORD
+  },
+  forcePathStyle: true
+})
+
 export const MINIO_BUCKET = env.MINIO_BUCKET
-
-export const MINIO_PUBLIC_URL = env.MINIO_PUBLIC_URL
-
-export function toPublicUploadUrl(presignedUrl: string): string {
-  try {
-    const internalOrigin = new URL(env.MINIO_ENDPOINT).origin
-    const publicOrigin = new URL(env.MINIO_PUBLIC_URL).origin
-
-    if (new URL(presignedUrl).origin === internalOrigin) {
-      return presignedUrl.replace(internalOrigin, publicOrigin)
-    }
-
-    return presignedUrl
-  } catch {
-    return presignedUrl
-  }
-}
 
 export async function deleteStorageObject(objectKey: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: MINIO_BUCKET, Key: objectKey }))

@@ -13,7 +13,7 @@ import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
 
-import { MINIO_BUCKET, s3, toPublicUploadUrl } from "@/lib/storage/s3"
+import { MINIO_BUCKET, s3UploadPresigner } from "@/lib/storage/s3"
 
 const ALLOWED_MIME_TYPES = new Map([
   ["image/jpeg", "jpg"],
@@ -120,9 +120,9 @@ export async function POST(
   })
 
   try {
-    const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 60 })
+    const presignedUrl = await getSignedUrl(s3UploadPresigner, command, { expiresIn: 60 })
 
-    return NextResponse.json({ uploadUrl: toPublicUploadUrl(presignedUrl), objectKey })
+    return NextResponse.json({ uploadUrl: presignedUrl, objectKey })
   } catch {
     return NextResponse.json({ error: config.uploadFailedError }, { status: 500 })
   }
