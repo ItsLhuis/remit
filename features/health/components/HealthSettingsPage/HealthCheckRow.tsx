@@ -1,6 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -70,9 +70,17 @@ const getStatusConfig = (
 }
 
 const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
-  const { t } = useTranslation()
+  const { i18n, t } = useTranslation()
 
   const status = getStatusConfig(check.status, t)
+
+  const locale = i18n.resolvedLanguage ?? i18n.language
+  const summary =
+    check.id === "backup" && check.backupLastSuccessAt
+      ? t("health.checks.backup.lastSuccess", {
+          date: formatDate(new Date(check.backupLastSuccessAt), { locale })
+        })
+      : check.summary
 
   const isFingerprint = check.id === "encryption-key"
 
@@ -87,8 +95,8 @@ const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
         <div className="min-w-0 space-y-2">
           <div className="space-y-1">
             <Typography affects="medium">{check.title}</Typography>
-            <Typography variant="p" affects={["removePMargin", "small"]}>
-              {check.summary}
+            <Typography variant="p" affects={["removePMargin", "small"]} suppressHydrationWarning>
+              {summary}
             </Typography>
             <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
               {check.detail}

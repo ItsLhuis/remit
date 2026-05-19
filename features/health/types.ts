@@ -19,6 +19,7 @@ export type HealthCheckResult = {
   title: string
   status: HealthStatus
   summary: string
+  backupLastSuccessAt?: string
   detail: string
   countsAsIssue: boolean
   actionLabel?: string

@@ -369,6 +369,7 @@ function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
       summary: t("health.checks.backup.lastSuccess", {
         date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
       }),
+      backupLastSuccessAt: lastSuccessAt.toISOString(),
       detail: t("health.checks.backup.staleDetail"),
       countsAsIssue: true
     }
@@ -382,6 +383,7 @@ function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
     summary: t("health.checks.backup.lastSuccess", {
       date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
     }),
+    backupLastSuccessAt: lastSuccessAt.toISOString(),
     detail: t("health.checks.backup.freshDetail"),
     countsAsIssue: false
   }
