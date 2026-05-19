@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url"
+
 import { createRequire } from "node:module"
 
 import * as p from "@clack/prompts"
@@ -9,6 +10,11 @@ import { count, eq } from "drizzle-orm"
 
 import {
   DEFAULT_DEMO_SEED,
+  DEFAULT_DEMO_SEED_SIZE,
+  DEMO_SEED_SIZES,
+  MAX_DEMO_SEED_CLIENTS,
+  MAX_DEMO_SEED_INVOICES,
+  MAX_DEMO_SEED_PROJECTS,
   type DemoSeedPlan,
   type ReseedTableCounts,
   type SeedDemoCliOptions,
@@ -38,6 +44,8 @@ type RunSeedDemoResult = {
 }
 
 type SettingsAction = "created" | "updated" | "unchanged"
+
+const INSERT_BATCH_SIZE = 500
 
 class SeedDemoError extends Error {}
 
@@ -70,6 +78,7 @@ async function main(): Promise<void> {
       p.note(
         [
           `Seed: ${result.plan.seed}`,
+          formatSeedSizeLine(result.plan),
           `Base date: ${result.plan.baseDate.toISOString()}`,
           "",
           formatSettingsStatus(result.settingsAction),
@@ -102,7 +111,7 @@ export async function runSeedDemo(
   options: SeedDemoCliOptions
 ): Promise<RunSeedDemoResult> {
   const ownerUserId = await getOwnerUserId(database, schema)
-  const plan = buildDemoSeedPlan(options.seed, ownerUserId)
+  const plan = buildDemoSeedPlan(options.seed, ownerUserId, options.size, options.countOverrides)
   const existingRows = await countExistingSeedableRows(database, schema)
   const settingsAction = await getSettingsAction(database, plan)
 
@@ -127,6 +136,7 @@ export async function runSeedDemo(
   p.note(
     [
       `Seed: ${options.seed}`,
+      formatSeedSizeLine(plan),
       "The seed will write deterministic demo rows to the current Remit database.",
       "",
       formatSettingsStatus(settingsAction),
@@ -265,7 +275,7 @@ function getSeedDemoHelpText(): string {
 
   return [
     heading("Usage"),
-    `  ${command} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--reseed]")} ${option("[--seed <number>]")} ${option("[--help]")}`,
+    `  ${command} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--reseed]")} ${option("[--seed <number>]")} ${option("[--size <small|medium|large|clients>]")} ${option("[--clients <number>]")} ${option("[--projects <number>]")} ${option("[--invoices <number>]")} ${option("[--help]")}`,
     "",
     heading("Purpose"),
     "  Populate a configured Remit instance with deterministic demo data.",
@@ -275,6 +285,15 @@ function getSeedDemoHelpText(): string {
     optionLine("--yes", "Skip the interactive confirmation prompt."),
     optionLine("--reseed", "Replace existing demo-seedable domain data."),
     optionLine("--seed <number>", `Deterministic seed. Default: ${seed}.`),
+    optionLine(
+      "--size <value>",
+      `Preset size or client count. Presets: ${DEMO_SEED_SIZES.join(", ")}. Default: ${chalk.cyan(
+        DEFAULT_DEMO_SEED_SIZE
+      )}.`
+    ),
+    optionLine("--clients <number>", `Override client count. Max: ${MAX_DEMO_SEED_CLIENTS}.`),
+    optionLine("--projects <number>", `Override project count. Max: ${MAX_DEMO_SEED_PROJECTS}.`),
+    optionLine("--invoices <number>", `Override invoice count. Max: ${MAX_DEMO_SEED_INVOICES}.`),
     optionLine("--help", "Print this help text."),
     "",
     heading("Seed Inventory"),
@@ -341,6 +360,14 @@ function formatSettingsStatus(action: SettingsAction): string {
   }
 
   return `${label}: existing business profile will be preserved.`
+}
+
+function formatSeedSizeLine(plan: DemoSeedPlan): string {
+  if (plan.size !== "custom") {
+    return `Size: ${plan.size}`
+  }
+
+  return `Size: custom (preset: ${plan.presetSize})`
 }
 
 function formatPlannedSummary(plan: DemoSeedPlan): string {
@@ -475,20 +502,48 @@ async function insertDemoRows(
     counts.settings = 1
   }
 
-  await database.insert(schema.taxRates).values(plan.taxRates)
-  await database.insert(schema.clients).values(plan.clients)
-  await database.insert(schema.projects).values(plan.projects)
-  await database.insert(schema.tasks).values(plan.tasks)
-  await database.insert(schema.timeEntries).values(plan.timeEntries)
-  await database.insert(schema.expenses).values(plan.expenses)
-  await database.insert(schema.leads).values(plan.leads)
-  await database.insert(schema.proposals).values(plan.proposals)
-  await database.insert(schema.invoices).values(plan.invoices)
-  await database.insert(schema.creditNotes).values(plan.creditNotes)
-  await database.insert(schema.lineItems).values(plan.lineItems)
-  await database.insert(schema.payments).values(plan.payments)
-  await database.insert(schema.contracts).values(plan.contracts)
-  await database.insert(schema.recurringInvoices).values(plan.recurringInvoices)
+  for (const rows of chunkRows(plan.taxRates)) {
+    await database.insert(schema.taxRates).values(rows)
+  }
+  for (const rows of chunkRows(plan.clients)) {
+    await database.insert(schema.clients).values(rows)
+  }
+  for (const rows of chunkRows(plan.projects)) {
+    await database.insert(schema.projects).values(rows)
+  }
+  for (const rows of chunkRows(plan.tasks)) {
+    await database.insert(schema.tasks).values(rows)
+  }
+  for (const rows of chunkRows(plan.timeEntries)) {
+    await database.insert(schema.timeEntries).values(rows)
+  }
+  for (const rows of chunkRows(plan.expenses)) {
+    await database.insert(schema.expenses).values(rows)
+  }
+  for (const rows of chunkRows(plan.leads)) {
+    await database.insert(schema.leads).values(rows)
+  }
+  for (const rows of chunkRows(plan.proposals)) {
+    await database.insert(schema.proposals).values(rows)
+  }
+  for (const rows of chunkRows(plan.invoices)) {
+    await database.insert(schema.invoices).values(rows)
+  }
+  for (const rows of chunkRows(plan.creditNotes)) {
+    await database.insert(schema.creditNotes).values(rows)
+  }
+  for (const rows of chunkRows(plan.lineItems)) {
+    await database.insert(schema.lineItems).values(rows)
+  }
+  for (const rows of chunkRows(plan.payments)) {
+    await database.insert(schema.payments).values(rows)
+  }
+  for (const rows of chunkRows(plan.contracts)) {
+    await database.insert(schema.contracts).values(rows)
+  }
+  for (const rows of chunkRows(plan.recurringInvoices)) {
+    await database.insert(schema.recurringInvoices).values(rows)
+  }
 
   counts.tax_rates = plan.taxRates.length
   counts.leads = plan.leads.length
@@ -506,6 +561,16 @@ async function insertDemoRows(
   counts.recurring_invoices = plan.recurringInvoices.length
 
   return counts
+}
+
+function chunkRows<Row>(rows: Row[]): Row[][] {
+  const chunks: Row[][] = []
+
+  for (let index = 0; index < rows.length; index += INSERT_BATCH_SIZE) {
+    chunks.push(rows.slice(index, index + INSERT_BATCH_SIZE))
+  }
+
+  return chunks
 }
 
 type SettingsRow = Awaited<ReturnType<Database["query"]["settings"]["findFirst"]>>

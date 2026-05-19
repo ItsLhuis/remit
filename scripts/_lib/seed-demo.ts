@@ -3,9 +3,16 @@ import { createHash } from "node:crypto"
 import { faker } from "@faker-js/faker"
 
 export const DEFAULT_DEMO_SEED = 20260518
+export const DEFAULT_DEMO_SEED_SIZE = "small"
+export const DEMO_SEED_SIZES = ["small", "medium", "large"] as const
+export const MAX_DEMO_SEED_CLIENTS = 1_000
+export const MAX_DEMO_SEED_PROJECTS = 4_000
+export const MAX_DEMO_SEED_INVOICES = 20_000
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const BASE_YEAR = 2026
+const CUSTOM_PROJECTS_PER_CLIENT = 4
+const CUSTOM_INVOICES_PER_PROJECT = 5
 
 export const SEEDED_TABLES = [
   "settings",
@@ -68,17 +75,25 @@ export const SEED_INVENTORY = [
 
 export type SeededTableName = (typeof SEEDED_TABLES)[number]
 export type ReseedCheckTableName = (typeof RESEED_CHECK_TABLES)[number]
+export type DemoSeedSize = (typeof DEMO_SEED_SIZES)[number]
 
 export type SeedDemoCliOptions = {
+  countOverrides: DemoSeedCountOverrides
   dryRun: boolean
   help: boolean
   reseed: boolean
   seed: number
+  size: DemoSeedSize
   yes: boolean
 }
 
 export type SeedDemoRowCounts = Record<SeededTableName, number>
 export type ReseedTableCounts = Record<ReseedCheckTableName, number>
+export type DemoSeedCountOverrides = {
+  clients?: number
+  projects?: number
+  invoices?: number
+}
 
 export type DemoSettingsRow = {
   id: string
@@ -357,6 +372,8 @@ export type DemoRecurringInvoiceRow = {
 
 export type DemoSeedPlan = {
   seed: number
+  size: DemoSeedSize | "custom"
+  presetSize: DemoSeedSize
   baseDate: Date
   settings: DemoSettingsRow
   taxRates: DemoTaxRateRow[]
@@ -377,6 +394,58 @@ export type DemoSeedPlan = {
 }
 
 type ParseArgsResult = { data: SeedDemoCliOptions } | { error: string }
+
+type DemoSeedSizeProfile = {
+  clientCount: number
+  projectCount: number
+  tasksPerProject: number
+  timeEntriesPerProject: number
+  leadCount: number
+  proposalCount: number
+  invoiceCount: number
+  creditNoteCount: number
+  contractCount: number
+  recurringInvoiceCount: number
+}
+
+const demoSeedSizeProfiles: Record<DemoSeedSize, DemoSeedSizeProfile> = {
+  small: {
+    clientCount: 6,
+    projectCount: 11,
+    tasksPerProject: 2,
+    timeEntriesPerProject: 2,
+    leadCount: 6,
+    proposalCount: 5,
+    invoiceCount: 6,
+    creditNoteCount: 1,
+    contractCount: 2,
+    recurringInvoiceCount: 2
+  },
+  medium: {
+    clientCount: 12,
+    projectCount: 22,
+    tasksPerProject: 2,
+    timeEntriesPerProject: 2,
+    leadCount: 12,
+    proposalCount: 10,
+    invoiceCount: 12,
+    creditNoteCount: 2,
+    contractCount: 4,
+    recurringInvoiceCount: 4
+  },
+  large: {
+    clientCount: 24,
+    projectCount: 44,
+    tasksPerProject: 2,
+    timeEntriesPerProject: 2,
+    leadCount: 24,
+    proposalCount: 20,
+    invoiceCount: 24,
+    creditNoteCount: 4,
+    contractCount: 8,
+    recurringInvoiceCount: 8
+  }
+}
 
 type MarketProfile = {
   country: string
@@ -454,10 +523,12 @@ const marketProfiles: MarketProfile[] = [
 
 export function parseSeedDemoArgs(argv: string[]): ParseArgsResult {
   const options: SeedDemoCliOptions = {
+    countOverrides: {},
     dryRun: false,
     help: false,
     reseed: false,
     seed: DEFAULT_DEMO_SEED,
+    size: DEFAULT_DEMO_SEED_SIZE,
     yes: false
   }
 
@@ -476,6 +547,81 @@ export function parseSeedDemoArgs(argv: string[]): ParseArgsResult {
 
     if (arg === "--reseed") {
       options.reseed = true
+      continue
+    }
+
+    if (arg === "--size") {
+      const next = argv[index + 1]
+
+      if (!next) return { error: `--size requires one of: ${DEMO_SEED_SIZES.join(", ")}.` }
+
+      const numericSize = Number(next)
+
+      if (Number.isInteger(numericSize)) {
+        const parsedCount = parseBoundedCount({
+          label: "--size",
+          maximum: MAX_DEMO_SEED_CLIENTS,
+          minimum: 1,
+          value: next
+        })
+
+        if ("error" in parsedCount) return parsedCount
+
+        options.countOverrides.clients = parsedCount.data
+        index += 1
+        continue
+      }
+
+      if (!isDemoSeedSize(next)) {
+        return {
+          error: `--size must be one of ${DEMO_SEED_SIZES.join(", ")} or a client count from 1 to ${MAX_DEMO_SEED_CLIENTS}.`
+        }
+      }
+
+      options.size = next
+      index += 1
+      continue
+    }
+
+    if (arg === "--clients") {
+      const parsedCount = parseCountOption(argv, index, {
+        label: "--clients",
+        maximum: MAX_DEMO_SEED_CLIENTS,
+        minimum: 1
+      })
+
+      if ("error" in parsedCount) return parsedCount
+
+      options.countOverrides.clients = parsedCount.data
+      index += 1
+      continue
+    }
+
+    if (arg === "--projects") {
+      const parsedCount = parseCountOption(argv, index, {
+        label: "--projects",
+        maximum: MAX_DEMO_SEED_PROJECTS,
+        minimum: 1
+      })
+
+      if ("error" in parsedCount) return parsedCount
+
+      options.countOverrides.projects = parsedCount.data
+      index += 1
+      continue
+    }
+
+    if (arg === "--invoices") {
+      const parsedCount = parseCountOption(argv, index, {
+        label: "--invoices",
+        maximum: MAX_DEMO_SEED_INVOICES,
+        minimum: 0
+      })
+
+      if ("error" in parsedCount) return parsedCount
+
+      options.countOverrides.invoices = parsedCount.data
+      index += 1
       continue
     }
 
@@ -506,8 +652,15 @@ export function parseSeedDemoArgs(argv: string[]): ParseArgsResult {
   return { data: options }
 }
 
-export function buildDemoSeedPlan(seed: number, ownerUserId: string): DemoSeedPlan {
+export function buildDemoSeedPlan(
+  seed: number,
+  ownerUserId: string,
+  size: DemoSeedSize = DEFAULT_DEMO_SEED_SIZE,
+  countOverrides: DemoSeedCountOverrides = {}
+): DemoSeedPlan {
   const baseDate = getBaseDate(seed)
+  const profile = buildSeedSizeProfile(size, countOverrides)
+  const planSize: DemoSeedPlan["size"] = hasSeedCountOverrides(countOverrides) ? "custom" : size
 
   faker.seed(seed)
   faker.setDefaultRefDate(baseDate)
@@ -515,11 +668,11 @@ export function buildDemoSeedPlan(seed: number, ownerUserId: string): DemoSeedPl
   const createdAt = timestamp(baseDate, -45)
   const updatedAt = timestamp(baseDate, -2)
 
-  const settings = buildSettings(seed, createdAt, updatedAt)
+  const settings = buildSettings(seed, createdAt, updatedAt, profile)
   const taxRates = buildTaxRates(seed, createdAt, updatedAt)
-  const clients = buildClients(seed, createdAt, updatedAt)
-  const projects = buildProjects(seed, clients, baseDate, createdAt, updatedAt)
-  const tasks = buildTasks(seed, projects, baseDate, createdAt, updatedAt)
+  const clients = buildClients(seed, createdAt, updatedAt, profile)
+  const projects = buildProjects(seed, clients, baseDate, createdAt, updatedAt, profile)
+  const tasks = buildTasks(seed, projects, baseDate, createdAt, updatedAt, profile)
   const timeEntries = buildTimeEntries(
     seed,
     ownerUserId,
@@ -527,13 +680,23 @@ export function buildDemoSeedPlan(seed: number, ownerUserId: string): DemoSeedPl
     tasks,
     baseDate,
     createdAt,
-    updatedAt
+    updatedAt,
+    profile
   )
   const expenses = buildExpenses(seed, clients, projects, baseDate, createdAt, updatedAt)
-  const leads = buildLeads(seed, clients, baseDate, createdAt, updatedAt)
-  const proposals = buildProposals(seed, projects, baseDate, createdAt, updatedAt)
-  const invoices = buildInvoices(seed, clients, projects, proposals, baseDate, createdAt, updatedAt)
-  const creditNotes = buildCreditNotes(seed, invoices, baseDate, createdAt, updatedAt)
+  const leads = buildLeads(seed, clients, baseDate, createdAt, updatedAt, profile)
+  const proposals = buildProposals(seed, projects, baseDate, createdAt, updatedAt, profile)
+  const invoices = buildInvoices(
+    seed,
+    clients,
+    projects,
+    proposals,
+    baseDate,
+    createdAt,
+    updatedAt,
+    profile
+  )
+  const creditNotes = buildCreditNotes(seed, invoices, baseDate, createdAt, updatedAt, profile)
   const lineItems = buildLineItems(
     seed,
     taxRates,
@@ -553,7 +716,8 @@ export function buildDemoSeedPlan(seed: number, ownerUserId: string): DemoSeedPl
     proposals,
     baseDate,
     createdAt,
-    updatedAt
+    updatedAt,
+    profile
   )
   const recurringInvoices = buildRecurringInvoices(
     seed,
@@ -561,11 +725,14 @@ export function buildDemoSeedPlan(seed: number, ownerUserId: string): DemoSeedPl
     projects,
     baseDate,
     createdAt,
-    updatedAt
+    updatedAt,
+    profile
   )
 
   return {
     seed,
+    size: planSize,
+    presetSize: size,
     baseDate,
     settings,
     taxRates,
@@ -606,7 +773,94 @@ export function hasExistingSeedableRows(counts: ReseedTableCounts): boolean {
   return Object.values(counts).some((value) => value > 0)
 }
 
-function buildSettings(seed: number, createdAt: Date, updatedAt: Date): DemoSettingsRow {
+type CountOptionConfig = {
+  label: string
+  maximum: number
+  minimum: number
+}
+
+type CountParseResult = { data: number } | { error: string }
+
+function parseCountOption(
+  argv: string[],
+  index: number,
+  config: CountOptionConfig
+): CountParseResult {
+  const next = argv[index + 1]
+
+  if (!next) {
+    return { error: `${config.label} requires a number.` }
+  }
+
+  return parseBoundedCount({ ...config, value: next })
+}
+
+function parseBoundedCount(config: CountOptionConfig & { value: string }): CountParseResult {
+  const count = Number(config.value)
+
+  if (!Number.isInteger(count) || count < config.minimum || count > config.maximum) {
+    return {
+      error: `${config.label} must be an integer from ${config.minimum} to ${config.maximum}.`
+    }
+  }
+
+  return { data: count }
+}
+
+function isDemoSeedSize(value: string): value is DemoSeedSize {
+  return DEMO_SEED_SIZES.includes(value as DemoSeedSize)
+}
+
+function buildSeedSizeProfile(
+  size: DemoSeedSize,
+  countOverrides: DemoSeedCountOverrides
+): DemoSeedSizeProfile {
+  const base = demoSeedSizeProfiles[size]
+  const clientCount = countOverrides.clients ?? base.clientCount
+  const projectCount =
+    countOverrides.projects ??
+    (countOverrides.clients
+      ? Math.min(clientCount * CUSTOM_PROJECTS_PER_CLIENT, MAX_DEMO_SEED_PROJECTS)
+      : base.projectCount)
+  const invoiceCount =
+    countOverrides.invoices ??
+    (countOverrides.clients || countOverrides.projects
+      ? Math.min(projectCount * CUSTOM_INVOICES_PER_PROJECT, MAX_DEMO_SEED_INVOICES)
+      : base.invoiceCount)
+
+  return {
+    clientCount,
+    projectCount,
+    tasksPerProject: base.tasksPerProject,
+    timeEntriesPerProject: base.timeEntriesPerProject,
+    leadCount: Math.max(base.leadCount, clientCount),
+    proposalCount: Math.min(
+      Math.max(base.proposalCount, Math.ceil(projectCount * 0.45)),
+      projectCount
+    ),
+    invoiceCount,
+    creditNoteCount: Math.min(
+      Math.max(base.creditNoteCount, Math.ceil(invoiceCount / 6)),
+      invoiceCount
+    ),
+    contractCount: Math.min(Math.max(base.contractCount, Math.ceil(clientCount / 3)), projectCount),
+    recurringInvoiceCount: Math.min(
+      Math.max(base.recurringInvoiceCount, Math.ceil(clientCount / 3)),
+      clientCount
+    )
+  }
+}
+
+function hasSeedCountOverrides(countOverrides: DemoSeedCountOverrides): boolean {
+  return Object.values(countOverrides).some((value) => value !== undefined)
+}
+
+function buildSettings(
+  seed: number,
+  createdAt: Date,
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
+): DemoSettingsRow {
   return {
     id: deterministicUuid(seed, "settings", 0),
     businessName: "Remit Demo Studio",
@@ -628,9 +882,9 @@ function buildSettings(seed: number, createdAt: Date, updatedAt: Date): DemoSett
     invoicePrefix: "INV-",
     proposalPrefix: "PROP-",
     creditNotePrefix: "CN-",
-    nextInvoiceNumber: 7,
-    nextProposalNumber: 6,
-    nextCreditNoteNumber: 2,
+    nextInvoiceNumber: profile.invoiceCount + 1,
+    nextProposalNumber: profile.proposalCount + 1,
+    nextCreditNoteNumber: profile.creditNoteCount + 1,
     numberPaddingWidth: 4,
     emailFromName: "Remit Demo Studio",
     emailFromAddress: "hello@remit-demo.example",
@@ -675,15 +929,24 @@ function buildTaxRates(seed: number, createdAt: Date, updatedAt: Date): DemoTaxR
   ]
 }
 
-function buildClients(seed: number, createdAt: Date, updatedAt: Date): DemoClientRow[] {
-  return marketProfiles.map((market, index) => {
+function buildClients(
+  seed: number,
+  createdAt: Date,
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
+): DemoClientRow[] {
+  return Array.from({ length: profile.clientCount }, (_, index) => {
+    const market = marketProfileAt(index)
     const name = faker.company.name()
     const slug = faker.helpers.slugify(name).toLowerCase()
 
     return {
       id: deterministicUuid(seed, "client", index),
       name,
-      email: `billing@${slug}.example`,
+      email:
+        profile.clientCount > marketProfiles.length
+          ? `billing-${String(index + 1).padStart(4, "0")}@${slug}.example`
+          : `billing@${slug}.example`,
       phone: `${market.phonePrefix} 555 ${String(1000 + faker.number.int({ min: 0, max: 8999 })).padStart(4, "0")}`,
       website: `https://${slug}.example`,
       taxId: `${market.taxId}-${faker.string.numeric(market.taxId === "US" ? 9 : 8)}`,
@@ -700,14 +963,24 @@ function buildClients(seed: number, createdAt: Date, updatedAt: Date): DemoClien
   })
 }
 
+function marketProfileAt(index: number): MarketProfile {
+  const market = marketProfiles[index % marketProfiles.length]
+
+  if (!market) {
+    throw new Error("Demo seed market profile inventory is empty.")
+  }
+
+  return market
+}
+
 function buildProjects(
   seed: number,
   clients: DemoClientRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoProjectRow[] {
-  const projectCounts = [2, 3, 1, 2, 2, 1]
   const statuses: DemoProjectRow["status"][] = [
     "active",
     "active",
@@ -716,33 +989,35 @@ function buildProjects(
     "cancelled"
   ]
   const rows: DemoProjectRow[] = []
+  let clientIndex = 0
 
-  clients.forEach((client, clientIndex) => {
-    const count = projectCounts[clientIndex] ?? 1
+  while (rows.length < profile.projectCount) {
+    const client = clients[clientIndex % clients.length]
 
-    for (let index = 0; index < count; index += 1) {
-      const rowIndex = rows.length
-      const status = statuses[rowIndex % statuses.length]
-      const startDate = dateOnly(baseDate, -150 + rowIndex * 12)
-      const endDate =
-        status === "completed" || status === "cancelled" ? dateOnly(startDate, 56) : null
+    if (!client) break
 
-      rows.push({
-        id: deterministicUuid(seed, "project", rowIndex),
-        clientId: client.id,
-        name: projectName(client.name, rowIndex),
-        description: faker.company.catchPhrase(),
-        status,
-        currency: client.currency,
-        budgetCents: 450_000 + rowIndex * 85_000,
-        hourlyRateCents: 9_500 + (rowIndex % 4) * 1_500,
-        startDate,
-        endDate,
-        createdAt: timestamp(createdAt, rowIndex),
-        updatedAt
-      })
-    }
-  })
+    const rowIndex = rows.length
+    const status = statuses[rowIndex % statuses.length]
+    const startDate = dateOnly(baseDate, -150 + rowIndex * 12)
+    const endDate =
+      status === "completed" || status === "cancelled" ? dateOnly(startDate, 56) : null
+
+    rows.push({
+      id: deterministicUuid(seed, "project", rowIndex),
+      clientId: client.id,
+      name: projectName(client.name, rowIndex),
+      description: faker.company.catchPhrase(),
+      status,
+      currency: client.currency,
+      budgetCents: 450_000 + rowIndex * 85_000,
+      hourlyRateCents: 9_500 + (rowIndex % 4) * 1_500,
+      startDate,
+      endDate,
+      createdAt: timestamp(createdAt, rowIndex),
+      updatedAt
+    })
+    clientIndex += 1
+  }
 
   return rows
 }
@@ -752,7 +1027,8 @@ function buildTasks(
   projects: DemoProjectRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoTaskRow[] {
   const titles = [
     "Discovery workshop",
@@ -764,8 +1040,8 @@ function buildTasks(
   const priorities: DemoTaskRow["priority"][] = ["normal", "high", "normal", "low"]
 
   return projects.flatMap((project, projectIndex) =>
-    [0, 1].map((taskIndex) => {
-      const rowIndex = projectIndex * 2 + taskIndex
+    Array.from({ length: profile.tasksPerProject }, (_, taskIndex) => {
+      const rowIndex = projectIndex * profile.tasksPerProject + taskIndex
       const status = statuses[(projectIndex + taskIndex) % statuses.length]
 
       return {
@@ -793,11 +1069,12 @@ function buildTimeEntries(
   tasks: DemoTaskRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoTimeEntryRow[] {
   return projects.flatMap((project, projectIndex) =>
-    [0, 1].map((entryIndex) => {
-      const rowIndex = projectIndex * 2 + entryIndex
+    Array.from({ length: profile.timeEntriesPerProject }, (_, entryIndex) => {
+      const rowIndex = projectIndex * profile.timeEntriesPerProject + entryIndex
       const durationSeconds = (2 + ((projectIndex + entryIndex) % 4)) * 3_600
       const startedAt = timestamp(baseDate, -30 + rowIndex, 9 + entryIndex)
       const task = tasks.find((candidate) => candidate.projectId === project.id) ?? null
@@ -857,7 +1134,8 @@ function buildLeads(
   clients: DemoClientRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoLeadRow[] {
   const statuses: DemoLeadRow["status"][] = [
     "new",
@@ -868,10 +1146,10 @@ function buildLeads(
     "won"
   ]
 
-  return Array.from({ length: 6 }, (_, index) => {
+  return Array.from({ length: profile.leadCount }, (_, index) => {
     const firstName = faker.person.firstName()
     const lastName = faker.person.lastName()
-    const status = statuses[index] ?? "new"
+    const status = statuses[index % statuses.length] ?? "new"
     const wonClient = status === "won" ? clients[0] : null
 
     return {
@@ -900,12 +1178,19 @@ function buildProposals(
   projects: DemoProjectRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoProposalRow[] {
   const statuses: DemoProposalRow["status"][] = ["draft", "sent", "accepted", "rejected", "sent"]
 
-  return projects.slice(0, 5).map((project, index) => {
-    const status = statuses[index] ?? "draft"
+  return Array.from({ length: profile.proposalCount }, (_, index) => {
+    const project = projects[index % projects.length]
+
+    if (!project) {
+      throw new Error("Demo seed requires at least one project before proposals are generated.")
+    }
+
+    const status = statuses[index % statuses.length] ?? "draft"
     const subtotalCents = 180_000 + index * 55_000
     const taxAmountCents = Math.round(subtotalCents * 0.23)
     const respondedAt =
@@ -944,12 +1229,19 @@ function buildInvoices(
   proposals: DemoProposalRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoInvoiceRow[] {
   const statuses: DemoInvoiceRow["status"][] = ["draft", "sent", "paid", "sent", "paid", "draft"]
 
-  return projects.slice(0, 6).map((project, index) => {
-    const status = statuses[index] ?? "draft"
+  return Array.from({ length: profile.invoiceCount }, (_, index) => {
+    const project = projects[index % projects.length]
+
+    if (!project) {
+      throw new Error("Demo seed requires at least one project before invoices are generated.")
+    }
+
+    const status = statuses[index % statuses.length] ?? "draft"
     const proposal =
       index === 2 ? (proposals.find((candidate) => candidate.status === "accepted") ?? null) : null
     const subtotalCents = 95_000 + index * 42_500
@@ -988,27 +1280,25 @@ function buildCreditNotes(
   invoices: DemoInvoiceRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoCreditNoteRow[] {
-  const invoice = invoices.find((candidate) => candidate.status === "paid")
-
-  if (!invoice) return []
-
-  return [
-    {
-      id: deterministicUuid(seed, "credit-note", 0),
+  return invoices
+    .filter((candidate) => candidate.status === "paid")
+    .slice(0, profile.creditNoteCount)
+    .map((invoice, index) => ({
+      id: deterministicUuid(seed, "credit-note", index),
       invoiceId: invoice.id,
-      number: "CN-0001",
+      number: `CN-${String(index + 1).padStart(4, "0")}`,
       reason: "Courtesy adjustment for unused workshop hours",
       currency: invoice.currency,
-      subtotalCents: 15_000,
-      taxAmountCents: 3_450,
-      totalCents: 18_450,
-      issuedAt: timestamp(baseDate, -1),
-      createdAt,
+      subtotalCents: 15_000 + index * 2_500,
+      taxAmountCents: Math.round((15_000 + index * 2_500) * 0.23),
+      totalCents: 15_000 + index * 2_500 + Math.round((15_000 + index * 2_500) * 0.23),
+      issuedAt: timestamp(baseDate, -1 + index),
+      createdAt: timestamp(createdAt, index),
       updatedAt
-    }
-  ]
+    }))
 }
 
 function buildLineItems(
@@ -1204,11 +1494,15 @@ function buildContracts(
   proposals: DemoProposalRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoContractRow[] {
-  return projects.slice(0, 2).map((project, index) => {
+  const statuses: DemoContractRow["status"][] = ["sent", "draft", "signed", "expired"]
+
+  return projects.slice(0, profile.contractCount).map((project, index) => {
     const client = clients.find((candidate) => candidate.id === project.clientId)
     const proposal = proposals[index] ?? null
+    const status = statuses[index % statuses.length] ?? "draft"
 
     return {
       id: deterministicUuid(seed, "contract", index),
@@ -1217,7 +1511,7 @@ function buildContracts(
       proposalId: proposal?.id ?? null,
       number: `CTR-${String(index + 1).padStart(4, "0")}`,
       title: `${client?.name ?? "Client"} service agreement`,
-      status: index === 0 ? "sent" : "draft",
+      status,
       blocks: [
         { type: "heading", text: "Scope of work" },
         {
@@ -1226,7 +1520,7 @@ function buildContracts(
         }
       ],
       publicToken: deterministicToken(seed, "contract", index),
-      issuedAt: index === 0 ? timestamp(baseDate, -8) : null,
+      issuedAt: status === "draft" ? null : timestamp(baseDate, -8 + index),
       effectiveFrom: dateOnly(baseDate, -7 + index),
       effectiveUntil: dateOnly(baseDate, 90 + index * 30),
       createdAt: timestamp(createdAt, index),
@@ -1241,18 +1535,25 @@ function buildRecurringInvoices(
   projects: DemoProjectRow[],
   baseDate: Date,
   createdAt: Date,
-  updatedAt: Date
+  updatedAt: Date,
+  profile: DemoSeedSizeProfile
 ): DemoRecurringInvoiceRow[] {
-  return clients.slice(0, 2).map((client, index) => {
+  const names = ["Monthly advisory retainer", "Quarterly reporting package", "Weekly support block"]
+  const cadences: DemoRecurringInvoiceRow["cadence"][] = ["monthly", "quarterly", "weekly"]
+  const statuses: DemoRecurringInvoiceRow["status"][] = ["active", "paused", "active", "completed"]
+
+  return clients.slice(0, profile.recurringInvoiceCount).map((client, index) => {
     const project = projects.find((candidate) => candidate.clientId === client.id) ?? null
+    const cadence = cadences[index % cadences.length] ?? "monthly"
+    const status = statuses[index % statuses.length] ?? "active"
 
     return {
       id: deterministicUuid(seed, "recurring-invoice", index),
       clientId: client.id,
       projectId: project?.id ?? null,
-      name: index === 0 ? "Monthly advisory retainer" : "Quarterly reporting package",
-      status: index === 0 ? "active" : "paused",
-      cadence: index === 0 ? "monthly" : "quarterly",
+      name: names[index % names.length] ?? "Monthly advisory retainer",
+      status,
+      cadence,
       cadenceDay: 1,
       nextRunAt: dateOnly(baseDate, 14 + index * 30),
       lastRunAt: index === 0 ? dateOnly(baseDate, -16) : null,

@@ -16,10 +16,12 @@ test("makes no database writes when dry-run is used", async () => {
   await createOwner()
 
   const result = await runSeedDemo(database, schema, {
+    countOverrides: {},
     dryRun: true,
     help: false,
     reseed: false,
     seed: 42,
+    size: "small",
     yes: true
   })
 
@@ -33,19 +35,23 @@ test("refuses to seed over existing domain rows without reseed", async () => {
   await createOwner()
 
   await runSeedDemo(database, schema, {
+    countOverrides: {},
     dryRun: false,
     help: false,
     reseed: false,
     seed: 42,
+    size: "small",
     yes: true
   })
 
   await expect(
     runSeedDemo(database, schema, {
+      countOverrides: {},
       dryRun: false,
       help: false,
       reseed: false,
       seed: 42,
+      size: "small",
       yes: true
     })
   ).rejects.toThrow(/clients \(6\)/)
