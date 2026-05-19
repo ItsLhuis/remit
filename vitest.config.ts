@@ -22,6 +22,7 @@ export default defineConfig({
             "hooks/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
             "scripts/_lib/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)"
           ],
+          exclude: ["**/*.integration.test.ts"],
           environment: "node"
         }
       },
@@ -44,7 +45,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: "v8",
-      include: ["features/**", "lib/**", "hooks/**"],
+      include: ["features/**", "lib/**", "hooks/**", "scripts/_lib/**"],
       exclude: ["**/__tests__/**", "components/ui/**", "**/*.d.ts", "**/*.config.*"],
       thresholds: {
         "features/**/services/**": {

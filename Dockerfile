@@ -37,6 +37,7 @@ RUN corepack enable pnpm && REMIT_BUILD_ENV_VALIDATION=skip pnpm build
 # ─── Stage 4: runner ─────────────────────────────────────────────────────────
 FROM node:24.11.1-alpine AS runner
 RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache postgresql16-client
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -60,6 +61,7 @@ COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle/migrations ./drizzle/migrations
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/migrate.js ./scripts/dist/migrate.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/reset-password.js ./scripts/dist/reset-password.js
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/backup.js ./scripts/dist/backup.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh

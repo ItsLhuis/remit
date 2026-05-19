@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto"
+
 import { createRequire } from "node:module"
 
 import * as p from "@clack/prompts"

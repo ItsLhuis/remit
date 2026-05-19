@@ -57,6 +57,7 @@
     "database:test:up": "docker compose -f docker-compose.test.yml up -d",
     "database:test:down": "docker compose -f docker-compose.test.yml down -v",
     "database:test:migrate": "drizzle-kit migrate --config drizzle.test.config.ts",
+    "remit:backup": "node ./scripts/dist/backup.js",
     "remit:reset-password": "node ./scripts/dist/reset-password.js",
     "remit:seed-demo": "node ./scripts/dist/seed-demo.js",
     "version:patch": "tsx ./scripts/bump-version.ts patch",
