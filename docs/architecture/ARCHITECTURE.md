@@ -1135,13 +1135,14 @@ upgrade, backup, and recover. Remit treats each of these as first-class product 
 
 Current implementation status: the repository ships Docker Compose files, an entrypoint migration
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
-`pnpm remit:backup` for encrypted local backup archives, and `pnpm remit:seed-demo` for
-deterministic local/demo data. The demo seed defaults to the original small dataset and supports
-`--size medium` and `--size large` when operators need more records for reports, screenshots, or
-performance-flavored demos. It also supports bounded numeric overrides for synthetic load, capped at
-1,000 clients, 4,000 projects, and 20,000 invoices. The one-command installer, restore command,
-remote backup destinations, upgrade command, encryption key rotation command, and deployment guides
-are planned operational work and are not shipped as package scripts today.
+`pnpm remit:backup` for encrypted local backup archives, `pnpm remit:restore` for destructive-safe
+local archive restores, and `pnpm remit:seed-demo` for deterministic local/demo data. The demo seed
+defaults to the original small dataset and supports `--size medium` and `--size large` when
+operators need more records for reports, screenshots, or performance-flavored demos. It also
+supports bounded numeric overrides for synthetic load, capped at 1,000 clients, 4,000 projects, and
+20,000 invoices. The one-command installer, remote backup destinations, upgrade command, encryption
+key rotation command, and deployment guides are planned operational work and are not shipped as
+package scripts today.
 
 ### Planned one-command install
 
@@ -1313,7 +1314,7 @@ The PR description must include the output of `pnpm build:scripts` and the relev
 | ----------------------------- | ------- | ------------ | ------------------------------------------------------------------------ |
 | `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.   |
 | `remit:backup`                | Shipped | In-container | Local encrypted `.remitbak` destination. S3/R2/B2 destinations deferred. |
-| `remit:restore`               | Planned | In-container | Safety contract pinned below. Mandatory pre-restore snapshot.            |
+| `remit:restore`               | Shipped | In-container | Local archive restore with mandatory pre-restore snapshot.               |
 | Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020). |
 | `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.               |
 | `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.    |
@@ -1321,9 +1322,10 @@ The PR description must include the output of `pnpm build:scripts` and the relev
 ### Backup and restore
 
 Backup configuration and status fields exist in the settings schema, and `/settings/system` surfaces
-missing or stale backup status. The scheduled backup job, encrypted bundle writer, retention
-enforcement, and restore CLI are planned work, not yet implemented. This section pins the archive
-format and the restore safety contract so the implementation can be built against a stable spec.
+missing or stale backup status. The local encrypted bundle writer and destructive-safe local restore
+CLI are shipped. The scheduled backup job, retention enforcement, and remote backup destinations are
+planned work. This section pins the archive format and the restore safety contract so the
+implementation can be built against a stable spec.
 
 #### Archive file
 

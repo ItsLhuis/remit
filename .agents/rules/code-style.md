@@ -213,6 +213,11 @@ Use names that match the domain object or operation instead of abstract placehol
 Avoid single-letter or vague names except for established local conventions such as `t`, `cn`,
 `ctx`, `ref`, callback `prev`, and the structured log key `err`.
 
+Avoid shortened names and abbreviations when a clear full word exists. Prefer `database` over `db`,
+`environment` over `env`, `development` over `dev`, `production` over `prod`, and descriptive event
+parameter names such as `event` over `e`. Only use abbreviations that are established domain terms,
+external API names, or existing project conventions.
+
 ## Schemas
 
 Zod schemas are runtime exports. Put the inferred type immediately after its schema:
