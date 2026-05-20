@@ -1,5 +1,5 @@
 services:
-  db:
+  database:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -8,7 +8,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # No ports exposed - the db is reachable only within the Docker network.
+    # No ports exposed - the database is reachable only within the Docker network.
     # Exposing 5432 to the host in production is a security risk.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -50,9 +50,9 @@ services:
       - "${PORT:-3000}:3000"
     environment:
       # Runtime secrets - injected by Docker at container start, never baked
-      # into the image. DATABASE_URL uses the Docker-internal `db` hostname
+      # into the image. DATABASE_URL uses the Docker-internal `database` hostname
       # so the app can reach PostgreSQL within the compose network.
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       REMIT_ENCRYPTION_KEY: ${REMIT_ENCRYPTION_KEY}
@@ -69,7 +69,7 @@ services:
       - ${REMIT_DATA_DIR:-./data}:/app/data
       - uploads:/app/uploads
     depends_on:
-      db:
+      database:
         condition: service_healthy
       minio:
         condition: service_healthy
