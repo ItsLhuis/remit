@@ -5,6 +5,7 @@ export default defineConfig({
     backup: "scripts/backup.ts",
     migrate: "scripts/migrate.ts",
     "reset-password": "scripts/reset-password.ts",
+    restore: "scripts/restore.ts",
     "seed-demo": "scripts/seed-demo.ts"
   },
   outDir: "scripts/dist",

@@ -38,6 +38,8 @@ import {
   sha256Hex,
   type BackupDestination
 } from "./_lib/backup-manifest"
+import { formatBytes } from "./_lib/format"
+import { waitForProcess } from "./_lib/process"
 
 import {
   createLocalStorageReadStream,
@@ -90,10 +92,19 @@ type BackupResult = {
   wrote: boolean
 }
 
+type RunBackupOptions = BackupCliOptions & {
+  databaseUrl: string
+  destinationOverride?: BackupDestination
+  encryptionKey: Buffer
+  remitDataDir: string
+  skipStatusUpdate?: boolean
+}
+
 class BackupCliError extends Error {}
 
 const DEFAULT_BACKUP_DIRNAME = "backups"
 const TAR_BLOCK_SIZE = 512
+const UPLOAD_HASH_CONCURRENCY = 8
 
 async function main(): Promise<void> {
   const parsed = parseBackupArgs(process.argv.slice(2))
@@ -145,11 +156,7 @@ async function main(): Promise<void> {
 export async function runBackup(
   database: Database,
   schema: Schema,
-  options: BackupCliOptions & {
-    databaseUrl: string
-    encryptionKey: Buffer
-    remitDataDir: string
-  }
+  options: RunBackupOptions
 ): Promise<BackupResult> {
   const planSpinner = p.spinner()
   let planSpinnerActive = true
@@ -161,7 +168,11 @@ export async function runBackup(
   try {
     settingsRow = await database.query.settings.findFirst()
 
-    const plan = await buildBackupPlan(database, settingsRow?.backupDestination ?? "local", options)
+    const plan = await buildBackupPlan(
+      database,
+      options.destinationOverride ?? settingsRow?.backupDestination ?? "local",
+      options
+    )
 
     planSpinner.stop("Backup plan ready.")
     planSpinnerActive = false
@@ -170,7 +181,7 @@ export async function runBackup(
 
     if (plan.destination !== "local") {
       throw new BackupCliError(
-        `Backup destination "${plan.destination}" is configured, but only local backups are implemented in this pass. Remote destinations land in Prompt 04.`
+        `Backup destination "${plan.destination}" is configured, but only local backups are available right now. Set the backup destination to "local" to run a backup.`
       )
     }
 
@@ -201,7 +212,10 @@ export async function runBackup(
     try {
       const result = await writeLocalBackupArchive(database, plan, options)
 
-      await updateBackupSuccess(database, schema, settingsRow?.id ?? null)
+      if (!options.skipStatusUpdate) {
+        await updateBackupSuccess(database, schema, settingsRow?.id ?? null)
+      }
+
       archiveSpinner.stop("Encrypted archive written.")
 
       return result
@@ -215,12 +229,14 @@ export async function runBackup(
     }
 
     try {
-      await updateBackupFailure(
-        database,
-        schema,
-        settingsRow?.id ?? null,
-        redactFailureReason(error)
-      )
+      if (!options.skipStatusUpdate) {
+        await updateBackupFailure(
+          database,
+          schema,
+          settingsRow?.id ?? null,
+          redactFailureReason(error)
+        )
+      }
     } catch {
       // If status persistence fails, keep the original backup error as the user-facing failure.
     }
@@ -278,8 +294,7 @@ function parseBackupArgs(args: string[]): ParseResult {
 
     if (arg === "--destination" || arg.startsWith("--destination=")) {
       return {
-        error:
-          "--destination is not implemented in this pass. Remote destinations land in Prompt 04."
+        error: "--destination is not available yet; backups always write to the local destination."
       }
     }
 
@@ -394,13 +409,16 @@ async function dumpDatabaseToTempFile(
   let size = 0
   let stderr = ""
 
-  const pgDump = resolvePgDumpCommand()
-  const child = spawn(pgDump.command, pgDump.args, {
+  // On Windows pg_dump is resolved through the shell (cmd.exe) so PATHEXT can find pg_dump.exe or a
+  // pg_dump.cmd shim; the arguments are a fixed static array, so the shell never receives untrusted
+  // input. restoreDatabaseDump spawns pg_restore the same way for cross-platform consistency.
+  const child = spawn("pg_dump", ["--format=custom", "--no-owner", "--no-privileges"], {
     env: {
       ...process.env,
       ...databaseUrlToPgEnv(databaseUrl),
       PG_COLOR: "never"
     },
+    shell: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe"]
   })
 
@@ -439,19 +457,6 @@ async function dumpDatabaseToTempFile(
   }
 }
 
-function resolvePgDumpCommand(): { args: string[]; command: string } {
-  const args = ["--format=custom", "--no-owner", "--no-privileges"]
-
-  if (process.platform !== "win32") {
-    return { args, command: "pg_dump" }
-  }
-
-  return {
-    args: ["/d", "/s", "/c", `pg_dump ${args.join(" ")}`],
-    command: "cmd.exe"
-  }
-}
-
 async function writeDumpStream(
   source: Readable,
   output: Writable,
@@ -475,13 +480,6 @@ async function writeDumpStream(
   await finished(output)
 }
 
-async function waitForProcess(child: ReturnType<typeof spawn>): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    child.once("error", reject)
-    child.once("close", (code) => resolve(code ?? 1))
-  })
-}
-
 function databaseUrlToPgEnv(databaseUrl: string): Record<string, string> {
   const url = new URL(databaseUrl)
   const values: Record<string, string | undefined> = {
@@ -499,13 +497,39 @@ function databaseUrlToPgEnv(databaseUrl: string): Record<string, string> {
 }
 
 async function describeUploads(uploads: LocalStorageObject[]): Promise<UploadDescriptor[]> {
-  return await Promise.all(
-    uploads.map(async (upload) => ({
-      ...upload,
-      archivePath: `uploads/${upload.key}`,
-      sha256: await hashFile(upload.absolutePath)
-    }))
-  )
+  // Bound concurrency so instances with thousands of uploads do not open every file at once and
+  // exhaust file descriptors (EMFILE) while hashing.
+  return await mapWithConcurrency(uploads, UPLOAD_HASH_CONCURRENCY, async (upload) => ({
+    ...upload,
+    archivePath: `uploads/${upload.key}`,
+    sha256: await hashFile(upload.absolutePath)
+  }))
+}
+
+async function mapWithConcurrency<Input, Output>(
+  items: readonly Input[],
+  limit: number,
+  mapper: (item: Input) => Promise<Output>
+): Promise<Output[]> {
+  const results: Output[] = new Array(items.length)
+  const queue = items.map((item, index) => ({ index, item }))
+  let cursor = 0
+
+  async function worker(): Promise<void> {
+    while (cursor < queue.length) {
+      const current = queue[cursor]
+      cursor += 1
+
+      if (!current) return
+
+      results[current.index] = await mapper(current.item)
+    }
+  }
+
+  const workerCount = Math.min(Math.max(limit, 1), queue.length)
+  await Promise.all(Array.from({ length: workerCount }, () => worker()))
+
+  return results
 }
 
 async function hashFile(filePath: string): Promise<string> {
@@ -638,6 +662,8 @@ function buildTarHeader(input: { name: string; size: number }): Buffer {
   writeOctal(header, 0, 116, 8)
   writeOctal(header, input.size, 124, 12)
   writeOctal(header, Math.floor(Date.now() / 1000), 136, 12)
+  // POSIX/ustar checksum: the 8-byte checksum field must be treated as ASCII spaces while the
+  // unsigned byte sum is computed, then overwritten with the result below.
   header.fill(0x20, 148, 156)
   header.write("0", 156, 1, "ascii")
   header.write("ustar\0", 257, 6, "ascii")
@@ -686,6 +712,8 @@ function writeAscii(buffer: Buffer, value: string, offset: number, length: numbe
 }
 
 function writeOctal(buffer: Buffer, value: number, offset: number, length: number): void {
+  // ustar numeric fields are zero-padded octal terminated by NUL + space (GNU/star-compatible), so
+  // the value occupies length-2 octal digits. Used uniformly for mode, uid, gid, size, and mtime.
   const octal = value.toString(8)
   const field = `${octal.padStart(length - 2, "0")}\0 `
 
@@ -710,6 +738,10 @@ async function listDatabaseTables(database: Database): Promise<string[]> {
   return Array.from(rows as Iterable<{ tablename: string }>).map((row) => row.tablename)
 }
 
+// Reads the count of applied migrations from Drizzle's internal `drizzle.__drizzle_migrations`
+// table and maps it back to a human-readable tag via the migration journal (entries are applied in
+// journal order, so applied count N corresponds to journal entry N-1). The table is a Drizzle
+// internal; if it is absent or empty the manifest records "none" rather than failing the backup.
 async function getLatestAppliedMigrationId(database: Database): Promise<string> {
   const migrationTableRows = await database.execute(sql`
     SELECT EXISTS (
@@ -781,18 +813,24 @@ async function updateBackupSuccess(
   schema: Schema,
   settingsId: string | null
 ): Promise<void> {
-  const update = {
-    backupLastFailureAt: null,
-    backupLastFailureReason: null,
-    backupLastSuccessAt: new Date()
-  }
-
-  if (settingsId) {
-    await database.update(schema.settings).set(update).where(eq(schema.settings.id, settingsId))
+  // Skip the status write when no settings row exists yet rather than inserting a phantom
+  // settings row populated only with backup-status fields. Backup status belongs on the operator's
+  // real settings row, created during /setup.
+  if (!settingsId) {
+    console.warn(
+      "Backup succeeded but no settings row exists; skipping backup status update. Complete /setup to record backup status."
+    )
     return
   }
 
-  await database.insert(schema.settings).values(update)
+  await database
+    .update(schema.settings)
+    .set({
+      backupLastFailureAt: null,
+      backupLastFailureReason: null,
+      backupLastSuccessAt: new Date()
+    })
+    .where(eq(schema.settings.id, settingsId))
 }
 
 async function updateBackupFailure(
@@ -801,17 +839,20 @@ async function updateBackupFailure(
   settingsId: string | null,
   reason: string
 ): Promise<void> {
-  const update = {
-    backupLastFailureAt: new Date(),
-    backupLastFailureReason: reason
-  }
-
-  if (settingsId) {
-    await database.update(schema.settings).set(update).where(eq(schema.settings.id, settingsId))
+  if (!settingsId) {
+    console.warn(
+      "Backup failed and no settings row exists; skipping backup status update. Complete /setup to record backup status."
+    )
     return
   }
 
-  await database.insert(schema.settings).values(update)
+  await database
+    .update(schema.settings)
+    .set({
+      backupLastFailureAt: new Date(),
+      backupLastFailureReason: reason
+    })
+    .where(eq(schema.settings.id, settingsId))
 }
 
 function formatPlan(plan: BackupPlan): string {
@@ -846,18 +887,9 @@ function getBackupHelpText(): string {
     optionLine("--yes", "Skip confirmation when overwriting an existing output path."),
     optionLine("--help", "Print this help text."),
     "",
-    heading("Deferred"),
-    "  Remote destinations land in Prompt 04. Restore lands in Prompt 03."
+    heading("Not yet available"),
+    "  Remote backup destinations (S3, R2, B2). Backups currently write to the local destination."
   ].join("\n")
-}
-
-function formatBytes(bytes: number): string {
-  return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 1,
-    style: "unit",
-    unit: "byte",
-    unitDisplay: "short"
-  }).format(bytes)
 }
 
 function redactFailureReason(error: unknown): string {
@@ -902,7 +934,11 @@ function isMissingPathError(error: unknown): boolean {
 function isDirectRun(): boolean {
   const scriptPath = process.argv[1]
 
-  return Boolean(scriptPath) && import.meta.url === pathToFileURL(scriptPath).href
+  if (!scriptPath) return false
+
+  const scriptName = path.basename(scriptPath, path.extname(scriptPath))
+
+  return scriptName === "backup" && import.meta.url === pathToFileURL(scriptPath).href
 }
 
 if (isDirectRun()) {

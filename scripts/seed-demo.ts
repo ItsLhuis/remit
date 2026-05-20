@@ -7,6 +7,7 @@ import * as p from "@clack/prompts"
 import chalk from "chalk"
 
 import { count, eq } from "drizzle-orm"
+import { type PgTable } from "drizzle-orm/pg-core"
 
 import {
   DEFAULT_DEMO_SEED,
@@ -242,24 +243,7 @@ async function countExistingSeedableRows(
   }
 }
 
-async function countTable(
-  database: SeedDatabase,
-  table:
-    | Schema["taxRates"]
-    | Schema["leads"]
-    | Schema["clients"]
-    | Schema["projects"]
-    | Schema["tasks"]
-    | Schema["timeEntries"]
-    | Schema["expenses"]
-    | Schema["proposals"]
-    | Schema["invoices"]
-    | Schema["lineItems"]
-    | Schema["payments"]
-    | Schema["creditNotes"]
-    | Schema["contracts"]
-    | Schema["recurringInvoices"]
-): Promise<number> {
+async function countTable(database: SeedDatabase, table: PgTable): Promise<number> {
   const [row] = await database.select({ value: count() }).from(table)
 
   return row?.value ?? 0
@@ -455,9 +439,14 @@ function formatDate(date: Date, locale: string): string {
 }
 
 function formatDuration(seconds: number): string {
-  const hours = seconds / 3600
+  const totalMinutes = Math.round(seconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
 
-  return `${hours}h`
+  if (hours === 0) return `${minutes}m`
+  if (minutes === 0) return `${hours}h`
+
+  return `${hours}h ${minutes}m`
 }
 
 async function deleteSeedableRows(database: SeedDatabase, schema: Schema): Promise<void> {
@@ -485,9 +474,17 @@ async function insertDemoRows(
   plan: DemoSeedPlan
 ): Promise<SeedDemoRowCounts> {
   const counts = zeroCounts()
+  // Authoritative settings read inside the transaction. The pre-transaction read in
+  // getSettingsAction only drives the plan/preview; this snapshot decides the actual write so a
+  // settings row created between planning and writing is still observed. The settings table has no
+  // unique constraint, so a concurrent insert cannot raise a unique violation here, and the seed is
+  // a single-operator tool, so the narrow read-then-write window is not a practical race.
   const existingSettings = await database.query.settings.findFirst()
 
   if (existingSettings) {
+    // --reseed clears domain data but intentionally preserves the operator's business profile,
+    // only filling fields that are still empty. This matches the spec ("populate one business
+    // profile if not already present") and avoids reverting profile edits made after the first seed.
     const update = buildSettingsUpdate(existingSettings, plan)
 
     if (update) {
