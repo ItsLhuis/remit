@@ -19,9 +19,9 @@ first-class deployment model.**
 
 The target self-hosting experience is a single command, everything in Docker, and nothing to
 configure manually beyond the basics. Today the repository ships Docker Compose assets, the
-password-reset recovery CLI, encrypted local backups, destructive-safe local restores, and
-deterministic demo-data seeding; the full installer, remote backup destinations, and upgrade command
-set is still planned work.
+password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe local and
+remote restores, and deterministic demo-data seeding; the full installer, scheduled backups, and
+upgrade command set is still planned work.
 
 ## Principles
 
@@ -34,9 +34,9 @@ against these.
 - **Single-instance simplicity.** One Remit instance is one freelance business. No multi-tenancy, no
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
-- **Self-hosting is part of the product.** Docker Compose deployment, health checks, local backup
-  and restore, and operational recovery exist today. One-command install, remote backup
-  destinations, and in-place upgrades are planned product work, not afterthoughts.
+- **Self-hosting is part of the product.** Docker Compose deployment, health checks, local and
+  S3-compatible backup and restore, and operational recovery exist today. One-command install,
+  scheduled backups, and in-place upgrades are planned product work, not afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -155,12 +155,16 @@ Current operational support:
 - **Entrypoint migrations** — the app container runs the compiled migration script before starting
   the Next.js server.
 - **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
-  reachability, last successful backup status, disk usage, and the encryption key fingerprint.
+  reachability, backup destination and success/failure status, disk usage, and the encryption key
+  fingerprint.
 - **CLI tools** — shipped in-container commands:
-  - `pnpm remit:backup` writes an AES-256-GCM encrypted local `.remitbak` archive containing
-    `pg_dump --format=custom` output and uploads.
+  - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
+    `pg_dump --format=custom` output and uploads. It writes to the saved backup destination, or to
+    `--destination local|s3|r2|b2` for a one-run override.
   - `pnpm remit:restore <backup-file>` validates, decrypts, snapshots, and restores a local
     `.remitbak` archive with `pg_restore --single-transaction` and an atomic uploads swap.
+    `pnpm remit:restore remit://s3/<key>` restores a remote archive from the configured S3, R2, or
+    B2 destination while still writing the mandatory pre-restore snapshot locally.
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
     demo deployments. Use `--size medium` or `--size large` for preset growth, or numeric overrides
@@ -168,8 +172,8 @@ Current operational support:
 
 Planned operational support:
 
-- **Remote and scheduled backups** — S3, R2, or Backblaze B2 destinations, scheduled execution, and
-  configurable retention. Archive format pinned by
+- **Scheduled backups** — scheduled execution for the shipped local, S3, R2, and Backblaze B2
+  destinations. Archive format pinned by
   [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
   (Backup and restore).
 - **Host-side upgrades** — a `scripts/host/upgrade.sh` flow that snapshots a backup, pulls the new

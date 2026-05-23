@@ -162,9 +162,10 @@ compiler's guarantees hold all the way from the database schema to the React com
 ### 8 — The self-hosting experience is part of the product
 
 Self-hosting operations are product work, not afterthoughts. The architecture target includes
-install, upgrade, backup, restore, and disaster recovery, but the current shipped operational CLI is
-limited to password-reset recovery. Other operational flows remain planned until backed by code. See
-the Self-hosting experience section.
+install, upgrade, backup, restore, and disaster recovery. Password-reset recovery, encrypted backup
+archives, destructive-safe restores, and deterministic demo seeding are shipped operational CLIs;
+the installer, scheduler, upgrade flow, and encryption-key rotation remain planned until backed by
+code. See the Self-hosting experience section.
 
 ---
 
@@ -806,7 +807,7 @@ Schema: `id`, `event`, `actorUserId | null`, `targetEntityType | null`, `targetE
 login success/failure; password change; TOTP setup, reconfiguration; Better Auth backup-code
 consumption; CLI/admin password resets; settings changes touching SMTP, Stripe, or payment
 information; data exports; entity deletions; public token rotations; member changes (see the
-Multi-user model section).
+Multi-user model section); backup and restore operations.
 
 ### Public token security
 
@@ -1135,14 +1136,14 @@ upgrade, backup, and recover. Remit treats each of these as first-class product 
 
 Current implementation status: the repository ships Docker Compose files, an entrypoint migration
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
-`pnpm remit:backup` for encrypted local backup archives, `pnpm remit:restore` for destructive-safe
-local archive restores, and `pnpm remit:seed-demo` for deterministic local/demo data. The demo seed
-defaults to the original small dataset and supports `--size medium` and `--size large` when
-operators need more records for reports, screenshots, or performance-flavored demos. It also
-supports bounded numeric overrides for synthetic load, capped at 1,000 clients, 4,000 projects, and
-20,000 invoices. The one-command installer, remote backup destinations, upgrade command, encryption
-key rotation command, and deployment guides are planned operational work and are not shipped as
-package scripts today.
+`pnpm remit:backup` for encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for
+destructive-safe local and remote archive restores, and `pnpm remit:seed-demo` for deterministic
+local/demo data. The demo seed defaults to the original small dataset and supports `--size medium`
+and `--size large` when operators need more records for reports, screenshots, or
+performance-flavored demos. It also supports bounded numeric overrides for synthetic load, capped at
+1,000 clients, 4,000 projects, and 20,000 invoices. The one-command installer, scheduled backup job,
+upgrade command, encryption key rotation command, and deployment guides are planned operational work
+and are not shipped as package scripts today.
 
 ### Planned one-command install
 
@@ -1310,22 +1311,23 @@ The PR description must include the output of `pnpm build:scripts` and the relev
 
 #### Status matrix
 
-| Command                       | Status  | Context      | Notes                                                                    |
-| ----------------------------- | ------- | ------------ | ------------------------------------------------------------------------ |
-| `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.   |
-| `remit:backup`                | Shipped | In-container | Local encrypted `.remitbak` destination. S3/R2/B2 destinations deferred. |
-| `remit:restore`               | Shipped | In-container | Local archive restore with mandatory pre-restore snapshot.               |
-| Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020). |
-| `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.               |
-| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.    |
+| Command                       | Status  | Context      | Notes                                                                                    |
+| ----------------------------- | ------- | ------------ | ---------------------------------------------------------------------------------------- |
+| `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.                   |
+| `remit:backup`                | Shipped | In-container | Local plus S3/R2/B2 encrypted `.remitbak` destinations.                                  |
+| `remit:restore`               | Shipped | In-container | Local path or `remit://<destination>/<key>` restore with mandatory pre-restore snapshot. |
+| Remote backup destinations    | Shipped | In-container | `s3`, `r2`, and `b2` implemented through the S3-compatible adapter.                      |
+| Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020).                 |
+| `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.                               |
+| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.                    |
 
 ### Backup and restore
 
 Backup configuration and status fields exist in the settings schema, and `/settings/system` surfaces
-missing or stale backup status. The local encrypted bundle writer and destructive-safe local restore
-CLI are shipped. The scheduled backup job, retention enforcement, and remote backup destinations are
-planned work. This section pins the archive format and the restore safety contract so the
-implementation can be built against a stable spec.
+destination, success, and failure status. The encrypted bundle writer, S3-compatible remote
+destinations, retention enforcement, and destructive-safe local or remote restore CLI are shipped.
+The scheduled backup job remains planned work. This section pins the archive format and the restore
+safety contract so the implementation can be built against a stable spec.
 
 #### Archive file
 
@@ -1429,7 +1431,8 @@ uploads/
 ```
 
 `destination` is one of `local`, `s3`, `r2`, `b2`. It records where the archive was **intended** to
-be stored; it does not affect restore, which always reads from a single file path.
+be stored. Restore accepts either a local file path or `remit://<destination>/<key>` for a remote
+archive object.
 
 #### Encryption
 
@@ -1445,13 +1448,23 @@ be stored; it does not affect restore, which always reads from a single file pat
 
 Destinations match `settings.backup_destination` and ADR-0019:
 
-- `local` — write to a local filesystem path under `REMIT_DATA_DIR`.
-- `s3`, `r2`, `b2` — write to an S3-compatible bucket via the existing storage adapter, using the
-  encrypted backup credentials from `settings.backup_s3_*`.
+| Destination | Status  | Storage contract                                                                          |
+| ----------- | ------- | ----------------------------------------------------------------------------------------- |
+| `local`     | Shipped | Writes to a local filesystem path under `REMIT_DATA_DIR`.                                 |
+| `s3`        | Shipped | Writes encrypted `.remitbak` bytes to Amazon S3 using `settings.backup_s3_*` credentials. |
+| `r2`        | Shipped | Writes encrypted `.remitbak` bytes to Cloudflare R2 through the S3-compatible adapter.    |
+| `b2`        | Shipped | Writes encrypted `.remitbak` bytes to Backblaze B2 through the S3-compatible adapter.     |
 
-A single `remit:backup` run writes to exactly one destination: the one configured in `settings`.
-Multi-destination fan-out is deferred; an operator who wants redundant remote backups runs the
-command twice. Retention is configurable: keep N daily, M weekly, K monthly snapshots.
+A single `remit:backup` run writes to exactly one destination: the `--destination` flag when
+provided, otherwise the destination configured in `settings`. Multi-destination fan-out is deferred;
+an operator who wants redundant remote backups runs the command twice. Retention is configurable:
+keep N daily, M weekly, K monthly snapshots.
+
+**Audit.** On completion or failure, `remit:backup` writes an `audit_log` entry
+(`actorUserId: null`, `actorRole: null`, `targetEntityType: "instance"`,
+`metadata: { destination, archive, archiveAppVersion, schemaMigrationId }` on success;
+`{ destination, reason }` on failure). The pre-restore snapshot call sets `skipStatusUpdate: true`
+and does not emit a backup audit entry — its audit trail is owned by `remit:restore`.
 
 #### Forward compatibility
 

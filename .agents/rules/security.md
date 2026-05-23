@@ -65,7 +65,8 @@ Public token routes always set `X-Robots-Tag: noindex, nofollow` on the HTTP res
 Auth-sensitive flows write an audit log entry to `audit_log` before returning. Covered flows: login
 success and failure, password change, TOTP setup and reconfiguration, recovery code generation and
 consumption, settings changes touching SMTP / Stripe / payment information, data exports, entity
-deletions, and public token rotations.
+deletions, public token rotations, and backup and restore operations (written by the CLI scripts
+with `actorUserId: null`).
 
 Required fields per entry: `actorUserId` (or `null` for pre-auth events), `targetEntityType`,
 `targetEntityId`, `metadata` (JSONB with relevant context), `ipAddress`, `userAgent`. The
