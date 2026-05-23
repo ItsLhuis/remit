@@ -1,3 +1,9 @@
+import {
+  validateBackupCredentials,
+  type BackupCredentials,
+  type BackupDestination
+} from "@/lib/backups/destinationConfig"
+
 type EmailHealthInput = {
   hasSettingsRow: boolean
   isConfigured: boolean
@@ -10,22 +16,15 @@ type StripeHealthInput = {
   hasSuccessfulTest: boolean
 }
 
-type RemoteStorageConfigurationInput = {
-  destination: string
-  accessKeyId: string | null
-  bucket: string | null
-  endpoint: string | null
-  region: string | null
-  secretAccessKey: string | null
-}
+type RemoteStorageConfigurationInput = BackupCredentials & { destination: BackupDestination }
 
 type CompleteRemoteStorageConfiguration = {
-  destination: string
-  accessKeyId: string
+  accessKey: string
   bucket: string
+  destination: Exclude<BackupDestination, "local">
   endpoint: string | null
   region: string
-  secretAccessKey: string
+  secretKey: string
 }
 
 type BackupFreshnessInput = {
@@ -76,15 +75,7 @@ export function evaluateStripeHealth(
 export function evaluateRemoteStorageConfiguration(
   input: RemoteStorageConfigurationInput
 ): input is CompleteRemoteStorageConfiguration {
-  if (!input.bucket || !input.region || !input.accessKeyId || !input.secretAccessKey) {
-    return false
-  }
-
-  if (input.destination !== "s3" && !input.endpoint) {
-    return false
-  }
-
-  return true
+  return validateBackupCredentials(input.destination, input).ok
 }
 
 export function evaluateBackupFreshness(

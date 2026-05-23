@@ -23,10 +23,10 @@ type StatusConfig = {
   iconClassName: string
 }
 
-const getStatusConfig = (
+function getStatusConfig(
   status: HealthStatus,
   t: ReturnType<typeof useTranslation>["t"]
-): StatusConfig => {
+): StatusConfig {
   const statuses = {
     healthy: {
       icon: "CircleCheck",
@@ -69,6 +69,43 @@ const getStatusConfig = (
   return statuses[status]
 }
 
+function getBackupDetails(
+  check: HealthCheckResult,
+  locale: string,
+  t: ReturnType<typeof useTranslation>["t"]
+): string[] {
+  const details = [
+    t("health.checks.backup.destination", {
+      destination: (check.backupDestination ?? "local").toUpperCase()
+    }),
+    check.backupLastSuccessAt
+      ? t("health.checks.backup.lastSuccess", {
+          date: formatDate(new Date(check.backupLastSuccessAt), { locale })
+        })
+      : t("health.checks.backup.notRecorded")
+  ]
+
+  if (check.backupLastFailureAt) {
+    details.push(
+      t("health.checks.backup.lastFailure", {
+        date: formatDate(new Date(check.backupLastFailureAt), { locale })
+      })
+    )
+
+    if (check.backupLastFailureReason) {
+      details.push(
+        t("health.checks.backup.lastFailureReason", {
+          reason: check.backupLastFailureReason
+        })
+      )
+    }
+  } else {
+    details.push(t("health.checks.backup.neverFailed"))
+  }
+
+  return details
+}
+
 const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
   const { i18n, t } = useTranslation()
 
@@ -83,6 +120,7 @@ const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
       : check.summary
 
   const isFingerprint = check.id === "encryption-key"
+  const backupDetails = check.id === "backup" ? getBackupDetails(check, locale, t) : []
 
   return (
     <div className="flex flex-col gap-3 p-4 not-last:border-b md:flex-row md:items-start md:justify-between">
@@ -101,6 +139,20 @@ const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
             <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
               {check.detail}
             </Typography>
+            {backupDetails.length > 0 ? (
+              <div className="space-y-1">
+                {backupDetails.map((detail) => (
+                  <Typography
+                    key={detail}
+                    variant="p"
+                    affects={["muted", "removePMargin", "small"]}
+                    suppressHydrationWarning
+                  >
+                    {detail}
+                  </Typography>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

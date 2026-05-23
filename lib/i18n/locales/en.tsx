@@ -212,11 +212,16 @@ export const english: Language = {
             "Check the backup storage credentials, bucket name, region, and network access."
         },
         backup: {
+          destination: "Destination: {destination}",
+          lastFailure: "Last failure: {date}",
+          lastFailureReason: "Failure reason: {reason}",
           title: "Backups",
           missing: "No successful backup has been recorded.",
           frequencyDetail:
             "Run a backup and confirm it completes before trusting this instance with live business data.",
           lastSuccess: "Last successful backup: {date}",
+          neverFailed: "Last failure: none recorded.",
+          notRecorded: "Last successful backup: not recorded.",
           staleDetail: "Run a fresh backup. The last successful backup is more than 7 days old.",
           freshDetail: "A recent backup exists."
         },

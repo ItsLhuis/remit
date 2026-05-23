@@ -33,10 +33,10 @@ const descriptionClassNames = {
   error: "text-error-muted-foreground"
 } satisfies Record<SummaryTone, string>
 
-const getSummary = (
+function getSummary(
   checks: HealthCheckResult[],
   t: ReturnType<typeof useTranslation>["t"]
-): Summary => {
+): Summary {
   const issueChecks = checks.filter((check) => check.countsAsIssue)
 
   const hasError = issueChecks.some((check) => check.status === "error")

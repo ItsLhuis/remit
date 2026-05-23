@@ -67,11 +67,11 @@ describe("evaluateRemoteStorageConfiguration", () => {
   test("returns false when a non-s3 destination is missing an endpoint", () => {
     const result = evaluateRemoteStorageConfiguration({
       destination: "r2",
-      accessKeyId: "key",
+      accessKey: "key",
       bucket: "bucket",
       endpoint: null,
       region: "auto",
-      secretAccessKey: "secret"
+      secretKey: "secret"
     })
 
     expect(result).toBe(false)
@@ -80,11 +80,11 @@ describe("evaluateRemoteStorageConfiguration", () => {
   test("returns true when all required fields are present", () => {
     const result = evaluateRemoteStorageConfiguration({
       destination: "s3",
-      accessKeyId: "key",
+      accessKey: "key",
       bucket: "bucket",
       endpoint: null,
       region: "eu-west-1",
-      secretAccessKey: "secret"
+      secretKey: "secret"
     })
 
     expect(result).toBe(true)

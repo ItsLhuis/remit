@@ -202,10 +202,15 @@ export type Translations = {
         bucketUnavailableDetail: string
       }
       backup: {
+        destination: string
+        lastFailure: string
+        lastFailureReason: string
         title: string
         missing: string
         frequencyDetail: string
         lastSuccess: string
+        neverFailed: string
+        notRecorded: string
         staleDetail: string
         freshDetail: string
       }

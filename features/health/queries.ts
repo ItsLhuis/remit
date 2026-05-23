@@ -5,6 +5,11 @@ import path from "node:path"
 import pkg from "@/package.json"
 
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3"
+import {
+  buildS3ClientConfig,
+  type BackupDestination,
+  type CompleteBackupCredentials
+} from "@/lib/backups/destinationConfig"
 
 import { sql } from "drizzle-orm"
 
@@ -39,6 +44,7 @@ type SettingsRow = typeof settings.$inferSelect
 type DatabaseConnectivityResult = { ok: true } | { ok: false; reason: string; error: unknown }
 
 const BACKUP_WARNING_AGE_MS = 7 * 24 * 60 * 60 * 1000
+const REMOTE_HEALTH_PROBE_TIMEOUT_MS = 5_000
 const DATA_DIR = path.resolve(env.REMIT_DATA_DIR)
 
 const getHealthLocale = (): string => i18n.resolvedLanguage ?? i18n.language ?? "en"
@@ -268,12 +274,12 @@ async function getRemoteStorageHealthCheck(
   settingsRow: SettingsRow | null
 ): Promise<HealthCheckResult> {
   const remoteStorageConfiguration = {
-    destination: settingsRow?.backupDestination ?? "s3",
-    accessKeyId: settingsRow?.backupS3AccessKey ?? null,
+    destination: normalizeRemoteBackupDestination(settingsRow?.backupDestination ?? "s3"),
+    accessKey: settingsRow?.backupS3AccessKey ?? null,
     bucket: settingsRow?.backupS3Bucket ?? null,
     endpoint: settingsRow?.backupS3Endpoint ?? null,
     region: settingsRow?.backupS3Region ?? null,
-    secretAccessKey: settingsRow?.backupS3SecretKey ?? null
+    secretKey: settingsRow?.backupS3SecretKey ?? null
   }
 
   if (!evaluateRemoteStorageConfiguration(remoteStorageConfiguration)) {
@@ -290,18 +296,17 @@ async function getRemoteStorageHealthCheck(
     }
   }
 
-  const client = new S3Client({
-    region: remoteStorageConfiguration.region,
-    endpoint: remoteStorageConfiguration.endpoint ?? undefined,
-    credentials: {
-      accessKeyId: remoteStorageConfiguration.accessKeyId,
-      secretAccessKey: remoteStorageConfiguration.secretAccessKey
-    },
-    forcePathStyle: Boolean(remoteStorageConfiguration.endpoint)
-  })
+  const client = new S3Client(
+    buildS3ClientConfig(
+      remoteStorageConfiguration.destination,
+      remoteStorageConfiguration as CompleteBackupCredentials
+    )
+  )
 
   try {
-    await client.send(new HeadBucketCommand({ Bucket: remoteStorageConfiguration.bucket }))
+    await client.send(new HeadBucketCommand({ Bucket: remoteStorageConfiguration.bucket }), {
+      abortSignal: AbortSignal.timeout(REMOTE_HEALTH_PROBE_TIMEOUT_MS)
+    })
 
     return {
       id: "storage",
@@ -339,8 +344,15 @@ async function getRemoteStorageHealthCheck(
   }
 }
 
+function normalizeRemoteBackupDestination(
+  destination: BackupDestination
+): Exclude<BackupDestination, "local"> {
+  return destination === "r2" || destination === "b2" ? destination : "s3"
+}
+
 function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResult {
   const lastSuccessAt = settingsRow?.backupLastSuccessAt ?? null
+  const backupStatus = getBackupStatusFields(settingsRow)
 
   if (!lastSuccessAt) {
     return {
@@ -349,6 +361,7 @@ function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
       title: t("health.checks.backup.title"),
       status: "attention",
       summary: t("health.checks.backup.missing"),
+      ...backupStatus,
       detail: t("health.checks.backup.frequencyDetail"),
       countsAsIssue: true
     }
@@ -369,7 +382,7 @@ function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
       summary: t("health.checks.backup.lastSuccess", {
         date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
       }),
-      backupLastSuccessAt: lastSuccessAt.toISOString(),
+      ...backupStatus,
       detail: t("health.checks.backup.staleDetail"),
       countsAsIssue: true
     }
@@ -383,9 +396,23 @@ function getBackupHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
     summary: t("health.checks.backup.lastSuccess", {
       date: formatDate(lastSuccessAt, { locale: getHealthLocale() })
     }),
-    backupLastSuccessAt: lastSuccessAt.toISOString(),
+    ...backupStatus,
     detail: t("health.checks.backup.freshDetail"),
     countsAsIssue: false
+  }
+}
+
+function getBackupStatusFields(
+  settingsRow: SettingsRow | null
+): Pick<
+  HealthCheckResult,
+  "backupDestination" | "backupLastFailureAt" | "backupLastFailureReason" | "backupLastSuccessAt"
+> {
+  return {
+    backupDestination: settingsRow?.backupDestination ?? "local",
+    backupLastFailureAt: settingsRow?.backupLastFailureAt?.toISOString(),
+    backupLastFailureReason: settingsRow?.backupLastFailureReason ?? undefined,
+    backupLastSuccessAt: settingsRow?.backupLastSuccessAt?.toISOString()
   }
 }
 

@@ -19,6 +19,9 @@ export type HealthCheckResult = {
   title: string
   status: HealthStatus
   summary: string
+  backupDestination?: string
+  backupLastFailureAt?: string
+  backupLastFailureReason?: string
   backupLastSuccessAt?: string
   detail: string
   countsAsIssue: boolean
