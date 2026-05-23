@@ -31,15 +31,19 @@ import {
   computeKeyFingerprint,
   encryptStream,
   writeArchiveHeader
-} from "./_lib/backup-archive"
+} from "./_lib/backupArchive"
+import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "./_lib/backupManifest"
 import {
-  buildBackupManifest,
-  serializeBackupManifest,
-  sha256Hex,
-  type BackupDestination
-} from "./_lib/backup-manifest"
-import { formatBytes } from "./_lib/format"
-import { waitForProcess } from "./_lib/process"
+  buildDestinationAdapter,
+  validateBackupCredentials,
+  type BackupCredentials,
+  type BackupDestination,
+  type BackupDestinationAdapter
+} from "./_lib/backupDestination"
+
+import { formatBytes, waitForProcess } from "./_lib/utils"
+
+import { computeRetentionDeletions } from "./_lib/services/backupRetention"
 
 import {
   createLocalStorageReadStream,
@@ -56,8 +60,10 @@ loadEnvConfig(process.cwd())
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
+type SettingsRow = Awaited<ReturnType<Database["query"]["settings"]["findFirst"]>>
 
 type BackupCliOptions = {
+  destinationOverride?: BackupDestination
   dryRun: boolean
   help: boolean
   output: string | null
@@ -67,8 +73,16 @@ type BackupCliOptions = {
 type ParseResult = { data: BackupCliOptions } | { error: string }
 
 type BackupPlan = {
+  archiveFilename: string
+  archiveUri: string
   destination: BackupDestination
+  objectKey: string | null
   outputPath: string
+  retentionPolicy: {
+    daily: number
+    monthly: number
+    weekly: number
+  }
   tableNames: string[]
   uploads: LocalStorageObject[]
   uploadsDirectory: string
@@ -102,7 +116,9 @@ type RunBackupOptions = BackupCliOptions & {
 
 class BackupCliError extends Error {}
 
+const CLI_USER_AGENT = "cli/backup"
 const DEFAULT_BACKUP_DIRNAME = "backups"
+const REMOTE_BACKUP_PREFIX = "remit-backups/"
 const TAR_BLOCK_SIZE = 512
 const UPLOAD_HASH_CONCURRENCY = 8
 
@@ -163,7 +179,7 @@ export async function runBackup(
 
   planSpinner.start("Building backup plan...")
 
-  let settingsRow: Awaited<ReturnType<Database["query"]["settings"]["findFirst"]>> | undefined
+  let settingsRow: SettingsRow | undefined
 
   try {
     settingsRow = await database.query.settings.findFirst()
@@ -171,23 +187,22 @@ export async function runBackup(
     const plan = await buildBackupPlan(
       database,
       options.destinationOverride ?? settingsRow?.backupDestination ?? "local",
+      settingsRow,
       options
     )
+    const destinationAdapter =
+      plan.destination === "local"
+        ? null
+        : buildConfiguredDestinationAdapter(plan.destination, settingsRow)
 
     planSpinner.stop("Backup plan ready.")
     planSpinnerActive = false
 
     p.note(formatPlan(plan), options.dryRun ? "Dry run" : "Plan")
 
-    if (plan.destination !== "local") {
-      throw new BackupCliError(
-        `Backup destination "${plan.destination}" is configured, but only local backups are available right now. Set the backup destination to "local" to run a backup.`
-      )
-    }
-
     if (options.dryRun) {
       return {
-        archivePath: plan.outputPath,
+        archivePath: plan.archiveUri,
         manifest: buildBackupManifest({
           appVersion: pkg.version,
           checksumsSha256: "0".repeat(64),
@@ -196,7 +211,7 @@ export async function runBackup(
             uploads: { fileCount: plan.uploads.length, totalSize: plan.uploadsTotalSize }
           },
           createdAt: new Date().toISOString(),
-          destination: "local",
+          destination: plan.destination,
           encryptionKey: options.encryptionKey,
           schemaMigrationId: await getLatestAppliedMigrationId(database)
         }),
@@ -204,19 +219,37 @@ export async function runBackup(
       }
     }
 
-    await confirmOverwrite(plan.outputPath, options.yes)
+    if (plan.destination === "local") {
+      await confirmOverwrite(plan.outputPath, options.yes)
+    }
 
     const archiveSpinner = p.spinner()
-    archiveSpinner.start("Writing encrypted backup archive...")
+    archiveSpinner.start(
+      plan.destination === "local"
+        ? "Writing encrypted backup archive..."
+        : "Writing encrypted backup archive and uploading..."
+    )
 
     try {
-      const result = await writeLocalBackupArchive(database, plan, options)
+      const result = await writeBackupArchive(database, plan, options, destinationAdapter)
 
       if (!options.skipStatusUpdate) {
         await updateBackupSuccess(database, schema, settingsRow?.id ?? null)
+        try {
+          await writeBackupAudit(database, schema, "instance.backup.completed", {
+            destination: plan.destination,
+            archive: plan.archiveUri,
+            archiveAppVersion: result.manifest.appVersion,
+            schemaMigrationId: result.manifest.schemaMigrationId
+          })
+        } catch (auditError) {
+          console.warn(`Failed to write backup audit entry: ${String(auditError)}`)
+        }
       }
 
-      archiveSpinner.stop("Encrypted archive written.")
+      archiveSpinner.stop(
+        plan.destination === "local" ? "Encrypted archive written." : "Encrypted archive uploaded."
+      )
 
       return result
     } catch (error) {
@@ -239,6 +272,17 @@ export async function runBackup(
       }
     } catch {
       // If status persistence fails, keep the original backup error as the user-facing failure.
+    }
+
+    if (!options.skipStatusUpdate) {
+      try {
+        await writeBackupAudit(database, schema, "instance.backup.failed", {
+          destination: options.destinationOverride ?? settingsRow?.backupDestination ?? "local",
+          reason: redactFailureReason(error)
+        })
+      } catch (auditError) {
+        console.warn(`Failed to write backup audit entry: ${String(auditError)}`)
+      }
     }
 
     throw error
@@ -292,10 +336,33 @@ function parseBackupArgs(args: string[]): ParseResult {
       continue
     }
 
-    if (arg === "--destination" || arg.startsWith("--destination=")) {
-      return {
-        error: "--destination is not available yet; backups always write to the local destination."
+    if (arg === "--destination") {
+      const value = args[index + 1]
+
+      if (!value || value.startsWith("--")) {
+        return { error: "--destination requires one of: local, s3, r2, b2." }
       }
+
+      const destination = parseBackupDestination(value)
+
+      if (!destination) {
+        return { error: "--destination requires one of: local, s3, r2, b2." }
+      }
+
+      options.destinationOverride = destination
+      index += 1
+      continue
+    }
+
+    if (arg.startsWith("--destination=")) {
+      const destination = parseBackupDestination(arg.slice("--destination=".length))
+
+      if (!destination) {
+        return { error: "--destination requires one of: local, s3, r2, b2." }
+      }
+
+      options.destinationOverride = destination
+      continue
     }
 
     return { error: `Unknown option: ${arg}` }
@@ -304,16 +371,32 @@ function parseBackupArgs(args: string[]): ParseResult {
   return { data: options }
 }
 
+function parseBackupDestination(value: string): BackupDestination | null {
+  return value === "local" || value === "s3" || value === "r2" || value === "b2" ? value : null
+}
+
 async function buildBackupPlan(
   database: Database,
   destination: BackupDestination,
+  settingsRow: SettingsRow,
   options: BackupCliOptions & { remitDataDir: string }
 ): Promise<BackupPlan> {
+  if (destination !== "local" && options.output) {
+    throw new BackupCliError(
+      "--output writes a local archive path and cannot be combined with a remote backup destination. Use --destination local or remove --output."
+    )
+  }
+
   const dataDir = path.resolve(options.remitDataDir)
-  const outputPath = path.resolve(
-    options.output ?? path.join(dataDir, DEFAULT_BACKUP_DIRNAME, buildBackupFilename(new Date()))
-  )
+  const createdAt = new Date()
+  const archiveFilename = buildBackupFilename(createdAt)
   const backupsDir = path.resolve(dataDir, DEFAULT_BACKUP_DIRNAME)
+  const objectKey =
+    destination === "local" ? null : buildRemoteBackupKey(createdAt, archiveFilename)
+  const outputPath =
+    destination === "local"
+      ? path.resolve(options.output ?? path.join(backupsDir, archiveFilename))
+      : path.join(backupsDir, ".tmp", `${archiveFilename}.${randomUUID()}.upload`)
   const uploadsDirectory = resolveLocalUploadsDirectory(dataDir)
   const [tableNames, uploads] = await Promise.all([
     listDatabaseTables(database),
@@ -322,12 +405,51 @@ async function buildBackupPlan(
   const uploadsTotalSize = uploads.reduce((sum, upload) => sum + upload.size, 0)
 
   return {
+    archiveFilename,
+    archiveUri: objectKey ? `remit://${destination}/${objectKey}` : outputPath,
     destination,
+    objectKey,
     outputPath,
+    retentionPolicy: {
+      daily: settingsRow?.backupRetentionDaily ?? 7,
+      monthly: settingsRow?.backupRetentionMonthly ?? 12,
+      weekly: settingsRow?.backupRetentionWeekly ?? 4
+    },
     tableNames,
     uploads,
     uploadsDirectory,
     uploadsTotalSize
+  }
+}
+
+function buildRemoteBackupKey(date: Date, filename: string): string {
+  const year = String(date.getUTCFullYear())
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+
+  return `${REMOTE_BACKUP_PREFIX}${year}/${month}/${filename}`
+}
+
+function buildConfiguredDestinationAdapter(
+  destination: Exclude<BackupDestination, "local">,
+  settingsRow: SettingsRow
+): BackupDestinationAdapter {
+  const credentials = readBackupCredentials(settingsRow)
+  const validation = validateBackupCredentials(destination, credentials)
+
+  if (!validation.ok) {
+    throw new BackupCliError(validation.reason)
+  }
+
+  return buildDestinationAdapter(destination, credentials)
+}
+
+function readBackupCredentials(settingsRow: SettingsRow): BackupCredentials {
+  return {
+    accessKey: settingsRow?.backupS3AccessKey ?? null,
+    bucket: settingsRow?.backupS3Bucket ?? null,
+    endpoint: settingsRow?.backupS3Endpoint ?? null,
+    region: settingsRow?.backupS3Region ?? null,
+    secretKey: settingsRow?.backupS3SecretKey ?? null
   }
 }
 
@@ -340,14 +462,15 @@ function buildBackupFilename(date: Date, appVersion: string = pkg.version): stri
   return `remit-backup-${timestamp}-v${appVersion}.remitbak`
 }
 
-async function writeLocalBackupArchive(
+async function writeBackupArchive(
   database: Database,
   plan: BackupPlan,
   options: BackupCliOptions & {
     databaseUrl: string
     encryptionKey: Buffer
     remitDataDir: string
-  }
+  },
+  destinationAdapter: BackupDestinationAdapter | null
 ): Promise<BackupResult> {
   if (options.encryptionKey.length !== 32) {
     throw new BackupCliError("REMIT_ENCRYPTION_KEY must decode to 32 bytes.")
@@ -374,7 +497,7 @@ async function writeLocalBackupArchive(
       }
     },
     createdAt: new Date().toISOString(),
-    destination: "local",
+    destination: plan.destination,
     encryptionKey: options.encryptionKey,
     schemaMigrationId: await getLatestAppliedMigrationId(database)
   })
@@ -392,10 +515,51 @@ async function writeLocalBackupArchive(
     await rm(dump.path, { force: true })
   }
 
+  if (plan.destination !== "local") {
+    if (!destinationAdapter || !plan.objectKey) {
+      throw new BackupCliError("Remote backup destination was not configured.")
+    }
+
+    try {
+      const archiveStats = await stat(plan.outputPath)
+      // Single PutObject caps the archive at the S3 5 GiB per-request limit; multipart upload for
+      // larger instances is deferred.
+      await destinationAdapter.put(
+        plan.objectKey,
+        createReadStream(plan.outputPath),
+        archiveStats.size
+      )
+      await enforceRemoteRetention(destinationAdapter, plan)
+    } finally {
+      await rm(plan.outputPath, { force: true })
+    }
+  }
+
   return {
-    archivePath: plan.outputPath,
+    archivePath: plan.archiveUri,
     manifest,
     wrote: true
+  }
+}
+
+async function enforceRemoteRetention(
+  destinationAdapter: BackupDestinationAdapter,
+  plan: BackupPlan
+): Promise<void> {
+  try {
+    const existing = await destinationAdapter.list(REMOTE_BACKUP_PREFIX)
+    const deletions = computeRetentionDeletions(existing, plan.retentionPolicy, new Date())
+
+    for (const key of deletions) {
+      // Never delete the archive this run just uploaded, even when the retention policy would keep
+      // nothing (e.g. every tier set to 0). Discarding the freshly written backup while still
+      // reporting success would be silent data loss.
+      if (key === plan.objectKey) continue
+
+      await destinationAdapter.delete(key)
+    }
+  } catch {
+    console.warn("Backup retention cleanup failed; the uploaded archive remains available.")
   }
 }
 
@@ -855,10 +1019,28 @@ async function updateBackupFailure(
     .where(eq(schema.settings.id, settingsId))
 }
 
+async function writeBackupAudit(
+  database: Database,
+  schema: Schema,
+  event: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  await database.insert(schema.auditLogs).values({
+    event,
+    actorUserId: null,
+    actorRole: null,
+    targetEntityType: "instance",
+    targetEntityId: null,
+    metadata,
+    ipAddress: null,
+    userAgent: CLI_USER_AGENT
+  })
+}
+
 function formatPlan(plan: BackupPlan): string {
   return [
     `${chalk.bold("Destination")}: ${plan.destination}`,
-    `${chalk.bold("Output")}: ${plan.outputPath}`,
+    `${chalk.bold("Archive")}: ${plan.archiveUri}`,
     `${chalk.bold("Uploads directory")}: ${plan.uploadsDirectory}`,
     `${chalk.bold("Uploads")}: ${plan.uploads.length} files, ${formatBytes(plan.uploadsTotalSize)}`,
     "",
@@ -876,19 +1058,23 @@ function getBackupHelpText(): string {
 
   return [
     heading("Usage"),
-    `  ${command} ${option("[--output <path>]")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
+    `  ${command} ${option("[--destination <local|s3|r2|b2>]")} ${option("[--output <path>]")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
     "",
     heading("Purpose"),
-    "  Write an encrypted local .remitbak archive containing the PostgreSQL dump and uploads.",
+    "  Write an encrypted .remitbak archive containing the PostgreSQL dump and uploads.",
     "",
     heading("Options"),
+    optionLine(
+      "--destination <...>",
+      "Override settings.backup_destination for one run; flag value wins over the saved setting."
+    ),
     optionLine("--output <path>", "Write to an explicit local archive path."),
     optionLine("--dry-run", "Print the backup plan without writing an archive."),
     optionLine("--yes", "Skip confirmation when overwriting an existing output path."),
     optionLine("--help", "Print this help text."),
     "",
-    heading("Not yet available"),
-    "  Remote backup destinations (S3, R2, B2). Backups currently write to the local destination."
+    heading("Remote destinations"),
+    "  S3, R2, and B2 use the encrypted backup credentials saved in /settings/backup. --output is local-only."
   ].join("\n")
 }
 
@@ -906,6 +1092,15 @@ function redactFailureReason(error: unknown): string {
   return message
     .replace(/postgres(?:ql)?:\/\/[^@\s]+@/gi, "postgresql://[redacted]@")
     .replace(/(REMIT_ENCRYPTION_KEY=)[^\s]+/g, "$1[redacted]")
+    .replace(
+      /\b(accessKey|secretKey|access_key|secret_key)\b\s*[=:]\s*[^\s&]+/gi,
+      "[redacted credential]"
+    )
+    .replace(/X-Amz-(Credential|Signature|Security-Token)=[^&\s]+/g, "X-Amz-$1=[redacted]")
+    .replace(
+      /\b(?:AKIA|ASIA|AROA|AIDA|AGPA|AIPA|ANPA|ANVA|ASCA)[A-Z0-9]{16}\b/g,
+      "[redacted credential]"
+    )
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500)

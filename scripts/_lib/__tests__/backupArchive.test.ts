@@ -11,7 +11,7 @@ import {
   encryptStream,
   readArchiveHeader,
   writeArchiveHeader
-} from "../backup-archive"
+} from "../backupArchive"
 
 describe("backup archive helpers", () => {
   test("round-trips the plaintext header when fields are valid", () => {

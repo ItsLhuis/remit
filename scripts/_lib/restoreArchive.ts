@@ -22,8 +22,8 @@ import {
   decryptStream,
   readArchiveHeader,
   type HeaderDescriptor
-} from "./backup-archive"
-import { sha256Hex } from "./backup-manifest"
+} from "./backupArchive"
+import { sha256Hex } from "./backupManifest"
 
 export const SUPPORTED_ARCHIVE_VERSIONS = [1] as const
 
@@ -333,6 +333,11 @@ export function redactRestoreReason(error: unknown): string {
     .replace(/postgres(?:ql)?:\/\/[^@\s]+@/gi, "postgresql://[redacted]@")
     .replace(/(REMIT_ENCRYPTION_KEY=)[^\s]+/g, "$1[redacted]")
     .replace(/(iv|tag|authTag|key|fingerprint)=?[A-Fa-f0-9+/=]{16,}/g, "$1=[redacted]")
+    .replace(
+      /\b(accessKey|secretKey|access_key|secret_key)\b\s*[=:]\s*[^\s&]+/gi,
+      "[redacted credential]"
+    )
+    .replace(/X-Amz-(Credential|Signature|Security-Token)=[^&\s]+/g, "X-Amz-$1=[redacted]")
     .replace(/\s+at\s+.+/g, "")
     .replace(/\s+/g, " ")
     .trim()

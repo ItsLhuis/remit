@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 
-import { createReadStream } from "node:fs"
-import { rm } from "node:fs/promises"
+import { createReadStream, createWriteStream } from "node:fs"
+import { mkdir, rm } from "node:fs/promises"
 
 import { createRequire } from "node:module"
 
@@ -28,9 +28,15 @@ import {
   redactRestoreReason,
   verifyArchivePayload,
   type RestoreManifest
-} from "./_lib/restore-archive"
-import { formatBytes } from "./_lib/format"
-import { waitForProcess } from "./_lib/process"
+} from "./_lib/restoreArchive"
+import {
+  buildDestinationAdapter,
+  validateBackupCredentials,
+  type BackupCredentials,
+  type BackupDestination,
+  type BackupDestinationAdapter
+} from "./_lib/backupDestination"
+import { formatBytes, waitForProcess } from "./_lib/utils"
 
 import { resolveLocalUploadsDirectory } from "@/lib/storage/local"
 
@@ -75,6 +81,17 @@ type RestoreRuntimeState = {
   workDir: string | null
 }
 
+type SettingsRow = Awaited<ReturnType<Database["query"]["settings"]["findFirst"]>>
+
+type RestoreSource =
+  | { type: "local"; path: string }
+  | {
+      destination: Exclude<BackupDestination, "local">
+      key: string
+      type: "remote"
+      uri: string
+    }
+
 const CLI_USER_AGENT = "cli/restore"
 
 async function main(): Promise<void> {
@@ -105,7 +122,8 @@ async function main(): Promise<void> {
     workDir: null
   }
   const operationId = randomUUID()
-  const archivePath = path.resolve(parsed.data.backupFile)
+  const restoreSource = parseRestoreSource(parsed.data.backupFile)
+  let archivePath = formatRestoreSourceForAudit(restoreSource)
 
   try {
     const { env } = await import("@/lib/config/env")
@@ -123,6 +141,20 @@ async function main(): Promise<void> {
       `.${uploadsBaseName}.restore-staging-${stagingToken}`
     )
 
+    if (restoreSource.type === "remote") {
+      const [{ database, client }, schema] = await Promise.all([
+        import("@/database"),
+        import("@/database/schema")
+      ])
+
+      state.database = database
+      state.client = client
+      state.schema = schema
+      archivePath = await downloadRemoteRestoreArchive(restoreSource, database, state.workDir)
+    } else {
+      archivePath = path.resolve(restoreSource.path)
+    }
+
     const header = await readAndValidateRestoreHeader(archivePath, encryptionKey)
     const verified = await verifyArchivePayload({
       archivePath,
@@ -139,7 +171,7 @@ async function main(): Promise<void> {
     if (parsed.data.dryRun) {
       p.note(
         formatDryRunSummary({
-          archivePath,
+          archivePath: formatRestoreSourceForAudit(restoreSource),
           databaseName,
           liveUploadsDir,
           manifest: verified.manifest
@@ -152,19 +184,24 @@ async function main(): Promise<void> {
       process.exit(0)
     }
 
-    const [{ database, client }, schema] = await Promise.all([
-      import("@/database"),
-      import("@/database/schema")
-    ])
+    if (!state.database || !state.client || !state.schema) {
+      const [{ database, client }, schema] = await Promise.all([
+        import("@/database"),
+        import("@/database/schema")
+      ])
 
-    state.database = database
-    state.client = client
-    state.schema = schema
+      state.database = database
+      state.client = client
+      state.schema = schema
+    }
+
+    const database = state.database
+    const schema = state.schema
 
     await writeRestoreAudit(state, "instance.restore.started", {
       operationId,
       archiveAppVersion: verified.manifest.appVersion,
-      archivePath,
+      archivePath: formatRestoreSourceForAudit(restoreSource),
       schemaMigrationId: verified.manifest.schemaMigrationId
     })
 
@@ -180,7 +217,7 @@ async function main(): Promise<void> {
 
     await writeRestoreAudit(state, "instance.restore.snapshot_taken", {
       operationId,
-      archivePath,
+      archivePath: formatRestoreSourceForAudit(restoreSource),
       snapshotPath: state.snapshotPath
     })
 
@@ -216,7 +253,7 @@ async function main(): Promise<void> {
     await writeRestoreAudit(state, "instance.restore.completed", {
       operationId,
       archiveAppVersion: verified.manifest.appVersion,
-      archivePath,
+      archivePath: formatRestoreSourceForAudit(restoreSource),
       snapshotPath: state.snapshotPath
     })
 
@@ -227,7 +264,7 @@ async function main(): Promise<void> {
     console.error(formatErrorForCli(error))
 
     await writeAbortAuditIfAllowed(state, error, {
-      archivePath,
+      archivePath: formatRestoreSourceForAudit(restoreSource),
       operationId,
       parsed: parsed.data
     })
@@ -278,6 +315,91 @@ function parseRestoreArgs(args: string[]): ParseResult {
   }
 
   return { data: options }
+}
+
+function parseRestoreSource(value: string): RestoreSource {
+  let url: URL
+
+  try {
+    url = new URL(value)
+  } catch {
+    return { type: "local", path: value }
+  }
+
+  if (url.protocol !== "remit:") {
+    return { type: "local", path: value }
+  }
+
+  const destination = parseRemoteRestoreDestination(url.hostname)
+  const key = decodeURIComponent(url.pathname.replace(/^\//, ""))
+
+  if (!destination || !key) {
+    throw new RestoreCliError(
+      "Refusing restore: remote archive URI must match remit://<destination>/<key>, where destination is s3, r2, or b2.",
+      "remote-restore-uri-invalid",
+      false
+    )
+  }
+
+  return {
+    destination,
+    key,
+    type: "remote",
+    uri: `remit://${destination}/${key}`
+  }
+}
+
+function parseRemoteRestoreDestination(value: string): Exclude<BackupDestination, "local"> | null {
+  return value === "s3" || value === "r2" || value === "b2" ? value : null
+}
+
+function formatRestoreSourceForAudit(source: RestoreSource): string {
+  return source.type === "remote" ? source.uri : path.resolve(source.path)
+}
+
+async function downloadRemoteRestoreArchive(
+  source: Extract<RestoreSource, { type: "remote" }>,
+  database: Database,
+  workDir: string | null
+): Promise<string> {
+  if (!workDir) {
+    throw new RestoreCliError(
+      "Refusing restore: restore work directory was not prepared.",
+      "restore-workdir-missing"
+    )
+  }
+
+  const settingsRow = await database.query.settings.findFirst()
+  const adapter = buildRemoteRestoreAdapter(source.destination, settingsRow)
+  const archivePath = path.join(workDir, "remote-source.remitbak")
+  await mkdir(workDir, { recursive: true })
+  await pipeline(await adapter.get(source.key), createWriteStream(archivePath, { flags: "wx" }))
+
+  return archivePath
+}
+
+function buildRemoteRestoreAdapter(
+  destination: Exclude<BackupDestination, "local">,
+  settingsRow: SettingsRow
+): BackupDestinationAdapter {
+  const credentials = readBackupCredentials(settingsRow)
+  const validation = validateBackupCredentials(destination, credentials)
+
+  if (!validation.ok) {
+    throw new RestoreCliError(validation.reason, "remote-restore-credentials-invalid", false)
+  }
+
+  return buildDestinationAdapter(destination, credentials)
+}
+
+function readBackupCredentials(settingsRow: SettingsRow): BackupCredentials {
+  return {
+    accessKey: settingsRow?.backupS3AccessKey ?? null,
+    bucket: settingsRow?.backupS3Bucket ?? null,
+    endpoint: settingsRow?.backupS3Endpoint ?? null,
+    region: settingsRow?.backupS3Region ?? null,
+    secretKey: settingsRow?.backupS3SecretKey ?? null
+  }
 }
 
 async function takePreRestoreSnapshot(
@@ -389,11 +511,16 @@ async function restoreDatabaseDump(databaseDumpPath: string, databaseUrl: string
 }
 
 async function runPostRestoreMigrations(databaseUrl: string): Promise<void> {
-  // Resolve migrate.js relative to this compiled module rather than process.cwd(). Both restore.js
-  // and migrate.js are emitted as siblings in scripts/dist by tsup, so this is correct regardless of
-  // the working directory the operator invokes the command from.
-  const migrateScript = path.join(path.dirname(fileURLToPath(import.meta.url)), "migrate.js")
-  const child = spawn(process.execPath, [migrateScript], {
+  // Resolve the sibling migrate module relative to this module and match its extension. tsup emits
+  // restore.js and migrate.js side by side in scripts/dist, while running from source executes
+  // restore.ts/migrate.ts through tsx. Run the .ts sibling under the tsx loader and the compiled .js
+  // sibling on plain node, so the spawn works regardless of how the command was invoked.
+  const currentModulePath = fileURLToPath(import.meta.url)
+  const moduleExtension = path.extname(currentModulePath)
+  const migrateScript = path.join(path.dirname(currentModulePath), `migrate${moduleExtension}`)
+  const migrateArgs =
+    moduleExtension === ".ts" ? ["--import", "tsx", migrateScript] : [migrateScript]
+  const child = spawn(process.execPath, migrateArgs, {
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl
@@ -600,10 +727,10 @@ function getRestoreHelpText(): string {
 
   return [
     heading("Usage"),
-    `  ${command} ${option("<backup-file>")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
+    `  ${command} ${option("<backup-file|remit://destination/key>")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
     "",
     heading("Purpose"),
-    "  Validate, decrypt, and restore a local .remitbak archive produced by pnpm remit:backup.",
+    "  Validate, decrypt, and restore a .remitbak archive produced by pnpm remit:backup.",
     "",
     heading("Options"),
     optionLine(
@@ -619,8 +746,11 @@ function getRestoreHelpText(): string {
     heading("Safety"),
     "  Restore always takes a local pre-restore snapshot before destructive work, applies the database with pg_restore --single-transaction, and swaps uploads atomically.",
     "",
+    heading("Remote archives"),
+    "  Use remit://<destination>/<key> for remote archives, for example remit://s3/remit-backups/2026/05/archive.remitbak. Destination must be s3, r2, or b2.",
+    "",
     heading("Deferred"),
-    "  Remote restore, partial restore, point-in-time restore, and --force-version are not implemented."
+    "  Partial restore, point-in-time restore, and --force-version are not implemented."
   ].join("\n")
 }
 

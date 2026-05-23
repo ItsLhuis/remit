@@ -15,8 +15,9 @@ import {
   computeKeyFingerprint,
   encryptStream,
   writeArchiveHeader
-} from "../backup-archive"
-import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backup-manifest"
+} from "../backupArchive"
+import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backupManifest"
+import { startS3TestServer } from "./s3TestServer"
 
 const originalPath = process.env.PATH
 const originalUploadsDir = process.env.REMIT_UPLOADS_DIR
@@ -24,6 +25,7 @@ const originalAllowUnattendedRestore = process.env.REMIT_ALLOW_UNATTENDED_RESTOR
 const key = Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64")
 const databaseUrl = "postgresql://remit_test:remit_test@localhost:5433/remit_test"
 const tempRoots: string[] = []
+const testBucket = "remit-test"
 
 afterEach(async () => {
   process.env.PATH = originalPath
@@ -85,7 +87,7 @@ test("restores a local backup archive and records restore audit events", async (
     .from(auditLogs)
   const backupFiles = await readdir(path.join(tempRoot, "backups"))
 
-  expect(result.exitCode).toBe(0)
+  expect(result.exitCode, result.output).toBe(0)
   expect(settingsRow?.businessName).toBe("Archived business")
   await expect(
     readFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "utf8")
@@ -156,6 +158,60 @@ test("refuses a local archive created by a newer app version", async () => {
   expect(result.output).toContain("upgrade the running build")
 })
 
+test("restores a remote backup archive from a remit URI", async () => {
+  const tempRoot = await makeTempDirectory()
+  const uploadsDir = path.join(tempRoot, "uploads")
+  const shimDir = path.join(tempRoot, "bin")
+  await mkdir(path.join(uploadsDir, "client-files"), { recursive: true })
+  await mkdir(shimDir, { recursive: true })
+  await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "remote archived upload")
+  await writePgToolShims(shimDir)
+  const s3 = await startS3TestServer()
+
+  try {
+    process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`
+    process.env.REMIT_UPLOADS_DIR = uploadsDir
+
+    await database.insert(settings).values({
+      backupDestination: "s3",
+      backupS3AccessKey: "test-access-key",
+      backupS3Bucket: testBucket,
+      backupS3Endpoint: s3.endpoint,
+      backupS3Region: "us-east-1",
+      backupS3SecretKey: "test-secret-key",
+      businessName: "Remote archived business"
+    })
+
+    const { runBackup } = await import("../../backup")
+    const schema = await import("@/database/schema")
+    const backup = await runBackup(database, schema, {
+      databaseUrl,
+      dryRun: false,
+      encryptionKey: key,
+      help: false,
+      output: null,
+      remitDataDir: tempRoot,
+      skipStatusUpdate: true,
+      yes: true
+    })
+
+    await database.update(settings).set({ businessName: "Changed business" })
+    await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "changed upload")
+
+    const result = await runRestoreCli(backup.archivePath, tempRoot, uploadsDir, shimDir, ["--yes"])
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(result.exitCode, result.output).toBe(0)
+    expect(settingsRow?.businessName).toBe("Remote archived business")
+    await expect(
+      readFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "utf8")
+    ).resolves.toBe("remote archived upload")
+  } finally {
+    await s3.close()
+  }
+})
+
 async function runRestoreCli(
   archivePath: string,
   remitDataDir: string,
@@ -164,8 +220,8 @@ async function runRestoreCli(
   args: string[]
 ): Promise<{ exitCode: number; output: string }> {
   const { spawn } = await import("node:child_process")
-  const scriptPath = path.join(process.cwd(), "scripts", "dist", "restore.js")
-  const child = spawn(process.execPath, [scriptPath, archivePath, ...args], {
+  const scriptPath = path.join(process.cwd(), "scripts", "restore.ts")
+  const child = spawn(process.execPath, ["--import", "tsx", scriptPath, archivePath, ...args], {
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl,

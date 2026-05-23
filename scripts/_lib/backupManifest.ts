@@ -4,7 +4,7 @@ import {
   ARCHIVE_FORMAT_VERSION,
   ENCRYPTION_ALGORITHM_NAME,
   computeKeyFingerprint
-} from "./backup-archive"
+} from "./backupArchive"
 
 export type BackupDestination = "local" | "s3" | "r2" | "b2"
 

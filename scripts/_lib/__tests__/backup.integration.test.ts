@@ -10,10 +10,12 @@ import { afterEach, expect, test } from "vitest"
 import { settings } from "@/database/schema"
 import { database } from "@/tests/integration/database"
 
-import { decryptStream, readArchiveHeader } from "../backup-archive"
+import { decryptStream, readArchiveHeader } from "../backupArchive"
+import { startS3TestServer } from "./s3TestServer"
 
 const originalPath = process.env.PATH
 const originalUploadsDir = process.env.REMIT_UPLOADS_DIR
+const testBucket = "remit-test"
 
 afterEach(async () => {
   process.env.PATH = originalPath
@@ -89,6 +91,110 @@ test("writes a decryptable local backup archive when Postgres and uploads are av
   expect(settingsRow?.backupLastSuccessAt).toBeInstanceOf(Date)
   expect(settingsRow?.backupLastFailureAt).toBeNull()
   expect(settingsRow?.backupLastFailureReason).toBeNull()
+
+  await rm(tempRoot, { recursive: true, force: true })
+})
+
+test("uploads an encrypted remote backup archive and applies retention cleanup", async () => {
+  const tempRoot = await makeTempDirectory()
+  const uploadsDir = path.join(tempRoot, "uploads")
+  const pgDumpShimDir = path.join(tempRoot, "bin")
+  await mkdir(uploadsDir, { recursive: true })
+  await mkdir(pgDumpShimDir, { recursive: true })
+  await writePgDumpShim(pgDumpShimDir)
+  const s3 = await startS3TestServer()
+
+  try {
+    process.env.PATH = `${pgDumpShimDir}${path.delimiter}${originalPath ?? ""}`
+    process.env.REMIT_UPLOADS_DIR = uploadsDir
+
+    const staleKey = "remit-backups/2020/01/remit-backup-stale.remitbak"
+    s3.objects.set(staleKey, {
+      body: Buffer.from("stale archive"),
+      createdAt: new Date("2020-01-01T00:00:00.000Z")
+    })
+
+    await database.insert(settings).values({
+      backupDestination: "s3",
+      backupRetentionDaily: 0,
+      backupRetentionMonthly: 0,
+      backupRetentionWeekly: 0,
+      backupS3AccessKey: "test-access-key",
+      backupS3Bucket: testBucket,
+      backupS3Endpoint: s3.endpoint,
+      backupS3Region: "us-east-1",
+      backupS3SecretKey: "test-secret-key"
+    })
+
+    const { runBackup } = await import("../../backup")
+    const schema = await import("@/database/schema")
+    const result = await runBackup(database, schema, {
+      databaseUrl: "postgresql://remit_test:remit_test@localhost:5433/remit_test",
+      dryRun: false,
+      encryptionKey: Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64"),
+      help: false,
+      output: null,
+      remitDataDir: tempRoot,
+      yes: true
+    })
+
+    const [settingsRow] = await database.select().from(settings)
+    const freshKey = result.archivePath.replace("remit://s3/", "")
+
+    expect(result.archivePath).toMatch(/^remit:\/\/s3\/remit-backups\/\d{4}\/\d{2}\/.+\.remitbak$/)
+    expect(s3.objects.has(staleKey)).toBe(false)
+    expect(Array.from(s3.objects.keys())).toEqual([freshKey])
+    expect(settingsRow?.backupLastSuccessAt).toBeInstanceOf(Date)
+    expect(settingsRow?.backupLastFailureAt).toBeNull()
+    expect(settingsRow?.backupLastFailureReason).toBeNull()
+  } finally {
+    await s3.close()
+    await rm(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test("preserves the previous successful backup timestamp when remote upload fails", async () => {
+  const tempRoot = await makeTempDirectory()
+  const uploadsDir = path.join(tempRoot, "uploads")
+  const pgDumpShimDir = path.join(tempRoot, "bin")
+  const lastSuccessAt = new Date("2026-05-01T00:00:00.000Z")
+  await mkdir(uploadsDir, { recursive: true })
+  await mkdir(pgDumpShimDir, { recursive: true })
+  await writePgDumpShim(pgDumpShimDir)
+
+  process.env.PATH = `${pgDumpShimDir}${path.delimiter}${originalPath ?? ""}`
+  process.env.REMIT_UPLOADS_DIR = uploadsDir
+
+  await database.insert(settings).values({
+    backupDestination: "s3",
+    backupLastSuccessAt: lastSuccessAt,
+    backupS3AccessKey: "minioadmin",
+    backupS3Bucket: testBucket,
+    backupS3Endpoint: "http://127.0.0.1:1",
+    backupS3Region: "us-east-1",
+    backupS3SecretKey: "minioadmin"
+  })
+
+  const { runBackup } = await import("../../backup")
+  const schema = await import("@/database/schema")
+
+  await expect(
+    runBackup(database, schema, {
+      databaseUrl: "postgresql://remit_test:remit_test@localhost:5433/remit_test",
+      dryRun: false,
+      encryptionKey: Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64"),
+      help: false,
+      output: null,
+      remitDataDir: tempRoot,
+      yes: true
+    })
+  ).rejects.toThrow()
+
+  const [settingsRow] = await database.select().from(settings)
+
+  expect(settingsRow?.backupLastSuccessAt?.toISOString()).toBe(lastSuccessAt.toISOString())
+  expect(settingsRow?.backupLastFailureAt).toBeInstanceOf(Date)
+  expect(settingsRow?.backupLastFailureReason).toBeTruthy()
 
   await rm(tempRoot, { recursive: true, force: true })
 })

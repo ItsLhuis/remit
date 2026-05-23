@@ -13,13 +13,13 @@ import {
   encryptStream,
   readArchiveHeader,
   writeArchiveHeader
-} from "../backup-archive"
-import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backup-manifest"
+} from "../backupArchive"
+import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backupManifest"
 import {
   applyUploadsAtomicSwap,
   readAndValidateRestoreHeader,
   verifyArchivePayload
-} from "../restore-archive"
+} from "../restoreArchive"
 
 const key = Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64")
 const otherKey = Buffer.from("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", "base64")

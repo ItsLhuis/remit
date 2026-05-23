@@ -5,7 +5,7 @@ import {
   DEFAULT_DEMO_SEED_SIZE,
   buildDemoSeedPlan,
   parseSeedDemoArgs
-} from "../seed-demo"
+} from "../seedDemo"
 
 const OWNER_ID = "3fdd6b4f-71b8-4dbb-b5e2-5b626c08348c"
 

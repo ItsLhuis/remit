@@ -24,7 +24,7 @@ import {
   buildDemoSeedPlan,
   hasExistingSeedableRows,
   parseSeedDemoArgs
-} from "./_lib/seed-demo"
+} from "./_lib/seedDemo"
 
 const require = createRequire(import.meta.url)
 

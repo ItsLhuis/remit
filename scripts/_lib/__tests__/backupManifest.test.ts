@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 
-import { computeKeyFingerprint } from "../backup-archive"
-import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backup-manifest"
+import { computeKeyFingerprint } from "../backupArchive"
+import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../backupManifest"
 
 describe("backup manifest helpers", () => {
   test("builds the ratified manifest shape", () => {
