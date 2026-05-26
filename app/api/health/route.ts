@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+import pkg from "@/package.json"
+
 import { checkDatabaseConnectivity } from "@/features/health/server"
 import { logger } from "@/lib/logger"
 
@@ -13,13 +15,13 @@ export async function GET(): Promise<Response> {
   const result = await checkDatabaseConnectivity()
 
   if (result.ok) {
-    return NextResponse.json({ status: "ok" }, { headers })
+    return NextResponse.json({ ok: true, version: pkg.version }, { headers })
   }
 
   logger.error(
-    { action: "api.health.GET", check: "database", err: result.error },
+    { action: "api.health.GET", check: "database", reason: result.reason },
     "Public health check failed"
   )
 
-  return NextResponse.json({ status: "degraded", reason: result.reason }, { status: 503, headers })
+  return NextResponse.json({ ok: false, reason: result.reason }, { status: 503, headers })
 }

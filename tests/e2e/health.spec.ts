@@ -7,5 +7,6 @@ test("GET /api/health returns status ok", async ({ request }) => {
 
   const body = await response.json()
 
-  expect(body).toEqual({ status: "ok" })
+  expect(body).toMatchObject({ ok: true })
+  expect(body.version).toEqual(expect.any(String))
 })
