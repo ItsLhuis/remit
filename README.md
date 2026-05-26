@@ -20,8 +20,8 @@ first-class deployment model.**
 The target self-hosting experience is a single command, everything in Docker, and nothing to
 configure manually beyond the basics. Today the repository ships Docker Compose assets, the
 password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe local and
-remote restores, and deterministic demo-data seeding; the full installer, scheduled backups, and
-upgrade command set is still planned work.
+remote restores, deterministic demo-data seeding, and the host-side upgrade runbook; the full
+installer and scheduled backups are still planned work.
 
 ## Principles
 
@@ -35,8 +35,8 @@ against these.
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
 - **Self-hosting is part of the product.** Docker Compose deployment, health checks, local and
-  S3-compatible backup and restore, and operational recovery exist today. One-command install,
-  scheduled backups, and in-place upgrades are planned product work, not afterthoughts.
+  S3-compatible backup and restore, operational recovery, and host-side upgrades exist today.
+  One-command install and scheduled backups remain planned product work, not afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -152,40 +152,36 @@ MinIO alongside the app container.
 
 Current operational support:
 
-- **Entrypoint migrations** — the app container runs the compiled migration script before starting
+- **Entrypoint migrations** - the app container runs the compiled migration script before starting
   the Next.js server.
-- **Health dashboard** — `/settings/system` shows database connectivity, email/Stripe/storage
+- **Health dashboard** - `/settings/system` shows database connectivity, email/Stripe/storage
   reachability, backup destination and success/failure status, disk usage, and the encryption key
   fingerprint.
-- **CLI tools** — shipped in-container commands:
+- **CLI tools** - shipped in-container commands:
   - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
-    `pg_dump --format=custom` output and uploads. It writes to the saved backup destination, or to
-    `--destination local|s3|r2|b2` for a one-run override.
-  - `pnpm remit:restore <backup-file>` validates, decrypts, snapshots, and restores a local
-    `.remitbak` archive with `pg_restore --single-transaction` and an atomic uploads swap.
-    `pnpm remit:restore remit://s3/<key>` restores a remote archive from the configured S3, R2, or
-    B2 destination while still writing the mandatory pre-restore snapshot locally.
+    `pg_dump --format=custom` output and uploads. The archive contract is documented in
+    [`docs/architecture/specs/BACKUP-ARCHIVE.md`](./docs/architecture/specs/BACKUP-ARCHIVE.md).
+  - `pnpm remit:restore <backup-file>` and remote `remit://<destination>/<key>` restores validate,
+    decrypt, snapshot, and replace live data from a `.remitbak` archive. Restore safety details are
+    documented in [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
-    demo deployments. Use `--size medium` or `--size large` for preset growth, or numeric overrides
-    such as `--clients 1000 --projects 4000 --invoices 20000` for bounded stress-test datasets.
+    demo deployments, with presets and capped numeric overrides.
+- **Host-side upgrades** - `bash scripts/host/upgrade.sh` snapshots a backup, pulls images, restarts
+  the compose project, and waits for `/api/health`. The operator runbook is
+  [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Per ADR-0020, upgrade is host-side:
+  no `remit:upgrade` package script, no Docker socket mount.
+- **Operational command contract** - new `remit:*` scripts follow
+  [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md)
+  and [ADR-0020](./docs/architecture/adr/0020-operational-cli-contract.md). No placeholder package
+  scripts ship.
 
 Planned operational support:
 
-- **Scheduled backups** — scheduled execution for the shipped local, S3, R2, and Backblaze B2
-  destinations. Archive format pinned by
-  [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
-  (Backup and restore).
-- **Host-side upgrades** — a `scripts/host/upgrade.sh` flow that snapshots a backup, pulls the new
-  image, restarts the compose project, and relies on the existing entrypoint to run forward-only
-  migrations. Per
-  [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
-  (Updates), upgrade is host-side: no `remit:upgrade` package script, no Docker socket mount.
-- **Additional CLIs** — encryption key rotation once that flow has a real implementation. New
-  `remit:*` scripts follow the contract in
-  [ARCHITECTURE.md section 14](./docs/architecture/ARCHITECTURE.md#14-self-hosting-experience)
-  (Operational CLI contract), formalised by
-  [ADR-0020](./docs/architecture/adr/0020-operational-cli-contract.md).
+- **Scheduled backups** - scheduled execution for the shipped local, S3, R2, and Backblaze B2
+  destinations, using the documented `.remitbak` archive format.
+- **Encryption key rotation** - deferred until the flow has a dedicated ADR and real implementation.
+  The future command name is `remit:rotate-encryption-key`.
 
 ## Stack
 
@@ -202,9 +198,9 @@ documented in [`docs/architecture/`](./docs/architecture/):
   model, multi-user model, hosted offering, all major decisions.
 - [`SCHEMA.md`](./docs/architecture/SCHEMA.md) — authoritative table-by-table specification of every
   column, constraint, and index in the database.
-- [`adr/`](./docs/adr) — Architecture Decision Records, numbered and immutable.
+- [`adr/`](./docs/architecture/adr) — Architecture Decision Records, numbered and immutable.
 
-Coding conventions for the codebase live in [`.agent/rules/`](./.agent/rules/) and are enforced
+Coding conventions for the codebase live in [`.agents/rules/`](./.agents/rules/) and are enforced
 through ESLint and the test suite.
 
 ## License

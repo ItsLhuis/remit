@@ -163,9 +163,9 @@ compiler's guarantees hold all the way from the database schema to the React com
 
 Self-hosting operations are product work, not afterthoughts. The architecture target includes
 install, upgrade, backup, restore, and disaster recovery. Password-reset recovery, encrypted backup
-archives, destructive-safe restores, and deterministic demo seeding are shipped operational CLIs;
-the installer, scheduler, upgrade flow, and encryption-key rotation remain planned until backed by
-code. See the Self-hosting experience section.
+archives, destructive-safe restores, deterministic demo seeding, and host-side upgrades are shipped
+operational surfaces; the installer, scheduler, and encryption-key rotation remain planned until
+backed by code. See the Self-hosting experience section.
 
 ---
 
@@ -1131,446 +1131,143 @@ opt-in through `SENTRY_DSN`; future update checks remain opt-in.
 
 ## 14. Self-hosting experience
 
-The biggest friction in adopting a self-hosted application is not the feature set — it is install,
-upgrade, backup, and recover. Remit treats each of these as first-class product concerns.
+The biggest friction in adopting a self-hosted application is not the feature set; it is install,
+upgrade, backup, and recover. Remit treats each of these as first-class product concerns. The
+architecture defines the boundaries and safety model; focused operations and specification documents
+carry the command-level detail.
 
 Current implementation status: the repository ships Docker Compose files, an entrypoint migration
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
 `pnpm remit:backup` for encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for
-destructive-safe local and remote archive restores, and `pnpm remit:seed-demo` for deterministic
-local/demo data. The demo seed defaults to the original small dataset and supports `--size medium`
-and `--size large` when operators need more records for reports, screenshots, or
-performance-flavored demos. It also supports bounded numeric overrides for synthetic load, capped at
-1,000 clients, 4,000 projects, and 20,000 invoices. The one-command installer, scheduled backup job,
-upgrade command, encryption key rotation command, and deployment guides are planned operational work
-and are not shipped as package scripts today.
+destructive-safe local and remote restores, `pnpm remit:seed-demo` for deterministic local/demo
+data, and the host-side `scripts/host/upgrade.sh` upgrade flow documented in
+[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). The one-command installer, scheduled
+backup job, encryption key rotation command, and platform-specific deployment guides remain planned
+operational work and are not shipped as package scripts today.
+
+The deeper self-hosting references are:
+
+- [Operational CLI contract](operations/CLI-CONTRACT.md) for command naming, execution context,
+  packaging, validation, status, and the explicit `remit:upgrade` exception.
+- [Backup archive format](specs/BACKUP-ARCHIVE.md) for the `.remitbak` byte layout, manifest,
+  encryption, destination, compatibility, and backup audit contract.
+- [Restore runbook](../operations/RESTORE.md) for destructive restore safety, confirmation, refusal
+  rules, data effects, and logging/redaction.
+- [Upgrade runbook](../operations/UPGRADE.md) for host-side upgrade prerequisites, execution,
+  rollback, and troubleshooting.
 
 ### Planned one-command install
 
-```bash
-curl -fsSL https://remit.dev/install.sh | bash
-```
+The target installer remains a host-side bootstrap that verifies Docker and Docker Compose, asks
+only for boot-time values, generates required secrets, starts the compose stack, waits for health,
+and opens `/register`.
 
-The target install script:
+`scripts/install.sh` is not present today. Until it exists, production operators use the Docker
+Compose assets directly and provide required runtime environment values themselves. The target
+remains that normal product configuration - SMTP, Stripe, branding, templates, backup destination,
+and similar settings - belongs in the UI rather than manual environment editing.
 
-1. Verifies Docker and Docker Compose are present; aborts with friendly instructions otherwise.
-2. Prompts for: domain (or `localhost` for local-only), port, data directory.
-3. Generates `.env` with all required boot secrets (database password, encryption key, auth secret).
-4. Pulls the Docker image from GHCR.
-5. Runs `docker compose up -d` and waits for the health check.
-6. Opens the browser at `/register`.
-
-This script is not present in the repository today. Until it exists, production operators use the
-Docker Compose assets directly and provide the required runtime environment values themselves. The
-target remains that nothing beyond these boot secrets requires editing `.env` for typical use; SMTP,
-Stripe, branding, and all other configuration belongs in the UI.
-
-### Setup wizard — minimal by design
+### Setup wizard
 
 `/setup` is deliberately short. It captures only what is required to use the application securely on
-the first day. Everything else is in `/settings/**` and edited when the user needs it.
+the first day:
 
-**In `/setup` (mandatory):**
-
-1. Business profile - name, default currency, locale, timezone.
+1. Business profile: name, default currency, locale, timezone.
 2. TOTP enrollment.
-3. Backup codes - generated by Better Auth as part of TOTP setup, displayed once, strongly
-   encouraged to download/store safely.
+3. Backup codes generated by Better Auth as part of TOTP setup, displayed once, and strongly
+   encouraged for safe storage.
 
-**Not in `/setup` - only in `/settings/**` later:\*\*
-
-- Logo and branding.
-- Invoicing defaults (number prefix, padding width, payment terms, default notes, IBAN).
-- SMTP / Resend credentials and test email.
-- Stripe credentials and test connection.
-- Tax rates beyond a sensible default.
-- Template customization.
-- Backup destination beyond local default.
-
-This trade-off is deliberate. A long setup wizard guarantees abandonment. A short setup wizard plus
-discoverable settings means a user is productive in minutes and configures advanced features when
-they actually need them. Each settings section has a "test" affordance (test email, test Stripe
-connection) so configuration is verifiable in place.
+Everything else belongs in `/settings/**`: branding, invoicing defaults, email credentials, Stripe,
+tax rates, templates, and backup destination. This keeps first-run setup short while still making
+advanced configuration discoverable and testable in place.
 
 ### Health and status
 
-`/settings/system` (authenticated, owner-only) provides a human-readable status dashboard:
+`/settings/system` is authenticated and owner-only. It is the human-readable operational status
+surface for database connectivity, email/Stripe/storage reachability, last successful backup, backup
+destination status, data-volume disk usage, encryption key fingerprint, and application version.
+Future update checks remain opt-in.
 
-- Database connectivity.
-- SMTP/Resend reachability and last successful send timestamp.
-- Stripe reachability (when configured).
-- Storage backend reachability.
-- Last successful backup timestamp.
-- Data volume disk usage.
-- Encryption key fingerprint — displayed so the user can confirm it has not silently changed between
-  deploys.
-- Application version. Future update checks remain opt-in.
-
-`/api/health` (public) returns `200` or `503` with a minimal JSON body for uptime monitors.
+`/api/health` is public and intentionally small. It returns `200` or `503` with a minimal JSON body
+for uptime monitors and host-side scripts.
 
 ### Operational CLI contract
 
-Operational behaviour ships as `remit:<operation>` CLI commands governed by a single contract,
-pinned by [ADR-0020](adr/0020-operational-cli-contract.md). The contract covers every command
-intended to run against a real Remit installation — self-hosted or Hosted-managed. It does not cover
-developer ergonomics scripts (`dev`, `services:*`, `database:test:*`), CI helpers, or `version:*`
-bump scripts, which are workflow tooling.
+Operational behaviour that runs inside the app container uses `remit:<operation>` package scripts
+only when the command has a real implementation, build entry, runtime packaging, tests appropriate
+to its risk, and matching documentation. Remit does not ship placeholder package scripts.
 
-#### Naming and shape
+Execution context is part of the contract. In-container commands may access the database, encryption
+key, uploads volume, and configured object stores. Host-side scripts own image pulls, compose
+restarts, host volumes, and registry access. The app container must never mount the Docker socket.
+Host-side scripts live under `scripts/host/` and are not copied into the runtime image.
 
-| Rule                | Required form                                                |
-| ------------------- | ------------------------------------------------------------ |
-| `package.json` key  | `remit:<operation>` — colon-separated, lowercase, kebab-case |
-| Source file         | `scripts/<operation>.ts`                                     |
-| Compiled output     | `scripts/dist/<operation>.js`                                |
-| Invocation in image | `node ./scripts/dist/<operation>.js` via `pnpm remit:<op>`   |
-
-Reserved names (claimed by planned work; never reuse for unrelated commands): `remit:reset-password`
-(shipped), `remit:backup`, `remit:restore`, `remit:rotate-encryption-key`, `remit:seed-demo`.
-Deliberately **not reserved**: `remit:upgrade`. Upgrade is host-side per [Updates](#updates) and
-must not appear as a package script.
-
-#### Execution context
-
-Every `remit:*` command declares one execution context.
-
-| Context          | Invocation                                             | Permitted operations                                                                                                |
-| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **In-container** | `docker compose exec app pnpm remit:<op>`              | Anything reachable from inside the app container: database, encryption key, uploads volume, configured object store |
-| **Host-side**    | `bash scripts/host/<op>.sh` or operator-run docs steps | Pulling/pushing Docker images, restarting the compose project, mounting host volumes, image registry access         |
-| **Both**         | Same script, callable from either side                 | Reserved for read-only inspection helpers; no destructive operation may declare "both"                              |
-
-A script that requires Docker socket access, image pulls, or compose restarts is **host-side only**
-— no exception. Mounting the Docker socket into the app container is rejected categorically; the
-privilege escalation surface a single application vulnerability would create is unacceptable against
-the security posture in [`.agents/rules/security.md`](../../.agents/rules/security.md).
-
-#### Promotion criteria
-
-A `remit:<operation>` command becomes a `package.json` script only when **all** of the following
-hold:
-
-1. **Real backing implementation.** The compiled output runs end-to-end against a real Postgres
-   instance and a real uploads volume — no `throw new Error("not implemented")`, no `console.log`
-   stub, no commented-out core logic.
-2. **Test coverage matching the tier per
-   [`.agents/rules/testing.md`](../../.agents/rules/testing.md).** Pure helpers extracted into
-   `scripts/_lib/` or service modules are Tier 1 (>90% coverage). End-to-end script behaviour is
-   Tier 2 integration-tested against the Dockerized test Postgres (`docker-compose.test.yml`).
-3. **Docs accuracy.** `README.md` and this section's [status matrix](#status-matrix) list the
-   command as shipped (move from "planned" to "shipped" in the same PR as the implementation
-   merges).
-4. **Tsup entry.** `tsup.scripts.config.ts` includes the new entry; the entry name matches
-   `<operation>` exactly.
-5. **Runtime image.** `Dockerfile` copies the compiled output into the runtime image when the
-   execution context is **in-container**. Host-side scripts are not copied into the image.
-
-A PR that adds a `package.json` script without satisfying every item above is rejected. No
-placeholder commands.
-
-#### Build and packaging
-
-- Source: TypeScript in `scripts/<operation>.ts`, top-level await allowed, ESM only.
-- Output: `scripts/dist/<operation>.js` via tsup (`platform: "node"`, `target: "node24"`,
-  `format: ["esm"]`, `clean: true`, `splitting: false`).
-- Shared CLI helpers belong in `scripts/_lib/` (prompts, logging, exit handling); they must not
-  depend on `next/*`, `react`, or any client-only module.
-- Pure business logic invoked by a script lives in `features/<feature>/services/` per ADR-0007 and
-  is imported through the feature server barrel.
-- Scripts must call `process.exit(0)` on success and `process.exit(1)` on uncaught failure. They
-  must close the database client explicitly or rely on `pg`'s implicit close.
-- Sensitive output (passwords, encryption keys, tokens) is printed to stdout only when the user
-  explicitly requested it interactively; never logged through `pino`.
-
-For each in-container script, the runtime stage of `Dockerfile` includes one COPY line:
-
-```dockerfile
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/<operation>.js ./scripts/dist/<operation>.js
-```
-
-Host-side scripts (currently: upgrade flow) live under `scripts/host/` as POSIX shell scripts and
-are **not** copied into the image. They are checked out from the repository on the host and executed
-there.
-
-#### Validation baseline
-
-Every later implementation PR for a `remit:*` script must run and pass:
-
-| Check                                                        | Command                                                            |
-| ------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `package.json` parses as valid JSON                          | `node -e "JSON.parse(require('fs').readFileSync('package.json'))"` |
-| Every `remit:*` script resolves to an existing compiled file | grep `scripts/dist/<name>.js`; assert file exists                  |
-| `tsup` build succeeds                                        | `pnpm build:scripts`                                               |
-| TypeScript passes                                            | `pnpm typecheck`                                                   |
-| Lint passes                                                  | `pnpm lint`                                                        |
-| Unit tests for extracted services pass                       | `pnpm test`                                                        |
-| Integration test for the script passes against test Postgres | `pnpm test:integration`                                            |
-| Docs do not claim unshipped commands are shipped             | Manual review against `README.md` and this section's status matrix |
-
-The PR description must include the output of `pnpm build:scripts` and the relevant test run.
-
-#### Status matrix
-
-| Command                       | Status  | Context      | Notes                                                                                    |
-| ----------------------------- | ------- | ------------ | ---------------------------------------------------------------------------------------- |
-| `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.                   |
-| `remit:backup`                | Shipped | In-container | Local plus S3/R2/B2 encrypted `.remitbak` destinations.                                  |
-| `remit:restore`               | Shipped | In-container | Local path or `remit://<destination>/<key>` restore with mandatory pre-restore snapshot. |
-| Remote backup destinations    | Shipped | In-container | `s3`, `r2`, and `b2` implemented through the S3-compatible adapter.                      |
-| Upgrade flow                  | Planned | Host-side    | `scripts/host/upgrade.sh`. No `remit:upgrade` package script (ADR-0020).                 |
-| `remit:rotate-encryption-key` | Planned | In-container | Reserved name. Requires its own ADR before implementation.                               |
-| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.                    |
+`remit:upgrade` is the explicit exception: upgrade is host-side only, there is no `remit:upgrade`
+package script, and the name is not reserved. See the detailed
+[Operational CLI contract](operations/CLI-CONTRACT.md) and ADR-0020.
 
 ### Backup and restore
 
+Backups are encrypted single-file `.remitbak` archives. The archive contains a fixed plaintext
+header, an AES-256-GCM encrypted gzip tar payload, `manifest.json`, `checksums.sha256`, a
+`pg_dump --format=custom` database dump, and an uploads mirror. Backup encryption reuses
+`REMIT_ENCRYPTION_KEY` per ADR-0005; losing that key loses both encrypted columns and encrypted
+backup archives. The detailed archive contract lives in the
+[Backup archive format](specs/BACKUP-ARCHIVE.md).
+
+Restore is destructive-safe, not non-destructive. Before changing live data, `remit:restore` must
+create a local pre-restore snapshot. Restore refuses incompatible archive versions, key fingerprint
+mismatches, newer app archives, invalid headers, manifest/header mismatches, and checksum failures.
+Database contents and uploads are replaced by the archive contents after confirmation. Operator
+safety, refusal rules, data effects, and logging/redaction details live in the
+[Restore runbook](../operations/RESTORE.md).
+
 Backup configuration and status fields exist in the settings schema, and `/settings/system` surfaces
-destination, success, and failure status. The encrypted bundle writer, S3-compatible remote
-destinations, retention enforcement, and destructive-safe local or remote restore CLI are shipped.
-The scheduled backup job remains planned work. This section pins the archive format and the restore
-safety contract so the implementation can be built against a stable spec.
-
-#### Archive file
-
-Every backup is a **single file** on disk:
-
-```
-remit-backup-<YYYYMMDDTHHMMSSZ>-v<appVersion>.remitbak
-```
-
-Extension `.remitbak` is recognizable, unambiguous, and discourages accidental opening with
-unrelated tools. The file is binary; do not gzip it externally — it is already compressed
-internally.
-
-#### Byte layout
-
-```
-+----------------------------------------------------------+
-| Plaintext header (fixed, 64 bytes)                       |
-|   offset 0   : magic "REMIT-BAK\0"           (10 bytes)  |
-|   offset 10  : archiveFormatVersion (uint16 BE) (2)      |
-|   offset 12  : encryptionAlgorithm (uint8)   (1)         |
-|                   0x01 = AES-256-GCM                     |
-|   offset 13  : reserved, must be 0           (3 bytes)   |
-|   offset 16  : iv                            (12 bytes)  |
-|   offset 28  : keyFingerprint (first 16 bytes of         |
-|                  SHA-256 of the AES key)     (16 bytes)  |
-|   offset 44  : reserved, must be 0           (20 bytes)  |
-+----------------------------------------------------------+
-| Ciphertext body (AES-256-GCM)                            |
-|   The plaintext, after decryption, is a gzip-compressed  |
-|   tar stream with the layout described below.            |
-+----------------------------------------------------------+
-| GCM auth tag (16 bytes, appended)                        |
-+----------------------------------------------------------+
-```
-
-The plaintext header is **not** authenticated by GCM; it carries no secret data and serves only to
-identify the format and key fingerprint before attempting decryption. The header is re-validated
-against the manifest's `archiveFormatVersion` and `encryption.keyFingerprint` after decryption — a
-mismatch aborts restore.
-
-The initial release uses `archiveFormatVersion = 1`. The format is versioned so future revisions can
-extend it without breaking existing archives.
-
-#### Decrypted payload layout (gzip tar)
-
-```
-manifest.json
-checksums.sha256
-database/
-  remit.dump            (pg_dump --format=custom output)
-uploads/
-  <uploaded-file-1>
-  <uploaded-file-2>
-  ...
-```
-
-- `manifest.json` describes everything else and is the first entry in the tar so restore can stream
-  the manifest and decide before reading the rest.
-- `checksums.sha256` lists `<sha256>  <path>` lines for `database/remit.dump` and every file under
-  `uploads/`. Restore verifies every file's checksum before applying.
-- `database/remit.dump` is the output of `pg_dump --format=custom --no-owner --no-privileges`.
-  Custom format gives a deterministic, restore-friendly binary that `pg_restore --clean --if-exists`
-  consumes without role assumptions on the target instance.
-- `uploads/` is a flat mirror of the runtime uploads directory at the time of backup. The storage
-  adapter (per ADR-0019) is responsible for streaming objects into the tar regardless of the runtime
-  backend.
-- The runtime image installs `postgresql16-client` so in-container `remit:backup` can invoke
-  `pg_dump` against the PostgreSQL 16 service pinned in `docker-compose.yml`.
-
-#### Manifest shape
-
-```json
-{
-  "archiveFormatVersion": 1,
-  "appVersion": "1.2.3",
-  "createdAt": "2026-05-17T10:00:00Z",
-  "createdBy": "remit:backup",
-  "schemaMigrationId": "0042_some_migration",
-  "encryption": {
-    "algorithm": "AES-256-GCM",
-    "keySource": "REMIT_ENCRYPTION_KEY",
-    "keyFingerprint": "sha256:<hex>"
-  },
-  "compression": "gzip",
-  "components": {
-    "database": {
-      "format": "pg_dump-custom",
-      "size": 1234567,
-      "sha256": "<hex>"
-    },
-    "uploads": {
-      "format": "tar-stream",
-      "fileCount": 42,
-      "totalSize": 9876543,
-      "sha256Manifest": "<hex of checksums.sha256>"
-    }
-  },
-  "destination": "local"
-}
-```
-
-`destination` is one of `local`, `s3`, `r2`, `b2`. It records where the archive was **intended** to
-be stored. Restore accepts either a local file path or `remit://<destination>/<key>` for a remote
-archive object.
-
-#### Encryption
-
-- Algorithm: AES-256-GCM (algorithm byte `0x01`).
-- Key: reuses `REMIT_ENCRYPTION_KEY` per ADR-0005 — the same master key used for column-level
-  encryption at rest. No new secret to manage.
-- IV: 12 random bytes per archive, written into the plaintext header.
-- Auth tag: 16 bytes, appended to the ciphertext.
-- `keyFingerprint`: first 16 bytes of `SHA-256(rawKey)` — sufficient to detect mismatched keys
-  during restore without disclosing the key.
-
-#### Destinations
-
-Destinations match `settings.backup_destination` and ADR-0019:
-
-| Destination | Status  | Storage contract                                                                          |
-| ----------- | ------- | ----------------------------------------------------------------------------------------- |
-| `local`     | Shipped | Writes to a local filesystem path under `REMIT_DATA_DIR`.                                 |
-| `s3`        | Shipped | Writes encrypted `.remitbak` bytes to Amazon S3 using `settings.backup_s3_*` credentials. |
-| `r2`        | Shipped | Writes encrypted `.remitbak` bytes to Cloudflare R2 through the S3-compatible adapter.    |
-| `b2`        | Shipped | Writes encrypted `.remitbak` bytes to Backblaze B2 through the S3-compatible adapter.     |
-
-A single `remit:backup` run writes to exactly one destination: the `--destination` flag when
-provided, otherwise the destination configured in `settings`. Multi-destination fan-out is deferred;
-an operator who wants redundant remote backups runs the command twice. Retention is configurable:
-keep N daily, M weekly, K monthly snapshots.
-
-**Audit.** On completion or failure, `remit:backup` writes an `audit_log` entry
-(`actorUserId: null`, `actorRole: null`, `targetEntityType: "instance"`,
-`metadata: { destination, archive, archiveAppVersion, schemaMigrationId }` on success;
-`{ destination, reason }` on failure). The pre-restore snapshot call sets `skipStatusUpdate: true`
-and does not emit a backup audit entry — its audit trail is owned by `remit:restore`.
-
-#### Forward compatibility
-
-Older versions of `remit:restore` must refuse archives with an `archiveFormatVersion` they do not
-know how to read. Newer versions must accept every previously released format version. Any change to
-the byte layout, encryption algorithm, manifest schema, or destination model that breaks an existing
-version bumps `archiveFormatVersion` and is recorded in a new ADR that supersedes ADR-0020 on this
-point.
-
-#### Restore safety contract
-
-Restore is destructive. The contract minimises accidental data loss and never silently restores into
-an environment that cannot hold the archive's data.
-
-**Pre-restore snapshot — mandatory.** Before applying any changes, `remit:restore` creates a
-snapshot of the current instance using the same code path as `remit:backup`, writing to `local`
-regardless of the configured destination, with the filename suffix `.pre-restore.remitbak`. If the
-snapshot cannot be created (disk full, key mismatch, database unreachable), restore aborts before
-touching live data. The snapshot path is printed to the operator before the destructive step begins.
-
-**Confirmation requirements.** The operator must confirm the database name and the snapshot path
-with a typed full match — no default-yes prompts. A `--yes` non-interactive flag exists for scripted
-operation but requires `REMIT_ALLOW_UNATTENDED_RESTORE=1` in the environment. The flag combination
-is documented in the help output.
-
-**Refusal rules.** Restore refuses (exit code 1, no destructive action taken) when:
-
-1. `archiveFormatVersion` is greater than the highest version the running build supports.
-2. The archive's `encryption.keyFingerprint` does not match the live `REMIT_ENCRYPTION_KEY`
-   fingerprint. The archive cannot be decrypted; refusing avoids partial restores.
-3. The archive's `appVersion` is **newer** than the running `appVersion`. Downgrading is not
-   supported by Drizzle migrations (forward-only); a newer archive may carry data shapes the current
-   code cannot read.
-4. The plaintext header magic, reserved bytes, or algorithm field do not match the format
-   specification.
-5. The decrypted manifest's `archiveFormatVersion` does not match the plaintext header.
-6. Any file's SHA-256 in `checksums.sha256` fails verification.
-
-Restore **warns but proceeds** (after the typed confirmation) when the archive's `schemaMigrationId`
-is older than the current head. After restore completes, migrations are applied forward; this is the
-same code path the entrypoint already runs.
-
-**Effect on current uploads and data.** Database:
-`pg_restore --clean --if-exists --no-owner --no-privileges` against the live database. This drops
-and recreates objects from the dump. Uploads: the live uploads directory is replaced with the
-archive's contents; files present in the live directory but absent from the archive are deleted as
-part of the replacement. Settings rows containing encrypted columns are valid post-restore because
-the encryption key has already been verified by fingerprint match.
-
-**Logging and redaction.** All restore activity is logged through `pino` per
-[`.agents/rules/errors.md`](../../.agents/rules/errors.md). The following must **never** appear in
-logs: the raw AES key, the typed confirmation echo, password hashes from `accounts`, decrypted
-values of encrypted columns, archive byte contents, or full manifest JSON when it contains encrypted
-credential ciphertext (`settings.backup_s3_*`, etc.). An `audit_log` entry is written before the
-destructive step begins (`actorUserId: null`, `actorRole: null`, `targetEntityType: "instance"`,
-`metadata: { archivePath, archiveAppVersion, snapshotPath }`) and again on completion or abort.
-
-A missed backup for N consecutive days surfaces a banner in the dashboard.
+destination, success, and failure status. The encrypted bundle writer, S3-compatible destinations,
+retention enforcement, and destructive-safe local or remote restore CLI are shipped. The scheduled
+backup job remains planned work. A missed backup for N consecutive days surfaces a banner in the
+dashboard.
 
 ### Updates
 
 Drizzle migrations are forward-compatible. Breaking schema changes span two releases: release N adds
-the column nullable; release N+1 backfills and adds `NOT NULL`. This allows any running instance to
+the column nullable; release N+1 backfills and adds `NOT NULL`. This allows running instances to
 upgrade without a maintenance window.
 
-The current container entrypoint applies pending migrations before starting the app. There is no
-`remit:upgrade` package script today, and there will not be one: per ADR-0020, the upgrade flow is
-**host-side**. The app container is not allowed to pull its own image, restart its parent compose
-project, or mount the Docker socket — that would be a substantial privilege escalation surface.
+The container entrypoint applies pending migrations before starting the app. Upgrade orchestration
+is host-side only: the app container does not pull its own image, restart its parent compose
+project, or mount the Docker socket.
 
-The planned upgrade flow is a host-side script (`scripts/host/upgrade.sh`) executed by the operator
-on the host that owns the compose project:
+The shipped upgrade flow is `scripts/host/upgrade.sh`, run by the operator on the host that owns the
+compose project. Its architecture is a four-step flow:
 
-```bash
-bash scripts/host/upgrade.sh
-```
+1. Take an ad-hoc backup through the in-container `remit:backup` command and refuse to proceed if it
+   fails.
+2. Pull updated images.
+3. Restart the compose project; `docker-entrypoint.sh` applies pending migrations on container
+   start.
+4. Wait for the health check and print success or rollback instructions.
 
-It performs:
-
-1. Take an ad-hoc backup via `docker compose exec app pnpm remit:backup`. Refuse to proceed if the
-   backup fails.
-2. `docker compose pull`.
-3. `docker compose up -d`. The container entrypoint applies pending migrations before serving
-   traffic.
-4. Wait for the health check; print success or rollback instructions on failure.
-
-Host-side scripts are not copied into the runtime image. Auto-upgrade is opt-in; manual is the
-default. The CHANGELOG is published in the repository and surfaced in `/settings/system` when an
+The operator procedure, rollback path, and troubleshooting notes live in
+[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Auto-upgrade is opt-in; manual upgrade is
+the default. The CHANGELOG is published in the repository and surfaced in `/settings/system` when an
 update is available.
 
 ### Encryption key rotation
 
-Key rotation is reserved as `remit:rotate-encryption-key`. The script will re-encrypt every
-encrypted column and every existing backup archive with a new master key. The semantics — a two-key
-window for read-old-write-new, settings-row migration, audit-log behaviour, and refusal-to-start
-with a mid-rotation database — are substantial enough to require their own ADR when implementation
-begins. No package script ships before that ADR. ADR-0020 reserves the name; the rotation ADR will
-be numbered at design time and must merge before the implementation.
+Key rotation remains deferred. The reserved future command is `remit:rotate-encryption-key`, but no
+package script ships before the command has its own ADR and implementation. The future ADR must
+define the two-key read-old-write-new window, re-encryption of encrypted columns and existing backup
+archives, settings-row migration, audit-log behaviour, and refusal-to-start semantics for a
+mid-rotation database.
 
 ### Deployment guides
 
-`docs/deploy/` is the planned home for tested step-by-step deployment guides. That directory does
-not exist yet. The intended guide set covers at least: Docker Compose on a Linux VPS, Coolify,
-Dokploy, Railway, Render, Raspberry Pi, behind an existing Nginx reverse proxy, and behind
-Cloudflare Tunnel. Each guide ends with verification steps: log in, create a test client, send a
-test invoice.
+`docs/operations/UPGRADE.md` is the shipped host-side upgrade runbook. `docs/deploy/` remains the
+planned home for tested platform-specific deployment guides. The intended guide set covers at least
+Docker Compose on a Linux VPS, Coolify, Dokploy, Railway, Render, Raspberry Pi, an existing Nginx
+reverse proxy, and Cloudflare Tunnel. Each guide ends with verification steps: log in, create a test
+client, and send a test invoice.
 
 ---
 
