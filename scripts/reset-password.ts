@@ -1,30 +1,20 @@
 import { randomBytes } from "node:crypto"
 
-import { createRequire } from "node:module"
-
 import * as p from "@clack/prompts"
 
 import { and, eq } from "drizzle-orm"
 
-const require = createRequire(import.meta.url)
+import { loadCliEnvironment } from "./core/cli/bootstrap"
 
-const { loadEnvConfig } = require("@next/env") as typeof import("@next/env")
+import { exitOnCancel } from "./core/cli/exitOnCancel"
 
-loadEnvConfig(process.cwd())
-
-function exitOnCancel<T>(value: T | symbol): T {
-  if (p.isCancel(value)) {
-    p.cancel("Password reset cancelled.")
-    process.exit(0)
-  }
-
-  return value
-}
+loadCliEnvironment()
 
 async function main(): Promise<void> {
   p.intro("Remit password reset")
 
-  // Operational recovery exception: this CLI repairs credential access when email reset is unavailable.
+  // Operational recovery exception: this CLI repairs credential access when
+  // email reset is unavailable.
   const [{ database }, { accounts, auditLogs, users }, { auth }] = await Promise.all([
     import("@/database"),
     import("@/database/schema"),
@@ -48,7 +38,8 @@ async function main(): Promise<void> {
 
         return undefined
       }
-    })
+    }),
+    "Password reset cancelled."
   )
   const email = emailInput.trim().toLowerCase()
 
@@ -82,7 +73,8 @@ async function main(): Promise<void> {
     await p.confirm({
       message: "Reset this user's credential password?",
       initialValue: false
-    })
+    }),
+    "Password reset cancelled."
   )
 
   if (!confirmed) {
