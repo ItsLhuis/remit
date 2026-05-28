@@ -82,18 +82,6 @@ jobs:
     needs:
       - lint
       - typecheck
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: remit_test
-          POSTGRES_PASSWORD: remit_test
-          POSTGRES_DB: remit_test
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd "pg_isready -U remit_test -d remit_test" --health-interval 5s
-          --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -110,6 +98,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Start test database
+        run: docker compose -f docker-compose.test.yml up -d
+
+      - name: Wait for test database
+        run: |
+          until docker compose -f docker-compose.test.yml exec -T database_test pg_isready -U remit_test -d remit_test; do
+            sleep 1
+          done
 
       - name: Run test migrations
         run: pnpm database:test:migrate
