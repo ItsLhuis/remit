@@ -63,6 +63,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/migrate.js ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/reset-password.js ./scripts/dist/reset-password.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/backup.js ./scripts/dist/backup.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/restore.js ./scripts/dist/restore.js
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/rotate-encryption-key.js ./scripts/dist/rotate-encryption-key.js
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh

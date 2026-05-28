@@ -6,6 +6,7 @@ export default defineConfig({
     migrate: "scripts/migrate.ts",
     "reset-password": "scripts/reset-password.ts",
     restore: "scripts/restore.ts",
+    "rotate-encryption-key": "scripts/rotate-encryption-key.ts",
     "seed-demo": "scripts/seed-demo.ts"
   },
   outDir: "scripts/dist",

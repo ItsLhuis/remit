@@ -60,6 +60,7 @@
     "remit:backup": "node ./scripts/dist/backup.js",
     "remit:reset-password": "node ./scripts/dist/reset-password.js",
     "remit:restore": "node ./scripts/dist/restore.js",
+    "remit:rotate-encryption-key": "node ./scripts/dist/rotate-encryption-key.js",
     "remit:seed-demo": "node ./scripts/dist/seed-demo.js",
     "version:patch": "tsx ./scripts/bump-version.ts patch",
     "version:minor": "tsx ./scripts/bump-version.ts minor",
