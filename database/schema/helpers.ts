@@ -1,5 +1,7 @@
 import { customType, timestamp } from "drizzle-orm/pg-core"
 
+import { getTableName, type Table } from "drizzle-orm"
+
 import { env } from "@/lib/config/env"
 
 import { decryptString, encryptString } from "@/lib/encryption/aes"
@@ -18,8 +20,15 @@ export const softDelete = {
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" })
 }
 
+export type EncryptedColumn = {
+  table: string
+  column: string
+}
+
+const encryptedColumnRegistry = new Map<string, EncryptedColumn>()
+
 export function encryptedColumn(name: string) {
-  return customType<{ data: string; driverData: string }>({
+  const builder = customType<{ data: string; driverData: string }>({
     dataType() {
       return "text"
     },
@@ -34,4 +43,31 @@ export function encryptedColumn(name: string) {
       }
     }
   })(name)
+
+  type Buildable = { build: (table: Table) => { name: string } }
+
+  const buildable = builder as unknown as Buildable
+  const originalBuild = buildable.build.bind(buildable)
+
+  buildable.build = (table) => {
+    const column = originalBuild(table)
+    const tableName = getTableName(table)
+
+    encryptedColumnRegistry.set(`${tableName}.${column.name}`, {
+      table: tableName,
+      column: column.name
+    })
+
+    return column
+  }
+
+  return builder
+}
+
+export function getEncryptedColumns(): ReadonlyArray<EncryptedColumn> {
+  return Array.from(encryptedColumnRegistry.values()).sort((left, right) =>
+    left.table === right.table
+      ? left.column.localeCompare(right.column)
+      : left.table.localeCompare(right.table)
+  )
 }
