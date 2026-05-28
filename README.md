@@ -20,8 +20,8 @@ first-class deployment model.**
 The target self-hosting experience is a single command, everything in Docker, and nothing to
 configure manually beyond the basics. Today the repository ships Docker Compose assets, the
 password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe local and
-remote restores, deterministic demo-data seeding, and the host-side upgrade runbook; the full
-installer and scheduled backups are still planned work.
+remote restores, encryption key rotation, deterministic demo-data seeding, and the host-side upgrade
+runbook; the full installer and scheduled backups are still planned work.
 
 ## Principles
 
@@ -35,8 +35,9 @@ against these.
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
 - **Self-hosting is part of the product.** Docker Compose deployment, health checks, local and
-  S3-compatible backup and restore, operational recovery, and host-side upgrades exist today.
-  One-command install and scheduled backups remain planned product work, not afterthoughts.
+  S3-compatible backup and restore, encryption key rotation, operational recovery, and host-side
+  upgrades exist today. One-command install and scheduled backups remain planned product work, not
+  afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -164,6 +165,10 @@ Current operational support:
   - `pnpm remit:restore <backup-file>` and remote `remit://<destination>/<key>` restores validate,
     decrypt, snapshot, and replace live data from a `.remitbak` archive. Restore safety details are
     documented in [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).
+  - `pnpm remit:rotate-encryption-key` rotates Remit-owned encrypted columns and existing
+    `.remitbak` archive encryption with a mandatory pre-rotation backup. The rotation contract is
+    documented in
+    [`docs/architecture/adr/0021-encryption-key-rotation.md`](./docs/architecture/adr/0021-encryption-key-rotation.md).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
     demo deployments, with presets and capped numeric overrides.
@@ -180,8 +185,6 @@ Planned operational support:
 
 - **Scheduled backups** - scheduled execution for the shipped local, S3, R2, and Backblaze B2
   destinations, using the documented `.remitbak` archive format.
-- **Encryption key rotation** - deferred until the flow has a dedicated ADR and real implementation.
-  The future command name is `remit:rotate-encryption-key`.
 
 ## Stack
 

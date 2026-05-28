@@ -10,10 +10,10 @@ defines two password reset paths. If SMTP or Resend is configured, Better Auth o
 flow and Remit delivers the email. If email transport is unavailable, a self-hosted operator can run
 `pnpm remit:reset-password` through the application container.
 
-[Architecture: Self-hosting experience, CLI scripts](../ARCHITECTURE.md#cli-scripts) lists the reset
-command as an operational recovery script for the "lost-everything" case. Password recovery is
-deliberately separate from Better Auth backup codes: backup codes are part of the TOTP plugin and
-are used only as second-factor fallback during login.
+[Operational CLI contract: Operator command reference](../operations/CLI-CONTRACT.md#operator-command-reference)
+lists the reset command as an operational recovery script for the "lost-everything" case. Password
+recovery is deliberately separate from Better Auth backup codes: backup codes are part of the TOTP
+plugin and are used only as second-factor fallback during login.
 
 This distinction matters because many self-hosted installations will not configure email on day one,
 but password recovery must still exist without inventing a second credential recovery system.

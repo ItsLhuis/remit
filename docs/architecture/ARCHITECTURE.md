@@ -73,16 +73,16 @@ section — so that the same simplification holds for both deployment models.
 ### Primary workflow
 
 ```
-Lead ??? Client ??? Project ??? Proposal ??? Contract
-                       ?                         ?
-                       ??? Time Entries          ?
-                       ??? Expenses              ?
-                       ??? Tasks                 ?
-                                ?                ?
-                             Invoice ?????????????
-                                ?
-                                ??? Payments (manual or Stripe)
-                                ??? Credit Notes
+Lead ──► Client ──► Project ──► Proposal ──► Contract
+                       │                         │
+                       ├── Time Entries          │
+                       ├── Expenses              │
+                       └── Tasks                 │
+                                ▼                ▼
+                             Invoice ◄───────────┘
+                                │
+                                ├── Payments (manual or Stripe)
+                                └── Credit Notes
 ```
 
 Any subset of this workflow is valid. A user may create invoices directly from a client without a
@@ -163,9 +163,9 @@ compiler's guarantees hold all the way from the database schema to the React com
 
 Self-hosting operations are product work, not afterthoughts. The architecture target includes
 install, upgrade, backup, restore, and disaster recovery. Password-reset recovery, encrypted backup
-archives, destructive-safe restores, deterministic demo seeding, and host-side upgrades are shipped
-operational surfaces; the installer, scheduler, and encryption-key rotation remain planned until
-backed by code. See the Self-hosting experience section.
+archives, destructive-safe restores, deterministic demo seeding, encryption-key rotation, and
+host-side upgrades are shipped operational surfaces; the installer and scheduler remain planned
+until backed by code. See the Self-hosting experience section.
 
 ---
 
@@ -324,48 +324,48 @@ erDiagram
 **Invoice**
 
 ```
-draft ??? sent ??? paid
-            ?
-            ???? (overdue - computed, not stored: dueAt < now AND status = sent)
-            ???? (partially_paid - computed: sum(payments) < totalCents AND payments exist)
+draft ──► sent ──► paid
+            │
+            ├── (overdue - computed, not stored: dueAt < now AND status = sent)
+            └── (partially_paid - computed: sum(payments) < totalCents AND payments exist)
 ```
 
 **Proposal**
 
 ```
-draft ??? sent ??? accepted
-                ???? rejected
-                ???? expired (computed: expiresAt < now AND status = sent)
+draft ──► sent ──► accepted
+                ├── rejected
+                └── expired (computed: expiresAt < now AND status = sent)
 ```
 
 **Project**
 
 ```
-active ???? on_hold
-  ?
-  ???? completed
-  ???? cancelled
+active ──► on_hold
+  │
+  ├── completed
+  └── cancelled
 ```
 
 **Lead**
 
 ```
-new ??? contacted ??? qualified ??? proposal_sent ??? won ??? (converted to Client)
-                                                   ???? lost
+new ──► contacted ──► qualified ──► proposal_sent ──► won ──► (converted to Client)
+                                                   └── lost
 ```
 
 **Contract**
 
 ```
-draft ??? sent ??? signed
-                ???? expired
-                ???? terminated
+draft ──► sent ──► signed
+                ├── expired
+                └── terminated
 ```
 
 **RecurringInvoice**
 
 ```
-active ??? completed (end condition met: count or date)
+active ──► completed (end condition met: count or date)
 ```
 
 ### Key invariants
@@ -410,36 +410,36 @@ proceeds.
 ### High-level architecture
 
 ```
-????????????????????????????????????????????????????????????????????????????
-?                           Browser / Client                               ?
-?              React 19  —  Next.js App Router  —  Tailwind CSS v4         ?
-????????????????????????????????????????????????????????????????????????????
-                    ?  RSC + Server Actions          ?  Public / anonymous
-                    ?                                ?
-  ???????????????????????????????    ????????????????????????????????????????
-  ?      Application Layer      ?    ?           Public Layer               ?
-  ?   app/(dashboard)/**        ?    ?   /i/[token]   Invoice view          ?
-  ?   app/(auth)/**             ?    ?   /p/[token]   Proposal acceptance   ?
-  ?   app/(setup)/**            ?    ?   /c/[token]   Contract signing      ?
-  ???????????????????????????????    ?   /s/[token]   Client portal         ?
-                 ?                   ????????????????????????????????????????
-                 ? calls
-                 ?
-  ???????????????????????????????    ????????????????????????????????????????
-  ?    Business Logic Layer     ?    ?            Event Bus                 ?
-  ?  features/*/services/       ??????   lib/events/                        ?
-  ?  Pure functions             ?    ?   Typed, in-process pub/sub          ?
-  ?  No Next / Drizzle / React  ?    ?   Cross-feature side-effect wiring   ?
-  ???????????????????????????????    ????????????????????????????????????????
-                 ?
-                 ?
-  ???????????????????????????????    ????????????????????????????????????????
-  ?        Data Layer           ?    ?         External Adapters            ?
-  ?   Drizzle ORM               ?    ?   Email  - SMTP or Resend            ?
-  ?   PostgreSQL                ?    ?   Payments - Stripe (or others)      ?
-  ?   database/schema/          ?    ?   Storage  - local FS or S3          ?
-  ???????????????????????????????    ?   Error tracking - Sentry-compatible ?
-                                     ????????????????????????????????????????
+┌────────────────────────────────────────────────────────────────────────────┐
+│                           Browser / Client                                │
+│              React 19  —  Next.js App Router  —  Tailwind CSS v4         │
+└────────────────────────────────────────────────────────────────────────────┘
+                    │  RSC + Server Actions          │  Public / anonymous
+                    │                                │
+  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
+  │      Application Layer      │    │           Public Layer               │
+  │   app/(dashboard)/**        │    │   /i/[token]   Invoice view          │
+  │   app/(auth)/**             │    │   /p/[token]   Proposal acceptance   │
+  │   app/(setup)/**            │    │   /c/[token]   Contract signing      │
+  └─────────────────────────────┘    │   /s/[token]   Client portal         │
+                 │                   └──────────────────────────────────────┘
+                 │ calls
+                 │
+  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
+  │    Business Logic Layer     │    │            Event Bus                 │
+  │  features/*/services/       ├────┤   lib/events/                        │
+  │  Pure functions             │    │   Typed, in-process pub/sub          │
+  │  No Next / Drizzle / React  │    │   Cross-feature side-effect wiring   │
+  └─────────────────────────────┘    └──────────────────────────────────────┘
+                 │
+                 │
+  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
+  │        Data Layer           │    │         External Adapters            │
+  │   Drizzle ORM               │    │   Email  - SMTP or Resend            │
+  │   PostgreSQL                │    │   Payments - Stripe (or others)      │
+  │   database/schema/          │    │   Storage  - local FS or S3          │
+  └─────────────────────────────┘    │   Error tracking - Sentry-compatible │
+                                     └──────────────────────────────────────┘
 ```
 
 ### Technology stack
@@ -447,7 +447,7 @@ proceeds.
 | Layer      | Technology                        | Rationale                                                                                                                               |
 | ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework  | Next.js 16 (App Router)           | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes                  |
-| Runtime    | Node.js ? 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
+| Runtime    | Node.js ≥ 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
 | Language   | TypeScript (strict)               | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                                    |
 | ORM        | Drizzle                           | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                                      |
 | Database   | PostgreSQL                        | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search                              |
@@ -469,16 +469,16 @@ module. Not every feature needs every file — add only what the feature require
 
 ```
 features/<feature>/
-  ??? components/          React UI. Barrel at index.ts.
-  ??? hooks/               Feature-scoped hooks.
-  ??? services/            Pure business logic. No framework or IO imports.
-  ?   ??? __tests__/       Vitest unit tests. Co-located with what they test.
-  ??? queries.ts           Read operations via Drizzle. Server-only.
-  ??? mutations.ts         Write operations (server actions). Server-only.
-  ??? schemas.ts           Zod schemas + inferred types.
-  ??? types.ts             Public types not derivable from schemas.
-  ??? events.ts            Event handler registration for this feature.
-  ??? index.ts             Public barrel. Only what other features may consume.
+  ├── components/          React UI. Barrel at index.ts.
+  ├── hooks/               Feature-scoped hooks.
+  ├── services/            Pure business logic. No framework or IO imports.
+  │   └── __tests__/       Vitest unit tests. Co-located with what they test.
+  ├── queries.ts           Read operations via Drizzle. Server-only.
+  ├── mutations.ts         Write operations (server actions). Server-only.
+  ├── schemas.ts           Zod schemas + inferred types.
+  ├── types.ts             Public types not derivable from schemas.
+  ├── events.ts            Event handler registration for this feature.
+  └── index.ts             Public barrel. Only what other features may consume.
 ```
 
 File-level conventions (component naming, hook naming, import order, type rules) are codified in the
@@ -495,9 +495,9 @@ Types from `database/schema` are the shared data substrate and are exempt from t
 feature may import them directly.
 
 ```
-?  import { type Client }    from "@/features/clients"           ? barrel
-?  import { type Client }    from "@/database/schema"            ? substrate
-?  import { clientSchema }   from "@/features/clients/schemas"   ? sibling file
+✓  import { type Client }    from "@/features/clients"           // barrel
+✓  import { type Client }    from "@/database/schema"            // substrate
+✗  import { clientSchema }   from "@/features/clients/schemas"   // sibling file
 ```
 
 ### Why closed modules
@@ -537,22 +537,22 @@ Representative examples by feature:
 
 ```
 features/invoicing/services/
-  calculateInvoiceTotal.ts       ? tax + discount arithmetic on line items
-  generateInvoiceNumber.ts       ? sequence generation given prefix and last number
-  canTransitionInvoiceStatus.ts  ? status transition guard, returns { allowed, reason }
+  calculateInvoiceTotal.ts       — tax + discount arithmetic on line items
+  generateInvoiceNumber.ts       — sequence generation given prefix and last number
+  canTransitionInvoiceStatus.ts  — status transition guard, returns { allowed, reason }
 
 features/proposals/services/
-  isProposalExpired.ts           ? expiresAt vs. a given Date
-  canTransitionProposalStatus.ts ? transition guard
+  isProposalExpired.ts           — expiresAt vs. a given Date
+  canTransitionProposalStatus.ts — transition guard
 
 features/timeTracking/services/
-  aggregateBillableHours.ts      ? sum billable seconds, convert to hours
-  resolveHourlyRate.ts           ? rate precedence: entry ? task ? project ? client ? default
-  computeInvoiceableEntries.ts   ? filter + group unbilled entries for invoice line item generation
+  aggregateBillableHours.ts      — sum billable seconds, convert to hours
+  resolveHourlyRate.ts           — rate precedence: entry → task → project → client → default
+  computeInvoiceableEntries.ts   — filter + group unbilled entries for invoice line item generation
 
 features/recurring/services/
-  computeNextRunDate.ts          ? next date from cadence + last run date
-  shouldGenerateInvoice.ts       ? whether a schedule is due as of a given date
+  computeNextRunDate.ts          — next date from cadence + last run date
+  shouldGenerateInvoice.ts       — whether a schedule is due as of a given date
 ```
 
 ### Why pure functions here
@@ -576,10 +576,10 @@ logic, `services/` extracts to `packages/core` with no architectural change — 
 Server actions in `mutations.ts` follow a strict four-step pattern with no exceptions:
 
 ```
-1. Validate   ? safeParse with the feature's Zod schema. Return { error } on failure.
-2. Compute    ? call into services/ for any branching logic.
-3. Persist    ? Drizzle writes, wrapped in try/catch. Map known DB errors to friendly strings.
-4. Side-effects ? emit event bus event; revalidatePath/revalidateTag; write audit log if needed.
+1. Validate      → safeParse with the feature's Zod schema. Return { error } on failure.
+2. Compute       → call into services/ for any branching logic.
+3. Persist       → Drizzle writes, wrapped in try/catch. Map known DB errors to friendly strings.
+4. Side-effects  → emit event bus event; revalidatePath/revalidateTag; write audit log if needed.
 ```
 
 They return `{ data: T } | { error: string }` and never throw to the caller. The full canonical
@@ -702,11 +702,11 @@ member.invited         member.accepted        member.removed         invitation.
 
 ```
 emit("invoice.paid", { invoiceId })
-  ??? features/activityLog/events.ts   ? writes "Invoice #INV-042 marked as paid"
-  ??? features/audit/events.ts         ? writes security audit entry
-  ??? features/dashboard/events.ts     ? revalidates dashboard KPI cache tags
-  ??? features/email/events.ts         ? sends payment receipt if SMTP is configured
-  ??? features/projects/events.ts      ? checks if all project invoices are paid;
+  ├── features/activityLog/events.ts   — writes "Invoice #INV-042 marked as paid"
+  ├── features/audit/events.ts         — writes security audit entry
+  ├── features/dashboard/events.ts     — revalidates dashboard KPI cache tags
+  ├── features/email/events.ts         — sends payment receipt if SMTP is configured
+  └── features/projects/events.ts      — checks if all project invoices are paid;
                                           suggests marking project as completed
 ```
 
@@ -732,21 +732,21 @@ Security is a first-class feature. The goal is "demonstrably defensible" as a po
 
 ```
 POST /login
-  ?
-  ??? Rate limiter check (in-memory or Redis adapter)
-  ?
-  ??? better-auth credential verification
-  ?     ??? Failure ? emit auth.login.failed ? audit log (IP, user-agent, timestamp)
-  ?     ??? Success ? continue
-  ?
-  ??? TOTP verification (mandatory, no bypass)
-  ?     ??? Failure ? audit log
-  ?     ??? Success ? continue
-  ?
-  ??? Session created (httpOnly, secure, sameSite: lax)
-  ?     ??? activeOrganizationId set on session (always the instance organization)
-  ?
-  ??? emit auth.login.succeeded ? audit log
+  │
+  ├── Rate limiter check (in-memory or Redis adapter)
+  │
+  ├── better-auth credential verification
+  │     ├── Failure → emit auth.login.failed → audit log (IP, user-agent, timestamp)
+  │     └── Success → continue
+  │
+  ├── TOTP verification (mandatory, no bypass)
+  │     ├── Failure → audit log
+  │     └── Success → continue
+  │
+  ├── Session created (httpOnly, secure, sameSite: lax)
+  │     └── activeOrganizationId set on session (always the instance organization)
+  │
+  └── emit auth.login.succeeded → audit log
 ```
 
 ### Better Auth ownership
@@ -791,6 +791,8 @@ authenticator app is unavailable.
 | `settings.stripeSecretKey`     | Stripe secret key                                 |
 | `settings.stripeWebhookSecret` | Stripe webhook signing secret                     |
 | `settings.paymentIban`         | Sensitive banking identifier                      |
+| `settings.backupS3AccessKey`   | S3-compatible backup access key                   |
+| `settings.backupS3SecretKey`   | S3-compatible backup secret key                   |
 | `clients.notes`                | May contain NDA-protected or confidential content |
 
 ### The two audit logs
@@ -852,11 +854,11 @@ Authentication and onboarding state is derived exclusively from the database and
 No routing decisions are stored in cookies. The middleware enforces a strict state machine:
 
 ```
-No user record in DB             ? redirect to /register
-No active session                ? redirect to /login
-Business profile incomplete      ? redirect to /setup (business step)
-TOTP not enrolled                ? redirect to /setup (TOTP step)
-All conditions satisfied         ? allow to (dashboard)
+No user record in DB             → redirect to /register
+No active session                → redirect to /login
+Business profile incomplete      → redirect to /setup (business step)
+TOTP not enrolled                → redirect to /setup (TOTP step)
+All conditions satisfied         → allow to (dashboard)
 ```
 
 This rule is non-negotiable. Adding a cookie to influence routing is a violation. See ADR-0001.
@@ -1009,13 +1011,13 @@ JavaScript shipped to the browser for read-heavy pages — invoice lists, client
 
 ```
 app/(dashboard)/invoices/page.tsx       Server component - fetches, composes
-  ??? features/invoicing/components/
-        ??? InvoiceList.tsx              Server component - renders table
-        ??? InvoiceFilters.tsx           Client component - search, filter UI
-        ??? InvoiceActions/
-              ??? InvoiceActions.tsx     Client component - send, mark paid, delete
-              ??? DeleteInvoiceDialog.tsx  Client component - confirmation dialog
-                    ??? components/ui/   Shared primitives (shadcn + Radix UI)
+  └── features/invoicing/components/
+        ├── InvoiceList.tsx              Server component - renders table
+        ├── InvoiceFilters.tsx           Client component - search, filter UI
+        └── InvoiceActions/
+              ├── InvoiceActions.tsx     Client component - send, mark paid, delete
+              └── DeleteInvoiceDialog.tsx  Client component - confirmation dialog
+                    └── components/ui/   Shared primitives (shadcn + Radix UI)
 ```
 
 Component-level conventions — file naming, decomposition rules, the `Typography` and `Icon`
@@ -1084,10 +1086,10 @@ Zod schemas via `zod-openapi`.
 ### Validation at every boundary
 
 ```
-Browser input  ???  Zod schema in features/*/schemas.ts   ???  server action
-URL params     ???  Zod schema in the route handler        ???  query function
-Env vars       ???  Zod schema in lib/config/env.ts        ???  process fails fast at boot
-Settings read  ???  Zod schema on read and write           ???  defensive against old data
+Browser input  ──►  Zod schema in features/*/schemas.ts   ──►  server action
+URL params     ──►  Zod schema in the route handler        ──►  query function
+Env vars       ──►  Zod schema in lib/config/env.ts        ──►  process fails fast at boot
+Settings read  ──►  Zod schema on read and write           ──►  defensive against old data
 ```
 
 No data crosses a boundary unvalidated.
@@ -1140,10 +1142,11 @@ Current implementation status: the repository ships Docker Compose files, an ent
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
 `pnpm remit:backup` for encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for
 destructive-safe local and remote restores, `pnpm remit:seed-demo` for deterministic local/demo
-data, and the host-side `scripts/host/upgrade.sh` upgrade flow documented in
+data, `pnpm remit:rotate-encryption-key` for operational master-key rotation, and the host-side
+`scripts/host/upgrade.sh` upgrade flow documented in
 [`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). The one-command installer, scheduled
-backup job, encryption key rotation command, and platform-specific deployment guides remain planned
-operational work and are not shipped as package scripts today.
+backup job, and platform-specific deployment guides remain planned operational work and are not
+shipped as package scripts today.
 
 The deeper self-hosting references are:
 
@@ -1155,6 +1158,8 @@ The deeper self-hosting references are:
   rules, data effects, and logging/redaction.
 - [Upgrade runbook](../operations/UPGRADE.md) for host-side upgrade prerequisites, execution,
   rollback, and troubleshooting.
+- [ADR-0021](adr/0021-encryption-key-rotation.md) for encryption key rotation semantics,
+  recoverability, audit events, and refusal rules.
 
 ### Planned one-command install
 
@@ -1255,11 +1260,11 @@ update is available.
 
 ### Encryption key rotation
 
-Key rotation remains deferred. The reserved future command is `remit:rotate-encryption-key`, but no
-package script ships before the command has its own ADR and implementation. The future ADR must
-define the two-key read-old-write-new window, re-encryption of encrypted columns and existing backup
-archives, settings-row migration, audit-log behaviour, and refusal-to-start semantics for a
-mid-rotation database.
+Key rotation ships as the in-container `remit:rotate-encryption-key` command. ADR-0021 defines the
+two-key read-old-write-new window, mandatory pre-rotation backup, advisory-lock refusal rule,
+encrypted-column registry, table-scoped transaction and resume strategy, backup archive
+re-encryption, audit event contract, and post-run operator instructions. The command never accepts
+keys on the command line and never rewrites `.env`.
 
 ### Deployment guides
 
@@ -1322,7 +1327,7 @@ editors out of the box.
 lib/i18n/
   config.ts         i18next initialization, ICU plugin, defaults
   types.ts          Translations type definition (single source of truth for key shape)
-  locales.ts        Map of locale code ? Language object (English only initially)
+  locales.ts        Map of locale code → Language object (English only initially)
   resources.ts      Translation resources for i18next consumption
   hooks.ts          useTranslation hook (re-export with locales)
   index.ts          Public barrel
@@ -1408,9 +1413,9 @@ Tier 2 - Integration (every server action)
   IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
 
 Tier 3 - E2E (Playwright, five canonical flows)
-  1. Register ? setup wizard ? TOTP + backup codes ? first dashboard
-  2. Client ? project ? proposal ? acceptance ? invoice ? paid
-  3. Time entry ? invoice ? send ? paid
+  1. Register → setup wizard → TOTP + backup codes → first dashboard
+  2. Client → project → proposal → acceptance → invoice → paid
+  3. Time entry → invoice → send → paid
   4. Recurring invoice generates expected draft on next-run date
   5. Password reset via email or CLI/admin reset
 
@@ -1579,6 +1584,7 @@ the standard template: **Context**, **Decision**, **Consequences**, **Alternativ
 | [0018](adr/0018-no-telemetry.md)                 | No telemetry or analytics by default                                        | Accepted |
 | [0019](adr/0019-storage-backend-adapters.md)     | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
 | [0020](adr/0020-operational-cli-contract.md)     | Operational CLI contract                                                    | Accepted |
+| [0021](adr/0021-encryption-key-rotation.md)      | Encryption key rotation                                                     | Accepted |
 
 ---
 

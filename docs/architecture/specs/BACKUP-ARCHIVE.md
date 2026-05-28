@@ -71,9 +71,9 @@ uploads/
 - `database/remit.dump` is the output of `pg_dump --format=custom --no-owner --no-privileges`.
   Custom format gives a deterministic, restore-friendly binary that `pg_restore --clean --if-exists`
   can consume without role assumptions on the target instance.
-- `uploads/` is a flat mirror of the runtime uploads directory at the time of backup. The storage
-  adapter from ADR-0019 is responsible for streaming objects into the tar regardless of the runtime
-  backend.
+- `uploads/` is a relative-path mirror under the `uploads/` prefix, preserving each stored object's
+  relative key as `uploads/${upload.key}`. The storage adapter from ADR-0019 is responsible for
+  streaming objects into the tar regardless of the runtime backend.
 - The runtime image installs `postgresql16-client` so in-container `remit:backup` can invoke
   `pg_dump` against the PostgreSQL 16 service pinned in `docker-compose.yml`.
 
@@ -124,8 +124,8 @@ archive object.
   restore without disclosing the key.
 
 Losing `REMIT_ENCRYPTION_KEY` loses both encrypted database columns and encrypted backup archives.
-Encryption key rotation remains deferred until a dedicated ADR defines the two-key window and
-archive re-encryption semantics.
+Encryption key rotation is defined by ADR-0021 and uses a two-key window to re-encrypt registered
+database columns and existing backup archive envelopes.
 
 ## Destinations
 

@@ -62,16 +62,17 @@ Restore refuses with exit code 1 and takes no destructive action when:
 5. The decrypted manifest's `archiveFormatVersion` does not match the plaintext header.
 6. Any file's SHA-256 in `checksums.sha256` fails verification.
 
-Restore warns but proceeds after typed confirmation when the archive's `schemaMigrationId` is older
-than the current migration head. After restore completes, migrations are applied forward through the
-same entrypoint path used on container start.
+Restore records the archive's `schemaMigrationId` for audit entries and dry-run visibility. It does
+not compare that value with the current migration head or implement a separate older-than-current
+migration warning gate. After restore completes, migrations are applied forward through the same
+compiled entrypoint path used on container start.
 
 ## Upload and database effects
 
 Database restore uses:
 
 ```text
-pg_restore --clean --if-exists --no-owner --no-privileges
+pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname <DATABASE_URL>
 ```
 
 The restore runs against the live database and drops and recreates objects from the dump. Settings
@@ -84,9 +85,10 @@ and reports the failure. Files absent from the archive are removed from the live
 
 ## Logging and redaction
 
-Restore logs through `pino` following `.agents/rules/errors.md`.
+Restore uses operator-facing CLI output plus audit events. Failure reasons are redacted before they
+are printed or persisted in audit metadata.
 
-The following must never appear in logs:
+The following must never appear in operator output or audit metadata:
 
 - Raw AES keys.
 - Typed confirmation input.
@@ -96,17 +98,18 @@ The following must never appear in logs:
 - Full manifest JSON when it contains encrypted credential ciphertext such as
   `settings.backup_s3_*`.
 
-`remit:restore` writes an `audit_log` entry before the destructive step begins with:
+`remit:restore` writes these audit events when not running in dry-run mode:
 
-```json
-{
-  "archivePath": "<path-or-uri>",
-  "archiveAppVersion": "<version>",
-  "snapshotPath": "<local-pre-restore-snapshot>"
-}
-```
+- `instance.restore.started` - `operationId`, `archiveAppVersion`, `archivePath`, and
+  `schemaMigrationId`.
+- `instance.restore.snapshot_taken` - `operationId`, `archivePath`, and `snapshotPath`.
+- `instance.restore.completed` - `operationId`, `archiveAppVersion`, `archivePath`, and
+  `snapshotPath`.
+- `instance.restore.aborted` - `operationId`, `archivePath`, redacted `reason`, and `snapshotPath`
+  when available.
 
-It writes a second audit entry on completion or abort.
+Pre-restore audit entries are replayed after the database dump replaces the live database so the
+restored audit log retains the operation trail.
 
 ## Operator-facing notes
 

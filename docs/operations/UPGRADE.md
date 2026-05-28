@@ -52,8 +52,8 @@ script does not run migrations itself.
 
 ## Rollback
 
-If the upgrade fails, the script prints the newest local `.remitbak` path it can find under
-`REMIT_DATA_DIR/backups`. Use that path as `<snapshot-file>` below.
+If the upgrade backup writes a new local `.remitbak`, the script prints that snapshot path. Use that
+path as `<snapshot-file>` below.
 
 ```bash
 docker compose stop app
@@ -65,8 +65,13 @@ docker compose exec -T app pnpm remit:restore "<snapshot-file>"
 ```
 
 If you do not use `REMIT_IMAGE_TAG`, pin the app image reference in your compose file to the
-previous known-good tag before `docker compose pull app`. If the backup was skipped, restore from
-your last verified backup instead of a pre-upgrade snapshot.
+previous known-good tag before `docker compose pull app`.
+
+When the configured backup destination is remote, the backup step can complete without producing a
+new local `.remitbak`; the script reports that no new local snapshot was detected. In that case,
+restore from the configured remote URI, such as `remit://s3/remit-backups/...`, or from another
+verified backup. If the backup was skipped, restore from your last verified backup instead of a
+pre-upgrade snapshot.
 
 ## Troubleshooting
 
