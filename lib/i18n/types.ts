@@ -623,6 +623,65 @@ export type Translations = {
     email: {
       title: string
       description: string
+      provider: string
+      providerSmtp: string
+      providerSmtpHelp: string
+      providerResend: string
+      providerResendHelp: string
+      senderSection: string
+      smtpSection: string
+      resendSection: string
+      testSection: string
+      fromName: string
+      fromNamePlaceholder: string
+      fromAddress: string
+      fromAddressPlaceholder: string
+      smtpHost: string
+      smtpHostPlaceholder: string
+      smtpPort: string
+      smtpUser: string
+      smtpUserPlaceholder: string
+      smtpPassword: string
+      smtpPasswordPlaceholder: string
+      smtpSecure: string
+      smtpSecureHelp: string
+      resendApiKey: string
+      resendApiKeyPlaceholder: string
+      configuredPlaceholder: string
+      changeSecret: string
+      secretPreserved: string
+      save: string
+      saved: string
+      sendTest: string
+      testSent: string
+      testRecipient: string
+      saveBeforeTest: string
+      lastTestSend: string
+      lastTestSendNever: string
+      testSubject: string
+      testText: string
+      errors: {
+        updateFailed: string
+        notConfigured: string
+        testSendFailed: string
+        smtpAuthFailed: string
+        smtpConnectionFailed: string
+        smtpTimeout: string
+        smtpTlsFailed: string
+        resendAuthFailed: string
+        resendRejected: string
+      }
+      validation: {
+        providerRequired: string
+        fromNameRequired: string
+        fromAddressInvalid: string
+        smtpHostRequired: string
+        smtpPortInvalid: string
+        smtpUserRequired: string
+        smtpPasswordRequired: string
+        resendApiKeyRequired: string
+        recipientInvalid: string
+      }
     }
     system: {
       title: string
