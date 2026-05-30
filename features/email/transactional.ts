@@ -1,5 +1,5 @@
-import net, { type Socket } from "node:net"
-import tls from "node:tls"
+import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
 import { env } from "@/lib/config/env"
 
@@ -14,6 +14,27 @@ export type TransactionalEmail = {
   subject: string
   text: string
   html?: string
+  idempotencyKey?: string
+}
+
+export type EmailDeliveryErrorCode =
+  | "not_configured"
+  | "provider_failed"
+  | "resend_auth"
+  | "resend_rejected"
+  | "smtp_auth"
+  | "smtp_connection"
+  | "smtp_timeout"
+  | "smtp_tls"
+
+export class EmailDeliveryError extends Error {
+  constructor(
+    readonly code: EmailDeliveryErrorCode,
+    message = code
+  ) {
+    super(message)
+    this.name = "EmailDeliveryError"
+  }
 }
 
 type EmailSettings = {
@@ -44,17 +65,6 @@ type ResendConfig = {
   from: string
 }
 
-type SmtpResponse = {
-  code: number
-  message: string
-}
-
-type PendingResponse = {
-  resolve: (response: SmtpResponse) => void
-  reject: (error: Error) => void
-  lines: string[]
-}
-
 const SMTP_TIMEOUT_MS = 15_000
 
 export async function sendTransactionalEmail(email: TransactionalEmail): Promise<void> {
@@ -66,7 +76,7 @@ export async function sendTransactionalEmail(email: TransactionalEmail): Promise
       "Transactional email delivery is not configured"
     )
 
-    throw new Error("Email delivery is not configured")
+    throw new EmailDeliveryError("not_configured")
   }
 
   if (settings.emailProvider === "smtp") {
@@ -81,7 +91,7 @@ export async function sendTransactionalEmail(email: TransactionalEmail): Promise
     return
   }
 
-  throw new Error("Email delivery is not configured")
+  throw new EmailDeliveryError("not_configured")
 }
 
 async function getEmailSettings(): Promise<EmailSettings | null> {
@@ -105,7 +115,7 @@ async function getEmailSettings(): Promise<EmailSettings | null> {
 
 function getSmtpConfig(settings: EmailSettings): SmtpConfig {
   if (!settings.smtpHost || !settings.smtpPort || !settings.smtpUser || !settings.smtpPass) {
-    throw new Error("Email delivery is not configured")
+    throw new EmailDeliveryError("not_configured")
   }
 
   const fromAddress = settings.emailFromAddress || settings.smtpUser
@@ -122,7 +132,7 @@ function getSmtpConfig(settings: EmailSettings): SmtpConfig {
 }
 
 function getResendConfig(settings: EmailSettings): ResendConfig {
-  if (!settings.resendApiKey) throw new Error("Email delivery is not configured")
+  if (!settings.resendApiKey) throw new EmailDeliveryError("not_configured")
 
   const fromAddress = settings.emailFromAddress || getDefaultFromAddress()
 
@@ -143,255 +153,128 @@ function getDefaultFromAddress(): string {
 }
 
 async function sendWithResend(config: ResendConfig, email: TransactionalEmail): Promise<void> {
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
+  const resend = new Resend(config.apiKey)
+
+  let data: { id: string } | null
+  let error: { name: string; message: string } | null
+
+  try {
+    ;({ data, error } = await resend.emails.send(
+      {
+        from: config.from,
+        to: email.to,
+        subject: email.subject,
+        text: email.text,
+        ...(email.html ? { html: email.html } : {})
+      },
+      email.idempotencyKey ? { idempotencyKey: email.idempotencyKey } : {}
+    ))
+  } catch (cause) {
+    logger.error(
+      { action: "sendTransactionalEmail", provider: "resend", err: cause },
+      "Transactional email delivery failed"
+    )
+
+    throw new EmailDeliveryError("provider_failed")
+  }
+
+  if (!error && data) return
+
+  const code = mapResendError(error?.name)
+
+  logger.error(
+    { action: "sendTransactionalEmail", provider: "resend", resendErrorName: error?.name, code },
+    "Transactional email delivery failed"
+  )
+
+  throw new EmailDeliveryError(code)
+}
+
+async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.username, pass: config.password },
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS
+  })
+
+  try {
+    await transporter.sendMail({
       from: config.from,
-      to: [email.to],
+      to: email.to,
       subject: email.subject,
       text: email.text,
       ...(email.html ? { html: email.html } : {})
     })
-  })
-
-  if (response.ok) return
-
-  logger.error(
-    { action: "sendTransactionalEmail", provider: "resend", status: response.status },
-    "Transactional email delivery failed"
-  )
-
-  throw new Error("Email delivery failed")
-}
-
-async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Promise<void> {
-  let client = await connectSmtp(config)
-
-  try {
-    await client.read([220])
-
-    let ehlo = await client.command(`EHLO ${getSmtpClientName()}`, [250])
-
-    if (!config.secure) {
-      if (!ehlo.message.includes("STARTTLS")) {
-        throw new Error("SMTP server does not support STARTTLS")
-      }
-
-      await client.command("STARTTLS", [220])
-
-      client = await client.upgradeToTls(config.host)
-      ehlo = await client.command(`EHLO ${getSmtpClientName()}`, [250])
-    }
-
-    await client.command(`AUTH PLAIN ${encodeAuthPlain(config.username, config.password)}`, [235])
-    await client.command(`MAIL FROM:<${config.fromAddress}>`, [250])
-    await client.command(`RCPT TO:<${email.to}>`, [250, 251])
-    await client.command("DATA", [354])
-
-    await client.writeData(buildSmtpMessage(config.from, email))
-
-    await client.read([250])
-
-    await client.command("QUIT", [221])
   } catch (error) {
+    const code = mapNodemailerError(error)
+
     logger.error(
-      { action: "sendTransactionalEmail", provider: "smtp", err: error },
+      { action: "sendTransactionalEmail", provider: "smtp", code, err: error },
       "Transactional email delivery failed"
     )
 
-    throw new Error("Email delivery failed")
+    throw new EmailDeliveryError(code)
   } finally {
-    client.close()
+    transporter.close()
   }
 }
 
-async function connectSmtp(config: SmtpConfig): Promise<SmtpClient> {
-  const socket = config.secure
-    ? await connectTlsSocket(config.host, config.port)
-    : await connectTcpSocket(config.host, config.port)
-
-  return new SmtpClient(socket)
-}
-
-function connectTcpSocket(host: string, port: number): Promise<Socket> {
-  return new Promise((resolve, reject) => {
-    const socket = net.connect({ host, port }, () => resolve(socket))
-
-    socket.setTimeout(SMTP_TIMEOUT_MS)
-    socket.once("error", reject)
-    socket.once("timeout", () => reject(new Error("SMTP connection timed out")))
-  })
-}
-
-function connectTlsSocket(host: string, port: number): Promise<tls.TLSSocket> {
-  return new Promise((resolve, reject) => {
-    const socket = tls.connect({ host, port, servername: host }, () => resolve(socket))
-
-    socket.setTimeout(SMTP_TIMEOUT_MS)
-    socket.once("error", reject)
-    socket.once("timeout", () => reject(new Error("SMTP connection timed out")))
-  })
-}
-
-class SmtpClient {
-  private buffer = ""
-  private pending: PendingResponse | null = null
-
-  constructor(private socket: Socket) {
-    this.socket.setEncoding("utf8")
-    this.socket.on("data", (chunk) => this.handleData(chunk.toString("utf8")))
-    this.socket.on("error", (error) => this.pending?.reject(error))
-    this.socket.on("timeout", () => this.pending?.reject(new Error("SMTP response timed out")))
-  }
-
-  async command(command: string, expectedCodes: number[]): Promise<SmtpResponse> {
-    this.socket.write(`${command}\r\n`)
-
-    return this.read(expectedCodes)
-  }
-
-  read(expectedCodes: number[]): Promise<SmtpResponse> {
-    return new Promise((resolve, reject) => {
-      this.pending = {
-        resolve: (response) => {
-          if (!expectedCodes.includes(response.code)) {
-            reject(new Error(`SMTP command failed with status ${response.code}`))
-            return
-          }
-
-          resolve(response)
-        },
-        reject,
-        lines: []
-      }
-    })
-  }
-
-  writeData(message: string): Promise<void> {
-    this.socket.write(`${dotStuff(message)}\r\n.\r\n`)
-
-    return Promise.resolve()
-  }
-
-  upgradeToTls(host: string): Promise<SmtpClient> {
-    return new Promise((resolve, reject) => {
-      this.socket.removeAllListeners("data")
-      this.socket.removeAllListeners("error")
-      this.socket.removeAllListeners("timeout")
-
-      const secureSocket = tls.connect({ socket: this.socket, servername: host }, () => {
-        resolve(new SmtpClient(secureSocket))
-      })
-
-      secureSocket.setTimeout(SMTP_TIMEOUT_MS)
-      secureSocket.once("error", reject)
-      secureSocket.once("timeout", () => reject(new Error("SMTP TLS upgrade timed out")))
-    })
-  }
-
-  close(): void {
-    this.socket.destroy()
-  }
-
-  private handleData(chunk: string): void {
-    const pending = this.pending
-
-    if (!pending) return
-
-    this.buffer += chunk
-
-    let lineEnd = this.buffer.indexOf("\r\n")
-
-    while (lineEnd >= 0) {
-      const line = this.buffer.slice(0, lineEnd)
-      this.buffer = this.buffer.slice(lineEnd + 2)
-      pending.lines.push(line)
-
-      const match = /^(\d{3})([ -])/.exec(line)
-
-      if (match?.[2] === " ") {
-        const code = Number(match[1])
-        const response = { code, message: pending.lines.join("\n") }
-
-        this.pending = null
-        pending.resolve(response)
-
-        return
-      }
-
-      lineEnd = this.buffer.indexOf("\r\n")
-    }
+export function mapResendError(name: string | undefined): EmailDeliveryErrorCode {
+  switch (name) {
+    case "missing_api_key":
+    case "invalid_api_key":
+    case "restricted_api_key":
+    case "invalid_access":
+      return "resend_auth"
+    case "validation_error":
+    case "missing_required_field":
+    case "invalid_parameter":
+    case "invalid_from_address":
+    case "invalid_to_address":
+      return "resend_rejected"
+    default:
+      return "provider_failed"
   }
 }
 
-function getSmtpClientName(): string {
-  return new URL(env.BETTER_AUTH_URL).hostname
-}
+export function mapNodemailerError(error: unknown): EmailDeliveryErrorCode {
+  const code = getErrorCode(error)
 
-function encodeAuthPlain(username: string, password: string): string {
-  return Buffer.from(`\0${username}\0${password}`, "utf8").toString("base64")
-}
-
-function buildSmtpMessage(from: string, email: TransactionalEmail): string {
-  const headers = [
-    `From: ${from}`,
-    `To: ${email.to}`,
-    `Subject: ${encodeHeader(email.subject)}`,
-    "MIME-Version: 1.0"
-  ]
-
-  if (!email.html) {
-    return [
-      ...headers,
-      'Content-Type: text/plain; charset="UTF-8"',
-      "",
-      normalizeBody(email.text)
-    ].join("\r\n")
+  switch (code) {
+    case "EAUTH":
+    case "ENOAUTH":
+      return "smtp_auth"
+    case "ETIMEDOUT":
+      return "smtp_timeout"
+    case "ETLS":
+    case "EREQUIRETLS":
+      return "smtp_tls"
+    case "ECONNECTION":
+    case "ESOCKET":
+    case "EDNS":
+      return "smtp_connection"
+    case "EENVELOPE":
+    case "EMESSAGE":
+      return "provider_failed"
+    default:
+      return "smtp_connection"
   }
-
-  const boundary = `remit-${crypto.randomUUID()}`
-
-  return [
-    ...headers,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    "",
-    normalizeBody(email.text),
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    "",
-    normalizeBody(email.html),
-    `--${boundary}--`
-  ].join("\r\n")
 }
 
-function dotStuff(message: string): string {
-  return normalizeBody(message)
-    .split("\r\n")
-    .map((line) => (line.startsWith(".") ? `.${line}` : line))
-    .join("\r\n")
-}
+function getErrorCode(error: unknown): string | null {
+  if (typeof error !== "object" || error === null || !("code" in error)) return null
 
-function normalizeBody(value: string): string {
-  return value.replace(/\r?\n/g, "\r\n")
+  const code = (error as { code: unknown }).code
+
+  return typeof code === "string" ? code : null
 }
 
 function formatAddress(name: string, address: string): string {
   return `"${sanitizeHeader(name).replace(/"/g, '\\"')}" <${sanitizeHeader(address)}>`
-}
-
-function encodeHeader(value: string): string {
-  const sanitized = sanitizeHeader(value)
-
-  if (/^[\x20-\x7E]*$/.test(sanitized)) return sanitized
-
-  return `=?UTF-8?B?${Buffer.from(sanitized, "utf8").toString("base64")}?=`
 }
 
 function sanitizeHeader(value: string): string {
