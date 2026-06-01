@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n/server"
 
 import { requireRole } from "@/lib/auth/session"
 
-import { getHealthChecks } from "@/features/health/server"
+import { getHealthChecks, getSystemInfo } from "@/features/health/server"
 
 import { HealthSettingsPage } from "@/features/health"
 
@@ -18,8 +18,9 @@ const SystemSettingsPage = async () => {
   await requireRole("owner")
 
   const checks = await getHealthChecks()
+  const systemInfo = getSystemInfo()
 
-  return <HealthSettingsPage checks={checks} />
+  return <HealthSettingsPage checks={checks} systemInfo={systemInfo} />
 }
 
 export default SystemSettingsPage

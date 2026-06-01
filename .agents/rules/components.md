@@ -63,15 +63,38 @@ const DialogTrigger = ({ ...props }: ComponentProps<typeof DialogPrimitive.Trigg
   `tailwind.config.js`.
 - Add new shadcn components with `pnpm shadcn add <component>` when using shadcn as the source.
 
-## Existing UI components first
+## Always use UI primitives
 
-Before writing visual JSX, check `components/ui/index.ts` for an existing primitive. Use the
-primitive instead of recreating badges, buttons, cards, inputs, tooltips, separators, scroll areas,
-and similar UI with raw elements.
+Compose application UI from the primitives in `components/ui/index.ts` whenever one fits. This is
+the default and it is near-absolute: before writing visual JSX, check the barrel for an existing
+primitive and use it instead of recreating badges, buttons, cards, inputs, tooltips, separators,
+scroll areas, and similar UI with raw elements. A surface that visually reads as a card is a `Card`
+(with `CardHeader`/`CardContent`/`CardFooter`), not a hand-rolled
+`<div className="rounded-lg border p-4">`.
+
+The reason is design-system reach: when a token, radius, spacing, or variant changes in
+`components/ui/`, every screen built from primitives updates at once. Raw elements silently drift
+out of the system and have to be hunted down by hand.
+
+```tsx
+// ✓ - primitive carries the design system
+<Card size="sm">
+  <CardContent>{children}</CardContent>
+</Card>
+
+// ✗ - raw element duplicates card styling and will not track design-system changes
+<div className="rounded-lg border p-4">{children}</div>
+```
 
 ```tsx
 <Badge variant="secondary">Active</Badge>
 ```
+
+Raw elements are reserved for genuinely rare cases: there is no suitable primitive, or the surface
+must deliberately stay outside the design system. When a needed primitive is missing, prefer adding
+or extending one in `components/ui/` (see UI primitives above) over inlining raw markup in a
+feature. When a raw element is intentionally kept outside the system, leave a short comment saying
+why.
 
 ## Typography
 
