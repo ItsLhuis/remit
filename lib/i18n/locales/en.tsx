@@ -152,11 +152,16 @@ export const english: Language = {
           title: "Sending and payments",
           description: "Optional setup for email delivery and online card payments."
         },
-        instance: {
-          title: "Instance",
-          description: "Basic information that helps with support, links, and upgrades."
-        },
         empty: "No checks in this section."
+      },
+      systemInfo: {
+        title: "Instance details",
+        description: "Reference information for support, public links, and upgrades.",
+        versionLabel: "App version",
+        versionHint: "Use this version when checking release notes or asking for support.",
+        fingerprintLabel: "Encryption key fingerprint",
+        fingerprintHint:
+          "Use this fingerprint to confirm your encryption key did not change after moving or upgrading the instance."
       },
       actions: {
         configureEmail: "Configure email",
@@ -231,23 +236,33 @@ export const english: Language = {
           usageDetail: "{available} available of {total}.",
           highUsageDetail:
             "{available} available of {total}. Free up space or expand storage soon.",
+          highInodesDetail:
+            "{available, number} of {total, number} inodes free. Remove unused files before the disk rejects new writes.",
           unavailable: "Disk space could not be checked.",
           unavailableDetail: "Check the data folder and host permissions."
         },
-        encryption: {
-          title: "Encryption key fingerprint",
-          detail:
-            "Use this fingerprint to confirm your encryption key did not change after moving or upgrading the instance."
-        },
-        version: {
-          title: "App version",
-          detail: "Use this version when checking release notes or asking for support."
+        migrations: {
+          title: "Database schema",
+          upToDate: "{count, plural, one {# migration applied} other {# migrations applied}}.",
+          upToDateDetail: "The database schema matches this build of Remit.",
+          pending:
+            "{count, plural, one {# migration is pending} other {# migrations are pending}}.",
+          pendingDetail:
+            "Apply pending migrations before using this instance. Run the database migration command on your server.",
+          ahead: "The database schema is newer than this build.",
+          aheadDetail:
+            "This instance is running an older build than the database expects. Upgrade the app or restore a matching backup.",
+          unavailable: "Schema status could not be checked.",
+          unavailableDetail: "Confirm the database is reachable and that migrations have been run."
         },
         publicUrl: {
           title: "Public URL",
           detail: "Public invoice, proposal, contract, and portal links should use this address.",
           invalid: "The public URL is not valid.",
-          invalidDetail: "Update the configured app URL before sending public links to clients."
+          invalidDetail: "Update the configured app URL before sending public links to clients.",
+          unreachable: "{origin} could not be reached from the server.",
+          unreachableDetail:
+            "This can be normal behind a reverse proxy. Confirm clients can open public links from outside your network."
         }
       }
     },
@@ -627,7 +642,58 @@ export const english: Language = {
       },
       payment: {
         title: "Payment",
-        description: "Configure payment providers and defaults for getting paid."
+        description: "Configure payment providers and defaults for getting paid.",
+        bankSection: "Bank transfer",
+        bankSectionDescription:
+          "Store the manual payment details shown on client-facing invoice pages.",
+        bankName: "Bank name",
+        bankNamePlaceholder: "Your bank",
+        iban: "IBAN",
+        ibanPlaceholder: "PT50 0002 0123 1234 5678 9015 4",
+        paymentInstructions: "Payment instructions",
+        paymentInstructionsPlaceholder:
+          "Include transfer references, payment timing, or extra remittance details.",
+        paymentInstructionsHelp:
+          "These instructions can appear on public invoice pages. Do not include Stripe secrets.",
+        stripeSection: "Stripe",
+        stripeSectionDescription:
+          "Connect Stripe for future online card payments and webhook processing.",
+        stripePublishableKey: "Publishable key",
+        stripePublishableKeyPlaceholder: "pk_test_...",
+        stripeSecretKey: "Secret key",
+        stripeSecretKeyPlaceholder: "sk_test_...",
+        stripeWebhookSecret: "Webhook signing secret",
+        stripeWebhookSecretPlaceholder: "whsec_...",
+        configuredPlaceholder: "Configured",
+        changeSecret: "Change",
+        encryptedValuePreserved: "Leave blank to keep the existing encrypted value.",
+        secretPreserved: "Leave blank to keep the existing configured secret.",
+        save: "Save payment settings",
+        saved: "Payment settings saved",
+        testStripeConnection: "Test Stripe connection",
+        stripeTestSucceeded: "Stripe connection tested",
+        saveBeforeTest: "Save changes before testing the Stripe connection.",
+        lastStripeTest: "Last successful Stripe test: {date}",
+        lastStripeTestNever: "No successful Stripe test has been recorded.",
+        errors: {
+          updateFailed: "Failed to update payment settings",
+          stripeNotConfigured: "Stripe is not configured",
+          stripeTestFailed: "Stripe could not complete the connection test",
+          stripeAuthFailed: "Stripe rejected the secret key",
+          stripeConnectionFailed: "Remit could not connect to Stripe",
+          stripePermissionFailed: "Stripe refused access for this key",
+          stripeRateLimited: "Stripe rate limited the connection test",
+          stripeRejected: "Stripe rejected the connection test request",
+          stripeApiFailed: "Stripe is temporarily unavailable"
+        },
+        validation: {
+          ibanInvalid: "Enter a valid IBAN.",
+          stripePublishableKeyInvalid: "Enter a valid Stripe publishable key.",
+          stripePublishableKeyRequired: "Enter a Stripe publishable key.",
+          stripeSecretKeyInvalid: "Enter a valid Stripe secret key.",
+          stripeSecretKeyRequired: "Stripe secret key is required.",
+          stripeWebhookSecretInvalid: "Enter a valid Stripe webhook signing secret."
+        }
       },
       invoicing: {
         title: "Invoicing",

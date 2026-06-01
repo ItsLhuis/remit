@@ -148,11 +148,15 @@ export type Translations = {
         title: string
         description: string
       }
-      instance: {
-        title: string
-        description: string
-      }
       empty: string
+    }
+    systemInfo: {
+      title: string
+      description: string
+      versionLabel: string
+      versionHint: string
+      fingerprintLabel: string
+      fingerprintHint: string
     }
     actions: {
       configureEmail: string
@@ -219,22 +223,28 @@ export type Translations = {
         used: string
         usageDetail: string
         highUsageDetail: string
+        highInodesDetail: string
         unavailable: string
         unavailableDetail: string
       }
-      encryption: {
+      migrations: {
         title: string
-        detail: string
-      }
-      version: {
-        title: string
-        detail: string
+        upToDate: string
+        upToDateDetail: string
+        pending: string
+        pendingDetail: string
+        ahead: string
+        aheadDetail: string
+        unavailable: string
+        unavailableDetail: string
       }
       publicUrl: {
         title: string
         detail: string
         invalid: string
         invalidDetail: string
+        unreachable: string
+        unreachableDetail: string
       }
     }
   }
@@ -607,6 +617,53 @@ export type Translations = {
     payment: {
       title: string
       description: string
+      bankSection: string
+      bankSectionDescription: string
+      bankName: string
+      bankNamePlaceholder: string
+      iban: string
+      ibanPlaceholder: string
+      paymentInstructions: string
+      paymentInstructionsPlaceholder: string
+      paymentInstructionsHelp: string
+      stripeSection: string
+      stripeSectionDescription: string
+      stripePublishableKey: string
+      stripePublishableKeyPlaceholder: string
+      stripeSecretKey: string
+      stripeSecretKeyPlaceholder: string
+      stripeWebhookSecret: string
+      stripeWebhookSecretPlaceholder: string
+      configuredPlaceholder: string
+      changeSecret: string
+      encryptedValuePreserved: string
+      secretPreserved: string
+      save: string
+      saved: string
+      testStripeConnection: string
+      stripeTestSucceeded: string
+      saveBeforeTest: string
+      lastStripeTest: string
+      lastStripeTestNever: string
+      errors: {
+        updateFailed: string
+        stripeNotConfigured: string
+        stripeTestFailed: string
+        stripeAuthFailed: string
+        stripeConnectionFailed: string
+        stripePermissionFailed: string
+        stripeRateLimited: string
+        stripeRejected: string
+        stripeApiFailed: string
+      }
+      validation: {
+        ibanInvalid: string
+        stripePublishableKeyInvalid: string
+        stripePublishableKeyRequired: string
+        stripeSecretKeyInvalid: string
+        stripeSecretKeyRequired: string
+        stripeWebhookSecretInvalid: string
+      }
     }
     invoicing: {
       title: string
