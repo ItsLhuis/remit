@@ -5,7 +5,7 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm, useWatch, type Control } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import {
   emailSettingsSchema,
   testEmailSettingsSchema,
@@ -37,6 +37,7 @@ import {
   Icon,
   Input,
   Separator,
+  SecretField,
   Spinner,
   Switch,
   toast,
@@ -49,75 +50,11 @@ type EmailSettingsFormProps = {
   initialEmailTestSendAt: string | null
 }
 
-type SecretFieldProps = {
-  control: Control<EmailSettingsInputValues>
-  name: "smtpPass" | "resendApiKey"
-  label: string
-  description: string
-  unconfiguredPlaceholder: string
-  configured: boolean
-  editing: boolean
-  disabled: boolean
-  onEdit: () => void
-  onCancel: () => void
-}
-
-const SecretField = ({
-  control,
-  name,
-  label,
-  description,
-  unconfiguredPlaceholder,
-  configured,
-  editing,
-  disabled,
-  onEdit,
-  onCancel
-}: SecretFieldProps) => {
-  const { t } = useTranslation()
-
-  const showConfigured = configured && !editing
-
-  return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <div className="flex items-start gap-2">
-            <Input
-              {...field}
-              id={field.name}
-              type="password"
-              value={showConfigured ? "" : field.value}
-              placeholder={
-                showConfigured ? t("settings.email.configuredPlaceholder") : unconfiguredPlaceholder
-              }
-              aria-invalid={fieldState.invalid}
-              disabled={disabled || showConfigured}
-              autoComplete="new-password"
-              className="flex-1"
-            />
-            {configured ? (
-              showConfigured ? (
-                <Button type="button" variant="outline" onClick={onEdit} disabled={disabled}>
-                  {t("settings.email.changeSecret")}
-                </Button>
-              ) : (
-                <Button type="button" variant="ghost" onClick={onCancel} disabled={disabled}>
-                  {t("common.actions.cancel")}
-                </Button>
-              )
-            ) : null}
-          </div>
-          {description ? <FieldDescription>{description}</FieldDescription> : null}
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-}
+const getSecretSafeEmailSettingsValues = (values: EmailSettingsValues): EmailSettingsValues => ({
+  ...values,
+  smtpPass: values.smtpPassConfigured ? "" : values.smtpPass,
+  resendApiKey: values.resendApiKeyConfigured ? "" : values.resendApiKey
+})
 
 const EmailSettingsForm = ({
   initialValues,
@@ -128,9 +65,12 @@ const EmailSettingsForm = ({
 
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [testError, setTestError] = useState<string | null>(null)
+
   const [emailTestSendAt, setEmailTestSendAt] = useState<string | null>(initialEmailTestSendAt)
+
   const [editingSmtpPass, setEditingSmtpPass] = useState(false)
   const [editingResendApiKey, setEditingResendApiKey] = useState(false)
+
   const [isSaving, startSaving] = useTransition()
   const [isTesting, startTesting] = useTransition()
 
@@ -139,8 +79,10 @@ const EmailSettingsForm = ({
   const settingsForm = useForm<EmailSettingsInputValues, unknown, EmailSettingsValues>({
     resolver: zodResolver(emailSettingsSchema),
     mode: "onChange",
-    defaultValues: initialValues
+    defaultValues: getSecretSafeEmailSettingsValues(initialValues)
   })
+
+  const { isDirty: settingsDirty, isValid: settingsValid } = settingsForm.formState
 
   const testForm = useForm<TestEmailSettingsValues>({
     resolver: zodResolver(testEmailSettingsSchema),
@@ -148,14 +90,14 @@ const EmailSettingsForm = ({
     defaultValues: { recipientEmail: defaultTestRecipient }
   })
 
+  const { isValid: testValid } = testForm.formState
+
   const provider = useWatch({ control: settingsForm.control, name: "emailProvider" })
   const smtpPassConfigured = useWatch({ control: settingsForm.control, name: "smtpPassConfigured" })
   const resendApiKeyConfigured = useWatch({
     control: settingsForm.control,
     name: "resendApiKeyConfigured"
   })
-  const { isDirty: settingsDirty, isValid: settingsValid } = settingsForm.formState
-  const { isValid: testValid } = testForm.formState
 
   const onSettingsSubmit = (values: EmailSettingsValues) => {
     if (!settingsDirty || !settingsValid) return
@@ -171,17 +113,21 @@ const EmailSettingsForm = ({
         return
       }
 
-      settingsForm.reset(result.data.settings)
+      settingsForm.reset(getSecretSafeEmailSettingsValues(result.data.settings))
+
       setEmailTestSendAt(result.data.settings.emailTestSendAt)
       setEditingSmtpPass(false)
       setEditingResendApiKey(false)
+
       router.refresh()
+
       toast.success(t("settings.email.saved"))
     })
   }
 
   const handleProviderChange = (value: string) => {
     settingsForm.setValue("emailProvider", value, { shouldValidate: true, shouldDirty: true })
+
     setSettingsError(null)
     setEditingSmtpPass(false)
     setEditingResendApiKey(false)
@@ -203,7 +149,9 @@ const EmailSettingsForm = ({
       }
 
       setEmailTestSendAt(result.data.emailTestSendAt)
+
       router.refresh()
+
       toast.success(t("settings.email.testSent"))
     })
   }
@@ -257,7 +205,6 @@ const EmailSettingsForm = ({
             )}
           />
         </FieldSet>
-
         <FieldGroup>
           <Typography variant="h4">{t("settings.email.senderSection")}</Typography>
           <div className="grid gap-4 md:grid-cols-2">
@@ -300,7 +247,6 @@ const EmailSettingsForm = ({
             />
           </div>
         </FieldGroup>
-
         {provider === "smtp" ? (
           <FieldGroup>
             <Typography variant="h4">{t("settings.email.smtpSection")}</Typography>
@@ -364,20 +310,39 @@ const EmailSettingsForm = ({
                   </Field>
                 )}
               />
-              <SecretField
-                control={settingsForm.control}
+              <Controller
                 name="smtpPass"
-                label={t("settings.email.smtpPassword")}
-                description={smtpPassConfigured ? t("settings.email.secretPreserved") : ""}
-                unconfiguredPlaceholder={t("settings.email.smtpPasswordPlaceholder")}
-                configured={smtpPassConfigured}
-                editing={editingSmtpPass}
-                disabled={isSaving || isTesting}
-                onEdit={() => setEditingSmtpPass(true)}
-                onCancel={() => {
-                  setEditingSmtpPass(false)
-                  settingsForm.setValue("smtpPass", "", { shouldValidate: true })
-                }}
+                control={settingsForm.control}
+                render={({ field, fieldState }) => (
+                  <SecretField
+                    id={field.name}
+                    name={field.name}
+                    label={t("settings.email.smtpPassword")}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
+                    description={smtpPassConfigured ? t("settings.email.secretPreserved") : ""}
+                    configuredPlaceholder={t("settings.email.configuredPlaceholder")}
+                    unconfiguredPlaceholder={t("settings.email.smtpPasswordPlaceholder")}
+                    changeLabel={t("settings.email.changeSecret")}
+                    cancelLabel={t("common.actions.cancel")}
+                    configured={smtpPassConfigured}
+                    editing={editingSmtpPass}
+                    disabled={isSaving || isTesting}
+                    invalid={fieldState.invalid}
+                    error={fieldState.error}
+                    autoComplete="new-password"
+                    onEdit={() => {
+                      settingsForm.setValue("smtpPass", "", { shouldValidate: true })
+                      setEditingSmtpPass(true)
+                    }}
+                    onCancel={() => {
+                      setEditingSmtpPass(false)
+                      settingsForm.setValue("smtpPass", "", { shouldValidate: true })
+                    }}
+                  />
+                )}
               />
             </div>
             <Controller
@@ -401,28 +366,45 @@ const EmailSettingsForm = ({
             />
           </FieldGroup>
         ) : null}
-
         {provider === "resend" ? (
           <FieldGroup>
             <Typography variant="h4">{t("settings.email.resendSection")}</Typography>
-            <SecretField
-              control={settingsForm.control}
+            <Controller
               name="resendApiKey"
-              label={t("settings.email.resendApiKey")}
-              description={resendApiKeyConfigured ? t("settings.email.secretPreserved") : ""}
-              unconfiguredPlaceholder={t("settings.email.resendApiKeyPlaceholder")}
-              configured={resendApiKeyConfigured}
-              editing={editingResendApiKey}
-              disabled={isSaving || isTesting}
-              onEdit={() => setEditingResendApiKey(true)}
-              onCancel={() => {
-                setEditingResendApiKey(false)
-                settingsForm.setValue("resendApiKey", "", { shouldValidate: true })
-              }}
+              control={settingsForm.control}
+              render={({ field, fieldState }) => (
+                <SecretField
+                  id={field.name}
+                  name={field.name}
+                  label={t("settings.email.resendApiKey")}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  inputRef={field.ref}
+                  description={resendApiKeyConfigured ? t("settings.email.secretPreserved") : ""}
+                  configuredPlaceholder={t("settings.email.configuredPlaceholder")}
+                  unconfiguredPlaceholder={t("settings.email.resendApiKeyPlaceholder")}
+                  changeLabel={t("settings.email.changeSecret")}
+                  cancelLabel={t("common.actions.cancel")}
+                  configured={resendApiKeyConfigured}
+                  editing={editingResendApiKey}
+                  disabled={isSaving || isTesting}
+                  invalid={fieldState.invalid}
+                  error={fieldState.error}
+                  autoComplete="new-password"
+                  onEdit={() => {
+                    settingsForm.setValue("resendApiKey", "", { shouldValidate: true })
+                    setEditingResendApiKey(true)
+                  }}
+                  onCancel={() => {
+                    setEditingResendApiKey(false)
+                    settingsForm.setValue("resendApiKey", "", { shouldValidate: true })
+                  }}
+                />
+              )}
             />
           </FieldGroup>
         ) : null}
-
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           {settingsError && <FieldError className="sm:mr-auto">{settingsError}</FieldError>}
           <Button
@@ -434,9 +416,7 @@ const EmailSettingsForm = ({
           </Button>
         </div>
       </form>
-
       <Separator />
-
       <form
         onSubmit={testForm.handleSubmit(onTestSubmit)}
         noValidate
@@ -459,7 +439,6 @@ const EmailSettingsForm = ({
             </Typography>
           )}
         </div>
-
         <Controller
           name="recipientEmail"
           control={testForm.control}
@@ -482,7 +461,6 @@ const EmailSettingsForm = ({
             </Field>
           )}
         />
-
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           {testError && <FieldError className="sm:mr-auto">{testError}</FieldError>}
           <Button

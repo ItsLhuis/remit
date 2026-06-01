@@ -107,6 +107,67 @@ describe("EmailSettingsForm", () => {
     expect(screen.getByText("SMTP password is required.")).toBeInTheDocument()
   })
 
+  test("keeps a configured SMTP password hidden and submits an empty value when unchanged", async () => {
+    const user = userEvent.setup()
+
+    mocks.saveEmailSettings.mockResolvedValueOnce({
+      data: {
+        settings: {
+          ...validSmtpSettings,
+          emailFromName: "Updated Studio",
+          emailTestSendAt: null
+        }
+      }
+    })
+
+    renderEmailSettingsForm({
+      ...validSmtpSettings,
+      smtpPass: "stored-sentinel"
+    })
+
+    const smtpPassword = screen.getByLabelText("settings.email.smtpPassword")
+
+    expect(smtpPassword).toBeDisabled()
+    expect(smtpPassword).toHaveValue("")
+    expect(smtpPassword).toHaveAttribute("placeholder", "settings.email.configuredPlaceholder")
+    expect(screen.queryByDisplayValue("stored-sentinel")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "settings.email.changeSecret" }))
+
+    expect(smtpPassword).toBeEnabled()
+    expect(smtpPassword).toHaveValue("")
+    expect(smtpPassword).toHaveAttribute("placeholder", "settings.email.smtpPasswordPlaceholder")
+
+    await user.type(smtpPassword, "updated")
+    await user.click(screen.getByRole("button", { name: "common.actions.cancel" }))
+
+    expect(smtpPassword).toBeDisabled()
+    expect(smtpPassword).toHaveValue("")
+    expect(smtpPassword).toHaveAttribute("placeholder", "settings.email.configuredPlaceholder")
+    expect(screen.queryByDisplayValue("updated")).not.toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText("settings.email.fromName"))
+    await user.type(screen.getByLabelText("settings.email.fromName"), "Updated Studio")
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "settings.email.save" })).toBeEnabled()
+    })
+
+    await user.click(screen.getByRole("button", { name: "settings.email.save" }))
+
+    await waitFor(() => {
+      expect(mocks.saveEmailSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ smtpPass: "" })
+      )
+    })
+    expect(mocks.saveEmailSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ smtpPass: "stored-sentinel" })
+    )
+    expect(mocks.saveEmailSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({ smtpPass: "updated" })
+    )
+  })
+
   test("shows Resend required-field errors when Resend is selected without an API key", async () => {
     const user = userEvent.setup()
 
