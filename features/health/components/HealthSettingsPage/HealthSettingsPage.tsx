@@ -8,11 +8,13 @@ import { SettingsPageHeader } from "@/components/layout"
 
 import { HealthStatusSection } from "./HealthStatusSection"
 import { HealthSummary } from "./HealthSummary"
+import { SystemInfoStrip } from "./SystemInfoStrip"
 
-import { type HealthCategory, type HealthCheckResult } from "../../types"
+import { type HealthCategory, type HealthCheckResult, type SystemInfo } from "../../types"
 
 type HealthSettingsPageProps = {
   checks: HealthCheckResult[]
+  systemInfo: SystemInfo
 }
 
 type SectionDefinition = {
@@ -36,15 +38,10 @@ const getSections = (t: ReturnType<typeof useTranslation>["t"]): SectionDefiniti
     category: "integrations",
     title: t("health.sections.integrations.title"),
     description: t("health.sections.integrations.description")
-  },
-  {
-    category: "instance",
-    title: t("health.sections.instance.title"),
-    description: t("health.sections.instance.description")
   }
 ]
 
-const HealthSettingsPage = ({ checks }: HealthSettingsPageProps) => {
+const HealthSettingsPage = ({ checks, systemInfo }: HealthSettingsPageProps) => {
   const { t } = useTranslation()
 
   return (
@@ -66,6 +63,8 @@ const HealthSettingsPage = ({ checks }: HealthSettingsPageProps) => {
             />
           </div>
         ))}
+        <Separator />
+        <SystemInfoStrip systemInfo={systemInfo} />
       </div>
     </div>
   )

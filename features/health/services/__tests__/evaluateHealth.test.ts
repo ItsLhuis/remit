@@ -4,6 +4,7 @@ import {
   evaluateBackupFreshness,
   evaluateDiskUsage,
   evaluateEmailHealth,
+  evaluateMigrationDrift,
   evaluatePublicUrl,
   evaluateRemoteStorageConfiguration,
   evaluateStripeHealth
@@ -114,19 +115,42 @@ describe("evaluateBackupFreshness", () => {
 })
 
 describe("evaluateDiskUsage", () => {
-  test("marks disk usage as attention when usage reaches the threshold", () => {
+  test("flags space as the attention reason when byte usage reaches the threshold", () => {
     const result = evaluateDiskUsage({
       availableBytes: 10,
       attentionPercent: 90,
       totalBytes: 100
     })
 
-    expect(result).toEqual({
-      availableBytes: 10,
-      needsAttention: true,
+    expect(result.usedPercent).toBe(90)
+    expect(result.needsAttention).toBe(true)
+    expect(result.attentionReason).toBe("space")
+  })
+
+  test("flags inodes as the attention reason when free inodes run low", () => {
+    const result = evaluateDiskUsage({
+      availableBytes: 90,
       totalBytes: 100,
-      usedPercent: 90
+      availableInodes: 5,
+      totalInodes: 100,
+      attentionPercent: 90
     })
+
+    expect(result.needsAttention).toBe(true)
+    expect(result.attentionReason).toBe("inodes")
+    expect(result.inodesUsedPercent).toBe(95)
+  })
+
+  test("returns no attention when both space and inodes are below the threshold", () => {
+    const result = evaluateDiskUsage({
+      availableBytes: 90,
+      totalBytes: 100,
+      availableInodes: 90,
+      totalInodes: 100
+    })
+
+    expect(result.needsAttention).toBe(false)
+    expect(result.attentionReason).toBe(null)
   })
 
   test("returns zero usage when the total size is zero", () => {
@@ -136,7 +160,28 @@ describe("evaluateDiskUsage", () => {
     })
 
     expect(result.usedPercent).toBe(0)
+    expect(result.inodesUsedPercent).toBe(0)
     expect(result.needsAttention).toBe(false)
+  })
+})
+
+describe("evaluateMigrationDrift", () => {
+  test("returns pending when fewer migrations are applied than expected", () => {
+    const result = evaluateMigrationDrift({ appliedCount: 3, expectedCount: 5 })
+
+    expect(result).toBe("pending")
+  })
+
+  test("returns ahead when more migrations are applied than the build expects", () => {
+    const result = evaluateMigrationDrift({ appliedCount: 6, expectedCount: 5 })
+
+    expect(result).toBe("ahead")
+  })
+
+  test("returns healthy when applied and expected counts match", () => {
+    const result = evaluateMigrationDrift({ appliedCount: 5, expectedCount: 5 })
+
+    expect(result).toBe("healthy")
   })
 })
 

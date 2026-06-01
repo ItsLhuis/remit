@@ -36,14 +36,25 @@ type BackupFreshnessInput = {
 type DiskUsageInput = {
   availableBytes: number
   attentionPercent?: number
+  availableInodes?: number
   totalBytes: number
+  totalInodes?: number
 }
 
 type DiskUsageResult = {
+  attentionReason: "space" | "inodes" | null
   availableBytes: number
+  availableInodes: number
+  inodesUsedPercent: number
   needsAttention: boolean
   totalBytes: number
+  totalInodes: number
   usedPercent: number
+}
+
+type MigrationDriftInput = {
+  appliedCount: number
+  expectedCount: number
 }
 
 export function evaluateEmailHealth(input: EmailHealthInput): "attention" | "healthy" | "notSetup" {
@@ -95,16 +106,47 @@ export function evaluateBackupFreshness(
 }
 
 export function evaluateDiskUsage(input: DiskUsageInput): DiskUsageResult {
-  const usedBytes = input.totalBytes - input.availableBytes
-  const usedPercent = input.totalBytes > 0 ? (usedBytes / input.totalBytes) * 100 : 0
   const attentionPercent = input.attentionPercent ?? 90
 
+  const usedBytes = input.totalBytes - input.availableBytes
+  const usedPercent = input.totalBytes > 0 ? (usedBytes / input.totalBytes) * 100 : 0
+
+  const totalInodes = input.totalInodes ?? 0
+  const availableInodes = input.availableInodes ?? 0
+  const usedInodes = totalInodes - availableInodes
+  const inodesUsedPercent = totalInodes > 0 ? (usedInodes / totalInodes) * 100 : 0
+
+  const attentionReason: DiskUsageResult["attentionReason"] =
+    usedPercent >= attentionPercent
+      ? "space"
+      : inodesUsedPercent >= attentionPercent
+        ? "inodes"
+        : null
+
   return {
+    attentionReason,
     availableBytes: input.availableBytes,
-    needsAttention: usedPercent >= attentionPercent,
+    availableInodes,
+    inodesUsedPercent,
+    needsAttention: attentionReason !== null,
     totalBytes: input.totalBytes,
+    totalInodes,
     usedPercent
   }
+}
+
+export function evaluateMigrationDrift(
+  input: MigrationDriftInput
+): "healthy" | "pending" | "ahead" {
+  if (input.appliedCount < input.expectedCount) {
+    return "pending"
+  }
+
+  if (input.appliedCount > input.expectedCount) {
+    return "ahead"
+  }
+
+  return "healthy"
 }
 
 export function evaluatePublicUrl(configuredUrl: string): boolean {

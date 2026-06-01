@@ -1,3 +1,9 @@
-export { checkDatabaseConnectivity, getHealthChecks } from "./queries"
+export { checkDatabaseConnectivity, getHealthChecks, getSystemInfo } from "./queries"
 
-export type { HealthCategory, HealthCheckId, HealthCheckResult, HealthStatus } from "./types"
+export type {
+  HealthCategory,
+  HealthCheckId,
+  HealthCheckResult,
+  HealthStatus,
+  SystemInfo
+} from "./types"

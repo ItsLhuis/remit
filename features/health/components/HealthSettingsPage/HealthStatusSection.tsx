@@ -2,7 +2,7 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Typography } from "@/components/ui"
+import { Card, CardContent, Typography } from "@/components/ui"
 
 import { HealthCheckRow } from "./HealthCheckRow"
 
@@ -25,15 +25,19 @@ const HealthStatusSection = ({ title, description, checks }: HealthStatusSection
           {description}
         </Typography>
       </div>
-      <div className="divide-border divide-y rounded-lg border">
-        {checks.length > 0 ? (
-          checks.map((check) => <HealthCheckRow key={check.id} check={check} />)
-        ) : (
-          <div className="p-4">
+      {checks.length > 0 ? (
+        <div className="space-y-3">
+          {checks.map((check) => (
+            <HealthCheckRow key={check.id} check={check} />
+          ))}
+        </div>
+      ) : (
+        <Card size="sm">
+          <CardContent>
             <Typography affects={["muted", "small"]}>{t("health.sections.empty")}</Typography>
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </section>
   )
 }

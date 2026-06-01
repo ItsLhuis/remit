@@ -1,15 +1,17 @@
 import { createHash, randomUUID } from "node:crypto"
-import { mkdir, statfs, unlink, writeFile } from "node:fs/promises"
+
+import { mkdir, readFile, statfs, unlink, writeFile } from "node:fs/promises"
+
 import path from "node:path"
 
 import pkg from "@/package.json"
 
-import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3"
 import {
   buildS3ClientConfig,
   type BackupDestination,
   type CompleteBackupCredentials
 } from "@/lib/backups/destinationConfig"
+import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3"
 
 import { sql } from "drizzle-orm"
 
@@ -32,12 +34,13 @@ import {
   evaluateBackupFreshness,
   evaluateDiskUsage,
   evaluateEmailHealth,
+  evaluateMigrationDrift,
   evaluatePublicUrl,
   evaluateRemoteStorageConfiguration,
   evaluateStripeHealth
 } from "./services/evaluateHealth"
 
-import { type HealthCheckResult } from "./types"
+import { type HealthCheckResult, type SystemInfo } from "./types"
 
 type SettingsRow = typeof settings.$inferSelect
 
@@ -45,7 +48,9 @@ type DatabaseConnectivityResult = { ok: true } | { ok: false; reason: string; er
 
 const BACKUP_WARNING_AGE_MS = 7 * 24 * 60 * 60 * 1000
 const REMOTE_HEALTH_PROBE_TIMEOUT_MS = 5_000
+const PUBLIC_URL_PROBE_TIMEOUT_MS = 5_000
 const DATA_DIR = path.resolve(env.REMIT_DATA_DIR)
+const MIGRATIONS_JOURNAL_PATH = path.resolve("drizzle/migrations/meta/_journal.json")
 
 const getHealthLocale = (): string => i18n.resolvedLanguage ?? i18n.language ?? "en"
 
@@ -65,22 +70,33 @@ export async function getHealthChecks(): Promise<HealthCheckResult[]> {
     getSettingsForHealth()
   ])
 
-  const [storageCheck, diskCheck] = await Promise.all([
+  const [storageCheck, diskCheck, migrationsCheck, publicUrlCheck] = await Promise.all([
     getStorageHealthCheck(settingsRow),
-    getDiskUsageHealthCheck()
+    getDiskUsageHealthCheck(),
+    getMigrationsHealthCheck(),
+    getPublicUrlHealthCheck()
   ])
 
   return [
     databaseCheck,
+    migrationsCheck,
     storageCheck,
     diskCheck,
+    publicUrlCheck,
     getBackupHealthCheck(settingsRow),
-    getEncryptionFingerprintHealthCheck(),
     getEmailHealthCheck(settingsRow),
-    getStripeHealthCheck(settingsRow),
-    getAppVersionHealthCheck(),
-    getPublicUrlHealthCheck()
+    getStripeHealthCheck(settingsRow)
   ]
+}
+
+export function getSystemInfo(): SystemInfo {
+  return {
+    version: pkg.version,
+    encryptionFingerprint: createHash("sha256")
+      .update(env.REMIT_ENCRYPTION_KEY)
+      .digest("hex")
+      .slice(0, 8)
+  }
 }
 
 async function getDatabaseHealthCheck(): Promise<HealthCheckResult> {
@@ -423,8 +439,12 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
     const stats = await statfs(DATA_DIR)
     const diskUsage = evaluateDiskUsage({
       availableBytes: stats.bavail * stats.bsize,
-      totalBytes: stats.blocks * stats.bsize
+      totalBytes: stats.blocks * stats.bsize,
+      availableInodes: stats.ffree,
+      totalInodes: stats.files
     })
+
+    const locale = getHealthLocale()
 
     return {
       id: "disk",
@@ -432,15 +452,7 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
       title: t("health.checks.disk.title"),
       status: diskUsage.needsAttention ? "attention" : "healthy",
       summary: t("health.checks.disk.used", { percent: diskUsage.usedPercent.toFixed(1) }),
-      detail: diskUsage.needsAttention
-        ? t("health.checks.disk.highUsageDetail", {
-            available: formatBytes(diskUsage.availableBytes, getHealthLocale()),
-            total: formatBytes(diskUsage.totalBytes, getHealthLocale())
-          })
-        : t("health.checks.disk.usageDetail", {
-            available: formatBytes(diskUsage.availableBytes, getHealthLocale()),
-            total: formatBytes(diskUsage.totalBytes, getHealthLocale())
-          }),
+      detail: getDiskUsageDetail(diskUsage, locale),
       countsAsIssue: diskUsage.needsAttention
     }
   } catch (error) {
@@ -461,37 +473,100 @@ async function getDiskUsageHealthCheck(): Promise<HealthCheckResult> {
   }
 }
 
-function getEncryptionFingerprintHealthCheck(): HealthCheckResult {
-  return {
-    id: "encryption-key",
-    category: "safety",
-    title: t("health.checks.encryption.title"),
-    status: "info",
-    summary: createHash("sha256").update(env.REMIT_ENCRYPTION_KEY).digest("hex").slice(0, 8),
-    detail: t("health.checks.encryption.detail"),
-    countsAsIssue: false
+function getDiskUsageDetail(
+  diskUsage: ReturnType<typeof evaluateDiskUsage>,
+  locale: string
+): string {
+  if (diskUsage.attentionReason === "inodes") {
+    return t("health.checks.disk.highInodesDetail", {
+      available: diskUsage.availableInodes,
+      total: diskUsage.totalInodes
+    })
+  }
+
+  const space = {
+    available: formatBytes(diskUsage.availableBytes, locale),
+    total: formatBytes(diskUsage.totalBytes, locale)
+  }
+
+  return diskUsage.attentionReason === "space"
+    ? t("health.checks.disk.highUsageDetail", space)
+    : t("health.checks.disk.usageDetail", space)
+}
+
+async function getMigrationsHealthCheck(): Promise<HealthCheckResult> {
+  try {
+    const journalRaw = await readFile(MIGRATIONS_JOURNAL_PATH, "utf8")
+    const journal = JSON.parse(journalRaw) as { entries?: unknown[] }
+    const expectedCount = Array.isArray(journal.entries) ? journal.entries.length : 0
+
+    const rows = (await database.execute(
+      sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`
+    )) as unknown as Array<{ count: number }>
+    const appliedCount = Number(rows[0]?.count ?? 0)
+
+    const drift = evaluateMigrationDrift({ appliedCount, expectedCount })
+
+    if (drift === "pending") {
+      return {
+        id: "migrations",
+        category: "core",
+        title: t("health.checks.migrations.title"),
+        status: "error",
+        summary: t("health.checks.migrations.pending", {
+          count: expectedCount - appliedCount
+        }),
+        detail: t("health.checks.migrations.pendingDetail"),
+        countsAsIssue: true
+      }
+    }
+
+    if (drift === "ahead") {
+      return {
+        id: "migrations",
+        category: "core",
+        title: t("health.checks.migrations.title"),
+        status: "attention",
+        summary: t("health.checks.migrations.ahead"),
+        detail: t("health.checks.migrations.aheadDetail"),
+        countsAsIssue: true
+      }
+    }
+
+    return {
+      id: "migrations",
+      category: "core",
+      title: t("health.checks.migrations.title"),
+      status: "healthy",
+      summary: t("health.checks.migrations.upToDate", { count: appliedCount }),
+      detail: t("health.checks.migrations.upToDateDetail"),
+      countsAsIssue: false
+    }
+  } catch (error) {
+    logger.error(
+      { action: "getMigrationsHealthCheck", check: "migrations", err: error },
+      "Migrations health check failed"
+    )
+
+    return {
+      id: "migrations",
+      category: "core",
+      title: t("health.checks.migrations.title"),
+      status: "attention",
+      summary: t("health.checks.migrations.unavailable"),
+      detail: t("health.checks.migrations.unavailableDetail"),
+      countsAsIssue: true
+    }
   }
 }
 
-function getAppVersionHealthCheck(): HealthCheckResult {
-  return {
-    id: "app-version",
-    category: "instance",
-    title: t("health.checks.version.title"),
-    status: "info",
-    summary: pkg.version,
-    detail: t("health.checks.version.detail"),
-    countsAsIssue: false
-  }
-}
-
-function getPublicUrlHealthCheck(): HealthCheckResult {
+async function getPublicUrlHealthCheck(): Promise<HealthCheckResult> {
   const configuredUrl = env.BETTER_AUTH_URL
 
   if (!evaluatePublicUrl(configuredUrl)) {
     return {
       id: "public-url",
-      category: "instance",
+      category: "core",
       title: t("health.checks.publicUrl.title"),
       status: "attention",
       summary: t("health.checks.publicUrl.invalid"),
@@ -500,13 +575,42 @@ function getPublicUrlHealthCheck(): HealthCheckResult {
     }
   }
 
+  const origin = new URL(configuredUrl).origin
+  const reachable = await probePublicUrl(configuredUrl)
+
+  if (!reachable) {
+    return {
+      id: "public-url",
+      category: "core",
+      title: t("health.checks.publicUrl.title"),
+      status: "attention",
+      summary: t("health.checks.publicUrl.unreachable", { origin }),
+      detail: t("health.checks.publicUrl.unreachableDetail"),
+      countsAsIssue: false
+    }
+  }
+
   return {
     id: "public-url",
-    category: "instance",
+    category: "core",
     title: t("health.checks.publicUrl.title"),
     status: "healthy",
-    summary: new URL(configuredUrl).origin,
+    summary: origin,
     detail: t("health.checks.publicUrl.detail"),
     countsAsIssue: false
+  }
+}
+
+async function probePublicUrl(url: string): Promise<boolean> {
+  try {
+    await fetch(url, {
+      method: "HEAD",
+      redirect: "manual",
+      signal: AbortSignal.timeout(PUBLIC_URL_PROBE_TIMEOUT_MS)
+    })
+
+    return true
+  } catch {
+    return false
   }
 }

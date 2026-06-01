@@ -6,9 +6,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import Link from "next/link"
 
-import { Badge, Button, Icon, Typography, type IconProps } from "@/components/ui"
-
-import { FingerprintCopyButton } from "../FingerprintCopyButton"
+import { Badge, Button, Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
 
 import { type HealthCheckResult, type HealthStatus } from "../../types"
 
@@ -119,53 +117,53 @@ const HealthCheckRow = ({ check }: HealthCheckRowProps) => {
         })
       : check.summary
 
-  const isFingerprint = check.id === "encryption-key"
   const backupDetails = check.id === "backup" ? getBackupDetails(check, locale, t) : []
 
   return (
-    <div className="flex flex-col gap-3 p-4 not-last:border-b md:flex-row md:items-start md:justify-between">
-      <div className="flex min-w-0 gap-3">
-        <Icon
-          name={status.icon}
-          className={cn("mt-0.5 shrink-0", status.iconClassName)}
-          aria-hidden="true"
-        />
-        <div className="min-w-0 space-y-2">
-          <div className="space-y-1">
-            <Typography affects="medium">{check.title}</Typography>
-            <Typography variant="p" affects={["removePMargin", "small"]} suppressHydrationWarning>
-              {summary}
-            </Typography>
-            <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
-              {check.detail}
-            </Typography>
-            {backupDetails.length > 0 ? (
-              <div className="space-y-1">
-                {backupDetails.map((detail) => (
-                  <Typography
-                    key={detail}
-                    variant="p"
-                    affects={["muted", "removePMargin", "small"]}
-                    suppressHydrationWarning
-                  >
-                    {detail}
-                  </Typography>
-                ))}
-              </div>
-            ) : null}
+    <Card size="sm">
+      <CardContent className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <Icon
+            name={status.icon}
+            className={cn("mt-0.5 shrink-0", status.iconClassName)}
+            aria-hidden="true"
+          />
+          <div className="min-w-0 space-y-2">
+            <div className="space-y-1">
+              <Typography affects="medium">{check.title}</Typography>
+              <Typography variant="p" affects={["removePMargin", "small"]} suppressHydrationWarning>
+                {summary}
+              </Typography>
+              <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
+                {check.detail}
+              </Typography>
+              {backupDetails.length > 0 ? (
+                <div className="space-y-1">
+                  {backupDetails.map((detail) => (
+                    <Typography
+                      key={detail}
+                      variant="p"
+                      affects={["muted", "removePMargin", "small"]}
+                      suppressHydrationWarning
+                    >
+                      {detail}
+                    </Typography>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-2 md:justify-end">
-        <Badge variant={status.badgeVariant}>{status.label}</Badge>
-        {isFingerprint ? <FingerprintCopyButton fingerprint={check.summary} /> : null}
-        {check.actionHref && check.actionLabel ? (
-          <Button asChild variant="outline" size="sm">
-            <Link href={check.actionHref}>{check.actionLabel}</Link>
-          </Button>
-        ) : null}
-      </div>
-    </div>
+        <div className="flex shrink-0 items-center gap-2 md:justify-end">
+          <Badge variant={status.badgeVariant}>{status.label}</Badge>
+          {check.actionHref && check.actionLabel ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={check.actionHref}>{check.actionLabel}</Link>
+            </Button>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

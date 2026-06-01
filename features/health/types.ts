@@ -1,14 +1,13 @@
-export type HealthCategory = "core" | "safety" | "integrations" | "instance"
+export type HealthCategory = "core" | "safety" | "integrations"
 
 export type HealthStatus = "healthy" | "attention" | "error" | "notSetup" | "optional" | "info"
 
 export type HealthCheckId =
-  | "app-version"
   | "backup"
   | "database"
   | "disk"
   | "email"
-  | "encryption-key"
+  | "migrations"
   | "public-url"
   | "storage"
   | "stripe"
@@ -27,4 +26,9 @@ export type HealthCheckResult = {
   countsAsIssue: boolean
   actionLabel?: string
   actionHref?: string
+}
+
+export type SystemInfo = {
+  version: string
+  encryptionFingerprint: string
 }

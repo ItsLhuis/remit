@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Icon, Typography, type IconProps } from "@/components/ui"
+import { Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
 
 import { type HealthCheckResult } from "../../types"
 
@@ -22,9 +22,9 @@ type Summary = {
 }
 
 const toneClassNames = {
-  ready: "bg-success border-success-border text-success-foreground",
-  attention: "bg-warning border-warning-border text-warning-foreground",
-  error: "bg-error border-error-border text-error-foreground"
+  ready: "bg-success border border-success-border text-success-foreground ring-0",
+  attention: "bg-warning border border-warning-border text-warning-foreground ring-0",
+  error: "bg-error border border-error-border text-error-foreground ring-0"
 } satisfies Record<SummaryTone, string>
 
 const descriptionClassNames = {
@@ -74,8 +74,8 @@ const HealthSummary = ({ checks }: HealthSummaryProps) => {
   const summary = getSummary(checks, t)
 
   return (
-    <section className={cn("rounded-lg border p-4", toneClassNames[summary.tone])}>
-      <div className="flex gap-3">
+    <Card className={cn(toneClassNames[summary.tone])}>
+      <CardContent className="flex gap-3">
         <Icon name={summary.icon} className="mt-0.5 shrink-0" aria-hidden="true" />
         <div className="space-y-1">
           <Typography affects="medium">{summary.title}</Typography>
@@ -87,8 +87,8 @@ const HealthSummary = ({ checks }: HealthSummaryProps) => {
             {summary.description}
           </Typography>
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   )
 }
 
