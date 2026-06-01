@@ -6,6 +6,10 @@ import { clients, invoices, projects, proposals, users } from "@/database/schema
 
 import { database } from "@/tests/integration/database"
 
+export * from "./organizations"
+export * from "./settings"
+export * from "./uploads"
+
 export async function makeUser(overrides?: Partial<InferInsertModel<typeof users>>) {
   const [user] = await database
     .insert(users)
