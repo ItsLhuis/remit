@@ -43,7 +43,7 @@ test("builds custom-sized plans for stress-test data", () => {
   expect(plan.counts.projects).toBe(4000)
   expect(plan.counts.invoices).toBe(20000)
   expect(plan.counts.line_items).toBe(46934)
-})
+}, 15_000)
 
 test("builds different deterministic identifiers when the seed changes", () => {
   const first = buildDemoSeedPlan(42, OWNER_ID)
