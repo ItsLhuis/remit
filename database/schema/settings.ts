@@ -45,6 +45,7 @@ export const settings = pgTable(
     paymentTermsDays: integer("payment_terms_days").notNull().default(30),
     proposalValidityDays: integer("proposal_validity_days").notNull().default(30),
     defaultNotesInvoice: text("default_notes_invoice"),
+    defaultInvoiceFooter: text("default_invoice_footer"),
     defaultNotesProposal: text("default_notes_proposal"),
     invoicePrefix: text("invoice_prefix").notNull().default("INV-"),
     proposalPrefix: text("proposal_prefix").notNull().default("PROP-"),
@@ -110,8 +111,15 @@ export const settings = pgTable(
       "chk_settings_email_provider",
       sql`${table.emailProvider} IS NULL OR ${table.emailProvider} IN ('smtp', 'resend')`
     ),
-    check("chk_settings_payment_terms_days", sql`${table.paymentTermsDays} >= 0`),
+    check(
+      "chk_settings_payment_terms_days",
+      sql`${table.paymentTermsDays} >= 0 AND ${table.paymentTermsDays} <= 365`
+    ),
     check("chk_settings_proposal_validity_days", sql`${table.proposalValidityDays} >= 0`),
+    check(
+      "chk_settings_invoice_prefix",
+      sql`length(${table.invoicePrefix}) <= 24 AND ${table.invoicePrefix} ~ '^[ -~]*$'`
+    ),
     check("chk_settings_next_invoice_number", sql`${table.nextInvoiceNumber} >= 1`),
     check("chk_settings_next_proposal_number", sql`${table.nextProposalNumber} >= 1`),
     check("chk_settings_next_credit_note_number", sql`${table.nextCreditNoteNumber} >= 1`),
