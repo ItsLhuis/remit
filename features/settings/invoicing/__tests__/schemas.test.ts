@@ -1,0 +1,95 @@
+import { expect, test } from "vitest"
+
+import {
+  createInvoicingSettingsSchema,
+  INVOICE_PREFIX_MAX_LENGTH,
+  invoicingSettingsSchema
+} from "../schemas"
+
+const validInvoicingSettings = {
+  invoicePrefix: "INV-",
+  numberPaddingWidth: 4,
+  nextInvoiceNumber: 42,
+  paymentTermsDays: 30,
+  defaultNotesInvoice: "Thank you for your business.",
+  defaultInvoiceFooter: "Payment is due according to the terms above."
+}
+
+test("accepts valid invoice numbering and document defaults", () => {
+  const result = invoicingSettingsSchema.safeParse(validInvoicingSettings)
+
+  expect(result.success).toBe(true)
+})
+
+test("trims optional invoice notes and footer text", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    defaultNotesInvoice: "  Thanks  ",
+    defaultInvoiceFooter: "  Footer  "
+  })
+
+  expect(result).toEqual({
+    success: true,
+    data: expect.objectContaining({
+      defaultNotesInvoice: "Thanks",
+      defaultInvoiceFooter: "Footer"
+    })
+  })
+})
+
+test("rejects an invoice prefix with non-printable or non-ASCII characters", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    invoicePrefix: "INV-\u20AC"
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("rejects an invoice prefix over the length cap", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    invoicePrefix: "I".repeat(INVOICE_PREFIX_MAX_LENGTH + 1)
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("rejects padding widths outside the supported range", () => {
+  const tooSmall = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    numberPaddingWidth: 0
+  })
+  const tooLarge = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    numberPaddingWidth: 11
+  })
+
+  expect(tooSmall.success).toBe(false)
+  expect(tooLarge.success).toBe(false)
+})
+
+test("rejects a next invoice number lower than the current persisted next number", () => {
+  const schema = createInvoicingSettingsSchema(50)
+
+  const result = schema.safeParse({
+    ...validInvoicingSettings,
+    nextInvoiceNumber: 49
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("rejects payment terms outside the supported day range", () => {
+  const tooSmall = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    paymentTermsDays: -1
+  })
+  const tooLarge = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    paymentTermsDays: 366
+  })
+
+  expect(tooSmall.success).toBe(false)
+  expect(tooLarge.success).toBe(false)
+})

@@ -302,11 +302,12 @@ Single-row instance configuration. Exists exactly once per instance.
 | Locale           | default_currency           | varchar(3)       | no   | Default `'EUR'`. ISO 4217.                                                                                                                                                               |
 |                  | default_locale             | text             | no   | Default `'en'`. BCP 47 locale tag. Controls number/date formatting and document language in generated PDFs and emails. Not the app UI language — that is handled by i18next client-side. |
 |                  | default_timezone           | text             | no   | Default `'UTC'`. IANA tz name.                                                                                                                                                           |
-| Invoicing        | payment_terms_days         | integer          | no   | Default `30`. ≥ 0                                                                                                                                                                        |
+| Invoicing        | payment_terms_days         | integer          | no   | Default `30`. 0–365                                                                                                                                                                      |
 |                  | proposal_validity_days     | integer          | no   | Default `30`. ≥ 0                                                                                                                                                                        |
 |                  | default_notes_invoice      | text             | yes  |                                                                                                                                                                                          |
+|                  | default_invoice_footer     | text             | yes  | Default footer copied into new invoice drafts.                                                                                                                                           |
 |                  | default_notes_proposal     | text             | yes  |                                                                                                                                                                                          |
-|                  | invoice_prefix             | text             | no   | Default `'INV-'`                                                                                                                                                                         |
+|                  | invoice_prefix             | text             | no   | Default `'INV-'`. Printable ASCII, max 24 characters.                                                                                                                                    |
 |                  | proposal_prefix            | text             | no   | Default `'PROP-'`                                                                                                                                                                        |
 |                  | credit_note_prefix         | text             | no   | Default `'CN-'`                                                                                                                                                                          |
 |                  | next_invoice_number        | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
@@ -350,8 +351,9 @@ Single-row instance configuration. Exists exactly once per instance.
 Constraints (named):
 
 - `chk_settings_email_provider` — `email_provider` is null or in (`smtp`, `resend`).
-- `chk_settings_payment_terms_days` — `>= 0`.
+- `chk_settings_payment_terms_days` — `>= 0 AND <= 365`.
 - `chk_settings_proposal_validity_days` — `>= 0`.
+- `chk_settings_invoice_prefix` — printable ASCII and length `<= 24`.
 - `chk_settings_next_invoice_number` — `>= 1`.
 - `chk_settings_next_proposal_number` — `>= 1`.
 - `chk_settings_next_credit_note_number` — `>= 1`.
