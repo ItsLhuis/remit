@@ -8,6 +8,8 @@ import { writeAudit } from "@/lib/audit"
 
 import { auth } from "@/lib/auth"
 
+import { getIpAddress } from "@/lib/utils"
+
 import { database } from "@/database"
 import { users } from "@/database/schema"
 
@@ -27,14 +29,6 @@ type AuditedAuthRoute =
   | "enableTwoFactor"
   | "verifyTotp"
   | "generateBackupCodes"
-
-function getIp(request: NextRequest): string | null {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    null
-  )
-}
 
 function getAuditedRoute(pathname: string): AuditedAuthRoute | null {
   if (pathname.endsWith("/sign-in/email")) return "signIn"
@@ -137,7 +131,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const body = await readJson(request)
   const context: AuditContext = {
-    ipAddress: getIp(request),
+    ipAddress: getIpAddress(request.headers),
     userAgent: request.headers.get("user-agent") ?? null
   }
   const sessionUser =

@@ -17,6 +17,8 @@ import { emit } from "@/lib/events"
 
 import { logger } from "@/lib/logger"
 
+import { getIpAddress } from "@/lib/utils"
+
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
@@ -313,14 +315,6 @@ function emptyToNull(value: string): string | null {
   const trimmed = value.trim()
 
   return trimmed.length > 0 ? trimmed : null
-}
-
-function getIpAddress(requestHeaders: Headers): string | null {
-  return (
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    requestHeaders.get("x-real-ip") ??
-    null
-  )
 }
 
 function getStripeConnectionErrorMessage(code: StripeConnectionTestErrorCode): string {

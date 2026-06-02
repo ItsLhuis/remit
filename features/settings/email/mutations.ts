@@ -17,6 +17,8 @@ import { emit } from "@/lib/events"
 
 import { logger } from "@/lib/logger"
 
+import { getIpAddress } from "@/lib/utils"
+
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
@@ -341,14 +343,6 @@ async function writeEmailSettingsAudit(
     ipAddress: context.ipAddress,
     userAgent: context.userAgent
   })
-}
-
-function getIpAddress(requestHeaders: Headers): string | null {
-  return (
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    requestHeaders.get("x-real-ip") ??
-    null
-  )
 }
 
 function getEmailDeliveryErrorCode(error: unknown): EmailDeliveryErrorCode | null {
