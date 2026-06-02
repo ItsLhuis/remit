@@ -668,6 +668,38 @@ export type Translations = {
     invoicing: {
       title: string
       description: string
+      numberingSection: string
+      numberingSectionDescription: string
+      invoicePrefix: string
+      invoicePrefixPlaceholder: string
+      invoicePrefixHelp: string
+      numberPaddingWidth: string
+      numberPaddingWidthHelp: string
+      nextInvoiceNumber: string
+      nextInvoiceNumberHelp: string
+      paymentTermsDays: string
+      paymentTermsDaysHelp: string
+      documentDefaultsSection: string
+      documentDefaultsSectionDescription: string
+      defaultNotesInvoice: string
+      defaultNotesInvoicePlaceholder: string
+      defaultNotesInvoiceHelp: string
+      defaultInvoiceFooter: string
+      defaultInvoiceFooterPlaceholder: string
+      defaultInvoiceFooterHelp: string
+      save: string
+      saved: string
+      errors: {
+        updateFailed: string
+      }
+      validation: {
+        invoicePrefixTooLong: string
+        invoicePrefixInvalid: string
+        numberPaddingWidthInvalid: string
+        nextInvoiceNumberInvalid: string
+        nextInvoiceNumberForward: string
+        paymentTermsDaysInvalid: string
+      }
     }
     taxRates: {
       title: string

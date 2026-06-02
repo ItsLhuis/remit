@@ -697,7 +697,44 @@ export const english: Language = {
       },
       invoicing: {
         title: "Invoicing",
-        description: "Set invoice numbering, document defaults, and billing preferences."
+        description: "Set invoice numbering, document defaults, and billing preferences.",
+        numberingSection: "Numbering",
+        numberingSectionDescription:
+          "These defaults are applied when a new invoice draft is created.",
+        invoicePrefix: "Invoice number prefix",
+        invoicePrefixPlaceholder: "INV-",
+        invoicePrefixHelp: "Use printable ASCII characters only.",
+        numberPaddingWidth: "Number padding width",
+        numberPaddingWidthHelp: "Controls how many digits appear after the prefix.",
+        nextInvoiceNumber: "Next invoice number",
+        nextInvoiceNumberHelp:
+          "The next number cannot be lower than the current next number: {number}.",
+        paymentTermsDays: "Default payment terms",
+        paymentTermsDaysHelp: "Days added to the issue date when calculating the due date.",
+        documentDefaultsSection: "Document defaults",
+        documentDefaultsSectionDescription:
+          "These notes and footer text are copied into new invoice drafts.",
+        defaultNotesInvoice: "Default invoice notes",
+        defaultNotesInvoicePlaceholder: "Thank you for your business.",
+        defaultNotesInvoiceHelp: "Shown in the notes area of new invoice drafts.",
+        defaultInvoiceFooter: "Default invoice footer",
+        defaultInvoiceFooterPlaceholder: "Payment is due according to the terms above.",
+        defaultInvoiceFooterHelp: "Shown in the footer area of new invoice drafts.",
+        save: "Save invoicing settings",
+        saved: "Invoicing settings saved",
+        errors: {
+          updateFailed: "Failed to update invoicing settings"
+        },
+        validation: {
+          invoicePrefixTooLong:
+            "Invoice number prefix must be {count, plural, one {# character} other {# characters}} or fewer.",
+          invoicePrefixInvalid: "Invoice number prefix can use printable ASCII characters only.",
+          numberPaddingWidthInvalid: "Padding width must be a whole number from 1 to 10.",
+          nextInvoiceNumberInvalid: "Next invoice number must be a positive whole number.",
+          nextInvoiceNumberForward:
+            "Next invoice number cannot be lower than the current next number ({number}).",
+          paymentTermsDaysInvalid: "Payment terms must be a whole number from 0 to 365."
+        }
       },
       taxRates: {
         title: "Tax Rates",
