@@ -20,6 +20,9 @@ This matters most for:
 - Barrel export order.
 - How many blank lines separate hooks and derived values.
 
+Local precedent does not override architecture boundaries. Do not copy a local helper when the
+helper is generic infrastructure and belongs in `lib/utils/`.
+
 ## File-level organization
 
 Use directives first, then imports:
@@ -53,6 +56,21 @@ There are layer-specific exceptions:
   function is the public API.
 - Large configuration files define constants and inline callback helpers first, then private helper
   functions after the exported config object.
+
+## Helper discipline
+
+Do not add local helpers for generic request, string, date, number, URL, or object normalization
+when an equivalent exists under `lib/utils/`.
+
+When a generic helper is needed in more than one feature, put it in a focused file under
+`lib/utils/` and export it from `lib/utils/index.ts`.
+
+When similar helpers differ in trimming behavior, null handling, return shape, translation keys,
+database return columns, rollback behavior, or error messages, keep them local until a deliberate
+shared contract exists.
+
+Request metadata parsing is the canonical example: `x-forwarded-for` and `x-real-ip` parsing lives
+in `getIpAddress(headers)` under `lib/utils/request.ts`, not in mutations or routes.
 
 ## React component body structure
 
@@ -209,6 +227,7 @@ Use names that match the domain object or operation instead of abstract placehol
   when that convention exists in the feature.
 - Service functions are verbs or predicate-style functions: `evaluateEmailHealth`,
   `isEmailConfigured`, `formatBytes`, `resolveStorageUrl`.
+- Generic utility functions are named by behavior and input, such as `getIpAddress(headers)`.
 
 Avoid single-letter or vague names except for established local conventions such as `t`, `cn`,
 `ctx`, `ref`, callback `prev`, and the structured log key `err`.
@@ -237,9 +256,15 @@ Shared constants used by several schemas, such as password rules, appear before 
 schemas. Re-export bridge schemas at the top only when a feature intentionally exposes another
 feature's schema through its own surface.
 
+Do not extract shared schema fragments unless field semantics and validation messages are identical
+or a deliberate schema factory preserves flow-specific translation keys.
+
 ## Barrels
 
 Keep barrels boring. Use `export * from "./Thing"` in component folders. Use explicit grouped
 exports in feature root barrels when exporting a curated public surface. Preserve the local order:
 components first, then schemas/types/services with a blank line between sections when the barrel is
 already grouped that way.
+
+Never export server-only code from a client-safe `index.ts`. Use `server.ts` for server-only public
+feature entrypoints.

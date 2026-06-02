@@ -15,14 +15,14 @@ announced to screen readers.
 
 Every clickable or activatable surface is a semantic `<button>`, `<a>`, or `<input>` - never a
 `<div>` or `<span>` with an `onClick` handler, even when `role="button"` is added. Use the `Button`
-primitive from `components/ui/` for clickable controls; use `<a>` (or Next.js `<Link>`) for
+primitive from `components/ui/` for clickable controls; use `<a>` or Next.js `<Link>` for
 navigation.
 
 ```tsx
-// ✓
+// Good
 <Button onClick={handleDelete}>Delete</Button>
 
-// ✗ - div with onClick; not keyboard-accessible, no implicit ARIA role
+// Bad - div with onClick; not keyboard-accessible, no implicit ARIA role
 <div onClick={handleDelete} role="button">Delete</div>
 ```
 
@@ -33,25 +33,29 @@ references the input's `id`. This is already required by `forms.md` for form fie
 
 ## Icons
 
-Icons that convey information (a standalone icon button, a status icon with no adjacent text) carry
-an accessible name via `aria-label` on the wrapping element or visually-hidden text. Purely
-decorative icons use `aria-hidden="true"`.
+Icons that convey information, such as a standalone icon button or a status icon with no adjacent
+text, carry an accessible name via `aria-label` on the wrapping element or visually-hidden text.
+Purely decorative icons use `aria-hidden="true"`.
 
 ```tsx
-// ✓ - icon conveys meaning; accessible name present
+// Good - icon conveys meaning; accessible name present
 <button aria-label="Delete invoice">
   <Icon name="Trash2" aria-hidden="true" />
 </button>
 
-// ✗ - icon conveys meaning; no accessible name
+// Bad - icon conveys meaning; no accessible name
 <button>
   <Icon name="Trash2" />
 </button>
 
-// ✓ - decorative icon beside visible label; hidden from screen readers
+// Good - decorative icon beside visible label; hidden from screen readers
 <Icon name="CheckCircle" aria-hidden="true" />
 <span>Paid</span>
 ```
+
+The `Icon` primitive's `name` prop must be a compile-time string literal or a value from a typed
+constant set. Never pass an icon name derived from untrusted runtime data such as URL params, user
+input, or unvalidated API responses.
 
 ## Images
 
@@ -73,7 +77,7 @@ focus ring; use it via Tailwind's `ring` utilities.
 ## Modal and dialog focus
 
 Modals trap focus within the dialog while open and restore focus to the trigger element on close.
-Always use the `Dialog` primitive from `components/ui/` - it handles focus trapping and restoration
+Always use the `Dialog` primitive from `components/ui/`; it handles focus trapping and restoration
 via Radix UI. Never implement a custom modal with raw `<div>` elements.
 
 ## Keyboard-only flows
@@ -85,16 +89,10 @@ requires a hover interaction or a drag that has no keyboard equivalent.
 
 Async state changes visible on screen are announced to screen readers. Toasts are already announced
 via the `Toaster` primitive. For inline loading states and dynamic content updates, use
-`aria-live="polite"` (or `aria-live="assertive"` for critical errors).
+`aria-live="polite"` or `aria-live="assertive"` for critical errors.
 
 ## ARIA state attributes
 
 Components with state machines reflect their state through ARIA attributes. Use `aria-expanded` for
-collapsible panels, `aria-selected` for tabs and list items, `aria-current="page"` for navigation
-items. These attributes must reflect actual component state, not a hardcoded value.
-
-## Icon name safety
-
-The `Icon` primitive's `name` prop must be a compile-time string literal or a value from a typed
-constant set. Never pass a `name` derived from an untrusted runtime source (URL params, user input,
-API response without validation).
+collapsible panels, `aria-selected` for tabs and list items, and `aria-current="page"` for
+navigation items. These attributes must reflect actual component state, not a hardcoded value.

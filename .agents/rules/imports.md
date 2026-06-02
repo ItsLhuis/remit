@@ -23,8 +23,8 @@ a single import. Keep imports adjacent only when they form one local context:
 - Related relative schema/helper imports from the same feature layer.
 
 Do not collapse unrelated internal imports into one large `@/` block. In this codebase,
-`@/lib/i18n`, `@/lib/auth`, `@/lib/logger`, `@/database`, hooks, UI, and feature imports are often
-visually separated because they play different roles.
+`@/lib/i18n`, `@/lib/auth`, `@/lib/logger`, `@/database`, `@/lib/utils`, hooks, UI, and feature
+imports are often visually separated because they play different roles.
 
 ## Typical ordering
 
@@ -49,8 +49,8 @@ import { Controller, useForm } from "react-hook-form"
 import { loginSchema, type LoginValues } from "../../schemas"
 ```
 
-Server modules often keep server primitives, translation/auth/logging, then database, then local
-feature code:
+Server modules often keep server primitives, translation/auth/logging, then database, then shared
+utilities, then local feature code:
 
 ```ts
 import { revalidatePath } from "next/cache"
@@ -64,7 +64,9 @@ import { auth } from "@/lib/auth"
 import { logger } from "@/lib/logger"
 
 import { database } from "@/database"
-import { uploads } from "@/database/schema"
+import { settings } from "@/database/schema"
+
+import { getIpAddress } from "@/lib/utils"
 
 import { changeEmailSchema } from "./schemas"
 ```
@@ -106,15 +108,34 @@ import { Button, type ButtonProps } from "@/components/ui"
 ## Feature boundaries
 
 Sibling files inside the same feature may import by direct relative path or direct feature-local
-path, following the surrounding files. Cross-feature imports use the public feature barrel when the
-dependency is intended to be shared:
+path, following the surrounding files.
+
+Cross-feature imports use:
+
+- `@/features/<feature>` for client-safe public exports.
+- `@/features/<feature>/server` for server-only public exports.
 
 ```ts
 import { isEmailConfigured } from "@/features/settings"
+import { getInvoiceForEmail } from "@/features/invoicing/server"
 ```
 
-Do not reach into another feature's private component/service file unless nearby code already does
-so for the same integration point.
+Do not reach into another feature's private component/service/schema/query/mutation file unless the
+architecture has been deliberately changed. Nearby accidental precedent is not enough to copy a
+private cross-feature import.
+
+Database schema types remain shared substrate and may be imported directly from `@/database/schema`.
+
+## Shared utilities
+
+Generic utilities are imported from their public utility barrel when one exists:
+
+```ts
+import { getIpAddress } from "@/lib/utils"
+```
+
+Do not import from a feature just to reuse generic request, string, date, or number normalization.
+If that helper is generic, move it to `lib/utils/`.
 
 ## Barrel files
 
@@ -122,3 +143,5 @@ Barrels are simple `export` lists with no extra spacing inside a contiguous sect
 alphabetical. Feature barrels often put component exports first, then schema/types/service exports,
 with a blank line between sections. Small folder barrels usually export the folder's public entry
 component only.
+
+Feature root `index.ts` is client-safe. Server-only exports belong in `server.ts`.

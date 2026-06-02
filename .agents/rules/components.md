@@ -69,7 +69,7 @@ Compose application UI from the primitives in `components/ui/index.ts` whenever 
 the default and it is near-absolute: before writing visual JSX, check the barrel for an existing
 primitive and use it instead of recreating badges, buttons, cards, inputs, tooltips, separators,
 scroll areas, and similar UI with raw elements. A surface that visually reads as a card is a `Card`
-(with `CardHeader`/`CardContent`/`CardFooter`), not a hand-rolled
+with `CardHeader`, `CardContent`, or `CardFooter`, not a hand-rolled
 `<div className="rounded-lg border p-4">`.
 
 The reason is design-system reach: when a token, radius, spacing, or variant changes in
@@ -77,12 +77,12 @@ The reason is design-system reach: when a token, radius, spacing, or variant cha
 out of the system and have to be hunted down by hand.
 
 ```tsx
-// ✓ - primitive carries the design system
+// Good - primitive carries the design system
 <Card size="sm">
   <CardContent>{children}</CardContent>
 </Card>
 
-// ✗ - raw element duplicates card styling and will not track design-system changes
+// Bad - raw element duplicates card styling and will not track design-system changes
 <div className="rounded-lg border p-4">{children}</div>
 ```
 
@@ -92,9 +92,8 @@ out of the system and have to be hunted down by hand.
 
 Raw elements are reserved for genuinely rare cases: there is no suitable primitive, or the surface
 must deliberately stay outside the design system. When a needed primitive is missing, prefer adding
-or extending one in `components/ui/` (see UI primitives above) over inlining raw markup in a
-feature. When a raw element is intentionally kept outside the system, leave a short comment saying
-why.
+or extending one in `components/ui/` over inlining raw markup in a feature. When a raw element is
+intentionally kept outside the system, leave a short comment saying why.
 
 ## Typography
 
@@ -123,6 +122,10 @@ why.
   Internal-only helpers stay unexported.
 - Do not split a tiny wrapper just to satisfy a size rule; split when the surrounding feature uses
   named sections or previews as separate files.
+
+Do not extract a generic settings section or form shell just because several settings pages look
+similar. Extract only when state behavior, submit behavior, result handling, and layout semantics
+are identical across at least three call sites.
 
 ## Fragments and conditionals
 

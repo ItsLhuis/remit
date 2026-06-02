@@ -71,3 +71,21 @@ environment first.
 
 Import the database instance as `database` from `@/database`. Feature code does not instantiate
 Drizzle or `postgres` directly.
+
+Database access belongs in:
+
+- `features/<feature>/queries.ts` for reads.
+- `features/<feature>/mutations.ts` for writes.
+- Explicit operational scripts under `scripts/` when the operation is not part of the web app.
+
+Do not move Drizzle operations into `features/<feature>/services/`. Services stay pure and receive
+database rows as ordinary typed input.
+
+## Reusable persistence helpers
+
+Do not create generic upsert/update helpers just because several settings mutations look similar.
+Only extract persistence helpers when return columns, no-op behavior, error mapping, audit behavior,
+and transaction semantics are identical.
+
+If a helper requires broad generic Drizzle typing that obscures the write, keep the write local and
+extract only the truly generic non-IO pieces to `lib/utils/` or a pure service.

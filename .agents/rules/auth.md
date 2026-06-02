@@ -21,9 +21,9 @@ state. It must not directly insert, update, or delete Better Auth tables such as
 
 Direct database access to Better Auth-owned tables is acceptable only for:
 
-- read-only bootstrap checks when no Better Auth API exists;
-- schema definitions and generated migrations;
-- explicit operational recovery scripts, such as the password reset CLI.
+- Read-only bootstrap checks when no Better Auth API exists.
+- Schema definitions and generated migrations.
+- Explicit operational recovery scripts, such as the password reset CLI.
 
 `requireSession` and `requireRole` in `lib/session.ts` are the canonical application authorization
 helpers. `requireRole` delegates to Better Auth organization state, specifically the active member
@@ -38,6 +38,9 @@ operational recovery scripts.
 
 TOTP setup, verification, recovery-code consumption, and recovery-code regeneration use Better Auth
 two-factor APIs.
+
+Auth-sensitive routes and actions that write audit metadata use shared request metadata helpers,
+including `getIpAddress` from `@/lib/utils`, instead of parsing forwarded headers inline.
 
 Never log passwords, reset tokens, verification tokens, TOTP secrets, backup codes, session tokens,
 API keys, or encryption keys.

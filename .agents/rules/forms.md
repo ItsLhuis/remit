@@ -91,3 +91,23 @@ const onSubmit = async (values: LoginValues) => {
 - Submit-level errors are stored in local state (`serverError`, `authError`) and rendered in
   `FieldError` near the submit area. Current forms commonly place this after the submit button.
 - Server actions return already translated errors; render them directly.
+
+## Shared form orchestration
+
+Only extract shared form orchestration after at least three forms share identical state, submit, and
+result behavior. Keep schema-specific validation local.
+
+Do not extract only because forms share:
+
+- `react-hook-form` setup.
+- A pending state.
+- A submit button.
+- A server-error area.
+- A similar settings page section.
+
+Extract only when the behavior is identical enough that the call site does not need many callbacks,
+flags, or special cases to recover feature-specific behavior.
+
+If schema fragments repeat, extract them only when field meaning, trimming/null handling,
+translation keys, and error semantics are identical. Otherwise keep the validation local and
+readable.

@@ -14,12 +14,16 @@ paths:
 Tests exist to catch regressions in user-observable behavior, never to maximize a coverage number.
 Every test must justify its existence by describing a behavior.
 
-### Tier 1 - High coverage (>90%): services and non-trivial hooks
+### Tier 1 - High coverage (>90%): services, shared utilities, and non-trivial hooks
 
-`features/<feature>/services/` contains pure business logic - tax calculations, status transition
+`features/<feature>/services/` contains pure business logic: tax calculations, status transition
 guards, invoice number generation, retainer pool tracking, next-run date computation. These are the
 brains of the app and are cheap to test because they have no framework dependencies. Coverage above
 90% is enforced as a hard CI gate.
+
+Shared utilities under `lib/utils/` that have branches, parsing rules, fallbacks, or edge cases are
+also unit-tested. Request metadata helpers such as `getIpAddress(headers)` must cover forwarded
+headers, fallback headers, empty values, and missing values.
 
 Custom hooks under `hooks/` and `features/<feature>/hooks/` that carry non-trivial state or side
 effects are also in this tier.
@@ -31,13 +35,17 @@ Write integration tests against a real Postgres instance (see Tools) for every s
 every adapter that wraps an external dependency (email providers, Stripe, S3) with the SDK stubbed
 at the module boundary.
 
+Server action integration tests should assert the user-observable result and important persisted
+side effects. For audit-sensitive actions, assert that audit metadata is populated through the
+shared helper path rather than relying on route-local parsing behavior.
+
 ### Tier 3 - E2E with Playwright: five canonical flows
 
 Keep E2E tests short and focused on flows that cross multiple features:
 
-1. Register → setup wizard → TOTP enrollment → recovery codes → first dashboard view.
-2. Client → project → proposal → public acceptance (OTP) → convert to invoice → mark paid.
-3. Time entry → conversion to invoice → send → mark paid.
+1. Register -> setup wizard -> TOTP enrollment -> recovery codes -> first dashboard view.
+2. Client -> project -> proposal -> public acceptance (OTP) -> convert to invoice -> mark paid.
+3. Time entry -> conversion to invoice -> send -> mark paid.
 4. Recurring invoice generation produces the expected draft on the configured next-run date.
 5. Password reset via recovery code.
 
@@ -50,7 +58,7 @@ Test a component only when it carries one of:
 - Form submission orchestration (validation + server action call + error surfacing).
 - Non-trivial keyboard or focus behavior.
 
-When testing a component, assert visible output and user-observable behavior - never internal
+When testing a component, assert visible output and user-observable behavior; never internal
 callback names, render counts, or React internals. Use `@testing-library/react` and
 `@testing-library/user-event`. Query priority: `getByRole` with accessible name first, then
 `getByLabelText`, then `getByText`. `getByTestId` is the last resort and requires an inline comment
@@ -58,12 +66,12 @@ explaining why no semantic query could work.
 
 ### Tier 5 - Never tested
 
-- UI primitives in `components/ui/` - trust shadcn and Radix UI.
-- Server components and page files directly - covered by E2E.
+- UI primitives in `components/ui/`; trust shadcn and Radix UI.
+- Server components and page files directly; covered by E2E.
 - Pure presentational components with no logic.
-- Drizzle queries in isolation - covered by their consumers in integration tests.
+- Drizzle queries in isolation; covered by their consumers in integration tests.
 - Implementation details: private functions, internal state shape, render counts.
-- Snapshot tests of rendered React - banned. Snapshots are reserved for pure-function output such as
+- Snapshot tests of rendered React. Snapshots are reserved for pure-function output such as
   generated SQL strings or serialized PDF byte ranges.
 
 ## Tools
@@ -87,6 +95,7 @@ individual tests.
 | Test kind                               | Location                                                         |
 | --------------------------------------- | ---------------------------------------------------------------- |
 | Service unit tests                      | `features/<feature>/services/__tests__/<serviceName>.test.ts`    |
+| Shared utility unit tests               | `lib/utils/__tests__/<utilityName>.test.ts`                      |
 | Shared hook tests                       | `hooks/__tests__/useHookName.test.ts`                            |
 | Feature hook tests                      | Sibling `useHookName.test.ts` next to the hook file              |
 | Component tests (folder component)      | `ComponentName/__tests__/ComponentName.test.tsx`                 |
@@ -101,12 +110,12 @@ to group related cases beyond that threshold.
 Test names follow `<behavior> when <condition>` or the `it should <behavior> when <condition>` form.
 State the behavior, never the function name.
 
-The test body uses Arrange → Act → Assert with one blank line between each section. No comments
-labeling the sections - the structure is the documentation. One assertion concept per test; multiple
+The test body uses Arrange -> Act -> Assert with one blank line between each section. No comments
+labeling the sections; the structure is the documentation. One assertion concept per test; multiple
 `expect` calls are fine when they verify a single behavior together.
 
 ```ts
-// ✓ - AAA structure, behavior-first name, no internal call assertions
+// Good - AAA structure, behavior-first name, no internal call assertions
 test("returns zero tax when no line items are provided", () => {
   const lineItems: LineItem[] = []
 
@@ -117,7 +126,7 @@ test("returns zero tax when no line items are provided", () => {
   expect(result.totalCents).toBe(0)
 })
 
-// ✗ - asserts that an internal function was called; tests implementation, not behavior
+// Bad - asserts that an internal function was called; tests implementation, not behavior
 test("calculateInvoiceTotal calls applyDiscount for each item", () => {
   const spy = vi.spyOn(discountModule, "applyDiscount")
 
@@ -127,7 +136,7 @@ test("calculateInvoiceTotal calls applyDiscount for each item", () => {
 ```
 
 ```tsx
-// ✓ - asserts visible output via getByRole; simulates real user interaction
+// Good - asserts visible output via getByRole; simulates real user interaction
 test("shows a validation error when the amount is empty", async () => {
   const user = userEvent.setup()
 
@@ -138,7 +147,7 @@ test("shows a validation error when the amount is empty", async () => {
   expect(screen.getByRole("alert")).toHaveTextContent("Amount is required")
 })
 
-// ✗ - inspects hook state rather than what the user sees
+// Bad - inspects hook state rather than what the user sees
 test("sets error state when amount is empty", () => {
   const { result } = renderHook(() => usePaymentForm())
 
@@ -149,7 +158,7 @@ test("sets error state when amount is empty", () => {
 ```
 
 ```ts
-// ✓ - integration test backed by a factory; no inline object construction
+// Good - integration test backed by a factory; no inline object construction
 test("marks an invoice as paid and returns the updated record", async () => {
   const invoice = await makeInvoice({ status: "sent" })
 
@@ -158,7 +167,7 @@ test("marks an invoice as paid and returns the updated record", async () => {
   expect(result).toEqual({ data: expect.objectContaining({ status: "paid" }) })
 })
 
-// ✗ - entity constructed inline; brittle if the schema adds required fields
+// Bad - entity constructed inline; brittle if the schema adds required fields
 test("marks an invoice as paid", async () => {
   const [invoice] = await database
     .insert(invoices)
@@ -182,7 +191,7 @@ test("marks an invoice as paid", async () => {
 - **No real network.** External SDKs are mocked at the module boundary or via MSW at the network
   layer. Tests never make real HTTP calls.
 - **No test ordering.** Each test owns its setup and teardown. Integration tests truncate tables in
-  `beforeEach`. No test relies on state left by a previous test.
+  `beforeEach`.
 - **No focus modifiers in committed code.** `describe.only`, `test.only`, and `.skip` must not be
   committed. CI detects and fails the build if any are found.
 

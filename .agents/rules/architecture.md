@@ -9,6 +9,22 @@ paths:
 
 # Architecture Rules
 
+## Pre-work modularity check
+
+Before adding a feature, service, mutation, query, hook, component, schema, or utility:
+
+1. Inspect the nearest comparable file in the same feature and layer.
+2. Search for an existing helper in `lib/utils/`, `lib/`, `hooks/`, `components/ui/`, and the
+   relevant feature barrel.
+3. Decide whether the code is domain logic, IO orchestration, UI composition, validation, or generic
+   infrastructure.
+4. Put the code in the narrowest correct layer.
+5. Do not create a new abstraction unless the repeated behavior is identical enough to share safely.
+
+The restructuring report identified generic request metadata parsing as the kind of helper that must
+not live inside feature mutations. Similar future helpers for request, string, date, number, URL, or
+object normalization belong in `lib/utils/`.
+
 ## Feature module shape
 
 Each feature lives under `features/<feature>/` and is a closed module. One-line responsibility per
@@ -16,10 +32,10 @@ file:
 
 - `components/` - React UI for this feature; exported via a barrel `index.ts`.
 - `hooks/` - Feature-scoped hooks (see `hooks.md`).
-- `services/` - Pure business logic; no framework or IO imports (see Purity rule below).
+- `services/` - Pure business logic; no framework or IO imports.
 - `queries.ts` - Read operations via Drizzle; server-only.
 - `mutations.ts` - Write operations (server actions); server-only.
-- `schemas.ts` - Zod schemas and their inferred types (see `forms.md`).
+- `schemas.ts` - Zod schemas and their inferred types.
 - `types.ts` - Public types of the module not derivable from schemas.
 - `events.ts` - Event subscriptions and emissions for this feature.
 - `index.ts` - Public client-safe barrel; re-exports only components, schemas, types, and other code
@@ -28,7 +44,7 @@ file:
   entrypoints that may import `@/database`, `next/headers`, auth server APIs, or other IO/server
   modules.
 
-Not every feature needs every file - add only what the feature requires.
+Not every feature needs every file. Add only what the feature requires now.
 
 ## Boundary rule
 
@@ -41,13 +57,13 @@ may be imported directly by any feature. This boundary is enforced by ESLint
 (`eslint-plugin-boundaries` / `no-restricted-paths`).
 
 ```ts
-// ✗ - imports directly from a sibling file inside another feature
+// Bad - imports directly from a sibling file inside another feature
 import { proposalLineItemSchema } from "@/features/proposals/schemas"
 
-// ✓ - imports via the feature's public barrel
+// Good - imports via the feature's public barrel
 import { type ProposalLineItem } from "@/features/proposals"
 
-// ✓ - database schema types are shared substrate; direct import is fine
+// Good - database schema types are shared substrate; direct import is fine
 import { type Invoice } from "@/database/schema"
 ```
 
@@ -55,18 +71,23 @@ import { type Invoice } from "@/database/schema"
 
 Every non-trivial calculation, state transition, validation, or transformation lives in
 `features/<feature>/services/` as a pure function. These functions never import from `next/*`,
-`react`, `drizzle-orm/*`, `@/database`, or any IO module.
+`react`, `drizzle-orm/*`, `@/database`, `next/headers`, `@/lib/auth`, `@/lib/logger`, storage
+clients, email clients, payment SDKs, or any IO module.
+
+Services receive all data as arguments and return all data as return values. They do not read the
+session, headers, environment, database, request state, or global mutable state.
 
 Why: millisecond-level Vitest runs without mocking, refactor confidence when the ORM or framework
 changes, and a clean extraction path to `packages/core` when the project becomes a monorepo.
 
 ```ts
-// ✓ - pure: depends only on its arguments and other pure functions
+// Good - pure: depends only on its arguments and other pure functions
 export function calculateInvoiceTotal(lineItems: LineItem[]): InvoiceTotals {
   const subtotalCents = lineItems.reduce(
     (accumulator, item) => accumulator + item.quantity * item.unitPriceCents,
     0
   )
+
   const taxCents = lineItems.reduce(
     (accumulator, item) =>
       accumulator + Math.round(item.quantity * item.unitPriceCents * (item.taxRate / 100)),
@@ -76,7 +97,7 @@ export function calculateInvoiceTotal(lineItems: LineItem[]): InvoiceTotals {
   return { subtotalCents, taxCents, totalCents: subtotalCents + taxCents }
 }
 
-// ✗ - imports from Drizzle; no longer pure or trivially testable
+// Bad - imports from Drizzle and the database; no longer pure or trivially testable
 import { eq } from "drizzle-orm"
 
 import { database } from "@/database"
@@ -100,6 +121,8 @@ export async function calculateInvoiceTotal(invoiceId: string) {
 | Input shape and validation                    | `schemas.ts`                   |
 | Public types consumed by other features       | `types.ts` or `index.ts`       |
 | Cross-feature event wiring                    | `events.ts`                    |
+| Generic request/string/date/number helper     | `lib/utils/<name>.ts`          |
+| Shared UI primitive                           | `components/ui/<Name>.tsx`     |
 
 ## Thin orchestrators
 
@@ -108,7 +131,7 @@ validate input with Zod, call into `services/` for business logic, and use Drizz
 They do not contain branching business logic.
 
 ```ts
-// ✓ - server action delegates logic to a service
+// Good - server action delegates logic to a service
 export async function markInvoicePaid(
   input: unknown
 ): Promise<{ data: Invoice } | { error: string }> {
@@ -131,7 +154,7 @@ export async function markInvoicePaid(
   return { data: updated }
 }
 
-// ✗ - orchestrator contains status-transition logic that belongs in services/
+// Bad - orchestrator contains status-transition logic that belongs in services/
 export async function markInvoicePaid(input: unknown) {
   const parsed = markInvoicePaidSchema.safeParse(input)
 
@@ -140,12 +163,60 @@ export async function markInvoicePaid(input: unknown) {
   if (parsed.data.currentStatus === "draft") return { error: "Cannot pay a draft invoice" }
   if (parsed.data.currentStatus === "paid") return { error: "Invoice is already paid" }
   if (parsed.data.currentStatus === "cancelled") return { error: "Cannot pay a cancelled invoice" }
-  // ... more business rules leaking out of services/
 }
 ```
+
+## Shared helper placement
+
+Cross-feature infrastructure helpers belong in `lib/`, usually under `lib/utils/`. Feature-specific
+write plans and persistence details stay inside their feature until signatures and behavior are
+identical.
+
+Use `lib/utils/` for generic helpers such as:
+
+- Request metadata parsing.
+- String normalization.
+- Date normalization.
+- Number normalization.
+- URL-safe formatting.
+- Object filtering.
+
+Do not add local helpers for generic request, string, date, or number normalization when an
+equivalent exists under `lib/utils/`.
+
+## Abstraction threshold
+
+Extract shared logic only when the behavior is identical, the call sites need the same inputs, the
+return shape is stable, and the error behavior is the same.
+
+Do not extract when:
+
+- Return columns differ.
+- No-op behavior differs.
+- Translation keys or field semantics differ.
+- Rollback or cleanup semantics differ.
+- Generic Drizzle typing makes call sites harder to read.
+- The only shared part is incidental setup around otherwise different operations.
+
+Specific guidance from the restructuring report:
+
+- Settings write guards repeat session, owner-role, and audit setup, but should not be generalized
+  until the helper design is deliberate and signatures are stable.
+- Settings upsert helpers are similar but differ in return columns, no-op behavior, and error
+  messages; do not force a generic helper yet.
+- `getChangedFields` can be shared only if comparable value unions and behavior are aligned.
+- `emptyToNull` can be shared only after deciding whether trimming and `string | null` inputs are
+  part of the canonical contract.
+- Upload cleanup patterns can be shared only if log names, rollback behavior, and old/new cleanup
+  semantics match.
+- Zod fragments can be shared only when validation messages and field semantics match.
+- Password rule refinements can be extracted only through a schema factory that preserves
+  flow-specific translation keys and field names.
 
 ## Zod at every boundary
 
 Every server action, public endpoint, and settings read validates input with Zod `safeParse`.
 Environment variables are validated at boot in `lib/env.ts` and the process exits on failure. See
 `types.md` for the bans on `any` and non-null assertions that reinforce this at the type level.
+
+No data crosses a trust boundary unvalidated.
