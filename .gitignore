@@ -26,6 +26,8 @@ tests/e2e/results/
 # misc
 .DS_Store
 *.pem
+.tmp
+.fallow
 
 # cache
 .cache

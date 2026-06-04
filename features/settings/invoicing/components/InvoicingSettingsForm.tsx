@@ -37,12 +37,15 @@ type InvoicingSettingsFormProps = {
 
 const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) => {
   const { t } = useTranslation()
+
   const router = useRouter()
 
   const [minimumNextInvoiceNumber, setMinimumNextInvoiceNumber] = useState(
     initialValues.nextInvoiceNumber
   )
+
   const [settingsError, setSettingsError] = useState<string | null>(null)
+
   const [isSaving, startSaving] = useTransition()
 
   const schema = useMemo(
@@ -84,6 +87,7 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
       }
 
       setMinimumNextInvoiceNumber(result.data.settings.nextInvoiceNumber)
+
       form.reset(result.data.settings)
 
       router.refresh()

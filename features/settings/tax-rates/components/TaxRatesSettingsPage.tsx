@@ -1,8 +1,14 @@
 import { t } from "@/lib/i18n/server"
 
+import { getTaxRates } from "../queries"
+
 import { SettingsPageHeader } from "@/components/layout"
 
-const TaxRatesSettingsPage = () => {
+import { TaxRatesSettingsClient } from "./TaxRatesSettingsClient"
+
+const TaxRatesSettingsPage = async () => {
+  const taxRates = await getTaxRates()
+
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
       <SettingsPageHeader
@@ -10,6 +16,7 @@ const TaxRatesSettingsPage = () => {
         description={t("settings.taxRates.description")}
         icon="Percent"
       />
+      <TaxRatesSettingsClient initialTaxRates={taxRates} />
     </div>
   )
 }
