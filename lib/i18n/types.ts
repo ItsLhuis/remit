@@ -704,6 +704,53 @@ export type Translations = {
     taxRates: {
       title: string
       description: string
+      listTitle: string
+      currentDefault: string
+      noDefault: string
+      addRate: string
+      emptyTitle: string
+      emptyDescription: string
+      tableName: string
+      tableRate: string
+      tableStatus: string
+      tableActions: string
+      name: string
+      namePlaceholder: string
+      percentage: string
+      percentageHelp: string
+      percentageValue: string
+      defaultBadge: string
+      notDefaultBadge: string
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      editRate: string
+      makeDefault: string
+      deleteRate: string
+      deleteTitle: string
+      deleteDescription: string
+      deleteDescriptionFallback: string
+      confirmDelete: string
+      created: string
+      updated: string
+      deleted: string
+      defaultUpdated: string
+      errors: {
+        updateFailed: string
+        notFound: string
+        defaultConflict: string
+      }
+      validation: {
+        nameRequired: string
+        nameTooLong: string
+        percentageInvalid: string
+        percentageRange: string
+        percentagePrecision: string
+        idInvalid: string
+      }
     }
     templates: {
       title: string

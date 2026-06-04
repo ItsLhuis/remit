@@ -738,7 +738,58 @@ export const english: Language = {
       },
       taxRates: {
         title: "Tax Rates",
-        description: "Manage reusable tax rates for invoices, proposals, and client documents."
+        description: "Manage reusable tax rates for invoices, proposals, and client documents.",
+        listTitle: "Reusable rates",
+        currentDefault: "{name} is the current default rate.",
+        noDefault: "No default tax rate is selected.",
+        addRate: "Add rate",
+        emptyTitle: "No tax rates yet",
+        emptyDescription: "Create reusable rates before building invoice or proposal line items.",
+        tableName: "Name",
+        tableRate: "Rate",
+        tableStatus: "Status",
+        tableActions: "Actions",
+        name: "Name",
+        namePlaceholder: "IVA 23%",
+        percentage: "Percentage",
+        percentageHelp: "Use a value from 0 to 100 with up to two decimal places.",
+        percentageValue: "{percentage}%",
+        defaultBadge: "Default",
+        notDefaultBadge: "Available",
+        createTitle: "Add tax rate",
+        createDescription: "Create a reusable tax rate for future document line items.",
+        editTitle: "Edit tax rate",
+        editDescription:
+          "Changes apply to future use only. Existing document totals stay unchanged.",
+        saveCreate: "Create rate",
+        saveEdit: "Save rate",
+        editRate: "Edit tax rate",
+        makeDefault: "Make default",
+        deleteRate: "Delete tax rate",
+        deleteTitle: "Delete tax rate",
+        deleteDescription:
+          "Delete {name}? Existing document totals keep their captured tax snapshot.",
+        deleteDescriptionFallback:
+          "Delete this tax rate? Existing document totals keep their captured tax snapshot.",
+        confirmDelete: "Delete rate",
+        created: "Tax rate created",
+        updated: "Tax rate updated",
+        deleted: "Tax rate deleted",
+        defaultUpdated: "Default tax rate updated",
+        errors: {
+          updateFailed: "Failed to update tax rates",
+          notFound: "Tax rate not found",
+          defaultConflict: "Only one default tax rate can be active"
+        },
+        validation: {
+          nameRequired: "Tax rate name is required.",
+          nameTooLong:
+            "Tax rate name must be {count, plural, one {# character} other {# characters}} or fewer.",
+          percentageInvalid: "Tax rate percentage must be a number.",
+          percentageRange: "Tax rate percentage must be from 0 to 100.",
+          percentagePrecision: "Tax rate percentage can use at most two decimal places.",
+          idInvalid: "Invalid tax rate."
+        }
       },
       templates: {
         title: "Templates",
