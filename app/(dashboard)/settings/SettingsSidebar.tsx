@@ -59,12 +59,7 @@ const navGroups = [
     label: "settings.navigation.invoicing",
     items: [
       { labelKey: "settings.navigation.invoicing", href: "/settings/invoicing", icon: "FileText" },
-      { labelKey: "settings.navigation.taxRates", href: "/settings/tax-rates", icon: "Percent" },
-      {
-        labelKey: "common.navigation.templates",
-        href: "/settings/templates",
-        icon: "LayoutTemplate"
-      }
+      { labelKey: "settings.navigation.taxRates", href: "/settings/tax-rates", icon: "Percent" }
     ]
   },
   {

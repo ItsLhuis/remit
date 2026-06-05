@@ -444,7 +444,6 @@ export const english: Language = {
         payment: "Payment",
         invoicing: "Invoicing",
         taxRates: "Tax Rates",
-        templates: "Templates",
         email: "Email",
         system: "System"
       },
@@ -790,10 +789,6 @@ export const english: Language = {
           percentagePrecision: "Tax rate percentage can use at most two decimal places.",
           idInvalid: "Invalid tax rate."
         }
-      },
-      templates: {
-        title: "Templates",
-        description: "Maintain reusable document templates for client-facing workflows."
       },
       email: {
         title: "Email",

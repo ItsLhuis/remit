@@ -424,7 +424,6 @@ export type Translations = {
       payment: string
       invoicing: string
       taxRates: string
-      templates: string
       email: string
       system: string
     }
@@ -751,10 +750,6 @@ export type Translations = {
         percentagePrecision: string
         idInvalid: string
       }
-    }
-    templates: {
-      title: string
-      description: string
     }
     email: {
       title: string
