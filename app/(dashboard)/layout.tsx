@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 
 import { SidebarInset, SidebarProvider } from "@/components/ui"
 
-import { AppHeader, AppSidebar } from "@/components/layout"
+import { AppSidebar } from "@/components/layout"
 
 const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   const cookieStore = await cookies()
@@ -15,9 +15,8 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   return (
     <SidebarProvider defaultOpen={defaultOpen} className="h-svh overflow-hidden">
       <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <SidebarInset className="min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

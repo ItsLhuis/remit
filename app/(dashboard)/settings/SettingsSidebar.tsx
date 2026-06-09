@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
-
 import { useScroll } from "@/hooks/useScroll"
+
+import { cn } from "@/lib/utils"
 
 import Link from "next/link"
 
@@ -25,7 +25,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar
+  Typography
 } from "@/components/ui"
 
 type NavItem = {
@@ -87,8 +87,6 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
 
   const pathname = usePathname()
 
-  const { isMobile } = useSidebar()
-
   const [search, setSearch] = useState("")
 
   const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
@@ -107,8 +105,13 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
     .filter((group) => group.items.length > 0)
 
   return (
-    <Sidebar className="bg-background" collapsible="panel">
-      <SidebarHeader>
+    <Sidebar collapsible="panel">
+      <SidebarHeader className="flex h-14 justify-center">
+        <div className="px-1 text-start">
+          <Typography variant="h4">Settings</Typography>
+        </div>
+      </SidebarHeader>
+      <div className="mt-2 px-2 pb-2">
         <InputGroup>
           <InputGroupInput
             placeholder={t("common.actions.search")}
@@ -119,7 +122,7 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
             <Icon name="Search" />
           </InputGroupAddon>
         </InputGroup>
-      </SidebarHeader>
+      </div>
       <div className="relative flex min-h-0 flex-1 flex-col">
         <ScrollArea
           className="min-h-0 flex-1"
@@ -151,15 +154,13 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
         </ScrollArea>
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
-            isMobile ? "from-sidebar" : "from-background",
+            "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
             canScrollUp ? "opacity-100" : "opacity-0"
           )}
         />
         <div
           className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
-            isMobile ? "from-sidebar" : "from-background",
+            "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
             canScrollDown ? "opacity-100" : "opacity-0"
           )}
         />

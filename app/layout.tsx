@@ -4,9 +4,11 @@ import { type Metadata } from "next"
 
 import { DM_Sans, Inter, JetBrains_Mono } from "next/font/google"
 
-import { t } from "@/lib/i18n/server"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { cn } from "@/lib/utils"
+
+import { t } from "@/lib/i18n/server"
 
 import { Toaster, TooltipProvider } from "@/components/ui"
 import { AppearanceProvider } from "@/providers/AppearanceProvider"
@@ -65,7 +67,7 @@ const RootLayout = ({
           <AppearanceProvider>
             <I18nProvider>
               <TooltipProvider>
-                {children}
+                <NuqsAdapter>{children}</NuqsAdapter>
                 <Toaster />
               </TooltipProvider>
             </I18nProvider>
