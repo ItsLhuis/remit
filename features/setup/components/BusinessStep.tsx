@@ -4,12 +4,12 @@ import { useState } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+
 import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
 
 import { saveBusinessProfile } from "../mutations"
-
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
 import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
 
 import Image from "next/image"

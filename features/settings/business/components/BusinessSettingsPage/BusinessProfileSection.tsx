@@ -4,13 +4,13 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { businessProfileSettingsSchema, type BusinessProfileSettingsValues } from "../../schemas"
-
 import { useTranslation } from "@/lib/i18n"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+
 import { saveBusinessProfileSettings } from "../../mutations"
+import { businessProfileSettingsSchema, type BusinessProfileSettingsValues } from "../../schemas"
 
 import {
   Button,
@@ -31,10 +31,10 @@ type BusinessProfileSectionProps = {
 const BusinessProfileSection = ({ initialValues }: BusinessProfileSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  const router = useRouter()
 
   const form = useForm<BusinessProfileSettingsValues>({
     resolver: zodResolver(businessProfileSettingsSchema),

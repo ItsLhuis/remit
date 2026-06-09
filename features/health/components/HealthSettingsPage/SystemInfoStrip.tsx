@@ -2,6 +2,8 @@
 
 import { useTranslation } from "@/lib/i18n"
 
+import { type SystemInfo } from "../../types"
+
 import {
   Card,
   CardContent,
@@ -12,8 +14,6 @@ import {
 } from "@/components/ui"
 
 import { FingerprintCopyButton } from "../FingerprintCopyButton"
-
-import { type SystemInfo } from "../../types"
 
 type SystemInfoStripProps = {
   systemInfo: SystemInfo

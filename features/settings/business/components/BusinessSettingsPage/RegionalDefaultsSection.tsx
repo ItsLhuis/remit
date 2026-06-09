@@ -4,15 +4,15 @@ import { useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { regionalDefaultsSettingsSchema, type RegionalDefaultsSettingsValues } from "../../schemas"
-
 import { useTranslation } from "@/lib/i18n"
 
 import { Locales } from "@/lib/i18n/locales"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+
 import { saveRegionalDefaultsSettings } from "../../mutations"
+import { regionalDefaultsSettingsSchema, type RegionalDefaultsSettingsValues } from "../../schemas"
 
 import {
   Button,
@@ -51,10 +51,10 @@ function getLocaleOptions(): { code: string; label: string }[] {
 const RegionalDefaultsSection = ({ initialValues }: RegionalDefaultsSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  const router = useRouter()
 
   const form = useForm<RegionalDefaultsSettingsValues>({
     resolver: zodResolver(regionalDefaultsSettingsSchema),

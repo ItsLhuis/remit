@@ -10,9 +10,9 @@ import { authClient } from "@/lib/auth/client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
-import { accountDetailsSchema, type AccountDetailsValues } from "../../schemas"
 
 import { changeEmailAddress } from "../../mutations"
+import { accountDetailsSchema, type AccountDetailsValues } from "../../schemas"
 
 import {
   Button,
@@ -36,9 +36,9 @@ type AccountDetailsSectionProps = {
 const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionProps) => {
   const { t } = useTranslation()
 
-  const [isPending, startTransition] = useTransition()
-
   const router = useRouter()
+
+  const [isPending, startTransition] = useTransition()
 
   const { refetch: refetchSession } = authClient.useSession()
 

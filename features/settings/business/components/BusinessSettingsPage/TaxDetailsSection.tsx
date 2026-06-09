@@ -4,13 +4,13 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { taxDetailsSettingsSchema, type TaxDetailsSettingsValues } from "../../schemas"
-
 import { useTranslation } from "@/lib/i18n"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+
 import { saveTaxDetailsSettings } from "../../mutations"
+import { taxDetailsSettingsSchema, type TaxDetailsSettingsValues } from "../../schemas"
 
 import {
   Button,
@@ -30,10 +30,10 @@ type TaxDetailsSectionProps = {
 const TaxDetailsSection = ({ initialValues }: TaxDetailsSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  const router = useRouter()
 
   const form = useForm<TaxDetailsSettingsValues>({
     resolver: zodResolver(taxDetailsSettingsSchema),

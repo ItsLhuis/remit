@@ -2,6 +2,8 @@
 
 import { useTranslation } from "@/lib/i18n"
 
+import { type HealthCategory, type HealthCheckResult, type SystemInfo } from "../../types"
+
 import { Separator } from "@/components/ui"
 
 import { SettingsPageHeader } from "@/components/layout"
@@ -9,8 +11,6 @@ import { SettingsPageHeader } from "@/components/layout"
 import { HealthStatusSection } from "./HealthStatusSection"
 import { HealthSummary } from "./HealthSummary"
 import { SystemInfoStrip } from "./SystemInfoStrip"
-
-import { type HealthCategory, type HealthCheckResult, type SystemInfo } from "../../types"
 
 type HealthSettingsPageProps = {
   checks: HealthCheckResult[]

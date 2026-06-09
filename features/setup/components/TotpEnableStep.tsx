@@ -6,10 +6,11 @@ import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/auth/client"
 
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+
 import { totpEnableSchema, type TotpEnableValues } from "../schemas"
 
 import Image from "next/image"

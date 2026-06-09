@@ -29,12 +29,12 @@ type LogoSectionProps = {
 const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [logoStorageKey, setLogoStorageKey] = useState<string | null>(businessLogoStorageKey)
   const [isPending, startTransition] = useTransition()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const router = useRouter()
 
   const logoUrl = resolveStorageUrl(logoStorageKey)
 

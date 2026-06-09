@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { type TaxRateListItem } from "../schemas"
-
 import { useTranslation } from "@/lib/i18n"
 
 import { deleteTaxRate, setDefaultTaxRate } from "../mutations"
+import { type TaxRateListItem } from "../schemas"
 
 import {
   Badge,

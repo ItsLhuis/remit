@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 
-import { ChangePasswordForm } from "@/features/auth"
-
 import { useTranslation } from "@/lib/i18n"
 
 import {
@@ -16,6 +14,8 @@ import {
   DialogTrigger,
   toast
 } from "@/components/ui"
+
+import { ChangePasswordForm } from "@/features/auth"
 
 const ChangePasswordDialog = () => {
   const { t } = useTranslation()

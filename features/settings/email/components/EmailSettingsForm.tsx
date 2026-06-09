@@ -4,8 +4,12 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
+
+import { saveEmailSettings, sendEmailSettingsTest } from "../mutations"
 import {
   emailSettingsSchema,
   testEmailSettingsSchema,
@@ -13,10 +17,6 @@ import {
   type EmailSettingsValues,
   type TestEmailSettingsValues
 } from "../schemas"
-
-import { useTranslation } from "@/lib/i18n"
-
-import { saveEmailSettings, sendEmailSettingsTest } from "../mutations"
 
 import {
   Button,
@@ -36,8 +36,8 @@ import {
   FieldSet,
   Icon,
   Input,
-  Separator,
   SecretField,
+  Separator,
   Spinner,
   Switch,
   toast,
@@ -63,6 +63,8 @@ const EmailSettingsForm = ({
 }: EmailSettingsFormProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [testError, setTestError] = useState<string | null>(null)
 
@@ -73,8 +75,6 @@ const EmailSettingsForm = ({
 
   const [isSaving, startSaving] = useTransition()
   const [isTesting, startTesting] = useTransition()
-
-  const router = useRouter()
 
   const settingsForm = useForm<EmailSettingsInputValues, unknown, EmailSettingsValues>({
     resolver: zodResolver(emailSettingsSchema),

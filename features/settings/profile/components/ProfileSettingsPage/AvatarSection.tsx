@@ -30,14 +30,14 @@ type AvatarSectionProps = {
 const AvatarSection = ({ user }: AvatarSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const { refetch } = useSession()
 
   const [avatarStorageKey, setAvatarStorageKey] = useState<string | null>(user.image ?? null)
   const [isPending, startTransition] = useTransition()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const router = useRouter()
 
   const avatarUrl = resolveStorageUrl(avatarStorageKey)
 

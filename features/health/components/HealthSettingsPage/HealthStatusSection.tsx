@@ -2,11 +2,11 @@
 
 import { useTranslation } from "@/lib/i18n"
 
+import { type HealthCheckResult } from "../../types"
+
 import { Card, CardContent, Typography } from "@/components/ui"
 
 import { HealthCheckRow } from "./HealthCheckRow"
-
-import { type HealthCheckResult } from "../../types"
 
 type HealthStatusSectionProps = {
   title: string

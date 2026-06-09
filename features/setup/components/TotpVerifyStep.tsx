@@ -8,10 +8,11 @@ import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
 
 import { authClient } from "@/lib/auth/client"
 
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+
 import { totpVerifySchema, type TotpVerifyValues } from "../schemas"
 
 import { QRCodeSVG } from "qrcode.react"

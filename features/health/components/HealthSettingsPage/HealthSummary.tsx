@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
-
 import { type HealthCheckResult } from "../../types"
+
+import { Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
 
 type HealthSummaryProps = {
   checks: HealthCheckResult[]
