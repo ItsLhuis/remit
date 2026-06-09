@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-08T00:00:00Z",
+  "title": "Design System: Remit",
+  "extensions": {
+    "colorMeta": {
+      "indigo-accent": {
+        "role": "primary",
+        "displayName": "Indigo Accent",
+        "canonical": "oklch(0.488 0.243 264.376)",
+        "tonalRamp": [
+          "oklch(0.18 0.10 264)",
+          "oklch(0.26 0.15 264)",
+          "oklch(0.34 0.19 264)",
+          "oklch(0.42 0.22 264)",
+          "oklch(0.488 0.243 264.376)",
+          "oklch(0.60 0.21 264)",
+          "oklch(0.73 0.15 264)",
+          "oklch(0.90 0.06 264)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.145 0 0)",
+        "tonalRamp": [
+          "oklch(0.145 0 0)",
+          "oklch(0.25 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.45 0 0)",
+          "oklch(0.556 0 0)",
+          "oklch(0.70 0 0)",
+          "oklch(0.85 0 0)",
+          "oklch(0.97 0 0)"
+        ]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Success Green",
+        "canonical": "oklch(0.596 0.145 163.225)",
+        "tonalRamp": [
+          "oklch(0.26 0.05 163)",
+          "oklch(0.34 0.07 163)",
+          "oklch(0.43 0.10 163)",
+          "oklch(0.51 0.13 163)",
+          "oklch(0.596 0.145 163.225)",
+          "oklch(0.72 0.11 163)",
+          "oklch(0.86 0.06 163)",
+          "oklch(0.96 0.02 163)"
+        ]
+      },
+      "info": {
+        "role": "semantic",
+        "displayName": "Info Blue",
+        "canonical": "oklch(0.588 0.158 241.966)",
+        "tonalRamp": [
+          "oklch(0.26 0.06 242)",
+          "oklch(0.34 0.08 242)",
+          "oklch(0.43 0.11 242)",
+          "oklch(0.51 0.14 242)",
+          "oklch(0.588 0.158 241.966)",
+          "oklch(0.72 0.12 242)",
+          "oklch(0.86 0.07 242)",
+          "oklch(0.96 0.02 242)"
+        ]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Warning Amber",
+        "canonical": "oklch(0.666 0.179 58.318)",
+        "tonalRamp": [
+          "oklch(0.30 0.07 58)",
+          "oklch(0.40 0.10 58)",
+          "oklch(0.49 0.13 58)",
+          "oklch(0.58 0.16 58)",
+          "oklch(0.666 0.179 58.318)",
+          "oklch(0.78 0.14 58)",
+          "oklch(0.89 0.08 58)",
+          "oklch(0.97 0.03 58)"
+        ]
+      },
+      "error": {
+        "role": "semantic",
+        "displayName": "Error Red",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.26 0.09 27)",
+          "oklch(0.34 0.13 27)",
+          "oklch(0.43 0.17 27)",
+          "oklch(0.51 0.21 27)",
+          "oklch(0.577 0.245 27.325)",
+          "oklch(0.70 0.20 27)",
+          "oklch(0.85 0.11 27)",
+          "oklch(0.96 0.03 27)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level h1, one per screen." },
+      "headline": { "displayName": "Headline", "purpose": "Section h2 and settings page titles." },
+      "title": { "displayName": "Title", "purpose": "Card and subsection titles." },
+      "body": { "displayName": "Body", "purpose": "Reading text; cap measure at 65-75ch." },
+      "label": { "displayName": "Label", "purpose": "Workhorse UI text: buttons, inputs, cells." },
+      "mono": { "displayName": "Mono", "purpose": "Monetary figures, IDs, code, key fingerprints." }
+    },
+    "shadows": [
+      {
+        "name": "overlay-md",
+        "value": "0 4px 6px -1px oklch(0.145 0 0 / 0.1), 0 2px 4px -2px oklch(0.145 0 0 / 0.1)",
+        "purpose": "Popovers and dropdown menus that float above the page."
+      },
+      {
+        "name": "overlay-lg",
+        "value": "0 10px 15px -3px oklch(0.145 0 0 / 0.1), 0 4px 6px -4px oklch(0.145 0 0 / 0.1)",
+        "purpose": "Dialogs and the command palette."
+      },
+      {
+        "name": "hairline-ring",
+        "value": "0 0 0 1px oklch(0.145 0 0 / 0.1)",
+        "purpose": "The default resting-surface separator. Used instead of shadows on cards and panels."
+      }
+    ],
+    "motion": [
+      {
+        "name": "default-duration",
+        "value": "300ms",
+        "purpose": "Default transition duration for state changes (--default-transition-duration)."
+      },
+      {
+        "name": "press",
+        "value": "translateY(1px)",
+        "purpose": "Subtle active-state press on buttons (active:translate-y-px)."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Ease-out-quart for entrances. No bounce, no elastic."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Highest-emphasis action: solid indigo, near-white text, compact 32px height.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><line x1=\"12\" y1=\"5\" x2=\"12\" y2=\"19\"/><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/></svg>New invoice</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 0.375rem; height: 2rem; padding: 0 0.625rem; border: 1px solid transparent; border-radius: 0.625rem; background: oklch(0.488 0.243 264.376); color: oklch(0.97 0.014 254.604); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 300ms, transform 300ms; } .ds-btn-primary svg { width: 1rem; height: 1rem; } .ds-btn-primary:hover { background: oklch(0.45 0.235 264.376); } .ds-btn-primary:focus-visible { outline: none; border-color: oklch(0.488 0.243 264.376); box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.5); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Medium-emphasis action: canvas background, hairline border, fills muted on hover.",
+      "html": "<button class=\"ds-btn-outline\">Export CSV</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; height: 2rem; padding: 0 0.625rem; border: 1px solid oklch(0.922 0 0); border-radius: 0.625rem; background: oklch(1 0 0); color: oklch(0.145 0 0); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 300ms, transform 300ms; } .ds-btn-outline:hover { background: oklch(0.97 0 0); } .ds-btn-outline:focus-visible { outline: none; border-color: oklch(0.488 0.243 264.376); box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.5); } .ds-btn-outline:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis action: no fill at rest, fills muted on hover. Toolbar and inline use.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; height: 2rem; padding: 0 0.625rem; border: 1px solid transparent; border-radius: 0.625rem; background: transparent; color: oklch(0.145 0 0); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 300ms, transform 300ms; } .ds-btn-ghost:hover { background: oklch(0.97 0 0); } .ds-btn-ghost:focus-visible { outline: none; border-color: oklch(0.488 0.243 264.376); box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.5); } .ds-btn-ghost:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Dangerous action: a 10% red tint with red text at rest, never a solid red fill.",
+      "html": "<button class=\"ds-btn-destructive\">Delete client</button>",
+      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; height: 2rem; padding: 0 0.625rem; border: 1px solid transparent; border-radius: 0.625rem; background: oklch(0.577 0.245 27.325 / 0.1); color: oklch(0.577 0.245 27.325); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background 300ms, transform 300ms; } .ds-btn-destructive:hover { background: oklch(0.577 0.245 27.325 / 0.2); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.577 0.245 27.325 / 0.2); } .ds-btn-destructive:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Hairline-bordered text input, 32px tall, indigo focus ring.",
+      "html": "<input class=\"ds-input-field\" type=\"text\" placeholder=\"Search invoices\" aria-label=\"Search invoices\" />",
+      "css": ".ds-input-field { height: 2rem; width: 16rem; max-width: 100%; padding: 0.25rem 0.625rem; border: 1px solid oklch(0.922 0 0); border-radius: 0.625rem; background: oklch(1 0 0); color: oklch(0.145 0 0); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; transition: border-color 300ms, box-shadow 300ms; } .ds-input-field::placeholder { color: oklch(0.556 0 0); } .ds-input-field:focus-visible { outline: none; border-color: oklch(0.488 0.243 264.376); box-shadow: 0 0 0 3px oklch(0.488 0.243 264.376 / 0.5); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat surface separated by a hairline ring, not a shadow. 14px corners.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Outstanding</div><div class=\"ds-card-figure\">$12,480.00</div><div class=\"ds-card-desc\">Across 6 unpaid invoices</div></div>",
+      "css": ".ds-card { display: flex; flex-direction: column; gap: 0.25rem; width: 16rem; padding: 1rem; border-radius: 0.875rem; background: oklch(1 0 0); color: oklch(0.145 0 0); box-shadow: 0 0 0 1px oklch(0.145 0 0 / 0.1); font-family: 'DM Sans', system-ui, sans-serif; } .ds-card-title { font-size: 0.875rem; font-weight: 500; color: oklch(0.556 0 0); } .ds-card-figure { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-card-desc { font-size: 0.875rem; color: oklch(0.556 0 0); }"
+    },
+    {
+      "name": "Status Badge (Paid)",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Pale-tint success pill with dark green text and a check icon. Color never stands alone.",
+      "html": "<span class=\"ds-badge-success\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"20 6 9 17 4 12\"/></svg>Paid</span>",
+      "css": ".ds-badge-success { display: inline-flex; align-items: center; gap: 0.25rem; height: 1.25rem; padding: 0 0.5rem; border-radius: 1.625rem; background: oklch(0.979 0.021 166.113); color: oklch(0.378 0.077 168.94); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; } .ds-badge-success svg { width: 0.75rem; height: 0.75rem; }"
+    },
+    {
+      "name": "Status Badge (Overdue)",
+      "kind": "chip",
+      "refersTo": "badge-error",
+      "description": "Pale-tint error pill with dark red text and an alert icon for overdue or failed states.",
+      "html": "<span class=\"ds-badge-error\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"/><line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"/></svg>Overdue</span>",
+      "css": ".ds-badge-error { display: inline-flex; align-items: center; gap: 0.25rem; height: 1.25rem; padding: 0 0.5rem; border-radius: 1.625rem; background: oklch(0.971 0.013 17.38); color: oklch(0.396 0.141 25.723); font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; } .ds-badge-error svg { width: 0.75rem; height: 0.75rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ledger",
+    "overview": "Remit looks like financial-grade infrastructure that happens to be pleasant to use. The governing image is a ledger: a surface where every figure is exact, every line is accountable, and nothing shouts. The chrome recedes so the numbers and the work can be trusted. The system is built on a single restraint: one indigo accent and a small set of semantic states are the only chroma on screen. Everything else is pure achromatic gray. That restraint is the entire personality. It makes a paid invoice, an overdue badge, or a destructive confirmation register instantly, because color is rare and therefore meaningful. Density is compact and operational, controls default to a 32px height, and surfaces are flat, separated by hairline rings rather than drop shadows.",
+    "keyCharacteristics": [
+      "One indigo voice plus semantic states; all other surfaces are pure achromatic gray.",
+      "Flat by default. Hairline rings separate surfaces; shadows are reserved for floating overlays.",
+      "Compact, operational density (2rem default control height), tunable by the user.",
+      "Quiet motion: 300ms ease-outs, a 1px press, no choreography.",
+      "Precision-first: figures, dates, and currency read as exact and accountable."
+    ],
+    "rules": [
+      {
+        "name": "The Single Voice Rule",
+        "body": "Indigo and the four semantic states are the only chroma permitted. Every other pixel is pure achromatic gray. The accent covers roughly 10% of any screen; its rarity is what makes it mean something.",
+        "section": "colors"
+      },
+      {
+        "name": "The Achromatic Neutral Rule",
+        "body": "Neutrals carry zero chroma (oklch chroma 0). Do not tint grays toward a hue. The contrast between dead-neutral surfaces and the single saturated accent is the system's signature.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tracking-Tight Rule",
+        "body": "Every heading uses tight letter-spacing (-0.02em to -0.025em). Body and label text sit at normal tracking. Headings never run loose.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figure Rule",
+        "body": "Monetary values, totals, and any column of numbers use tabular, monospaced alignment so digits line up vertically. A misaligned figure reads as an error in a money tool.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Surfaces separate with a 1px ring at foreground/10, never a heavy border and never a resting shadow. The ring is quieter than a border and cleaner than elevation.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "If it is not floating above the page, it casts no shadow. Shadows are exclusively for overlays. A card, panel, table, or section that uses a drop shadow at rest is wrong.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep indigo as the single accent, on roughly 10% of any screen. Let the semantic states be the only other color.",
+      "Do keep neutrals pure achromatic gray (chroma 0). The dead-neutral-plus-one-accent contrast is the brand.",
+      "Do separate surfaces with a 1px hairline ring (foreground/10), and keep resting surfaces flat.",
+      "Do reserve shadows for floating overlays only: popovers, dropdowns, dialogs, tooltips.",
+      "Do align monetary figures with tabular numbers so digits line up; precision is the product.",
+      "Do pair every status color with a text label and icon. State is never color alone (WCAG 2.2 AA).",
+      "Do keep a visible focus ring (3px at ring/50) on every interactive control.",
+      "Do default to compact controls (2rem height) and respect the user's density and font-size settings.",
+      "Do tint destructive actions (10% red + red text) at rest; reserve solid emphasis for the final confirmation."
+    ],
+    "donts": [
+      "Don't build a generic SaaS startup landing: no gradient blobs, no hero-metric template, no identical feature-card grids, no gradient text.",
+      "Don't drift playful-consumer: no oversized rounding, no mascots, no candy-bright palettes, no bouncy or elastic motion.",
+      "Don't go crypto/neon fintech: no neon-on-black, no glow effects, no hype aesthetic.",
+      "Don't fall into legacy accounting software: no dense gray enterprise chrome, no dated toolbars, no joyless tables.",
+      "Don't add resting drop shadows to cards, panels, or sections. If it isn't floating, it's flat.",
+      "Don't use a colored side-stripe border (border-left/right > 1px) as an accent. Use full hairline borders, tints, or leading icons instead.",
+      "Don't reach for a modal as the first answer. Exhaust inline and progressive alternatives first.",
+      "Don't introduce a second accent hue or tint the neutrals. One voice only.",
+      "Don't remove an outline without providing the focus-visible ring replacement."
+    ]
+  }
+}
