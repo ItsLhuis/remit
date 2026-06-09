@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker"
 
 import { type InferInsertModel } from "drizzle-orm"
 
-import { clients, invoices, projects, proposals, users } from "@/database/schema"
+import { clients, invoices, payments, projects, proposals, users } from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
 
@@ -110,4 +110,23 @@ export async function makeInvoice(overrides?: Partial<InferInsertModel<typeof in
   if (!invoice) throw new Error("makeInvoice: insert failed")
 
   return invoice
+}
+
+export async function makePayment(overrides?: Partial<InferInsertModel<typeof payments>>) {
+  const invoiceId = overrides?.invoiceId ?? (await makeInvoice()).id
+
+  const [payment] = await database
+    .insert(payments)
+    .values({
+      invoiceId,
+      method: "bank_transfer",
+      amountCents: 1000,
+      currency: "EUR",
+      ...overrides
+    })
+    .returning()
+
+  if (!payment) throw new Error("makePayment: insert failed")
+
+  return payment
 }
