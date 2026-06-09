@@ -34,4 +34,17 @@ export type EventMap = {
     userId: string
     field: string
   }
+  "client.created": {
+    clientId: string
+    userId: string
+  }
+  "client.updated": {
+    clientId: string
+    userId: string
+    changedFields: string[]
+  }
+  "client.deleted": {
+    clientId: string
+    userId: string
+  }
 }
