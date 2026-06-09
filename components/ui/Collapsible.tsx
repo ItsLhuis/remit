@@ -1,5 +1,6 @@
 import { type ComponentProps } from "react"
 
+import { cn } from "@/lib/utils"
 import { Collapsible as CollapsiblePrimitive } from "radix-ui"
 
 const Collapsible = ({ ...props }: ComponentProps<typeof CollapsiblePrimitive.Root>) => (
@@ -13,9 +14,23 @@ const CollapsibleTrigger = ({
 )
 
 const CollapsibleContent = ({
+  className,
+  children,
   ...props
 }: ComponentProps<typeof CollapsiblePrimitive.CollapsibleContent>) => (
-  <CollapsiblePrimitive.CollapsibleContent data-slot="collapsible-content" {...props} />
+  <CollapsiblePrimitive.CollapsibleContent
+    data-slot="collapsible-content"
+    className={cn(
+      "overflow-hidden",
+      "data-[state=open]:animate-collapsible-down",
+      "data-[state=closed]:animate-collapsible-up",
+      className
+    )}
+    style={{ animationTimingFunction: "cubic-bezier(0.25, 0, 0, 1)" }}
+    {...props}
+  >
+    {children}
+  </CollapsiblePrimitive.CollapsibleContent>
 )
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent }
+export { Collapsible, CollapsibleContent, CollapsibleTrigger }

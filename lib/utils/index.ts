@@ -1,4 +1,6 @@
 export * from "./cn"
+export * from "./dataTable"
+export * from "./exportTableToCsv"
 export * from "./format"
 export * from "./request"
 export * from "./string"

@@ -13,6 +13,13 @@ export function formatDate(date: Date, { locale, timeZone }: FormatDateOptions):
   }).format(date)
 }
 
+export function formatCurrency(cents: number, currency: string, locale?: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency
+  }).format(cents / 100)
+}
+
 export function formatBytes(bytes: number, locale: string): string {
   let value = bytes
   let unitIndex = 0
