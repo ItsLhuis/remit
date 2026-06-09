@@ -63,6 +63,29 @@ export const english: Language = {
         sidebar: "Sidebar",
         sidebarDescription: "Displays the mobile sidebar.",
         toggleSidebar: "Toggle Sidebar"
+      },
+      table: {
+        selectAll: "Select all rows",
+        selectRow: "Select row",
+        columns: "Columns",
+        toggleColumns: "Toggle columns",
+        noResults: "No results found.",
+        sortAscending: "Sort ascending",
+        sortDescending: "Sort descending",
+        clearSelection: "Clear selection",
+        selectedCount: "{count, plural, one {# selected} other {# selected}}",
+        rowsPerPage: "Rows per page",
+        rowsSelectedOfTotal: "{selected} of {total, plural, one {# row} other {# rows}} selected",
+        page: "Page {page} of {total}",
+        goToFirstPage: "Go to first page",
+        goToPreviousPage: "Go to previous page",
+        goToNextPage: "Go to next page",
+        goToLastPage: "Go to last page",
+        goToPage: "Go to page {page}",
+        clearFilter: "Clear filter",
+        min: "Min",
+        max: "Max",
+        export: "Export"
       }
     },
     errors: {
@@ -392,6 +415,201 @@ export const english: Language = {
         navigation: "Navigation",
         configuration: "Configuration",
         notifications: "Notifications"
+      }
+    },
+    clients: {
+      metadata: {
+        list: "Clients",
+        create: "Create client",
+        detail: "Client",
+        edit: "Edit client"
+      },
+      actions: {
+        create: "Create client",
+        edit: "Edit",
+        delete: "Delete",
+        view: "View"
+      },
+      fields: {
+        name: "Name",
+        email: "Email",
+        phone: "Phone",
+        currency: "Currency",
+        taxId: "VAT / tax ID",
+        addressLine1: "Address line 1",
+        addressLine2: "Address line 2",
+        city: "City",
+        state: "State",
+        postalCode: "Postal code",
+        country: "Country",
+        notes: "Notes",
+        website: "Website"
+      },
+      placeholders: {
+        name: "Acme Studio",
+        email: "billing@example.com",
+        phone: "+1 555 0100",
+        taxId: "Tax registration number",
+        addressLine1: "Street address",
+        addressLine2: "Apartment, suite, or unit",
+        city: "City",
+        state: "State or region",
+        postalCode: "Postal code",
+        website: "https://example.com",
+        notes: "Internal notes for this client"
+      },
+      status: {
+        active: "Active",
+        deleted: "Deleted",
+        all: "All"
+      },
+      health: {
+        owing: "Owing",
+        settled: "Settled",
+        dormant: "No activity"
+      },
+      summary: {
+        activeClients: "Active clients",
+        activeClientsHint: "in your book",
+        owingClients: "Clients owing",
+        owingClientsHint: "have an outstanding balance",
+        outstanding: "Total outstanding",
+        outstandingHint: "across open invoices",
+        outstandingMultiCurrency: "across {count, plural, one {# currency} other {# currencies}}",
+        newClients: "New this month",
+        newClientsHint: "added in the last 30 days"
+      },
+      filters: {
+        title: "Filters",
+        description: "Search clients by name or email and narrow the list by status or currency.",
+        search: "Search",
+        searchPlaceholder: "Search by name or email",
+        status: "Status",
+        currency: "Currency",
+        allCurrencies: "All currencies",
+        health: "Health",
+        allHealth: "All clients",
+        reset: "Reset"
+      },
+      list: {
+        title: "Clients",
+        description: "Monitor relationships, balances, and activity across your client base.",
+        tableTitle: "Client records",
+        tableDescription: "Soft-deleted clients are hidden unless included with the status filter.",
+        count: "{count, plural, one {# client} other {# clients}}",
+        outstandingBalance: "Outstanding",
+        joined: "Joined",
+        healthColumn: "Status",
+        actions: "Actions",
+        viewProfile: "View profile",
+        copyEmail: "Copy email",
+        emailCopied: "Email copied",
+        bulkDelete: "Delete selected",
+        emptyTitle: "No clients yet",
+        emptyDescription:
+          "Create your first client before adding projects, proposals, or invoices.",
+        noMatchTitle: "No clients match your filters",
+        noMatchDescription: "Try a different search term or clear the active filters."
+      },
+      form: {
+        createTitle: "Create client",
+        createDescription: "Add the contact, billing, and address details used across Remit.",
+        editTitle: "Edit client",
+        editDescription: "Update this client's profile and billing defaults.",
+        profileSection: "Profile",
+        profileDescription: "Core contact and billing defaults for this client.",
+        addressSection: "Address",
+        addressDescription: "Postal address used on future client-facing documents.",
+        notesSection: "Private notes",
+        notesDescription: "Notes are encrypted at rest and stay internal to this Remit instance.",
+        clearCountry: "Clear",
+        saveCreate: "Create client",
+        saveEdit: "Save client",
+        created: "Client created",
+        updated: "Client updated"
+      },
+      delete: {
+        title: "Delete client",
+        description:
+          "Delete {name}? The client will be hidden from normal lists and can be restored from retained data.",
+        confirm: "Delete client",
+        deleted: "Client deleted"
+      },
+      detail: {
+        profileTitle: "Profile",
+        profileDescription: "Contact and billing details for this client.",
+        balanceTitle: "Outstanding balance",
+        balanceDescription: "Computed from sent and paid invoices minus recorded payments.",
+        computedBadge: "Computed",
+        addressTitle: "Address",
+        addressDescription: "Postal details stored for this client.",
+        notesTitle: "Private notes",
+        notesDescription: "Encrypted notes for internal reference.",
+        relatedTitle: "Related resources",
+        relatedDescription: "Shown only when records already exist for this client.",
+        emptyValue: "Not provided",
+        backToClients: "Back to clients",
+        since: "Client since {date}",
+        tabs: {
+          overview: "Overview",
+          financials: "Financials",
+          projects: "Projects",
+          activity: "Activity",
+          details: "Details"
+        },
+        quick: {
+          email: "Email",
+          call: "Call",
+          website: "Website"
+        },
+        outstandingLabel: "Outstanding balance",
+        outstandingOwing: "Awaiting payment",
+        outstandingSettled: "All invoices settled",
+        outstandingDormant: "No invoices yet",
+        atAGlance: "At a glance",
+        statInvoices: "Invoices",
+        statProjects: "Projects",
+        statRecurring: "Recurring",
+        notesEmpty: "No notes yet",
+        contactTitle: "Contact",
+        contactDescription: "How to reach this client.",
+        billingTitle: "Billing",
+        billingDescription: "Currency and tax details used on documents.",
+        editDetails: "Edit details",
+        invoicesEmptyTitle: "No invoices yet",
+        invoicesEmptyDescription: "Invoices you raise for this client will appear here.",
+        projectsEmptyTitle: "No projects yet",
+        projectsEmptyDescription: "Projects you create for this client will appear here.",
+        activityEmptyTitle: "No activity yet",
+        activityEmptyDescription:
+          "Updates, invoices, and payments for this client will appear here."
+      },
+      related: {
+        projects: "Projects",
+        projectsCount: "{count, plural, one {# project} other {# projects}}",
+        invoices: "Invoices",
+        invoicesCount: "{count, plural, one {# invoice} other {# invoices}}",
+        recurringInvoices: "Recurring invoices",
+        recurringInvoicesCount:
+          "{count, plural, one {# recurring invoice} other {# recurring invoices}}"
+      },
+      errors: {
+        notFound: "Client not found",
+        updateFailed: "Failed to update client"
+      },
+      validation: {
+        nameRequired: "Client name is required.",
+        nameTooLong:
+          "Client name must be {count, plural, one {# character} other {# characters}} or fewer.",
+        emailInvalid: "Enter a valid email address.",
+        emailTooLong:
+          "Email must be {count, plural, one {# character} other {# characters}} or fewer.",
+        textTooLong:
+          "This field must be {count, plural, one {# character} other {# characters}} or fewer.",
+        websiteInvalid: "Enter a valid URL.",
+        currencyInvalid: "Select a valid ISO 4217 currency.",
+        countryInvalid: "Select a valid country.",
+        idInvalid: "Invalid client."
       }
     },
     setup: {

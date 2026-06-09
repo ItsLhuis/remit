@@ -65,6 +65,29 @@ export type Translations = {
       sidebarDescription: string
       toggleSidebar: string
     }
+    table: {
+      selectAll: string
+      selectRow: string
+      columns: string
+      toggleColumns: string
+      noResults: string
+      sortAscending: string
+      sortDescending: string
+      clearSelection: string
+      selectedCount: string
+      rowsPerPage: string
+      rowsSelectedOfTotal: string
+      page: string
+      goToFirstPage: string
+      goToPreviousPage: string
+      goToNextPage: string
+      goToLastPage: string
+      goToPage: string
+      clearFilter: string
+      min: string
+      max: string
+      export: string
+    }
   }
   errors: {
     notFound: string
@@ -373,6 +396,194 @@ export type Translations = {
       navigation: string
       configuration: string
       notifications: string
+    }
+  }
+  clients: {
+    metadata: {
+      list: string
+      create: string
+      detail: string
+      edit: string
+    }
+    actions: {
+      create: string
+      edit: string
+      delete: string
+      view: string
+    }
+    fields: {
+      name: string
+      email: string
+      phone: string
+      currency: string
+      taxId: string
+      addressLine1: string
+      addressLine2: string
+      city: string
+      state: string
+      postalCode: string
+      country: string
+      notes: string
+      website: string
+    }
+    placeholders: {
+      name: string
+      email: string
+      phone: string
+      taxId: string
+      addressLine1: string
+      addressLine2: string
+      city: string
+      state: string
+      postalCode: string
+      website: string
+      notes: string
+    }
+    status: {
+      active: string
+      deleted: string
+      all: string
+    }
+    health: {
+      owing: string
+      settled: string
+      dormant: string
+    }
+    summary: {
+      activeClients: string
+      activeClientsHint: string
+      owingClients: string
+      owingClientsHint: string
+      outstanding: string
+      outstandingHint: string
+      outstandingMultiCurrency: string
+      newClients: string
+      newClientsHint: string
+    }
+    filters: {
+      title: string
+      description: string
+      search: string
+      searchPlaceholder: string
+      status: string
+      currency: string
+      allCurrencies: string
+      health: string
+      allHealth: string
+      reset: string
+    }
+    list: {
+      title: string
+      description: string
+      tableTitle: string
+      tableDescription: string
+      count: string
+      outstandingBalance: string
+      joined: string
+      healthColumn: string
+      actions: string
+      viewProfile: string
+      copyEmail: string
+      emailCopied: string
+      bulkDelete: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      profileSection: string
+      profileDescription: string
+      addressSection: string
+      addressDescription: string
+      notesSection: string
+      notesDescription: string
+      clearCountry: string
+      saveCreate: string
+      saveEdit: string
+      created: string
+      updated: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    detail: {
+      profileTitle: string
+      profileDescription: string
+      balanceTitle: string
+      balanceDescription: string
+      computedBadge: string
+      addressTitle: string
+      addressDescription: string
+      notesTitle: string
+      notesDescription: string
+      relatedTitle: string
+      relatedDescription: string
+      emptyValue: string
+      backToClients: string
+      since: string
+      tabs: {
+        overview: string
+        financials: string
+        projects: string
+        activity: string
+        details: string
+      }
+      quick: {
+        email: string
+        call: string
+        website: string
+      }
+      outstandingLabel: string
+      outstandingOwing: string
+      outstandingSettled: string
+      outstandingDormant: string
+      atAGlance: string
+      statInvoices: string
+      statProjects: string
+      statRecurring: string
+      notesEmpty: string
+      contactTitle: string
+      contactDescription: string
+      billingTitle: string
+      billingDescription: string
+      editDetails: string
+      invoicesEmptyTitle: string
+      invoicesEmptyDescription: string
+      projectsEmptyTitle: string
+      projectsEmptyDescription: string
+      activityEmptyTitle: string
+      activityEmptyDescription: string
+    }
+    related: {
+      projects: string
+      projectsCount: string
+      invoices: string
+      invoicesCount: string
+      recurringInvoices: string
+      recurringInvoicesCount: string
+    }
+    errors: {
+      notFound: string
+      updateFailed: string
+    }
+    validation: {
+      nameRequired: string
+      nameTooLong: string
+      emailInvalid: string
+      emailTooLong: string
+      textTooLong: string
+      websiteInvalid: string
+      currencyInvalid: string
+      countryInvalid: string
+      idInvalid: string
     }
   }
   setup: {
