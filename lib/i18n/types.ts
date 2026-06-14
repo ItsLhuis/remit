@@ -19,6 +19,7 @@ export type Translations = {
       confirm: string
       continue: string
       close: string
+      clear: string
       copy: string
       download: string
       refresh: string
@@ -459,6 +460,12 @@ export type Translations = {
       outstandingMultiCurrency: string
       newClients: string
       newClientsHint: string
+      monthlyDelta: string
+      last6Months: string
+      trendNewLabel: string
+      trendTotalLabel: string
+      healthTitle: string
+      healthHint: string
     }
     filters: {
       title: string
@@ -502,7 +509,6 @@ export type Translations = {
       addressDescription: string
       notesSection: string
       notesDescription: string
-      clearCountry: string
       saveCreate: string
       saveEdit: string
       created: string
@@ -549,11 +555,19 @@ export type Translations = {
       statInvoices: string
       statProjects: string
       statRecurring: string
+      statInvoicesHint: string
+      statProjectsHint: string
+      statRecurringHint: string
+      trendBilledLabel: string
+      trendProjectsLabel: string
+      trendRecurringLabel: string
+      trendEmpty: string
       notesEmpty: string
       contactTitle: string
       contactDescription: string
       billingTitle: string
       billingDescription: string
+      updatedLabel: string
       editDetails: string
       invoicesEmptyTitle: string
       invoicesEmptyDescription: string
