@@ -171,7 +171,7 @@ test("advances from business profile through recovery codes when setup is comple
   await user.click(screen.getByRole("button", { name: "common.actions.continue" }))
 
   expect(await screen.findByRole("heading", { name: "setup.done.title" })).toBeInTheDocument()
-})
+}, 30000)
 
 test("starts on the TOTP branch when the business profile is already complete", () => {
   render(

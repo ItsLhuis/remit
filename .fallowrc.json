@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["scripts/*.ts"],
+  "ignorePatterns": ["database/schema/**", "scripts/dist/**", "**/*.generated.ts"],
+  "duplicates": {
+    "ignore": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "tests/**"]
+  }
+}
