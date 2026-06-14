@@ -13,7 +13,7 @@ import {
   Typography
 } from "@/components/ui"
 
-import { FingerprintCopyButton } from "../FingerprintCopyButton"
+import { FingerprintCopyButton } from "./FingerprintCopyButton"
 
 type SystemInfoStripProps = {
   systemInfo: SystemInfo
