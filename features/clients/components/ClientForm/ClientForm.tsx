@@ -1,0 +1,372 @@
+"use client"
+
+import { Fragment, useMemo, useState, useTransition } from "react"
+
+import { useRouter } from "next/navigation"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, type FieldPath, useForm } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import {
+  Button,
+  CountrySelect,
+  CurrencySelect,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  Icon,
+  Input,
+  PhoneInput,
+  ScrollArea,
+  Separator,
+  Spinner,
+  Textarea,
+  toast
+} from "@/components/ui"
+
+import { createClient, updateClient } from "../../mutations"
+import { type ClientFormInputValues, type ClientFormValues, clientFormSchema } from "../../schemas"
+import { type ClientFormData } from "../../types"
+
+import { FormSection } from "./FormSection"
+
+type ClientFormCallbacks = {
+  onSuccess?: (client: { id: string }) => void
+  onCancel?: () => void
+  // "page" keeps the buttons in document flow; "panel" fills its container, scrolling the fields in
+  // a ScrollArea and pinning the actions to the bottom (used inside Sheet/Dialog).
+  layout?: "page" | "panel"
+}
+
+type ClientFormProps = ClientFormCallbacks &
+  (
+    | {
+        mode: "create"
+        defaultCurrency: string
+        client?: never
+      }
+    | {
+        mode: "edit"
+        client: ClientFormData
+        defaultCurrency?: never
+      }
+  )
+
+const ClientForm = (props: ClientFormProps) => {
+  const { t } = useTranslation()
+
+  const router = useRouter()
+
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isSaving, startSaving] = useTransition()
+
+  const defaultValues = useMemo<ClientFormValues>(() => {
+    if (props.mode === "edit") return props.client
+
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      currency: props.defaultCurrency,
+      taxId: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      notes: "",
+      website: ""
+    }
+  }, [props])
+
+  const form = useForm<ClientFormInputValues, unknown, ClientFormValues>({
+    // onChange (not the forms.md onBlur default) because submitDisabled below derives from live
+    // isValid/isDirty to keep the save button in sync as the user edits.
+    resolver: zodResolver(clientFormSchema),
+    mode: "onChange",
+    defaultValues
+  })
+
+  const { isDirty, isValid } = form.formState
+
+  const isEdit = props.mode === "edit"
+
+  const layout = props.layout ?? "page"
+
+  const submitDisabled = isSaving || !isValid || (isEdit && !isDirty)
+
+  const onSubmit = (values: ClientFormValues) => {
+    if (submitDisabled) return
+
+    setServerError(null)
+
+    startSaving(async () => {
+      const result =
+        props.mode === "edit"
+          ? await updateClient({ id: props.client.id, ...values })
+          : await createClient(values)
+
+      if ("error" in result) {
+        setServerError(result.error)
+
+        return
+      }
+
+      toast.success(isEdit ? t("clients.form.updated") : t("clients.form.created"))
+
+      if (props.onSuccess) {
+        props.onSuccess(result.data.client)
+
+        return
+      }
+
+      router.push(`/clients/${result.data.client.id}`)
+      router.refresh()
+    })
+  }
+
+  const onCancel = () => {
+    if (props.onCancel) {
+      props.onCancel()
+
+      return
+    }
+
+    router.back()
+  }
+
+  const renderTextField = ({
+    name,
+    label,
+    placeholder,
+    type = "text",
+    autoComplete
+  }: {
+    name: FieldPath<ClientFormValues>
+    label: string
+    placeholder?: string
+    type?: string
+    autoComplete?: string
+  }) => (
+    <Controller
+      name={name}
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+          <Input
+            {...field}
+            id={field.name}
+            type={type}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+            aria-invalid={fieldState.invalid}
+            disabled={isSaving}
+          />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+
+  const fields = (
+    <Fragment>
+      <FormSection
+        title={t("clients.form.profileSection")}
+        description={t("clients.form.profileDescription")}
+      >
+        <FieldGroup className="grid gap-4">
+          {renderTextField({
+            name: "name",
+            label: t("clients.fields.name"),
+            placeholder: t("clients.placeholders.name"),
+            autoComplete: "organization"
+          })}
+          {renderTextField({
+            name: "email",
+            label: t("clients.fields.email"),
+            placeholder: t("clients.placeholders.email"),
+            type: "email",
+            autoComplete: "email"
+          })}
+          <Controller
+            name="phone"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>{t("clients.fields.phone")}</FieldLabel>
+                <PhoneInput
+                  id={field.name}
+                  name={field.name}
+                  ref={field.ref}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onValueChangeAction={field.onChange}
+                  valid={!fieldState.invalid}
+                  disabled={isSaving}
+                  placeholder={t("clients.placeholders.phone")}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          <Controller
+            name="currency"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>{t("clients.fields.currency")}</FieldLabel>
+                <CurrencySelect
+                  id={field.name}
+                  ref={field.ref}
+                  value={field.value}
+                  onValueChangeAction={field.onChange}
+                  valid={!fieldState.invalid}
+                  disabled={isSaving}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          {renderTextField({
+            name: "taxId",
+            label: t("clients.fields.taxId"),
+            placeholder: t("clients.placeholders.taxId")
+          })}
+          {renderTextField({
+            name: "website",
+            label: t("clients.fields.website"),
+            placeholder: t("clients.placeholders.website"),
+            type: "url",
+            autoComplete: "url"
+          })}
+        </FieldGroup>
+      </FormSection>
+      <Separator />
+      <FormSection
+        title={t("clients.form.addressSection")}
+        description={t("clients.form.addressDescription")}
+      >
+        <FieldGroup className="grid gap-4">
+          {renderTextField({
+            name: "addressLine1",
+            label: t("clients.fields.addressLine1"),
+            placeholder: t("clients.placeholders.addressLine1"),
+            autoComplete: "address-line1"
+          })}
+          {renderTextField({
+            name: "addressLine2",
+            label: t("clients.fields.addressLine2"),
+            placeholder: t("clients.placeholders.addressLine2"),
+            autoComplete: "address-line2"
+          })}
+          {renderTextField({
+            name: "city",
+            label: t("clients.fields.city"),
+            placeholder: t("clients.placeholders.city"),
+            autoComplete: "address-level2"
+          })}
+          {renderTextField({
+            name: "state",
+            label: t("clients.fields.state"),
+            placeholder: t("clients.placeholders.state"),
+            autoComplete: "address-level1"
+          })}
+          {renderTextField({
+            name: "postalCode",
+            label: t("clients.fields.postalCode"),
+            placeholder: t("clients.placeholders.postalCode"),
+            autoComplete: "postal-code"
+          })}
+          <Controller
+            name="country"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>{t("clients.fields.country")}</FieldLabel>
+                <CountrySelect
+                  id={field.name}
+                  ref={field.ref}
+                  value={field.value}
+                  onChangeAction={(country) => field.onChange(country?.alpha2 ?? "")}
+                  valid={!fieldState.invalid}
+                  disabled={isSaving}
+                  clearable
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+        </FieldGroup>
+      </FormSection>
+      <Separator />
+      <FormSection
+        title={t("clients.form.notesSection")}
+        description={t("clients.form.notesDescription")}
+      >
+        <Controller
+          name="notes"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>{t("clients.fields.notes")}</FieldLabel>
+              <Textarea
+                {...field}
+                id={field.name}
+                placeholder={t("clients.placeholders.notes")}
+                aria-invalid={fieldState.invalid}
+                disabled={isSaving}
+                className="min-h-28"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+      </FormSection>
+    </Fragment>
+  )
+
+  const actions = (
+    <Fragment>
+      {serverError ? <FieldError>{serverError}</FieldError> : null}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
+          {t("common.actions.cancel")}
+        </Button>
+        <Button type="submit" disabled={submitDisabled}>
+          {isSaving && <Spinner />}
+          <Icon name="Save" aria-hidden="true" />
+          {isEdit ? t("clients.form.saveEdit") : t("clients.form.saveCreate")}
+        </Button>
+      </div>
+    </Fragment>
+  )
+
+  if (layout === "panel") {
+    return (
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex flex-col gap-6 p-4">{fields}</div>
+        </ScrollArea>
+        <div className="bg-muted/50 flex flex-col gap-3 border-t p-4">{actions}</div>
+      </form>
+    )
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
+      {fields}
+      <div className="flex flex-col gap-3">{actions}</div>
+    </form>
+  )
+}
+
+export { ClientForm }
