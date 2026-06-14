@@ -4,7 +4,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 import { PaymentSettingsForm } from "../PaymentSettingsForm"
-import { type PaymentSettingsValues } from "../../schemas"
+import { type PaymentSettingsValues } from "../../../schemas"
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
   })
 }))
 
-vi.mock("../../mutations", () => ({
+vi.mock("../../../mutations", () => ({
   savePaymentSettings: mocks.savePaymentSettings,
   testStripeConnection: mocks.testStripeConnection
 }))

@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n/server"
 
-import { getPaymentSettings } from "../queries"
+import { getPaymentSettings } from "../../queries"
 
 import { SettingsPageHeader } from "@/components/layout"
 

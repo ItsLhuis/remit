@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { deleteTaxRate, setDefaultTaxRate } from "../mutations"
-import { type TaxRateListItem } from "../schemas"
+import { formatPercentage } from "@/lib/utils"
+
+import { deleteTaxRate, setDefaultTaxRate } from "../../mutations"
+import { type TaxRateListItem } from "../../schemas"
 
 import {
   Badge,
@@ -41,11 +43,19 @@ import {
 import { DeleteTaxRateDialog } from "./DeleteTaxRateDialog"
 import { TaxRateFormDialog, type TaxRateFormState } from "./TaxRateFormDialog"
 
-type TaxRatesSettingsClientProps = {
+type TaxRatesSettingsFormProps = {
   initialTaxRates: TaxRateListItem[]
 }
 
-const TaxRatesSettingsClient = ({ initialTaxRates }: TaxRatesSettingsClientProps) => {
+function sortTaxRates(taxRates: TaxRateListItem[]): TaxRateListItem[] {
+  return [...taxRates].sort((first, second) => {
+    if (first.isDefault !== second.isDefault) return first.isDefault ? -1 : 1
+
+    return first.name.localeCompare(second.name)
+  })
+}
+
+const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -282,19 +292,4 @@ const TaxRatesSettingsClient = ({ initialTaxRates }: TaxRatesSettingsClientProps
   )
 }
 
-function sortTaxRates(taxRates: TaxRateListItem[]): TaxRateListItem[] {
-  return [...taxRates].sort((first, second) => {
-    if (first.isDefault !== second.isDefault) return first.isDefault ? -1 : 1
-
-    return first.name.localeCompare(second.name)
-  })
-}
-
-function formatPercentage(value: number): string {
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2
-  }).format(value)
-}
-
-export { TaxRatesSettingsClient }
+export { TaxRatesSettingsForm }

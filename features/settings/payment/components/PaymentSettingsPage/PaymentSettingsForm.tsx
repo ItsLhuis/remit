@@ -9,12 +9,12 @@ import { useTranslation } from "@/lib/i18n"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { savePaymentSettings, testStripeConnection } from "../mutations"
+import { savePaymentSettings, testStripeConnection } from "../../mutations"
 import {
   paymentSettingsSchema,
   type PaymentSettingsInputValues,
   type PaymentSettingsValues
-} from "../schemas"
+} from "../../schemas"
 
 import {
   Button,

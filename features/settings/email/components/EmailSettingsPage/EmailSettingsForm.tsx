@@ -9,14 +9,14 @@ import { useTranslation } from "@/lib/i18n"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { saveEmailSettings, sendEmailSettingsTest } from "../mutations"
+import { saveEmailSettings, sendEmailSettingsTest } from "../../mutations"
 import {
   emailSettingsSchema,
   testEmailSettingsSchema,
   type EmailSettingsInputValues,
   type EmailSettingsValues,
   type TestEmailSettingsValues
-} from "../schemas"
+} from "../../schemas"
 
 import {
   Button,
@@ -36,6 +36,7 @@ import {
   FieldSet,
   Icon,
   Input,
+  NumberInput,
   SecretField,
   Separator,
   Spinner,
@@ -274,16 +275,16 @@ const EmailSettingsForm = ({
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel htmlFor={field.name}>{t("settings.email.smtpPort")}</FieldLabel>
-                    <Input
+                    <NumberInput
                       id={field.name}
                       name={field.name}
                       ref={field.ref}
                       value={field.value}
                       onBlur={field.onBlur}
                       onChange={(event) => field.onChange(Number(event.target.value))}
-                      type="number"
                       min={1}
                       max={65535}
+                      step={1}
                       inputMode="numeric"
                       aria-invalid={fieldState.invalid}
                       disabled={isSaving || isTesting}

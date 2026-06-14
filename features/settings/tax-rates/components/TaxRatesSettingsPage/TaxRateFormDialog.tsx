@@ -7,13 +7,13 @@ import { useTranslation } from "@/lib/i18n"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { createTaxRate, updateTaxRate } from "../mutations"
+import { createTaxRate, updateTaxRate } from "../../mutations"
 import {
   taxRateFormSchema,
   type TaxRateFormInputValues,
   type TaxRateFormValues,
   type TaxRateListItem
-} from "../schemas"
+} from "../../schemas"
 
 import {
   Button,
@@ -30,6 +30,7 @@ import {
   FieldGroup,
   FieldLabel,
   Input,
+  NumberInput,
   Spinner,
   toast
 } from "@/components/ui"
@@ -154,7 +155,7 @@ const TaxRateFormDialog = ({ formState, onOpenChange, onSaved }: TaxRateFormDial
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>{t("settings.taxRates.percentage")}</FieldLabel>
-                  <Input
+                  <NumberInput
                     id={field.name}
                     name={field.name}
                     ref={field.ref}
@@ -165,7 +166,6 @@ const TaxRateFormDialog = ({ formState, onOpenChange, onSaved }: TaxRateFormDial
                         event.target.value === "" ? Number.NaN : Number(event.target.value)
                       )
                     }
-                    type="number"
                     min={0}
                     max={100}
                     step={0.01}

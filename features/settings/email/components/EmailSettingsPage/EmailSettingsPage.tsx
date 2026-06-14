@@ -1,6 +1,6 @@
 import { t } from "@/lib/i18n/server"
 
-import { getEmailSettings } from "../queries"
+import { getEmailSettings } from "../../queries"
 
 import { SettingsPageHeader } from "@/components/layout"
 

@@ -4,7 +4,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 import { EmailSettingsForm } from "../EmailSettingsForm"
-import { type EmailSettingsValues } from "../../schemas"
+import { type EmailSettingsValues } from "../../../schemas"
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
   })
 }))
 
-vi.mock("../../mutations", () => ({
+vi.mock("../../../mutations", () => ({
   saveEmailSettings: mocks.saveEmailSettings,
   sendEmailSettingsTest: mocks.sendEmailSettingsTest
 }))

@@ -4,7 +4,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Typography } from "@/components/ui"
 
-import { ChangePasswordDialog } from "../ChangePasswordDialog"
+import { ChangePasswordDialog } from "./ChangePasswordDialog"
 
 const ChangePasswordSection = () => {
   const { t } = useTranslation()

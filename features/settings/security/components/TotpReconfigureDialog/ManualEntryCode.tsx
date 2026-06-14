@@ -1,6 +1,6 @@
 "use client"
 
-import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
+import { useCopyWithFeedback } from "@/hooks"
 
 import { useTranslation } from "@/lib/i18n"
 

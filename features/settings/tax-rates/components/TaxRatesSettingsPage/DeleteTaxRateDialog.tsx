@@ -1,6 +1,6 @@
 "use client"
 
-import { type TaxRateListItem } from "../schemas"
+import { type TaxRateListItem } from "../../schemas"
 
 import { useTranslation } from "@/lib/i18n"
 

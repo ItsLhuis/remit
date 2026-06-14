@@ -9,12 +9,12 @@ import { useTranslation } from "@/lib/i18n"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { saveInvoicingSettings } from "../mutations"
+import { saveInvoicingSettings } from "../../mutations"
 import {
   createInvoicingSettingsSchema,
   type InvoicingSettingsInputValues,
   type InvoicingSettingsValues
-} from "../schemas"
+} from "../../schemas"
 
 import {
   Button,
@@ -24,6 +24,7 @@ import {
   FieldGroup,
   FieldLabel,
   Input,
+  NumberInput,
   Separator,
   Spinner,
   Textarea,
@@ -135,16 +136,16 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
                 <FieldLabel htmlFor={field.name}>
                   {t("settings.invoicing.numberPaddingWidth")}
                 </FieldLabel>
-                <Input
+                <NumberInput
                   id={field.name}
                   name={field.name}
                   ref={field.ref}
                   value={field.value}
                   onBlur={field.onBlur}
                   onChange={(event) => field.onChange(Number(event.target.value))}
-                  type="number"
                   min={1}
                   max={10}
+                  step={1}
                   inputMode="numeric"
                   aria-invalid={fieldState.invalid}
                   disabled={isSaving}
@@ -164,15 +165,15 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
                 <FieldLabel htmlFor={field.name}>
                   {t("settings.invoicing.nextInvoiceNumber")}
                 </FieldLabel>
-                <Input
+                <NumberInput
                   id={field.name}
                   name={field.name}
                   ref={field.ref}
                   value={field.value}
                   onBlur={field.onBlur}
                   onChange={(event) => field.onChange(Number(event.target.value))}
-                  type="number"
                   min={minimumNextInvoiceNumber}
+                  step={1}
                   inputMode="numeric"
                   aria-invalid={fieldState.invalid}
                   disabled={isSaving}
@@ -194,16 +195,16 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
                 <FieldLabel htmlFor={field.name}>
                   {t("settings.invoicing.paymentTermsDays")}
                 </FieldLabel>
-                <Input
+                <NumberInput
                   id={field.name}
                   name={field.name}
                   ref={field.ref}
                   value={field.value}
                   onBlur={field.onBlur}
                   onChange={(event) => field.onChange(Number(event.target.value))}
-                  type="number"
                   min={0}
                   max={365}
+                  step={1}
                   inputMode="numeric"
                   aria-invalid={fieldState.invalid}
                   disabled={isSaving}
