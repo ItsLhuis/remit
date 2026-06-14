@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useScroll } from "@/hooks/useScroll"
+import { useScroll } from "@/hooks"
 
 import { cn } from "@/lib/utils"
 

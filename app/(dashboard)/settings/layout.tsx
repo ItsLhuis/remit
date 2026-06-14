@@ -8,7 +8,7 @@ import { getCurrentRole, requireSession } from "@/lib/auth/session"
 
 import { ScrollArea, SidebarProvider } from "@/components/ui"
 
-import { SettingsSidebar } from "./SettingsSidebar"
+import { SettingsSidebar } from "@/components/layout"
 
 type SettingsLayoutProps = {
   children: ReactNode

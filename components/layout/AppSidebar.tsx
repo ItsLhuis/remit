@@ -4,6 +4,10 @@ import { Fragment, useState } from "react"
 
 import { usePathname, useRouter } from "next/navigation"
 
+import Image from "next/image"
+
+import Link from "next/link"
+
 import { useHotkey } from "@tanstack/react-hotkeys"
 
 import { useTranslation } from "@/lib/i18n"
@@ -14,11 +18,7 @@ import { resolveStorageUrl } from "@/lib/storage"
 
 import { cn, getInitials } from "@/lib/utils"
 
-import { useScroll } from "@/hooks/useScroll"
-
-import Image from "next/image"
-
-import Link from "next/link"
+import { useScroll } from "@/hooks"
 
 import {
   Avatar,
@@ -59,7 +59,7 @@ import {
   useSidebar
 } from "@/components/ui"
 
-import { SignOutDialog } from "@/features/auth"
+import { SignOutDialog } from "@/features/auth/components/SignOutDialog"
 
 const mainNavItems = [
   { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },
@@ -73,6 +73,28 @@ const configNavItems = [
   { labelKey: "common.navigation.templates", href: "/templates", icon: "LayoutTemplate" as const },
   { labelKey: "app.navigation.settings", href: "/settings", icon: "Settings2" as const }
 ] as const
+
+type NavUserIdentityProps = {
+  name?: string | null
+  email?: string | null
+  image?: string | null
+  initials: string
+}
+
+const NavUserIdentity = ({ name, email, image, initials }: NavUserIdentityProps) => (
+  <Fragment>
+    <Avatar>
+      <AvatarImage src={image} alt={name ?? ""} />
+      <AvatarFallback>{initials}</AvatarFallback>
+    </Avatar>
+    <div className="text-foreground grid flex-1">
+      <Typography className="truncate">{name}</Typography>
+      <Typography className="truncate" affects={["muted", "small"]}>
+        {email}
+      </Typography>
+    </div>
+  </Fragment>
+)
 
 type NavUserProps = {
   name?: string | null
@@ -100,16 +122,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-foreground"
                 tooltip={name ?? t("common.navigation.account")}
               >
-                <Avatar>
-                  <AvatarImage src={image} alt={name ?? ""} />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <div className="text-foreground grid flex-1">
-                  <Typography className="truncate">{name}</Typography>
-                  <Typography className="truncate" affects={["muted", "small"]}>
-                    {email}
-                  </Typography>
-                </div>
+                <NavUserIdentity name={name} email={email} image={image} initials={initials} />
                 <Icon name="ChevronsUpDown" className="text-foreground" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
@@ -122,16 +135,7 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
               <DropdownMenuGroup>
                 <DropdownMenuLabel>
                   <div className="flex items-center gap-2 px-1 py-1.5">
-                    <Avatar>
-                      <AvatarImage src={image} alt={name ?? ""} />
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="text-foreground grid flex-1">
-                      <Typography className="truncate">{name}</Typography>
-                      <Typography className="truncate" affects={["muted", "small"]}>
-                        {email}
-                      </Typography>
-                    </div>
+                    <NavUserIdentity name={name} email={email} image={image} initials={initials} />
                   </div>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
