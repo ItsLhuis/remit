@@ -3,6 +3,8 @@ import { defineConfig, globalIgnores } from "eslint/config"
 import nextVitals from "eslint-config-next/core-web-vitals"
 import nextTs from "eslint-config-next/typescript"
 
+import remitRules from "./tools/eslint-rules/index.mjs"
+
 const featureBoundaryRule = [
   "error",
   {
@@ -69,6 +71,16 @@ const eslintConfig = defineConfig([
     files: ["features/**/services/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": pureServicesRule
+    }
+  },
+  {
+    files: ["**/*.tsx"],
+    plugins: {
+      remit: remitRules
+    },
+    rules: {
+      "remit/helper-placement": "error",
+      "remit/no-blank-lines-in-jsx-return": "error"
     }
   },
   globalIgnores([
