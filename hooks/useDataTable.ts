@@ -25,6 +25,8 @@ import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState, useQueryS
 
 import { getSortingStateParser } from "@/lib/utils"
 
+import { useLocalStorage } from "./useLocalStorage"
+
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
@@ -68,6 +70,8 @@ export type UseDataTableOptions<TData> = Omit<
   shallow?: boolean
   clearOnDefault?: boolean
   startTransition?: TransitionStartFunction
+  columnVisibilityStorageKey?: string
+  pageSizeStorageKey?: string
   initialState?: Omit<Partial<TableState>, "sorting"> & { sorting?: SortingState }
 }
 
@@ -81,6 +85,8 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     shallow = true,
     clearOnDefault = false,
     startTransition,
+    columnVisibilityStorageKey,
+    pageSizeStorageKey,
     ...tableOptions
   } = options
 
@@ -96,15 +102,18 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     [columns]
   )
 
+  const [storedPageSize, setStoredPageSize] = useLocalStorage<number>(
+    pageSizeStorageKey ?? null,
+    initialState?.pagination?.pageSize ?? DEFAULT_PAGE_SIZE
+  )
+
   const [page, setPage] = useQueryState(
     "page",
     parseAsInteger.withOptions(queryOptions).withDefault(1)
   )
   const [perPage, setPerPage] = useQueryState(
     "perPage",
-    parseAsInteger
-      .withOptions(queryOptions)
-      .withDefault(initialState?.pagination?.pageSize ?? DEFAULT_PAGE_SIZE)
+    parseAsInteger.withOptions(queryOptions).withDefault(storedPageSize)
   )
   const [sorting, setSorting] = useQueryState(
     "sort",
@@ -142,7 +151,8 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     [filterValues]
   )
 
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>(
+    columnVisibilityStorageKey ?? null,
     initialState?.columnVisibility ?? {}
   )
   const [rowSelection, setRowSelection] = useState<RowSelectionState>(
@@ -154,6 +164,8 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
 
     void setPage(next.pageIndex + 1)
     void setPerPage(next.pageSize)
+
+    setStoredPageSize(next.pageSize)
   }
 
   const onSortingChange = (updater: Updater<SortingState>) => {
@@ -177,6 +189,9 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     void setFilterValues(updates)
   }
 
+  // TanStack Table's builder-pattern state reads aren't visible to React Compiler, so it cannot
+  // safely memoize this hook. Memoization is intentionally skipped; the warning is expected here.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     ...tableOptions,
     columns,
@@ -188,7 +203,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     manualSorting: isServerSide,
     manualFiltering: isServerSide,
     autoResetPageIndex: !isServerSide,
-    enableRowSelection: true,
+    enableRowSelection: tableOptions.enableRowSelection ?? true,
     onPaginationChange,
     onSortingChange,
     onColumnFiltersChange,
