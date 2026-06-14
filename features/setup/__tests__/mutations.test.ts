@@ -51,11 +51,6 @@ vi.mock("@/lib/logger", () => ({
   }
 }))
 
-vi.mock("@/features/settings", () => ({
-  totpVerifySchema: {},
-  TotpVerifyValues: {}
-}))
-
 vi.mock("@/database/schema", () => ({
   settings: {
     id: "settings.id"

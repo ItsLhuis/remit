@@ -2,7 +2,14 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-export { totpVerifySchema, type TotpVerifyValues } from "@/features/settings"
+export const totpVerifySchema = z.object({
+  code: z
+    .string()
+    .length(6, i18n.t("totp.validation.codeLength"))
+    .regex(/^\d{6}$/, i18n.t("totp.validation.codeDigits"))
+})
+
+export type TotpVerifyValues = z.infer<typeof totpVerifySchema>
 
 export const businessProfileSchema = z.object({
   businessName: z.string().min(1, i18n.t("setup.businessProfile.validation.businessNameRequired")),

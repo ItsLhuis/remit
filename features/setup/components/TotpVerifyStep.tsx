@@ -4,7 +4,7 @@ import { useMemo } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useCopyWithFeedback } from "@/hooks/useCopyWithFeedback"
+import { useCopyWithFeedback } from "@/hooks"
 
 import { authClient } from "@/lib/auth/client"
 
