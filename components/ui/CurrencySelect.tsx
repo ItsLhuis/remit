@@ -88,6 +88,7 @@ type CurrencySelectProps = {
   variant?: "default" | "small"
   valid?: boolean
   disabled?: boolean
+  clearable?: boolean
 }
 
 const CurrencySelect = ({
@@ -101,7 +102,8 @@ const CurrencySelect = ({
   currencies = "all",
   variant = "default",
   valid = true,
-  disabled
+  disabled,
+  clearable = false
 }: CurrencySelectProps) => {
   const { t } = useTranslation()
 
@@ -144,6 +146,8 @@ const CurrencySelect = ({
     [uniqueCurrencies, onValueChangeAction, onCurrencySelectAction]
   )
 
+  const handleClear = useCallback(() => onValueChangeAction?.(""), [onValueChangeAction])
+
   return (
     <Select
       data-slot="currency-select"
@@ -158,6 +162,8 @@ const CurrencySelect = ({
         className={cn("w-full", variant === "small" && "w-fit gap-2")}
         data-valid={valid}
         aria-invalid={!valid}
+        clearable={clearable}
+        onClear={handleClear}
       >
         {value && variant === "small" ? (
           <SelectValue placeholder={resolvedPlaceholder}>

@@ -81,7 +81,6 @@ const DataTable = <TData,>({
   return (
     <div className={cn("ring-foreground/10 overflow-hidden rounded-xl ring-1", className)}>
       {children ? <div className="border-b p-3">{children}</div> : null}
-
       {hasSelectionBar ? (
         <div
           role="region"
@@ -99,7 +98,6 @@ const DataTable = <TData,>({
           </div>
         </div>
       ) : null}
-
       <div>
         <ScrollArea
           className="[&_[data-slot=table-container]]:overflow-visible"
@@ -203,7 +201,6 @@ const DataTable = <TData,>({
           </Table>
         </ScrollArea>
       </div>
-
       <div className="border-t p-3">
         <DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
       </div>

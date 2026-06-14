@@ -10,6 +10,7 @@ import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"
+import { ScrollArea } from "@/components/ui/ScrollArea"
 
 const Sheet = ({ ...props }: ComponentProps<typeof SheetPrimitive.Root>) => (
   <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -84,6 +85,12 @@ const SheetHeader = ({ className, ...props }: ComponentProps<"div">) => (
   <div data-slot="sheet-header" className={cn("flex flex-col gap-0.5 p-4", className)} {...props} />
 )
 
+const SheetBody = ({ className, children, ...props }: ComponentProps<typeof ScrollArea>) => (
+  <ScrollArea data-slot="sheet-body" className={cn("min-h-0 flex-1", className)} {...props}>
+    <div className="p-4">{children}</div>
+  </ScrollArea>
+)
+
 const SheetFooter = ({ className, ...props }: ComponentProps<"div">) => (
   <div
     data-slot="sheet-footer"
@@ -113,6 +120,7 @@ const SheetDescription = ({
 
 export {
   Sheet,
+  SheetBody,
   SheetClose,
   SheetContent,
   SheetDescription,

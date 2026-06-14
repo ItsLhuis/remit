@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment } from "react"
+
 import { type Column } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
@@ -53,7 +55,7 @@ const DataTableFacetedFilter = <TData, TValue>({
           <Icon name="ListFilter" aria-hidden="true" />
           {title}
           {selected.size > 0 ? (
-            <>
+            <Fragment>
               <Separator
                 orientation="vertical"
                 className="mx-0.5 data-[orientation=vertical]:h-4"
@@ -61,7 +63,7 @@ const DataTableFacetedFilter = <TData, TValue>({
               <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                 {selected.size}
               </Badge>
-            </>
+            </Fragment>
           ) : null}
         </Button>
       </PopoverTrigger>
@@ -78,7 +80,7 @@ const DataTableFacetedFilter = <TData, TValue>({
                   <CommandItem key={option.value} onSelect={() => toggle(option.value)}>
                     <div
                       className={cn(
-                        "flex size-4 items-center justify-center rounded-[4px] border",
+                        "flex size-4 items-center justify-center rounded-lg border",
                         isSelected
                           ? "bg-primary border-primary text-primary-foreground"
                           : "border-input [&_svg]:invisible"
@@ -97,7 +99,7 @@ const DataTableFacetedFilter = <TData, TValue>({
               })}
             </CommandGroup>
             {selected.size > 0 ? (
-              <>
+              <Fragment>
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
@@ -107,7 +109,7 @@ const DataTableFacetedFilter = <TData, TValue>({
                     {t("common.table.clearFilter")}
                   </CommandItem>
                 </CommandGroup>
-              </>
+              </Fragment>
             ) : null}
           </CommandList>
         </Command>

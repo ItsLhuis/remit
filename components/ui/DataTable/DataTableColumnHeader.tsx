@@ -41,7 +41,7 @@ const DataTableColumnHeader = <TData, TValue>({
         type="button"
         onClick={column.getToggleSortingHandler()}
         className={cn(
-          "text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 -mx-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors outline-none focus-visible:ring-[3px]",
+          "text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 -mx-1.5 inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 transition-colors outline-none focus-visible:ring-[3px]",
           align === "end" && "flex-row-reverse",
           sorted && "text-foreground"
         )}

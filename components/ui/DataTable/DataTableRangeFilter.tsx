@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment, useEffect, useState } from "react"
+
 import { type Column } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
@@ -7,7 +9,7 @@ import { useTranslation } from "@/lib/i18n"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
-import { Input } from "@/components/ui/Input"
+import { NumberInput } from "@/components/ui/NumberInput"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover"
 import { Separator } from "@/components/ui/Separator"
 
@@ -31,18 +33,36 @@ const DataTableRangeFilter = <TData, TValue>({
   const [min = "", max = ""] = (column.getFilterValue() as string[] | undefined) ?? []
   const hasValue = min !== "" || max !== ""
 
-  const update = (index: 0 | 1, value: string) => {
-    const next: [string, string] = [min, max]
-    next[index] = majorToCents(value)
+  const [localMin, setLocalMin] = useState(() => centsToMajor(min))
+  const [localMax, setLocalMax] = useState(() => centsToMajor(max))
 
-    if (next[0] === "" && next[1] === "") {
-      column.setFilterValue(undefined)
-
-      return
+  // Sync local state when filter is cleared externally
+  useEffect(() => {
+    if (!min && !max) {
+      setLocalMin("")
+      setLocalMax("")
     }
+  }, [min, max])
 
-    column.setFilterValue(next)
-  }
+  // Debounce column filter updates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const minCents = majorToCents(localMin)
+      const maxCents = majorToCents(localMax)
+
+      if (minCents === "" && maxCents === "") {
+        column.setFilterValue(undefined)
+
+        return
+      }
+
+      column.setFilterValue([minCents, maxCents])
+    }, 400)
+
+    return () => clearTimeout(timer)
+    // column is stable; eslint-disable-next-line is intentional
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localMin, localMax])
 
   return (
     <Popover>
@@ -51,7 +71,7 @@ const DataTableRangeFilter = <TData, TValue>({
           <Icon name="Hash" aria-hidden="true" />
           {title}
           {hasValue ? (
-            <>
+            <Fragment>
               <Separator
                 orientation="vertical"
                 className="mx-0.5 data-[orientation=vertical]:h-4"
@@ -59,35 +79,39 @@ const DataTableRangeFilter = <TData, TValue>({
               <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                 {`${centsToMajor(min) || "…"} – ${centsToMajor(max) || "…"}`}
               </Badge>
-            </>
+            </Fragment>
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="flex w-60 flex-col gap-3 p-3" align="start">
+      <PopoverContent className="flex w-64 flex-col gap-3 p-3" align="start">
         <span className="text-sm font-medium">{title}</span>
         <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            inputMode="numeric"
+          <NumberInput
             min={0}
-            value={centsToMajor(min)}
-            onChange={(event) => update(0, event.target.value)}
+            value={localMin}
+            onChange={(event) => setLocalMin(event.target.value)}
             placeholder={t("common.table.min")}
             aria-label={t("common.table.min")}
           />
-          <span className="text-muted-foreground">–</span>
-          <Input
-            type="number"
-            inputMode="numeric"
+          <span className="text-muted-foreground shrink-0">–</span>
+          <NumberInput
             min={0}
-            value={centsToMajor(max)}
-            onChange={(event) => update(1, event.target.value)}
+            value={localMax}
+            onChange={(event) => setLocalMax(event.target.value)}
             placeholder={t("common.table.max")}
             aria-label={t("common.table.max")}
           />
         </div>
         {hasValue ? (
-          <Button variant="ghost" size="sm" onClick={() => column.setFilterValue(undefined)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setLocalMin("")
+              setLocalMax("")
+              column.setFilterValue(undefined)
+            }}
+          >
             {t("common.table.clearFilter")}
           </Button>
         ) : null}

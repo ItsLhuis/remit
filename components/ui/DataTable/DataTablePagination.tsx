@@ -52,7 +52,6 @@ const DataTablePagination = <TData,>({
       <Typography affects={["muted", "small"]} aria-live="polite" className="whitespace-nowrap">
         {t("common.table.rowsSelectedOfTotal", { selected: selectedCount, total: totalCount })}
       </Typography>
-
       <div className="flex items-center gap-1">
         <IconButton
           variant="ghost"
@@ -72,7 +71,6 @@ const DataTablePagination = <TData,>({
         >
           <Icon name="ChevronLeft" />
         </IconButton>
-
         {pageItems.map((item, index) =>
           item === "ellipsis" ? (
             <span
@@ -96,7 +94,6 @@ const DataTablePagination = <TData,>({
             </Button>
           )
         )}
-
         <IconButton
           variant="ghost"
           size="icon-sm"
@@ -116,7 +113,6 @@ const DataTablePagination = <TData,>({
           <Icon name="ChevronsRight" />
         </IconButton>
       </div>
-
       <div className="flex items-center gap-2">
         <Typography affects={["muted", "small"]} className="whitespace-nowrap">
           {t("common.table.rowsPerPage")}

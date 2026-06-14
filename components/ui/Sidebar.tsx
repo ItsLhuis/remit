@@ -11,7 +11,7 @@ import {
   type CSSProperties
 } from "react"
 
-import { useIsMobile } from "@/hooks/useIsMobile"
+import { useIsMobile } from "@/hooks"
 
 import { cva, type VariantProps } from "class-variance-authority"
 

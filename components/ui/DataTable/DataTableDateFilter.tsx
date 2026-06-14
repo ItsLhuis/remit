@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment } from "react"
+
 import { type Column } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
@@ -51,7 +53,7 @@ const DataTableDateFilter = <TData, TValue>({
           <Icon name="CalendarDays" aria-hidden="true" />
           {title}
           {hasValue ? (
-            <>
+            <Fragment>
               <Separator
                 orientation="vertical"
                 className="mx-0.5 data-[orientation=vertical]:h-4"
@@ -59,7 +61,7 @@ const DataTableDateFilter = <TData, TValue>({
               <Badge variant="secondary" className="rounded-sm px-1 font-normal">
                 {label}
               </Badge>
-            </>
+            </Fragment>
           ) : null}
         </Button>
       </PopoverTrigger>

@@ -11,6 +11,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"
+import { ScrollArea } from "@/components/ui/ScrollArea"
 
 const Dialog = ({ ...props }: ComponentProps<typeof DialogPrimitive.Root>) => (
   <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -55,7 +56,7 @@ const DialogContent = ({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-4 text-sm ring-1 outline-none sm:max-w-sm",
+          "bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 flex max-h-[85dvh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-xl p-4 text-sm ring-1 outline-none sm:max-w-sm",
           className
         )}
         {...props}
@@ -80,6 +81,12 @@ const DialogContent = ({
 
 const DialogHeader = ({ className, ...props }: ComponentProps<"div">) => (
   <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
+)
+
+const DialogBody = ({ className, children, ...props }: ComponentProps<typeof ScrollArea>) => (
+  <ScrollArea data-slot="dialog-body" className={cn("-mx-4 min-h-0 flex-1", className)} {...props}>
+    <div className="px-4">{children}</div>
+  </ScrollArea>
 )
 
 const DialogFooter = ({
@@ -135,6 +142,7 @@ const DialogDescription = ({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

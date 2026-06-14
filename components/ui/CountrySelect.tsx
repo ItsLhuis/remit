@@ -35,12 +35,13 @@ type CountrySelectProps = {
   ref?: Ref<HTMLButtonElement>
   id?: string
   options?: Country[]
-  onChangeAction?: (country: Country) => void
+  onChangeAction?: (country: Country | null) => void
   value?: string
   disabled?: boolean
   placeholder?: string
   slim?: boolean
   valid?: boolean
+  clearable?: boolean
 }
 
 const CountrySelect = ({
@@ -54,6 +55,7 @@ const CountrySelect = ({
   placeholder,
   slim = false,
   valid = true,
+  clearable = false,
   ref
 }: CountrySelectProps) => {
   const { t } = useTranslation()
@@ -67,6 +69,8 @@ const CountrySelect = ({
 
     onChangeAction?.(country)
   }
+
+  const handleClear = () => onChangeAction?.(null)
 
   const currentCountry = options.find((c) => c.alpha2 === value)
 
@@ -83,6 +87,8 @@ const CountrySelect = ({
         className={cn("w-full", slim && "w-fit gap-2")}
         data-valid={valid}
         aria-invalid={!valid}
+        clearable={clearable}
+        onClear={handleClear}
       >
         {currentCountry && slim ? (
           <SelectValue placeholder={resolvedPlaceholder}>
