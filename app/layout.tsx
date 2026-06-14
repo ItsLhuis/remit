@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils"
 import { t } from "@/lib/i18n/server"
 
 import { Toaster, TooltipProvider } from "@/components/ui"
-import { AppearanceProvider } from "@/providers/AppearanceProvider"
-import { I18nProvider } from "@/providers/I18nProvider"
-import { ThemeProvider } from "@/providers/ThemeProvider"
+
+import { AppearanceProvider, I18nProvider, ThemeProvider } from "@/providers"
 
 import "./globals.css"
 

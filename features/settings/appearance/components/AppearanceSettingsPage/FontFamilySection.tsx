@@ -4,7 +4,7 @@ import { type ReactNode } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useAppearance, type FontFamily } from "@/providers/AppearanceProvider"
+import { useAppearance, type FontFamily } from "@/providers"
 
 import { ToggleGroup, ToggleGroupItem, Typography } from "@/components/ui"
 
