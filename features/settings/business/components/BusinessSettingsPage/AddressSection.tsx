@@ -171,7 +171,7 @@ const AddressSection = ({ initialValues }: AddressSectionProps) => {
                   ref={field.ref}
                   id={field.name}
                   value={field.value}
-                  onChangeAction={(country) => field.onChange(country.alpha2)}
+                  onChangeAction={(country) => field.onChange(country?.alpha2 ?? "")}
                   valid={!fieldState.invalid}
                   disabled={isPending}
                 />
