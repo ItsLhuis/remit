@@ -19,6 +19,45 @@ paths:
 - Next.js page/layout/error files follow Next conventions and may use default exports.
 - Hook files export the hook directly as a named function; follow `hooks.md` there.
 
+## File-private helpers in `.tsx`
+
+In component files, **arrow functions are components and `function` declarations are helpers.** A
+genuinely file-private helper — one that is not generic enough for `lib/utils/` and not domain logic
+for `services/` — is declared with a `function` statement placed **immediately after the imports and
+before the component's props type / component declaration**, never after the component and never
+after the `export`. A reader must encounter a helper before its first call site.
+
+This is the opposite of the `.ts` convention in `code-style.md` ("private helpers below the public
+API"), which continues to apply to non-component `.ts` files unchanged. The two conventions are
+explicitly scoped: helpers go **above** the component in `.tsx`, **below** the public API in `.ts`.
+
+```tsx
+// Good - helper declared above the component it serves
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+}
+
+const ClientCard = ({ client }: ClientCardProps) => {
+  return <Avatar>{getInitials(client.name)}</Avatar>
+}
+
+export { ClientCard }
+
+// Bad - helper after the component and after the export; reader meets the call first
+const ClientCard = ({ client }: ClientCardProps) => {
+  return <Avatar>{getInitials(client.name)}</Avatar>
+}
+
+export { ClientCard }
+
+function getInitials(name: string): string {
+  // ...
+}
+```
+
 ## Component body shape
 
 Mirror the closest component in the same feature. The common body order is translation/context

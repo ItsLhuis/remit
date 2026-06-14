@@ -6,22 +6,37 @@ paths:
 
 # Code Style Rules
 
-## Local precedent first
+## Canonical exemplar first, then nearest local file
 
-The author's strongest habit is local imitation. Before adding or reshaping code, inspect the
-nearest comparable file in the same feature and layer, then mirror its order, spacing, naming, and
-export style. Prefer the local pattern over an abstract rule when they conflict.
+"Local precedent" no longer means "the nearest file." Each file category has one canonical exemplar.
+Match the exemplar for its category, then fall back to the nearest comparable file in the same
+feature and layer for anything the exemplar does not cover. Where two files of the same role
+disagree, the canonical exemplar wins, not the nearest neighbor.
 
-This matters most for:
+| Category                         | Canonical exemplar                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| `*Page` (server, foldered)       | `features/settings/business/components/BusinessSettingsPage/BusinessSettingsPage.tsx`    |
+| Form component                   | `features/clients/components/ClientForm/ClientForm.tsx` (returns/structure) + `forms.md` |
+| Dialog                           | `features/settings/security/components/TotpReconfigureDialog/`                           |
+| List/table page                  | `features/clients/components/ClientsListPage/ClientsListPage.tsx`                        |
+| `mutations.ts`                   | `features/settings/business/mutations.ts`                                                |
+| `queries.ts`                     | `features/clients/queries.ts`                                                            |
+| `schemas.ts`                     | `features/clients/schemas.ts`                                                            |
+| `services/*.ts`                  | `features/clients/services/clientHealth.ts`                                              |
+| `services/__tests__/*`           | `features/clients/services/__tests__/clientHealth.test.ts`                               |
+| feature `index.ts` / `server.ts` | `features/clients/index.ts` / `features/clients/server.ts`                               |
+| component barrel                 | any settings `components/index.ts` (`export * from "./X"`)                               |
 
-- Import grouping and blank lines.
-- Whether a component is a compact expression body or a block with `return`.
-- Whether helpers sit before or after exported functions.
-- Barrel export order.
-- How many blank lines separate hooks and derived values.
+Match the exemplar for: import grouping and blank lines, whether a component is a compact expression
+body or a block with `return`, whether helpers sit before or after the component, barrel export
+order, and how many blank lines separate hooks and derived values.
 
-Local precedent does not override architecture boundaries. Do not copy a local helper when the
-helper is generic infrastructure and belongs in `lib/utils/`.
+Barrels use `export * from "./X"` in component folders, alphabetized. Feature root `index.ts` may
+use curated named groups (components first, then schemas, then types) and is client-safe;
+server-only exports go in `server.ts`.
+
+The canonical exemplar does not override architecture boundaries. Do not copy a local helper when
+the helper is generic infrastructure and belongs in `lib/utils/`.
 
 ## File-level organization
 
@@ -46,6 +61,10 @@ After imports, files usually follow this order:
 3. The main exported function/component when it is the file's public API.
 4. Private helpers below the public API when they exist only to support that API.
 5. Bottom named export blocks for components and UI primitives.
+
+This ordering applies to non-component `.ts` files. In `.tsx` component files the rule inverts:
+file-private `function` helpers go **above** the component, immediately after the imports — see
+`components.md` ("File-private helpers in `.tsx`").
 
 There are layer-specific exceptions:
 
@@ -178,7 +197,13 @@ Use a blank line between:
 - Guards and the next body section.
 - Database reads, derived values, and writes.
 - Logger calls and the following return.
-- JSX sections such as a header block, form, and footer/progress block.
+- Hooks/derived-values/handlers and the `return` statement.
+
+JSX `return (...)` trees contain **no blank lines**, regardless of how many logical sections the
+markup has. Visual separation of sections is achieved by **component decomposition** (extract a
+named sub-component per `components.md`), not by blank lines. Blank lines remain correct _between_
+hooks/derived-values/handlers and the `return` statement; they are never used _inside_ the returned
+element. The `BusinessSettingsPage` worked example below already demonstrates the no-blank rule.
 
 Do not add blank lines inside compact object literals unless the file already groups fields by
 section. Database schemas are an exception: large tables use blank lines and comments to separate

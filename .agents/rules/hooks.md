@@ -15,6 +15,10 @@ paths:
 - Export directly on the function declaration; never use a separate `export { }` block at the
   bottom.
 - Shared hooks live in `hooks/`. Feature-scoped hooks live alongside their feature components.
+- `hooks/` carries an `index.ts` barrel (`export * from "./useX"`, alphabetized), like every other
+  shared folder. Consumers import through it (`import { useScroll } from "@/hooks"`), never by
+  direct file path. Sibling hooks inside `hooks/` import each other by direct relative path
+  (`./useX`), not through the barrel, to avoid a self-cycle. See `imports.md`.
 
 Shared hooks are for behavior reused across features. If the hook depends on a feature's schema,
 translation namespace, mutation, or component state model, keep it feature-scoped until at least

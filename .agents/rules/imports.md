@@ -26,22 +26,26 @@ Do not collapse unrelated internal imports into one large `@/` block. In this co
 `@/lib/i18n`, `@/lib/auth`, `@/lib/logger`, `@/database`, `@/lib/utils`, hooks, UI, and feature
 imports are often visually separated because they play different roles.
 
-## Typical ordering
+## Group order
 
-Use this as a default, then let the nearest local precedent win:
+Imports follow this group order, each group its own paragraph separated by a blank line:
 
-1. React imports, after `"use client"` when present.
-2. Next.js imports that are fundamental to the component or route.
-3. External packages that form a cohesive concern.
-4. Internal services/utilities, grouped by role rather than alphabetically.
-5. Database imports when the file performs data access.
-6. Feature imports.
-7. Relative imports for sibling components, local schemas, local services, and local types.
-8. Side-effect imports such as CSS at the end of the import block.
+1. `"use server"` / `"use client"` directive.
+2. React (`react`), after the directive.
+3. Next core (`next/cache`, `next/headers`, `next/navigation`) — each its own paragraph.
+4. External cohesive concern (`drizzle-orm`; or the form triad `@hookform/resolvers/zod` +
+   `react-hook-form` kept adjacent to the local schema import in forms).
+5. `@/lib/i18n` (translation).
+6. `@/lib/auth`, `@/lib/audit`, `@/lib/events`, `@/lib/logger` — each role its own paragraph.
+7. `@/lib/utils`.
+8. `@/database` + `@/database/schema` (adjacent).
+9. `@/components/ui`, then `@/components/layout`.
+10. Relative feature-local imports (`./events`, `./queries`, `./schemas`, `./types`) last.
 
-Ordering is contextual, not strictly alphabetical. For example, a form component commonly keeps the
-resolver, `Controller`/`useForm`, and its schema together even though that mixes external and
-relative imports:
+Where two files of the same role disagree, the canonical exemplar (`code-style.md`) wins, not the
+nearest neighbor. The only sanctioned adjacency exception is the form triad
+(`@hookform/resolvers/zod` + `react-hook-form` + the local schema kept together), which mixes
+external and relative imports on purpose:
 
 ```tsx
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -146,3 +150,23 @@ with a blank line between sections. Small folder barrels usually export the fold
 component only.
 
 Feature root `index.ts` is client-safe. Server-only exports belong in `server.ts`.
+
+## Root utility folders use a barrel
+
+Every shared root folder carries an `index.ts` barrel and is imported through it, with no
+exceptions. `hooks/` and `providers/` follow the same rule as `components/`, `lib/utils/`, and
+`features/*`: barrel present, consumers import through it.
+
+```ts
+// Good - import through the folder barrel
+import { useScroll } from "@/hooks"
+
+import { AppearanceProvider } from "@/providers"
+
+// Bad - direct file path bypasses the barrel
+import { useScroll } from "@/hooks/useScroll"
+```
+
+The barrel uses `export * from "./X"`, alphabetized. Sibling files inside the folder import each
+other by direct relative path (`./useLocalStorage`), never through their own barrel, to avoid a
+self-cycle.
