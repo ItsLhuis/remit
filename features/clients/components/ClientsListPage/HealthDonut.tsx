@@ -1,6 +1,6 @@
 "use client"
 
-import { Cell, Pie, PieChart } from "recharts"
+import { Pie, PieChart } from "recharts"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -36,19 +36,19 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
       key: "owing",
       label: t("clients.health.owing"),
       value: distribution.owing,
-      color: "var(--chart-5)"
+      fill: "var(--chart-5)"
     },
     {
       key: "settled",
       label: t("clients.health.settled"),
       value: distribution.settled,
-      color: "var(--chart-3)"
+      fill: "var(--chart-3)"
     },
     {
       key: "dormant",
       label: t("clients.health.dormant"),
       value: distribution.dormant,
-      color: "var(--chart-1)"
+      fill: "var(--chart-1)"
     }
   ]
 
@@ -78,11 +78,7 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
               outerRadius={42}
               strokeWidth={2}
               paddingAngle={2}
-            >
-              {segments.map((segment) => (
-                <Cell key={segment.key} fill={segment.color} />
-              ))}
-            </Pie>
+            />
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -97,7 +93,7 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
             <span className="flex items-center gap-1.5">
               <span
                 className="size-2 rounded-full"
-                style={{ backgroundColor: segment.color }}
+                style={{ backgroundColor: segment.fill }}
                 aria-hidden="true"
               />
               <Typography affects={["muted", "tiny"]}>{segment.label}</Typography>

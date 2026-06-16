@@ -1,3 +1,5 @@
+import { type ProjectListItem } from "@/features/projects"
+
 import { type ClientBillingPoint, type ClientsSummary, type ClientHealth } from "./services"
 import { type ClientFormValues, type ClientListQuery } from "./schemas"
 
@@ -49,6 +51,7 @@ export type ClientDetail = {
   updatedAt: Date
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
+  projects: ProjectListItem[]
 }
 
 export type ClientFormData = ClientFormValues & {

@@ -36,8 +36,6 @@ import { FormSection } from "./FormSection"
 type ClientFormCallbacks = {
   onSuccess?: (client: { id: string }) => void
   onCancel?: () => void
-  // "page" keeps the buttons in document flow; "panel" fills its container, scrolling the fields in
-  // a ScrollArea and pinning the actions to the bottom (used inside Sheet/Dialog).
   layout?: "page" | "panel"
 }
 
@@ -84,8 +82,6 @@ const ClientForm = (props: ClientFormProps) => {
   }, [props])
 
   const form = useForm<ClientFormInputValues, unknown, ClientFormValues>({
-    // onChange (not the forms.md onBlur default) because submitDisabled below derives from live
-    // isValid/isDirty to keep the save button in sync as the user edits.
     resolver: zodResolver(clientFormSchema),
     mode: "onChange",
     defaultValues

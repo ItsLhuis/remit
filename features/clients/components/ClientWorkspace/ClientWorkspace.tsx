@@ -47,9 +47,11 @@ import {
   toast
 } from "@/components/ui"
 
+import { ClientProjectsPanel } from "@/features/projects"
+
 import { softDeleteClient } from "../../mutations"
-import { formatLocation, toClientFormData } from "../../services"
-import { type ClientDetail } from "../../types"
+import { formatLocation } from "../../services"
+import { type ClientDetail, type ClientFormData } from "../../types"
 
 import { ClientFormSheet } from "../ClientFormSheet"
 import { ClientHealthBadge } from "../ClientHealthBadge"
@@ -62,11 +64,13 @@ import { TeachingEmpty } from "./TeachingEmpty"
 
 type ClientWorkspaceProps = {
   client: ClientDetail
+  formData: ClientFormData
   locale: string
 }
 
-const ClientWorkspace = ({ client, locale }: ClientWorkspaceProps) => {
+const ClientWorkspace = ({ client, formData, locale }: ClientWorkspaceProps) => {
   const { t } = useTranslation()
+
   const router = useRouter()
 
   const [editOpen, setEditOpen] = useState(false)
@@ -117,7 +121,7 @@ const ClientWorkspace = ({ client, locale }: ClientWorkspaceProps) => {
       <div className="flex w-full flex-col gap-6 p-4 md:p-8">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:hidden" />
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground -ml-1.5">
+          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
             <Link href="/clients">
               <Icon name="ArrowLeft" aria-hidden="true" />
               {t("clients.detail.backToClients")}
@@ -321,10 +325,12 @@ const ClientWorkspace = ({ client, locale }: ClientWorkspaceProps) => {
                 />
               </TabsContent>
               <TabsContent value="projects">
-                <TeachingEmpty
-                  icon="FolderKanban"
-                  title={t("clients.detail.projectsEmptyTitle")}
-                  description={t("clients.detail.projectsEmptyDescription")}
+                <ClientProjectsPanel
+                  clientId={client.id}
+                  clientName={client.name}
+                  clientCurrency={client.currency}
+                  projects={client.projects}
+                  locale={locale}
                 />
               </TabsContent>
               <TabsContent value="activity">
@@ -419,7 +425,7 @@ const ClientWorkspace = ({ client, locale }: ClientWorkspaceProps) => {
       </div>
       <ClientFormSheet
         mode="edit"
-        client={toClientFormData(client)}
+        client={formData}
         open={editOpen}
         onOpenChange={setEditOpen}
         onSuccess={() => router.refresh()}

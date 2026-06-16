@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 
 import { t } from "@/lib/i18n/server"
 
-import { getClientDefaults, getClientDetail } from "@/features/clients/server"
+import { getClientDefaults, getClientDetail, getClientForEdit } from "@/features/clients/server"
 
 import { ClientDetailPage } from "@/features/clients"
 
@@ -19,14 +19,15 @@ type ClientDetailRouteProps = {
 const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
   const { clientId } = await params
 
-  const [client, defaults] = await Promise.all([
+  const [client, formData, defaults] = await Promise.all([
     getClientDetail({ id: clientId }),
+    getClientForEdit({ id: clientId }),
     getClientDefaults()
   ])
 
-  if (!client) notFound()
+  if (!client || !formData) notFound()
 
-  return <ClientDetailPage client={client} locale={defaults.defaultLocale} />
+  return <ClientDetailPage client={client} formData={formData} locale={defaults.defaultLocale} />
 }
 
 export default ClientDetailRoute

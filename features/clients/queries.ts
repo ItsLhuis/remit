@@ -20,6 +20,8 @@ import {
 import { database } from "@/database"
 import { clients, invoices, payments, projects, recurringInvoices } from "@/database/schema"
 
+import { listProjectsByClient } from "@/features/projects/server"
+
 import {
   clientIdSchema,
   parseClientListQuery,
@@ -55,6 +57,12 @@ export type ClientListRow = {
   invoiceCount: number
   createdAt: Date
   deletedAt: Date | null
+}
+
+export type ClientOption = {
+  id: string
+  name: string
+  currency: string
 }
 
 type ClientDetailRow = typeof clients.$inferSelect
@@ -217,19 +225,47 @@ export async function getClientDetail(input: unknown): Promise<ClientDetail | nu
 
   const now = new Date()
 
-  const [outstandingBalanceCents, relatedResources, billingTrend] = await Promise.all([
-    getOutstandingBalanceCents(client.id),
-    getClientRelatedResourceCounts(client.id),
-    getClientBillingTrend(client.id, now)
-  ])
+  const [outstandingBalanceCents, relatedResources, billingTrend, clientProjects] =
+    await Promise.all([
+      getOutstandingBalanceCents(client.id),
+      getClientRelatedResourceCounts(client.id),
+      getClientBillingTrend(client.id, now),
+      listProjectsByClient(client.id, client.currency ?? defaults.defaultCurrency)
+    ])
 
   return toClientDetail(
     client,
     outstandingBalanceCents,
     relatedResources,
     billingTrend,
+    clientProjects,
     defaults.defaultCurrency
   )
+}
+
+export async function getClient(input: unknown): Promise<ClientOption | null> {
+  const parsed = clientIdSchema.safeParse(input)
+
+  if (!parsed.success) return null
+
+  const row = await database.query.clients.findFirst({
+    where: and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt)),
+    columns: { id: true, name: true, currency: true }
+  })
+
+  if (!row) return null
+
+  return { id: row.id, name: row.name, currency: row.currency ?? "EUR" }
+}
+
+export async function listClientOptions(): Promise<ClientOption[]> {
+  const rows = await database
+    .select({ id: clients.id, name: clients.name, currency: clients.currency })
+    .from(clients)
+    .where(isNull(clients.deletedAt))
+    .orderBy(asc(clients.name))
+
+  return rows.map((row) => ({ id: row.id, name: row.name, currency: row.currency ?? "EUR" }))
 }
 
 export async function getClientForEdit(input: unknown): Promise<ClientFormData | null> {
@@ -495,6 +531,7 @@ function toClientDetail(
   outstandingBalanceCents: number,
   relatedResources: ClientRelatedResourceCounts,
   billingTrend: ClientBillingPoint[],
+  projects: ClientDetail["projects"],
   defaultCurrency: string
 ): ClientDetail {
   return {
@@ -523,6 +560,7 @@ function toClientDetail(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     relatedResources,
-    billingTrend
+    billingTrend,
+    projects
   }
 }

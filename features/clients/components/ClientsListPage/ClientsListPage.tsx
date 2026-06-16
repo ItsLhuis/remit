@@ -235,8 +235,8 @@ const ClientsListPage = ({ data }: ClientsListPageProps) => {
                   {t("clients.list.count", { count: data.rowCount })}
                 </Typography>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                <div className="relative w-full sm:w-56">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="relative w-full sm:w-64">
                   <Icon
                     name="Search"
                     className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"

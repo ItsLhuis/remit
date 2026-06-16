@@ -24,5 +24,3 @@ export {
 } from "./buildClientBillingTrend"
 
 export { formatLocation } from "./formatLocation"
-
-export { toClientFormData } from "./toClientFormData"
