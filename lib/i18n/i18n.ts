@@ -8,6 +8,8 @@ import { getTranslationResources } from "./resources"
 import { type Translations } from "./types"
 
 declare module "i18next" {
+  // Module augmentation requires `interface`; `type` cannot merge into the library declaration.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface CustomTypeOptions {
     defaultNS: "translation"
     resources: {

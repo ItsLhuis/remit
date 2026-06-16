@@ -1,4 +1,4 @@
-import { DEMO_SEED_SIZES, RESEED_CHECK_TABLES, SEEDED_TABLES } from "./inventory"
+import { type DEMO_SEED_SIZES, type RESEED_CHECK_TABLES, type SEEDED_TABLES } from "./inventory"
 
 export type SeededTableName = (typeof SEEDED_TABLES)[number]
 export type ReseedCheckTableName = (typeof RESEED_CHECK_TABLES)[number]
