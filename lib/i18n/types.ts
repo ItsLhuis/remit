@@ -389,6 +389,7 @@ export type Translations = {
     }
     navigation: {
       dashboard: string
+      leads: string
       clients: string
       projects: string
       proposals: string
@@ -597,6 +598,314 @@ export type Translations = {
       websiteInvalid: string
       currencyInvalid: string
       countryInvalid: string
+      idInvalid: string
+    }
+  }
+  leads: {
+    metadata: {
+      list: string
+      create: string
+      detail: string
+      edit: string
+    }
+    actions: {
+      create: string
+      edit: string
+      delete: string
+      convert: string
+    }
+    fields: {
+      name: string
+      firstName: string
+      lastName: string
+      company: string
+      email: string
+      phone: string
+      source: string
+      status: string
+      notes: string
+      lostReason: string
+    }
+    placeholders: {
+      firstName: string
+      lastName: string
+      company: string
+      email: string
+      phone: string
+      source: string
+      notes: string
+      lostReason: string
+    }
+    status: {
+      new: string
+      contacted: string
+      qualified: string
+      proposal_sent: string
+      won: string
+      lost: string
+    }
+    statusFilter: {
+      active: string
+      deleted: string
+      all: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      newThisMonthDelta: string
+      open: string
+      openHint: string
+      won: string
+      wonHint: string
+      converted: string
+      convertedHint: string
+      trendTotalLabel: string
+      trendNewLabel: string
+    }
+    filters: {
+      title: string
+      search: string
+      searchPlaceholder: string
+      status: string
+      reset: string
+    }
+    list: {
+      title: string
+      description: string
+      tableTitle: string
+      count: string
+      created: string
+      actions: string
+      viewLead: string
+      copyEmail: string
+      emailCopied: string
+      bulkDelete: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      contactSection: string
+      contactDescription: string
+      pipelineSection: string
+      pipelineDescription: string
+      notesSection: string
+      notesDescription: string
+      saveCreate: string
+      saveEdit: string
+      created: string
+      updated: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    detail: {
+      backToLeads: string
+      backToLead: string
+      since: string
+      quickEmail: string
+      convertedBadge: string
+      contactTitle: string
+      updatedLabel: string
+      emptyValue: string
+      statStage: string
+      statStageHint: string
+      statSourceHint: string
+      statConverted: string
+      statConvertedHint: string
+      convertedYes: string
+      convertedNo: string
+      pipelineTitle: string
+      currentStage: string
+      viewClient: string
+      lostReasonTitle: string
+      notesTitle: string
+      notesEmpty: string
+      editDetails: string
+    }
+    stage: {
+      changed: string
+      terminal: string
+      moveTo: string
+      lostTitle: string
+      lostDescription: string
+      markLost: string
+    }
+    convert: {
+      title: string
+      description: string
+      clientName: string
+      currency: string
+      confirm: string
+      converted: string
+    }
+    errors: {
+      notFound: string
+      updateFailed: string
+      invalidTransition: string
+      alreadyConverted: string
+    }
+    validation: {
+      textTooLong: string
+      emailRequired: string
+      emailInvalid: string
+      emailTooLong: string
+      nameRequired: string
+      lostReasonRequired: string
+      idInvalid: string
+      clientNameRequired: string
+      currencyInvalid: string
+    }
+  }
+  projects: {
+    metadata: {
+      list: string
+      create: string
+      detail: string
+      edit: string
+    }
+    actions: {
+      create: string
+      edit: string
+      delete: string
+    }
+    fields: {
+      name: string
+      client: string
+      status: string
+      budget: string
+      hourlyRate: string
+      startDate: string
+      endDate: string
+      description: string
+      currency: string
+    }
+    placeholders: {
+      name: string
+      client: string
+      amount: string
+      description: string
+    }
+    status: {
+      active: string
+      on_hold: string
+      completed: string
+      cancelled: string
+    }
+    statusFilter: {
+      active: string
+      deleted: string
+      all: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      newThisMonthDelta: string
+      active: string
+      activeHint: string
+      onHold: string
+      onHoldHint: string
+      completed: string
+      completedHint: string
+      trendTotalLabel: string
+      trendNewLabel: string
+    }
+    filters: {
+      title: string
+      search: string
+      searchPlaceholder: string
+      status: string
+      reset: string
+    }
+    list: {
+      title: string
+      description: string
+      tableTitle: string
+      count: string
+      created: string
+      actions: string
+      viewProject: string
+      bulkDelete: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      detailsSection: string
+      detailsDescription: string
+      budgetSection: string
+      budgetDescription: string
+      descriptionSection: string
+      descriptionDescription: string
+      saveCreate: string
+      saveEdit: string
+      created: string
+      updated: string
+      noClientsTitle: string
+      noClientsDescription: string
+      createClient: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    detail: {
+      backToProjects: string
+      backToProject: string
+      since: string
+      updatedLabel: string
+      emptyValue: string
+      statStatus: string
+      statStatusHint: string
+      statBudgetHint: string
+      statHourlyRateHint: string
+      overviewTitle: string
+      statusTitle: string
+      currentStatus: string
+      descriptionTitle: string
+      descriptionEmpty: string
+      editDetails: string
+    }
+    stage: {
+      changed: string
+      terminal: string
+      moveTo: string
+    }
+    clientPanel: {
+      title: string
+      create: string
+      emptyTitle: string
+      emptyDescription: string
+    }
+    errors: {
+      notFound: string
+      clientNotFound: string
+      updateFailed: string
+      invalidTransition: string
+    }
+    validation: {
+      amountInvalid: string
+      dateInvalid: string
+      descriptionTooLong: string
+      clientRequired: string
+      nameRequired: string
+      nameTooLong: string
+      endBeforeStart: string
       idInvalid: string
     }
   }

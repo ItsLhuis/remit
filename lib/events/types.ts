@@ -47,4 +47,47 @@ export type EventMap = {
     clientId: string
     userId: string
   }
+  "lead.created": {
+    leadId: string
+    userId: string
+  }
+  "lead.updated": {
+    leadId: string
+    userId: string
+    changedFields: string[]
+  }
+  "lead.deleted": {
+    leadId: string
+    userId: string
+  }
+  "lead.stage_changed": {
+    leadId: string
+    userId: string
+    from: string
+    to: string
+  }
+  "lead.converted": {
+    leadId: string
+    userId: string
+    clientId: string
+  }
+  "project.created": {
+    projectId: string
+    userId: string
+  }
+  "project.updated": {
+    projectId: string
+    userId: string
+    changedFields: string[]
+  }
+  "project.deleted": {
+    projectId: string
+    userId: string
+  }
+  "project.status_changed": {
+    projectId: string
+    userId: string
+    from: string
+    to: string
+  }
 }

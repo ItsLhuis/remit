@@ -408,6 +408,7 @@ export const english: Language = {
       },
       navigation: {
         dashboard: "Dashboard",
+        leads: "Leads",
         clients: "Clients",
         projects: "Projects",
         proposals: "Proposals",
@@ -624,6 +625,322 @@ export const english: Language = {
         currencyInvalid: "Select a valid ISO 4217 currency.",
         countryInvalid: "Select a valid country.",
         idInvalid: "Invalid client."
+      }
+    },
+    leads: {
+      metadata: {
+        list: "Leads",
+        create: "Create lead",
+        detail: "Lead",
+        edit: "Edit lead"
+      },
+      actions: {
+        create: "Create lead",
+        edit: "Edit",
+        delete: "Delete",
+        convert: "Convert to client"
+      },
+      fields: {
+        name: "Name",
+        firstName: "First name",
+        lastName: "Last name",
+        company: "Company",
+        email: "Email",
+        phone: "Phone",
+        source: "Source",
+        status: "Stage",
+        notes: "Notes",
+        lostReason: "Lost reason"
+      },
+      placeholders: {
+        firstName: "Jane",
+        lastName: "Doe",
+        company: "Acme Studio",
+        email: "jane@example.com",
+        phone: "+1 555 0100",
+        source: "Referral, website, event",
+        notes: "Context, requirements, or next steps",
+        lostReason: "Why was this lead lost?"
+      },
+      status: {
+        new: "New",
+        contacted: "Contacted",
+        qualified: "Qualified",
+        proposal_sent: "Proposal sent",
+        won: "Won",
+        lost: "Lost"
+      },
+      statusFilter: {
+        active: "Active",
+        deleted: "Deleted",
+        all: "All"
+      },
+      summary: {
+        total: "Total leads",
+        totalHint: "in your pipeline",
+        newThisMonthDelta: "+{count, plural, one {# this month} other {# this month}}",
+        open: "Open",
+        openHint: "still in the pipeline",
+        won: "Won",
+        wonHint: "marked as won",
+        converted: "Converted",
+        convertedHint: "turned into clients",
+        trendTotalLabel: "Total leads",
+        trendNewLabel: "New leads"
+      },
+      filters: {
+        title: "Filters",
+        search: "Search",
+        searchPlaceholder: "Search by name, company, or email",
+        status: "Status",
+        reset: "Reset"
+      },
+      list: {
+        title: "Leads",
+        description: "Track prospects from first contact through to qualified opportunities.",
+        tableTitle: "Lead records",
+        count: "{count, plural, one {# lead} other {# leads}}",
+        created: "Created",
+        actions: "Actions",
+        viewLead: "View lead",
+        copyEmail: "Copy email",
+        emailCopied: "Email copied",
+        bulkDelete: "Delete selected",
+        emptyTitle: "No leads yet",
+        emptyDescription: "Capture your first lead to start building your pipeline.",
+        noMatchTitle: "No leads match your filters",
+        noMatchDescription: "Try a different search term or clear the active filters."
+      },
+      form: {
+        createTitle: "Create lead",
+        createDescription: "Capture a new prospect and place them in your pipeline.",
+        editTitle: "Edit lead",
+        editDescription: "Update this lead's contact and pipeline details.",
+        contactSection: "Contact",
+        contactDescription: "Who the lead is and how to reach them.",
+        pipelineSection: "Pipeline",
+        pipelineDescription: "Where this lead came from and its current stage.",
+        notesSection: "Notes",
+        notesDescription: "Internal notes for context on this lead.",
+        saveCreate: "Create lead",
+        saveEdit: "Save lead",
+        created: "Lead created",
+        updated: "Lead updated"
+      },
+      delete: {
+        title: "Delete lead",
+        description:
+          "Delete {name}? The lead will be hidden from normal lists and can be restored from retained data.",
+        confirm: "Delete lead",
+        deleted: "Lead deleted"
+      },
+      detail: {
+        backToLeads: "Back to leads",
+        backToLead: "Back to lead",
+        since: "Lead since {date}",
+        quickEmail: "Email",
+        convertedBadge: "Converted",
+        contactTitle: "Contact",
+        updatedLabel: "Last updated",
+        emptyValue: "Not provided",
+        statStage: "Current stage",
+        statStageHint: "Pipeline position",
+        statSourceHint: "How they found you",
+        statConverted: "Conversion",
+        statConvertedHint: "Not yet a client",
+        convertedYes: "Converted",
+        convertedNo: "Not converted",
+        pipelineTitle: "Pipeline",
+        currentStage: "Current stage",
+        viewClient: "View client",
+        lostReasonTitle: "Lost reason",
+        notesTitle: "Notes",
+        notesEmpty: "No notes yet",
+        editDetails: "Edit details"
+      },
+      stage: {
+        changed: "Stage updated",
+        terminal: "This lead has reached a final stage.",
+        moveTo: "Move to {stage}",
+        lostTitle: "Mark lead as lost",
+        lostDescription: "Record why this lead was lost for future reference.",
+        markLost: "Mark as lost"
+      },
+      convert: {
+        title: "Convert to client",
+        description: "Create a client record from this lead. The lead is kept for reference.",
+        clientName: "Client name",
+        currency: "Currency",
+        confirm: "Convert to client",
+        converted: "Lead converted to client"
+      },
+      errors: {
+        notFound: "Lead not found",
+        updateFailed: "Failed to update lead",
+        invalidTransition: "That stage change is not allowed",
+        alreadyConverted: "This lead has already been converted"
+      },
+      validation: {
+        textTooLong:
+          "This field must be {count, plural, one {# character} other {# characters}} or fewer.",
+        emailRequired: "Email is required.",
+        emailInvalid: "Enter a valid email address.",
+        emailTooLong:
+          "Email must be {count, plural, one {# character} other {# characters}} or fewer.",
+        nameRequired: "Enter a first name, last name, or company.",
+        lostReasonRequired: "Add a reason when marking a lead as lost.",
+        idInvalid: "Invalid lead.",
+        clientNameRequired: "Client name is required.",
+        currencyInvalid: "Select a valid ISO 4217 currency."
+      }
+    },
+    projects: {
+      metadata: {
+        list: "Projects",
+        create: "Create project",
+        detail: "Project",
+        edit: "Edit project"
+      },
+      actions: {
+        create: "Create project",
+        edit: "Edit",
+        delete: "Delete"
+      },
+      fields: {
+        name: "Name",
+        client: "Client",
+        status: "Status",
+        budget: "Budget",
+        hourlyRate: "Hourly rate",
+        startDate: "Start date",
+        endDate: "End date",
+        description: "Description",
+        currency: "Currency"
+      },
+      placeholders: {
+        name: "Website redesign",
+        client: "Select a client",
+        amount: "0.00",
+        description: "Scope, deliverables, or context for this project"
+      },
+      status: {
+        active: "Active",
+        on_hold: "On hold",
+        completed: "Completed",
+        cancelled: "Cancelled"
+      },
+      statusFilter: {
+        active: "Active",
+        deleted: "Deleted",
+        all: "All"
+      },
+      summary: {
+        total: "Total projects",
+        totalHint: "across all clients",
+        newThisMonthDelta: "+{count, plural, one {# this month} other {# this month}}",
+        active: "Active",
+        activeHint: "currently in progress",
+        onHold: "On hold",
+        onHoldHint: "paused for now",
+        completed: "Completed",
+        completedHint: "delivered and closed",
+        trendTotalLabel: "Total projects",
+        trendNewLabel: "New projects"
+      },
+      filters: {
+        title: "Filters",
+        search: "Search",
+        searchPlaceholder: "Search by project or client",
+        status: "Status",
+        reset: "Reset"
+      },
+      list: {
+        title: "Projects",
+        description: "Track the work you deliver for each client from kickoff to completion.",
+        tableTitle: "Project records",
+        count: "{count, plural, one {# project} other {# projects}}",
+        created: "Created",
+        actions: "Actions",
+        viewProject: "View project",
+        bulkDelete: "Delete selected",
+        emptyTitle: "No projects yet",
+        emptyDescription: "Create your first project to start tracking client work.",
+        noMatchTitle: "No projects match your filters",
+        noMatchDescription: "Try a different search term or clear the active filters."
+      },
+      form: {
+        createTitle: "Create project",
+        createDescription: "Set up a new project and assign it to a client.",
+        editTitle: "Edit project",
+        editDescription: "Update this project's details and budget.",
+        detailsSection: "Details",
+        detailsDescription: "What the project is and which client it belongs to.",
+        budgetSection: "Budget & schedule",
+        budgetDescription:
+          "Optional budget, hourly rate, and timeline. Amounts use the client's currency.",
+        descriptionSection: "Description",
+        descriptionDescription: "Internal notes about scope and deliverables.",
+        saveCreate: "Create project",
+        saveEdit: "Save project",
+        created: "Project created",
+        updated: "Project updated",
+        noClientsTitle: "No clients yet",
+        noClientsDescription:
+          "Projects belong to a client. Create a client first to start a project.",
+        createClient: "Create client"
+      },
+      delete: {
+        title: "Delete project",
+        description:
+          "Delete {name}? The project will be hidden from normal lists and can be restored from retained data.",
+        confirm: "Delete project",
+        deleted: "Project deleted"
+      },
+      detail: {
+        backToProjects: "Back to projects",
+        backToProject: "Back to project",
+        since: "Created {date}",
+        updatedLabel: "Last updated",
+        emptyValue: "Not set",
+        statStatus: "Status",
+        statStatusHint: "Current state",
+        statBudgetHint: "Planned budget",
+        statHourlyRateHint: "Billing rate",
+        overviewTitle: "Overview",
+        statusTitle: "Status",
+        currentStatus: "Current status",
+        descriptionTitle: "Description",
+        descriptionEmpty: "No description yet",
+        editDetails: "Edit details"
+      },
+      stage: {
+        changed: "Status updated",
+        terminal: "This project has reached a final status.",
+        moveTo: "Move to {stage}"
+      },
+      clientPanel: {
+        title: "Projects",
+        create: "New project",
+        emptyTitle: "No projects yet",
+        emptyDescription: "Start a project to track the work you deliver for this client."
+      },
+      errors: {
+        notFound: "Project not found",
+        clientNotFound: "Client not found",
+        updateFailed: "Failed to update project",
+        invalidTransition: "That status change is not allowed"
+      },
+      validation: {
+        amountInvalid: "Enter a valid amount such as 1500 or 1500.00.",
+        dateInvalid: "Enter a valid date.",
+        descriptionTooLong:
+          "Description must be {count, plural, one {# character} other {# characters}} or fewer.",
+        clientRequired: "Select a client.",
+        nameRequired: "Project name is required.",
+        nameTooLong:
+          "Name must be {count, plural, one {# character} other {# characters}} or fewer.",
+        endBeforeStart: "End date must be on or after the start date.",
+        idInvalid: "Invalid project."
       }
     },
     setup: {
