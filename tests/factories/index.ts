@@ -1,5 +1,6 @@
 export * from "./clients"
 export * from "./invoices"
+export * from "./leads"
 export * from "./organizations"
 export * from "./payments"
 export * from "./projects"

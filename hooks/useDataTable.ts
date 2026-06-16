@@ -1,6 +1,13 @@
 "use client"
 
-import { type ReactNode, type TransitionStartFunction, useMemo, useState } from "react"
+import {
+  type ReactNode,
+  type TransitionStartFunction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react"
 
 import {
   type ColumnDef,
@@ -28,7 +35,8 @@ import { getSortingStateParser } from "@/lib/utils"
 import { useLocalStorage } from "./useLocalStorage"
 
 declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Module augmentation requires `interface`; `type` cannot merge into the library declaration.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/consistent-type-definitions
   interface ColumnMeta<TData extends RowData, TValue> {
     label?: string
     variant?: DataTableFilterVariant
@@ -158,6 +166,24 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
   const [rowSelection, setRowSelection] = useState<RowSelectionState>(
     initialState?.rowSelection ?? {}
   )
+
+  const syncedRef = useRef(false)
+
+  useEffect(() => {
+    if (syncedRef.current || !pageSizeStorageKey) return
+
+    const urlParams = new URLSearchParams(window.location.search)
+
+    if (urlParams.has("perPage")) {
+      syncedRef.current = true
+      return
+    }
+
+    if (storedPageSize !== DEFAULT_PAGE_SIZE) {
+      void setPerPage(storedPageSize)
+      syncedRef.current = true
+    }
+  }, [storedPageSize, pageSizeStorageKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPaginationChange = (updater: Updater<PaginationState>) => {
     const next = typeof updater === "function" ? updater(pagination) : updater

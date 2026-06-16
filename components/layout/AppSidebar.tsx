@@ -63,6 +63,7 @@ import { SignOutDialog } from "@/features/auth/components/SignOutDialog"
 
 const mainNavItems = [
   { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },
+  { labelKey: "app.navigation.leads", href: "/leads", icon: "Target" as const },
   { labelKey: "app.navigation.clients", href: "/clients", icon: "Users" as const },
   { labelKey: "app.navigation.projects", href: "/projects", icon: "FolderOpen" as const },
   { labelKey: "app.navigation.proposals", href: "/proposals", icon: "FileText" as const },

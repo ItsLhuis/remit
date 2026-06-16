@@ -116,14 +116,14 @@ const CountrySelect = memo(
         <SelectContent>
           <SelectGroup>
             {options
-              .filter((opt) => opt.value)
+              .filter((opt): opt is typeof opt & { value: RPNInput.Country } => Boolean(opt.value))
               .map((opt) => (
-                <SelectItem key={opt.value} value={opt.value!}>
+                <SelectItem key={opt.value} value={opt.value}>
                   <div className="flex w-full items-center gap-2">
-                    <FlagCircle country={opt.value!} countryName={opt.label} />
+                    <FlagCircle country={opt.value} countryName={opt.label} />
                     <span>{opt.label}</span>
                     <span className="text-muted-foreground ml-auto text-sm">
-                      +{RPNInput.getCountryCallingCode(opt.value!)}
+                      +{RPNInput.getCountryCallingCode(opt.value)}
                     </span>
                   </div>
                 </SelectItem>

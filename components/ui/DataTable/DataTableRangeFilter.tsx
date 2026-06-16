@@ -36,22 +36,26 @@ const DataTableRangeFilter = <TData, TValue>({
   const [localMin, setLocalMin] = useState(() => centsToMajor(min))
   const [localMax, setLocalMax] = useState(() => centsToMajor(max))
 
-  // Sync local state when filter is cleared externally
-  useEffect(() => {
+  const [externalFilter, setExternalFilter] = useState({ min, max })
+
+  if (externalFilter.min !== min || externalFilter.max !== max) {
+    setExternalFilter({ min, max })
+
     if (!min && !max) {
       setLocalMin("")
       setLocalMax("")
     }
-  }, [min, max])
+  }
 
-  // Debounce column filter updates
   useEffect(() => {
     const timer = setTimeout(() => {
       const minCents = majorToCents(localMin)
       const maxCents = majorToCents(localMax)
 
       if (minCents === "" && maxCents === "") {
-        column.setFilterValue(undefined)
+        if (column.getFilterValue() !== undefined) {
+          column.setFilterValue(undefined)
+        }
 
         return
       }
@@ -60,9 +64,7 @@ const DataTableRangeFilter = <TData, TValue>({
     }, 400)
 
     return () => clearTimeout(timer)
-    // column is stable; eslint-disable-next-line is intentional
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localMin, localMax])
+  }, [localMin, localMax, column])
 
   return (
     <Popover>
