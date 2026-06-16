@@ -3,6 +3,8 @@ import { defineConfig, globalIgnores } from "eslint/config"
 import nextVitals from "eslint-config-next/core-web-vitals"
 import nextTs from "eslint-config-next/typescript"
 
+import tseslint from "typescript-eslint"
+
 import remitRules from "./tools/eslint-rules/index.mjs"
 
 const featureBoundaryRule = [
@@ -61,6 +63,41 @@ const pureServicesRule = [
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
+    plugins: {
+      "@typescript-eslint": tseslint.plugin
+    },
+    rules: {
+      "@typescript-eslint/no-deprecated": "warn",
+      "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "inline-type-imports", disallowTypeAnnotations: false }
+      ]
+    }
+  },
+  {
+    files: [
+      "features/**/*.{ts,tsx}",
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "hooks/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+      "providers/**/*.{ts,tsx}"
+    ],
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-non-null-assertion": "error"
+    }
+  },
   {
     files: ["features/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
     rules: {

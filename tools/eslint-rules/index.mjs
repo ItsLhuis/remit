@@ -11,11 +11,11 @@ const helperPlacement = {
     type: "problem",
     docs: {
       description:
-        "R-009: file-private `function` helpers must be declared above the component, not after the last export"
+        "File-private `function` helpers must be declared above the component, not after the last export"
     },
     messages: {
       helperAfterExport:
-        "R-009: file-private `function` helper `{{name}}` is declared after the last export. Move it above the component (see components.md)."
+        "File-private `function` helper `{{name}}` is declared after the last export. Move it above the component (see components.md)."
     },
     schema: []
   },
