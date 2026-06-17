@@ -103,6 +103,7 @@ individual tests.
 | Server action integration tests         | `features/<feature>/__tests__/<actionName>.integration.test.ts`  |
 | E2E tests                               | `tests/e2e/<flow-name>.spec.ts`, one flow per file               |
 | Test factories                          | `tests/factories/<entity>.ts` exporting `makeEntity(overrides?)` |
+| Docs consistency tests                  | `tests/docs/*.test.ts`                                           |
 
 Use `test(...)` at the top level when the file has fewer than four tests. Use `describe(...)` only
 to group related cases beyond that threshold.

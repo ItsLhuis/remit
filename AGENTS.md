@@ -88,6 +88,43 @@ public anonymous token routes, webhooks, health/metrics, and future explicitly j
 surfaces only. Business logic belongs in pure named functions under `features/<feature>/services/`
 with no framework, Drizzle, React, or IO imports.
 
+The ESLint config (`eslint.config.mjs`) is the mechanical floor for `.agents/rules/`: import order,
+type-import style, feature boundaries, service purity, accessibility, and hardcoded-string bans are
+enforced there. Treat a rule as enforced only when a lint rule backs it; prose in `.agents/rules/`
+without a corresponding lint rule is reviewer guidance, not an automated gate. Some lint categories
+run at `warn` while an existing backlog is burned down — `jsx-a11y/*`,
+`@typescript-eslint/switch-exhaustiveness-check`, and `@typescript-eslint/no-deprecated`; they are
+promoted to `error` as each backlog reaches zero, and no change may add new warnings in those
+categories.
+
+## Engineering Practices
+
+Working principles behind the detailed `.agents/rules/`, adapted from the
+[Karpathy-inspired Claude Code guidelines](https://github.com/multica-ai/andrej-karpathy-skills).
+
+- **Think before coding.** State assumptions and surface tradeoffs; do not silently pick one
+  interpretation when several are defensible. When two organizations are equally valid, choose the
+  one the canonical exemplar already uses (see [code-style.md](.agents/rules/code-style.md)).
+- **Simplicity first.** Write the minimum code that solves the stated problem - no speculative
+  features, no abstraction for single-use code, no configurability nobody asked for, no error
+  handling for states that cannot occur. Ask whether a senior engineer would call it
+  overcomplicated; if so, simplify.
+- **Surgical changes.** Touch only what the task requires. Do not refactor working code or reformat
+  adjacent lines, and match existing style even when you would write it differently. Remove only the
+  imports and variables your own change made unused; report other dead code instead of deleting it.
+  Every changed line should trace to the request.
+- **Goal-driven execution.** Turn the task into a verifiable goal, then loop until `pnpm lint`,
+  `pnpm typecheck`, and the tests covering the touched areas pass. Verify against the goal rather
+  than declaring the work done.
+- **Separate form, structure, and meaning.** FORM (import order, padding, type-imports) is owned by
+  ESLint - run `pnpm lint --fix` and do not hand-tune it. STRUCTURE (declaration and body-section
+  order) is deterministic and followed exactly. MEANING (semantic blank lines) is the small
+  residual: mirror the nearest canonical exemplar, never invent a new rhythm. See
+  [code-style.md](.agents/rules/code-style.md).
+- **One responsibility per file.** Mirror the canonical exemplar for the file's category, validate
+  every boundary with Zod, and keep `services/` pure (see
+  [architecture.md](.agents/rules/architecture.md)).
+
 ## Architecture Reference
 
 `docs/architecture/ARCHITECTURE.md` is the canonical technical reference for Remit. It documents
@@ -112,6 +149,9 @@ Detailed shared project rules live canonically in `.agents/rules/`:
 - [.agents/rules/hooks.md](.agents/rules/hooks.md)
 - [.agents/rules/i18n.md](.agents/rules/i18n.md)
 - [.agents/rules/imports.md](.agents/rules/imports.md)
+- [.agents/rules/money-and-dates.md](.agents/rules/money-and-dates.md)
+- [.agents/rules/queries.md](.agents/rules/queries.md)
+- [.agents/rules/routes.md](.agents/rules/routes.md)
 - [.agents/rules/security.md](.agents/rules/security.md)
 - [.agents/rules/testing.md](.agents/rules/testing.md)
 - [.agents/rules/types.md](.agents/rules/types.md)

@@ -9,8 +9,9 @@ paths:
 ## Server actions never throw
 
 Server actions always return `{ data: T } | { error: string }`. Throwing is reserved for
-unrecoverable boot-time failures, such as environment variable validation failure in `lib/env.ts` or
-a missing encryption key at startup. Everything else is caught and returned as `{ error }`.
+unrecoverable boot-time failures, such as environment variable validation failure in
+`lib/config/env.ts` or a missing encryption key at startup. Everything else is caught and returned
+as `{ error }`.
 
 ```ts
 import { t } from "@/lib/i18n/server"

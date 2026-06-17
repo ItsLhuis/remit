@@ -30,6 +30,8 @@ after the `export`. A reader must encounter a helper before its first call site.
 This is the opposite of the `.ts` convention in `code-style.md` ("private helpers below the public
 API"), which continues to apply to non-component `.ts` files unchanged. The two conventions are
 explicitly scoped: helpers go **above** the component in `.tsx`, **below** the public API in `.ts`.
+This placement is the one lint-backed piece of the STRUCTURE layer in `code-style.md` ("Form,
+structure, and meaning"): `remit/helper-placement` fails a `.tsx` helper declared after the export.
 
 ```tsx
 // Good - helper declared above the component it serves

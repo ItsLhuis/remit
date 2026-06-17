@@ -13,8 +13,8 @@ paths:
 ## Secrets and credentials
 
 Secrets are never logged, never returned in responses, never embedded in toast messages, and never
-present in test fixtures committed to the repository. Use the env validator in `lib/env.ts` for
-required secrets and document each one in `.env.example`.
+present in test fixtures committed to the repository. Use the env validator in `lib/config/env.ts`
+for required secrets and document each one in `.env.example`.
 
 Agents must not read `.env` or `.env.*` files except example/template env files such as
 `.env.example` and `.env.test.example`.

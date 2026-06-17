@@ -11,7 +11,23 @@ paths:
 
 ## Pre-work modularity check
 
-Before adding a feature, service, mutation, query, hook, component, schema, or utility:
+Before adding a feature, service, mutation, query, hook, component, schema, or utility, climb down
+this ladder and stop at the first rung that solves the task — the cheapest code is the code you do
+not write:
+
+1. Does this need to exist at all? If the task does not require it, do not write it (YAGNI).
+2. Does the standard library already do it? Use it.
+3. Is there a native platform feature (Next.js, React, the web platform, PostgreSQL, Drizzle, Zod)
+   that already does it? Use it.
+4. Can an already-installed dependency do it? Reuse it before reaching for a new one.
+5. Can it be one line? Keep it one line.
+6. Only then write the minimum that works.
+
+Lazy is not negligent: never trade away trust-boundary validation, error handling, data-loss safety,
+security, or accessibility for brevity. Inputs are always validated with Zod; see
+[security.md](security.md), [errors.md](errors.md), and [accessibility.md](accessibility.md).
+
+If you do write it, place it correctly:
 
 1. Inspect the nearest comparable file in the same feature and layer.
 2. Search for an existing helper in `lib/utils/`, `lib/`, `hooks/`, `components/ui/`, and the
@@ -216,7 +232,20 @@ Specific guidance from the restructuring report:
 ## Zod at every boundary
 
 Every server action, public endpoint, and settings read validates input with Zod `safeParse`.
-Environment variables are validated at boot in `lib/env.ts` and the process exits on failure. See
-`types.md` for the bans on `any` and non-null assertions that reinforce this at the type level.
+Environment variables are validated at boot in `lib/config/env.ts` and the process exits on failure.
+See `types.md` for the bans on `any` and non-null assertions that reinforce this at the type level.
 
 No data crosses a trust boundary unvalidated.
+
+## Adding an environment variable
+
+Environment variables are defined once in the Zod schema in `lib/config/env.ts` and consumed through
+the exported `env` object. Application code reads `env`; it does not read `process.env` directly.
+
+1. Add the variable to the schema in `lib/config/env.ts`. Client-exposed variables use the
+   `NEXT_PUBLIC_` prefix; optional variables use the `optionalEnvString` helper so blank values
+   become `undefined`.
+2. Document it in `.env.example` with a safe placeholder value, never a real secret.
+
+Required secrets additionally follow `security.md`: validated here, never logged, and never returned
+in a response.

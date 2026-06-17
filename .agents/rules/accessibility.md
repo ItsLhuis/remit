@@ -26,10 +26,15 @@ navigation.
 <div onClick={handleDelete} role="button">Delete</div>
 ```
 
+This is lint-enforced by `jsx-a11y/no-static-element-interactions` and
+`jsx-a11y/click-events-have-key-events`: a `<div onClick>` fails lint. These rules currently run at
+`warn` and are promoted to `error` once the existing backlog is cleared.
+
 ## Labels
 
 Every `<input>`, `<select>`, and `<textarea>` is paired with a `<FieldLabel htmlFor={...}>` that
-references the input's `id`. This is already required by `forms.md` for form fields.
+references the input's `id`. This is already required by `forms.md` for form fields and is
+lint-enforced by `jsx-a11y/label-has-associated-control`.
 
 ## Icons
 

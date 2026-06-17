@@ -21,6 +21,7 @@ disagree, the canonical exemplar wins, not the nearest neighbor.
 | List/table page                  | `features/clients/components/ClientsListPage/ClientsListPage.tsx`                        |
 | `mutations.ts`                   | `features/settings/business/mutations.ts`                                                |
 | `queries.ts`                     | `features/clients/queries.ts`                                                            |
+| API route                        | `app/api/upload/[type]/route.ts`                                                         |
 | `schemas.ts`                     | `features/clients/schemas.ts`                                                            |
 | `services/*.ts`                  | `features/clients/services/clientHealth.ts`                                              |
 | `services/__tests__/*`           | `features/clients/services/__tests__/clientHealth.test.ts`                               |
@@ -91,20 +92,48 @@ shared contract exists.
 Request metadata parsing is the canonical example: `x-forwarded-for` and `x-real-ip` parsing lives
 in `getIpAddress(headers)` under `lib/utils/request.ts`, not in mutations or routes.
 
+## Form, structure, and meaning
+
+Code organization splits into three layers. Knowing which layer a question belongs to tells you who
+owns the answer, so different models converge on the same output.
+
+- **Form** - import order and grouping, the blank line after a directive or import group,
+  type-import style, barrel export order, blank lines inside a JSX return, and `.tsx` helper
+  placement. ESLint owns this; `eslint.config.mjs` is the source of truth and `pnpm lint --fix`
+  settles it. Do not hand-tune what the formatter sets.
+- **Structure** - declaration order (see "File-level organization") and the body-section order
+  below. This is deterministic: classify each statement by its syntax and place it in its section,
+  so two models given the same component produce the same order. Only `.tsx` helper placement is
+  lint-backed (`remit/helper-placement`); the rest is convention you follow exactly.
+- **Meaning** - the semantic blank lines between concerns. This is the small residual tooling cannot
+  decide. Mirror the nearest canonical exemplar and never invent a new rhythm (see "Formatting
+  rhythm").
+
 ## React component body structure
 
-Component bodies are grouped by concern, not by a rigid hook-type order. The common sequence is:
+Component bodies are grouped by concern, not by a rigid hook-type order, but the section sequence is
+deterministic: classify each top-level statement by its syntax and place it in the matching section.
 
-1. Translation hook first when present: `const { t } = useTranslation()`.
-2. Router/path/session/context hooks near the top, in the order the component reads conceptually.
-3. Local state for UI or server errors.
-4. Form setup with `useForm`, followed immediately by
-   `const { isSubmitting, isDirty, isValid } = form.formState` when needed.
-5. Custom hooks and refs near the values they support.
-6. Derived values and computed booleans after hooks.
-7. Event handlers and submit handlers.
-8. Effect or hotkey registration when it reads handlers/state.
-9. Guard returns, then the JSX return.
+| #   | Section                          | How to classify the statement                                             |
+| --- | -------------------------------- | ------------------------------------------------------------------------- |
+| 1   | Translation                      | `const { t } = useTranslation()`                                          |
+| 2   | Router / session / path / params | `useRouter`, `usePathname`, `useParams`, `useSearchParams`, session hooks |
+| 3   | Local state                      | `useState` / `useTransition`; related state stays adjacent                |
+| 4   | Form setup                       | `useForm(...)`, then the `form.formState` destructure                     |
+| 5   | Other hooks / refs               | any remaining `use*` call or `useRef`                                     |
+| 6   | Derived values                   | a `const` that is neither a hook call nor assigned a function             |
+| 7   | Handlers                         | a `const` assigned an arrow function, or a `function`                     |
+| 8   | Effects / hotkeys                | `useEffect`, hotkey registration, other registration effects              |
+| 9   | Guard returns                    | `if (...) return ...` before the JSX                                      |
+| 10  | JSX return                       | `return ( ... )`                                                          |
+
+Two nuances override a statement's table position; the canonical exemplar is the tiebreaker:
+
+- When one hook's result is an argument to another, the producer precedes the consumer even when the
+  table would order them the other way. `ClientForm` declares its `useMemo` default values before
+  `useForm` because the form consumes them.
+- Statements serving one concern stay adjacent. `ClientsListPage` places `useTransition` next to the
+  `useClientListState(startTransition)` call it feeds rather than with the other state.
 
 Do not insert blank lines between every hook mechanically. Related state values can stay together:
 
@@ -188,6 +217,12 @@ try {
 
 The author favors short visual blocks. Use blank lines to separate concerns, but keep cohesive
 statement clusters dense.
+
+Only two blank-line conventions are lint-enforced: no blank lines inside a JSX return
+(`remit/no-blank-lines-in-jsx-return`, auto-fixable) and the blank line after a `"use server"` /
+`"use client"` directive. The remaining rhythm guidance below is reviewer judgment, not tooling - a
+blanket `padding-line-between-statements` rule would break the sanctioned one-line guards and
+compact expression bodies, so it is deliberately not configured.
 
 Use a blank line between:
 

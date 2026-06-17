@@ -8,8 +8,10 @@ paths:
 
 - Use `type` aliases rather than `interface`.
 - Never use `any`. Prefer `unknown` for unknown external input and narrow it before use.
-- Avoid non-null assertions. Narrow explicitly when possible. Existing library-bound code may still
-  contain isolated `!`; do not copy it into new application code.
+- Avoid non-null assertions; `@typescript-eslint/no-non-null-assertion` is set to `error` for
+  `features/`, `app/`, `components/`, `hooks/`, `lib/`, and `providers/`, so a `!` in that code
+  fails lint. Narrow explicitly instead. Existing library-bound code may still contain isolated `!`;
+  do not copy it into new application code.
 - Export reusable types inline on their declaration: `export type Foo = { ... }`.
 - Keep file-private types unexported.
 - Use inline `type` modifiers for type-only imports: `import { type ReactNode } from "react"` or
@@ -61,4 +63,5 @@ export type InvoiceStatusTransition =
 ```
 
 Avoid boolean-plus-optional-field result shapes when a discriminated union would make invalid states
-unrepresentable.
+unrepresentable. Switches over these unions must be exhaustive
+(`@typescript-eslint/switch-exhaustiveness-check`); a missing case fails lint.

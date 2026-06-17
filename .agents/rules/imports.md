@@ -6,6 +6,10 @@ paths:
 
 # Import Rules
 
+Import order and grouping are the FORM layer described in `code-style.md` ("Form, structure, and
+meaning"): ESLint owns them and `pnpm lint --fix` settles them. This file documents what the
+formatter enforces and the few judgment calls it leaves.
+
 ## Import rhythm
 
 Imports follow the local file's visual rhythm more than a universal package-category sort. Before
@@ -32,15 +36,43 @@ Imports follow this group order, each group its own paragraph separated by a bla
 
 1. `"use server"` / `"use client"` directive.
 2. React (`react`), after the directive.
-3. Next core (`next/cache`, `next/headers`, `next/navigation`) — each its own paragraph.
-4. External cohesive concern (`drizzle-orm`; or the form triad `@hookform/resolvers/zod` +
-   `react-hook-form` kept adjacent to the local schema import in forms).
-5. `@/lib/i18n` (translation).
-6. `@/lib/auth`, `@/lib/audit`, `@/lib/events`, `@/lib/logger` — each role its own paragraph.
-7. `@/lib/utils`.
-8. `@/database` + `@/database/schema` (adjacent).
-9. `@/components/ui`, then `@/components/layout`.
-10. Relative feature-local imports (`./events`, `./queries`, `./schemas`, `./types`) last.
+3. Next core (`next/cache`, `next/headers`, `next/navigation`, `next/server`) — each its own
+   paragraph.
+4. Node builtins (`node:crypto`, `node:path`, `fs`, …) as one paragraph, separated from external npm
+   packages.
+5. External npm packages, **one paragraph per package origin** — the scope for `@scope/x`, the bare
+   package name otherwise. Same-origin imports stay together (`@aws-sdk/client-s3` +
+   `@aws-sdk/s3-request-presigner`); different origins are separated by a blank line. The form triad
+   (`@hookform/resolvers/zod` + `react-hook-form`) is the one sanctioned multi-origin paragraph.
+6. `@/lib/i18n` (translation).
+7. `@/lib/auth`, `@/lib/audit`, `@/lib/events`, `@/lib/logger` — each role its own paragraph.
+8. `@/lib/utils`.
+9. `@/database` + `@/database/schema` (adjacent).
+10. `@/components/ui`, then `@/components/layout`, then other `@/components`.
+11. `@/features/*` (cross-feature public/server barrels) as its own paragraph.
+12. `@/hooks`, then `@/providers` — each its own paragraph.
+13. Other `@/` internal imports (e.g. `@/package.json`) as their own paragraph.
+14. Relative imports: parent (`../*`), then sibling/index (`./events`, `./queries`, `./schemas`,
+    `./types`) last.
+
+## Same group adjacent, different group separated
+
+The mechanical rule behind the order: imports from the **same group sit together with no blank line
+between them**; the moment the group changes, **exactly one blank line** separates them. A group may
+be a single import. This is enforced by `perfectionist/sort-imports` (`newlinesBetween: 1`), which
+collapses blank lines inside a group and inserts one between groups — both directions are
+auto-fixable.
+
+Concretely: Node builtins and external npm packages are different "sides" and never share a
+paragraph (`node:crypto` is not lumped with `@aws-sdk/*` or `chalk`); two different external origins
+such as `@tanstack/react-hotkeys` and `next-themes` each get their own paragraph, while same-origin
+imports such as `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` stay together;
+`@/features/*` and a bare `@/` import such as `@/package.json` are different groups and carry a
+blank line between them.
+
+The per-origin external groups are generated from `package.json` in `eslint.config.mjs`, so a new
+dependency is separated automatically with no config edit. The form triad is the single hardcoded
+exception that keeps `@hookform/resolvers/*` and `react-hook-form` in one paragraph.
 
 Where two files of the same role disagree, the canonical exemplar (`code-style.md`) wins, not the
 nearest neighbor. The only sanctioned adjacency exception is the form triad
