@@ -9,7 +9,6 @@ import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
-import { DataTablePagination } from "./DataTablePagination"
 import { ScrollArea } from "@/components/ui/ScrollArea"
 import { Skeleton } from "@/components/ui/Skeleton"
 import {
@@ -20,6 +19,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/Table"
+
+import { DataTablePagination } from "./DataTablePagination"
 
 export type DataTableSelection<TData> = {
   selectedRows: TData[]
@@ -100,7 +101,7 @@ const DataTable = <TData,>({
       ) : null}
       <div>
         <ScrollArea
-          className="[&_[data-slot=table-container]]:overflow-visible"
+          className="**:data-[slot=table-container]:overflow-visible"
           style={maxHeight !== undefined ? { maxHeight } : undefined}
         >
           <Table>

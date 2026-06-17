@@ -1,16 +1,16 @@
 "use client"
 
-import { useCopyWithFeedback } from "@/hooks"
+import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
-
-import { useTranslation } from "@/lib/i18n"
 
 import { Alert, AlertDescription } from "@/components/ui/Alert"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { CopyIcon } from "@/components/ui/CopyIcon"
 import { Icon } from "@/components/ui/Icon"
+
+import { useCopyWithFeedback } from "@/hooks"
 
 type RecoveryCodeButtonProps = {
   code: string

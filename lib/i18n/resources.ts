@@ -1,5 +1,4 @@
 import { getLocales, type LocaleKeys } from "./locales"
-
 import { type Language } from "./types"
 
 export const locales = getLocales()

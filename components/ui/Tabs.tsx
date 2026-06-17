@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { Tabs as TabsPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 const Tabs = ({
   className,

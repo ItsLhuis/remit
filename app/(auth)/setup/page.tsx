@@ -1,6 +1,6 @@
-import { type Metadata } from "next"
-
 import { redirect } from "next/navigation"
+
+import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
@@ -9,9 +9,8 @@ import { requireSession } from "@/lib/auth/session"
 import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel } from "@/features/auth"
-import { getSetupProgress } from "@/features/setup/server"
-
 import { SetupForm } from "@/features/setup"
+import { getSetupProgress } from "@/features/setup/server"
 
 export const metadata: Metadata = { title: t("setup.metadataTitle") }
 

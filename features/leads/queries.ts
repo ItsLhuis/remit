@@ -17,8 +17,8 @@ import {
 import { database } from "@/database"
 import { leads } from "@/database/schema"
 
-import { formatLeadName, summarizeLeads, type LeadsSummary } from "./services"
 import { leadIdSchema, parseLeadListQuery, type LeadListQuery, type LeadSortField } from "./schemas"
+import { formatLeadName, summarizeLeads, type LeadsSummary } from "./services"
 import {
   type LeadDefaults,
   type LeadDetail,

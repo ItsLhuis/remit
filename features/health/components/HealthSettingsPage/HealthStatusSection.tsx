@@ -2,9 +2,9 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type HealthCheckResult } from "../../types"
-
 import { Card, CardContent, Typography } from "@/components/ui"
+
+import { type HealthCheckResult } from "../../types"
 
 import { HealthCheckRow } from "./HealthCheckRow"
 

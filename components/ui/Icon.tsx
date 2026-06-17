@@ -1,9 +1,9 @@
 import { type ComponentType } from "react"
 
-import { cn } from "@/lib/utils"
-
 import * as LucideIcons from "lucide-react"
 import { type LucideProps } from "lucide-react"
+
+import { cn } from "@/lib/utils"
 
 export type IconProps = LucideProps & {
   name: keyof typeof LucideIcons

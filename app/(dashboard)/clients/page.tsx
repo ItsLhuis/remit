@@ -2,9 +2,8 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
-import { getClientsPageData } from "@/features/clients/server"
-
 import { ClientsListPage } from "@/features/clients"
+import { getClientsPageData } from "@/features/clients/server"
 
 export const metadata: Metadata = {
   title: t("clients.metadata.list")

@@ -2,9 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { Switch as SwitchPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 const Switch = ({
   className,

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-
 import path from "node:path"
 
 import * as p from "@clack/prompts"
@@ -12,12 +11,9 @@ import pkg from "@/package.json"
 
 import { buildPreRotationBackupPath } from "../backup/filename"
 import { runBackup } from "../backup/runBackup"
-
 import { decryptValue, encryptValue } from "../encryption/values"
-
 import { readAndValidateRestoreHeader } from "../restore/header"
 import { verifyArchivePayload } from "../restore/verifyArchive"
-
 import { formatBytes } from "../utils/format"
 
 import { listArchivePlans, reencryptConfiguredArchives, type ArchivePlan } from "./archives"

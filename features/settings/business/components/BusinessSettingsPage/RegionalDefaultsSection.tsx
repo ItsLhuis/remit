@@ -4,15 +4,11 @@ import { useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { Locales } from "@/lib/i18n/locales"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { saveRegionalDefaultsSettings } from "../../mutations"
-import { regionalDefaultsSettingsSchema, type RegionalDefaultsSettingsValues } from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
+import { Locales } from "@/lib/i18n/locales"
 
 import {
   Button,
@@ -30,6 +26,9 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { saveRegionalDefaultsSettings } from "../../mutations"
+import { regionalDefaultsSettingsSchema, type RegionalDefaultsSettingsValues } from "../../schemas"
 
 type RegionalDefaultsSectionProps = {
   initialValues: RegionalDefaultsSettingsValues

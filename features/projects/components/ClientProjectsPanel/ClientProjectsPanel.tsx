@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useDataTable, type ColumnDef } from "@/hooks"
-
 import {
   Button,
   Card,
@@ -25,8 +23,9 @@ import {
   Icon
 } from "@/components/ui"
 
-import { type ProjectListItem } from "../../types"
+import { useDataTable, type ColumnDef } from "@/hooks"
 
+import { type ProjectListItem } from "../../types"
 import { ProjectFormSheet } from "../ProjectFormSheet"
 
 import { getClientProjectColumns } from "./columns"

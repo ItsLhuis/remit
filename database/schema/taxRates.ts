@@ -1,6 +1,5 @@
-import { boolean, check, numeric, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { boolean, check, numeric, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 
 import { softDelete, timestamps } from "./helpers"
 import { lineItems } from "./lineItems"

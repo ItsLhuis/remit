@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, test, vi } from "vitest"
-
 import { eq, isNull } from "drizzle-orm"
+
+import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, projects } from "@/database/schema"
 
-import { database } from "@/tests/integration/database"
 import { makeClient, makeProject, makeUser } from "@/tests/factories"
+import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
   emit: vi.fn(),

@@ -1,9 +1,7 @@
+import { getTableName, type Table } from "drizzle-orm"
 import { customType, timestamp } from "drizzle-orm/pg-core"
 
-import { getTableName, type Table } from "drizzle-orm"
-
 import { env } from "@/lib/config/env"
-
 import { decryptString, encryptString } from "@/lib/encryption/aes"
 
 const encryptionKey = Buffer.from(env.REMIT_ENCRYPTION_KEY, "base64")

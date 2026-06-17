@@ -2,8 +2,6 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type SystemInfo } from "../../types"
-
 import {
   Card,
   CardContent,
@@ -12,6 +10,8 @@ import {
   CardTitle,
   Typography
 } from "@/components/ui"
+
+import { type SystemInfo } from "../../types"
 
 import { FingerprintCopyButton } from "./FingerprintCopyButton"
 

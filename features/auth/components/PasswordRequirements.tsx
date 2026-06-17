@@ -4,9 +4,9 @@ import { useMemo } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { passwordRules } from "../schemas"
-
 import { Icon, Progress, Typography } from "@/components/ui"
+
+import { passwordRules } from "../schemas"
 
 type PasswordRequirementsProps = {
   password: string

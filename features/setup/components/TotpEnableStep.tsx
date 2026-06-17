@@ -2,18 +2,14 @@
 
 import { useState } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/auth/client"
+import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+import { useTranslation } from "@/lib/i18n"
 
-import { totpEnableSchema, type TotpEnableValues } from "../schemas"
-
-import Image from "next/image"
+import { authClient } from "@/lib/auth/client"
 
 import {
   Button,
@@ -25,6 +21,9 @@ import {
   StepProgress,
   Typography
 } from "@/components/ui"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+import { totpEnableSchema, type TotpEnableValues } from "../schemas"
 
 export type TotpEnableData = {
   totpUri: string

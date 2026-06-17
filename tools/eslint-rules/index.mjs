@@ -58,12 +58,12 @@ const noBlankLinesInJsxReturn = {
   meta: {
     type: "layout",
     docs: {
-      description: "R-010: a JSX return tree contains no blank lines"
+      description: "A JSX return tree contains no blank lines"
     },
     fixable: "whitespace",
     messages: {
       blankLine:
-        "R-010: no blank lines inside a JSX tree. Separate sections by extracting a sub-component, not blank lines (see code-style.md)."
+        "No blank lines inside a JSX tree. Separate sections by extracting a sub-component, not blank lines (see code-style.md)."
     },
     schema: []
   },

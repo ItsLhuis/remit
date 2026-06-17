@@ -1,7 +1,7 @@
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
-import { leadStatus } from "./enums"
 import { clients } from "./clients"
+import { leadStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
 
 export const leads = pgTable(

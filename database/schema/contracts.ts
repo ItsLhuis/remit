@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import {
   type AnyPgColumn,
   check,
@@ -11,11 +12,9 @@ import {
   uuid
 } from "drizzle-orm/pg-core"
 
-import { sql } from "drizzle-orm"
-
+import { clients } from "./clients"
 import { contractStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { clients } from "./clients"
 import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { templates } from "./templates"

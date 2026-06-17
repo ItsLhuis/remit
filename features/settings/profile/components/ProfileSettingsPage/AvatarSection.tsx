@@ -8,10 +8,10 @@ import { useTranslation } from "@/lib/i18n"
 
 import { type User } from "@/lib/auth"
 import { useSession } from "@/lib/auth/client"
-import { resolveStorageUrl } from "@/lib/storage"
+
 import { getInitials } from "@/lib/utils"
 
-import { confirmAvatarUpload, removeAvatar } from "../../mutations"
+import { resolveStorageUrl } from "@/lib/storage"
 
 import {
   Avatar,
@@ -22,6 +22,8 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { confirmAvatarUpload, removeAvatar } from "../../mutations"
 
 type AvatarSectionProps = {
   user: User

@@ -1,24 +1,18 @@
 import { randomUUID } from "node:crypto"
-
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
-
 import path from "node:path"
-
 import { Readable } from "node:stream"
 
 import type postgres from "postgres"
 
 import { reencryptArchiveBuffer } from "../archive/reencrypt"
-
 import { DEFAULT_BACKUP_DIRNAME, REMOTE_BACKUP_PREFIX } from "../backup/filename"
-
 import {
   buildDestinationAdapter,
   validateBackupCredentials,
   type BackupDestination,
   type BackupDestinationAdapter
 } from "../destination"
-
 import { isMissingPathError } from "../utils/fs"
 
 import { writeRotationAudit } from "./audit"

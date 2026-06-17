@@ -21,7 +21,6 @@ import { database } from "@/database"
 import { settings } from "@/database/schema"
 
 import { toInvoicingSettingsFormData } from "./queries"
-
 import { invoicingSettingsSchema, type InvoicingSettingsValues } from "./schemas"
 
 type SaveInvoicingSettingsResult =

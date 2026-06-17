@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
 import Image from "next/image"
+
+import { useTranslation } from "@/lib/i18n"
 
 import { Button, Typography } from "@/components/ui"
 

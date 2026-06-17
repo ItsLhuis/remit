@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
-import { afterEach, beforeEach, describe, expect, test } from "vitest"
-
 import { act, cleanup, renderHook } from "@testing-library/react"
+
+import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 import { useLocalStorage } from "../useLocalStorage"
 

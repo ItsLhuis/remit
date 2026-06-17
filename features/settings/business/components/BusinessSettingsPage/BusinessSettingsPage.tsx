@@ -1,10 +1,10 @@
 import { t } from "@/lib/i18n/server"
 
-import { getBusinessSettings } from "../../queries"
-
 import { Separator } from "@/components/ui"
 
 import { SettingsPageHeader } from "@/components/layout"
+
+import { getBusinessSettings } from "../../queries"
 
 import { AddressSection } from "./AddressSection"
 import { BusinessProfileSection } from "./BusinessProfileSection"

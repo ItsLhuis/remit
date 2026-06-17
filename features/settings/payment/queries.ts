@@ -1,7 +1,7 @@
 import { database } from "@/database"
 
-import { maskIbanForDisplay } from "./services/iban"
 import { type PaymentSettingsValues } from "./schemas"
+import { maskIbanForDisplay } from "./services/iban"
 
 export type PaymentSettingsFormData = PaymentSettingsValues & {
   stripeTestConnectionAt: string | null

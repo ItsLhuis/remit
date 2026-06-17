@@ -29,7 +29,6 @@ import {
   emitProjectUpdated
 } from "./events"
 import { getProjectForEdit } from "./queries"
-import { canTransitionProjectStatus } from "./services"
 import {
   createProjectSchema,
   projectIdSchema,
@@ -38,6 +37,7 @@ import {
   type CreateProjectValues,
   type UpdateProjectValues
 } from "./schemas"
+import { canTransitionProjectStatus } from "./services"
 import { type ProjectFormData } from "./types"
 
 export type ProjectMutationResult = { data: { project: ProjectFormData } } | { error: string }

@@ -2,9 +2,9 @@ import { sql } from "drizzle-orm"
 
 import { writeOperationalAudit } from "../audit/operationalAudit"
 
+import type { RestoreCliOptions } from "./args"
 import { RestoreCliError } from "./errors"
 import { redactRestoreReason } from "./redact"
-import type { RestoreCliOptions } from "./args"
 
 type Database = typeof import("@/database").database
 type DatabaseClient = typeof import("@/database").client

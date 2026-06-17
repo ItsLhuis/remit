@@ -2,22 +2,16 @@
 
 import { useMemo } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { useCopyWithFeedback } from "@/hooks"
-
-import { authClient } from "@/lib/auth/client"
+import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
-
-import { totpVerifySchema, type TotpVerifyValues } from "../schemas"
-
 import { QRCodeSVG } from "qrcode.react"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
 
 import {
   Button,
@@ -33,6 +27,11 @@ import {
   StepProgress,
   Typography
 } from "@/components/ui"
+
+import { useCopyWithFeedback } from "@/hooks"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+import { totpVerifySchema, type TotpVerifyValues } from "../schemas"
 
 type TotpVerifyStepProps = {
   totpUri: string

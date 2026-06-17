@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import NextImage, { type ImageProps } from "next/image"
 
 import { Avatar as AvatarPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 type AvatarImageProps = Omit<ImageProps, "src"> & {
   src?: ImageProps["src"] | null

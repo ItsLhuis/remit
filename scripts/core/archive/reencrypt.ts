@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto"
-
 import { gunzipSync, gzipSync } from "node:zlib"
 
 import {
@@ -13,7 +12,6 @@ import {
   readArchiveKeyState,
   writeArchiveHeader
 } from "./header"
-
 import { parseTarEntries, writeTarEntries, type TarBufferEntry } from "./tar"
 
 export function reencryptArchiveBuffer(input: {

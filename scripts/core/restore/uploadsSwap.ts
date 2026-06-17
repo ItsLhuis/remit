@@ -1,12 +1,10 @@
 import { mkdir, readdir, rename, rm, stat } from "node:fs/promises"
-
 import path from "node:path"
 
 import { isMissingPathError, pathExists } from "../utils/fs"
 import { hashFile } from "../utils/hash"
 
 import { RestoreCliError } from "./errors"
-
 import type { ChecksumDescriptor } from "./verifyArchive"
 
 export type AtomicSwapResult = {

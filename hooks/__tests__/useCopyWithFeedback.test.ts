@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
-import { afterEach, beforeEach, expect, test, vi, type MockedFunction } from "vitest"
-
 import { act, cleanup, renderHook } from "@testing-library/react"
+
+import { afterEach, beforeEach, expect, test, vi, type MockedFunction } from "vitest"
 
 import { useCopyWithFeedback } from "../useCopyWithFeedback"
 

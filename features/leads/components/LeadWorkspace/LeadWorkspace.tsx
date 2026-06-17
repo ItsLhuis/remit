@@ -38,7 +38,6 @@ import {
 
 import { softDeleteLead } from "../../mutations"
 import { type LeadDetail, type LeadFormData } from "../../types"
-
 import { ConvertLeadDialog } from "../ConvertLeadDialog"
 import { DeleteLeadDialog } from "../DeleteLeadDialog"
 import { LeadFormSheet } from "../LeadFormSheet"

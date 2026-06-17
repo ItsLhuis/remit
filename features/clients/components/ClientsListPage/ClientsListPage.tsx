@@ -8,8 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import { exportTableToCsv } from "@/lib/utils"
 
-import { useDataTable, type ColumnDef } from "@/hooks"
-
 import {
   Badge,
   Button,
@@ -49,10 +47,11 @@ import {
   toast
 } from "@/components/ui"
 
+import { useDataTable, type ColumnDef } from "@/hooks"
+
 import { useClientListState } from "../../hooks"
 import { softDeleteClient } from "../../mutations"
 import { type ClientListItem, type ClientListPageData } from "../../types"
-
 import { ClientFormSheet } from "../ClientFormSheet"
 
 import { ClientsSummaryBand } from "./ClientsSummaryBand"

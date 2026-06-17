@@ -16,13 +16,13 @@ import {
 import { database } from "@/database"
 import { clients, projects } from "@/database/schema"
 
-import { summarizeProjects, toProjectFormData, type ProjectsSummary } from "./services"
 import {
   parseProjectListQuery,
   projectIdSchema,
   type ProjectListQuery,
   type ProjectSortField
 } from "./schemas"
+import { summarizeProjects, toProjectFormData, type ProjectsSummary } from "./services"
 import {
   type ProjectDefaults,
   type ProjectDetail,

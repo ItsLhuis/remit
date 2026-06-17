@@ -8,8 +8,6 @@ import { type TFunction } from "@/lib/i18n"
 
 import { cn, formatCurrency, formatDay, getInitials } from "@/lib/utils"
 
-import { type ColumnDef } from "@/hooks"
-
 import {
   Avatar,
   AvatarFallback,
@@ -27,9 +25,10 @@ import {
   toast
 } from "@/components/ui"
 
+import { type ColumnDef } from "@/hooks"
+
 import { CLIENT_HEALTH_VALUES } from "../../schemas"
 import { type ClientListItem } from "../../types"
-
 import { ClientHealthBadge } from "../ClientHealthBadge"
 
 type CurrencyOption = {

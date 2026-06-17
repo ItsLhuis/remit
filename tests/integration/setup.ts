@@ -1,6 +1,6 @@
-import { afterAll, beforeEach } from "vitest"
-
 import { sql } from "drizzle-orm"
+
+import { afterAll, beforeEach } from "vitest"
 
 import { client, database } from "./database"
 

@@ -2,11 +2,11 @@ import { t } from "@/lib/i18n/server"
 
 import { requireSession } from "@/lib/auth/session"
 
-import { getProfileEmailConfigured } from "../../queries"
-
 import { Separator } from "@/components/ui"
 
 import { SettingsPageHeader } from "@/components/layout"
+
+import { getProfileEmailConfigured } from "../../queries"
 
 import { AccountDetailsSection } from "./AccountDetailsSection"
 import { AvatarSection } from "./AvatarSection"

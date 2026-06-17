@@ -2,11 +2,11 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type HealthCategory, type HealthCheckResult, type SystemInfo } from "../../types"
-
 import { Separator } from "@/components/ui"
 
 import { SettingsPageHeader } from "@/components/layout"
+
+import { type HealthCategory, type HealthCheckResult, type SystemInfo } from "../../types"
 
 import { HealthStatusSection } from "./HealthStatusSection"
 import { HealthSummary } from "./HealthSummary"

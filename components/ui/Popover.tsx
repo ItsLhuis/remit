@@ -2,9 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { Popover as PopoverPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 const Popover = ({ ...props }: ComponentProps<typeof PopoverPrimitive.Root>) => (
   <PopoverPrimitive.Root data-slot="popover" {...props} />

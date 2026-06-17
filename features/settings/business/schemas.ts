@@ -1,7 +1,6 @@
 import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
-
 import { Locales } from "@/lib/i18n/locales"
 
 const optionalEmailSchema = z

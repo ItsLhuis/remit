@@ -2,14 +2,12 @@
 
 import { Fragment, useState } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/auth/client"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { confirmPasswordSchema, type ConfirmPasswordValues } from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
 
 import {
   Button,
@@ -23,6 +21,8 @@ import {
   Input,
   Spinner
 } from "@/components/ui"
+
+import { confirmPasswordSchema, type ConfirmPasswordValues } from "../../schemas"
 
 type ConfirmStepProps = {
   onSuccess: (totpUri: string, password: string) => void

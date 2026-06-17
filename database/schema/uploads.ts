@@ -1,6 +1,5 @@
-import { bigint, check, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { bigint, check, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 export const uploads = pgTable(
   "uploads",

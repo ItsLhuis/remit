@@ -2,9 +2,9 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type ClientHealth } from "../services"
-
 import { Badge, Icon } from "@/components/ui"
+
+import { type ClientHealth } from "../services"
 
 type ClientHealthBadgeProps = {
   health: ClientHealth

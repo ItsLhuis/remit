@@ -27,11 +27,11 @@ tests/e2e/results/
 .DS_Store
 *.pem
 .tmp
-.fallow
 
 # cache
 .cache
 .corepack
+.fallow
 
 # debug
 npm-debug.log*
@@ -53,5 +53,6 @@ next-env.d.ts
 CLAUDE.local.md
 .claude/settings.local.json
 
-# claude code - implementation plans (ephemeral)
+# ephemeral docs (not versioned)
 docs/superpowers/
+docs/prompts/

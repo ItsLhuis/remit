@@ -1,7 +1,5 @@
-import { createReadStream } from "node:fs"
-
 import { spawn } from "node:child_process"
-
+import { createReadStream } from "node:fs"
 import { pipeline } from "node:stream/promises"
 
 import { waitForProcess } from "../utils/process"

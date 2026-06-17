@@ -22,17 +22,14 @@ import { getIpAddress } from "@/lib/utils"
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
-import { normalizeIban } from "./services/iban"
-
 import { toPaymentSettingsFormData, type PaymentSettingsFormData } from "./queries"
-
-import { StripeConnectionTestError, type StripeConnectionTestErrorCode } from "./stripe"
-
 import {
   paymentSettingsSchema,
   testStripeConnectionSchema,
   type PaymentSettingsValues
 } from "./schemas"
+import { normalizeIban } from "./services/iban"
+import { StripeConnectionTestError, type StripeConnectionTestErrorCode } from "./stripe"
 
 type SavePaymentSettingsResult = { data: { settings: PaymentSettingsFormData } } | { error: string }
 

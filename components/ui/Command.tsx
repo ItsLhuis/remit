@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
+import { Command as CommandPrimitive } from "cmdk"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
-
-import { Command as CommandPrimitive } from "cmdk"
 
 import {
   Dialog,

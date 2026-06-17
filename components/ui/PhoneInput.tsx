@@ -2,13 +2,13 @@
 
 import { type ComponentProps, memo, type Ref, useCallback } from "react"
 
-import { cn } from "@/lib/utils"
-
-import { useTranslation } from "@/lib/i18n"
+import { CircleFlag } from "react-circle-flags"
 
 import * as RPNInput from "react-phone-number-input"
 
-import { CircleFlag } from "react-circle-flags"
+import { useTranslation } from "@/lib/i18n"
+
+import { cn } from "@/lib/utils"
 
 import { Input } from "@/components/ui/Input"
 import {

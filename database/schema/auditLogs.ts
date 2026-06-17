@@ -1,9 +1,8 @@
+import { relations } from "drizzle-orm"
 import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
-import { relations } from "drizzle-orm"
-
-import { memberRole } from "./enums"
 import { users } from "./auth"
+import { memberRole } from "./enums"
 
 export const auditLogs = pgTable(
   "audit_logs",

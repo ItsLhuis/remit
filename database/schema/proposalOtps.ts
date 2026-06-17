@@ -1,6 +1,5 @@
-import { check, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { check, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { proposalAction } from "./enums"
 import { proposals } from "./proposals"

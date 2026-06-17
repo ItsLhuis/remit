@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, test, vi } from "vitest"
-
 import { eq } from "drizzle-orm"
+
+import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { uploads } from "@/database/schema"
 
-import { database } from "@/tests/integration/database"
 import { makeUpload, makeUser } from "@/tests/factories"
+import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
   changeEmail: vi.fn(),

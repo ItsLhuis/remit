@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 
-import pkg from "@/package.json"
-
 import { logger } from "@/lib/logger"
 
 import { checkDatabaseConnectivity } from "@/features/health/server"
+
+import pkg from "@/package.json"
 
 export const dynamic = "force-dynamic"
 

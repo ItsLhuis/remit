@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
-import { EmailSettingsForm } from "../EmailSettingsForm"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+
 import { type EmailSettingsValues } from "../../../schemas"
+import { EmailSettingsForm } from "../EmailSettingsForm"
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),

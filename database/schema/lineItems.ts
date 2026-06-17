@@ -1,3 +1,4 @@
+import { relations, sql } from "drizzle-orm"
 import {
   bigint,
   check,
@@ -10,12 +11,10 @@ import {
   uuid
 } from "drizzle-orm/pg-core"
 
-import { relations, sql } from "drizzle-orm"
-
-import { discountType } from "./enums"
-import { softDelete, timestamps } from "./helpers"
 import { creditNotes } from "./creditNotes"
+import { discountType } from "./enums"
 import { expenses } from "./expenses"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { proposals } from "./proposals"
 import { taxRates } from "./taxRates"

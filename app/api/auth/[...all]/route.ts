@@ -4,9 +4,9 @@ import { toNextJsHandler } from "better-auth/next-js"
 
 import { eq } from "drizzle-orm"
 
-import { writeAudit } from "@/lib/audit"
-
 import { auth } from "@/lib/auth"
+
+import { writeAudit } from "@/lib/audit"
 
 import { getIpAddress } from "@/lib/utils"
 

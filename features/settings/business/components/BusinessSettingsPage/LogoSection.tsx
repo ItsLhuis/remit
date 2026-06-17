@@ -8,8 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
-import { confirmBusinessLogoUpload, removeBusinessLogo } from "../../mutations"
-
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +18,8 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { confirmBusinessLogoUpload, removeBusinessLogo } from "../../mutations"
 
 type LogoSectionProps = {
   businessName: string

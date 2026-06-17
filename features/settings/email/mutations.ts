@@ -22,8 +22,8 @@ import { getIpAddress } from "@/lib/utils"
 import { database } from "@/database"
 import { settings } from "@/database/schema"
 
-import { emailSettingsSchema, testEmailSettingsSchema, type EmailSettingsValues } from "./schemas"
 import { toEmailSettingsFormData, type EmailSettingsFormData } from "./queries"
+import { emailSettingsSchema, testEmailSettingsSchema, type EmailSettingsValues } from "./schemas"
 
 type SaveEmailSettingsResult = { data: { settings: EmailSettingsFormData } } | { error: string }
 

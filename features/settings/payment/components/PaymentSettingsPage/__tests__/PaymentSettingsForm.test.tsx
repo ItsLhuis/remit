@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
-import { PaymentSettingsForm } from "../PaymentSettingsForm"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+
 import { type PaymentSettingsValues } from "../../../schemas"
+import { PaymentSettingsForm } from "../PaymentSettingsForm"
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),

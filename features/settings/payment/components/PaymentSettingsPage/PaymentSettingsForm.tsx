@@ -4,17 +4,10 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { savePaymentSettings, testStripeConnection } from "../../mutations"
-import {
-  paymentSettingsSchema,
-  type PaymentSettingsInputValues,
-  type PaymentSettingsValues
-} from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -32,6 +25,13 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { savePaymentSettings, testStripeConnection } from "../../mutations"
+import {
+  paymentSettingsSchema,
+  type PaymentSettingsInputValues,
+  type PaymentSettingsValues
+} from "../../schemas"
 
 type PaymentSettingsFormProps = {
   initialValues: PaymentSettingsValues

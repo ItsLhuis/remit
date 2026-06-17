@@ -2,9 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 const RadioGroup = ({ className, ...props }: ComponentProps<typeof RadioGroupPrimitive.Root>) => (
   <RadioGroupPrimitive.Root

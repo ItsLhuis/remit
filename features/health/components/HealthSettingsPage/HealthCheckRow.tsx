@@ -1,14 +1,14 @@
 "use client"
 
-import { cn, formatDate } from "@/lib/utils"
+import Link from "next/link"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { type HealthCheckResult, type HealthStatus } from "../../types"
-
-import Link from "next/link"
+import { cn, formatDate } from "@/lib/utils"
 
 import { Badge, Button, Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
+
+import { type HealthCheckResult, type HealthStatus } from "../../types"
 
 type HealthCheckRowProps = {
   check: HealthCheckResult

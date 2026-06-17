@@ -8,8 +8,6 @@ import { type TFunction } from "@/lib/i18n"
 
 import { formatDay, getInitials } from "@/lib/utils"
 
-import { type ColumnDef } from "@/hooks"
-
 import {
   Avatar,
   AvatarFallback,
@@ -27,9 +25,10 @@ import {
   toast
 } from "@/components/ui"
 
+import { type ColumnDef } from "@/hooks"
+
 import { LEAD_STATUS_VALUES } from "../../schemas"
 import { type LeadListItem } from "../../types"
-
 import { LeadStatusBadge } from "../LeadStatusBadge"
 
 export function getLeadColumns(

@@ -1,7 +1,7 @@
 import { type ProjectListItem } from "@/features/projects"
 
-import { type ClientBillingPoint, type ClientsSummary, type ClientHealth } from "./services"
 import { type ClientFormValues, type ClientListQuery } from "./schemas"
+import { type ClientBillingPoint, type ClientsSummary, type ClientHealth } from "./services"
 
 export type ClientListItem = {
   id: string

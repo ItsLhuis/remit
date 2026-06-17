@@ -1,8 +1,7 @@
-import { describe, expect, test } from "vitest"
-
+import { PassThrough } from "node:stream"
 import { gunzipSync, gzipSync } from "node:zlib"
 
-import { PassThrough } from "node:stream"
+import { describe, expect, test } from "vitest"
 
 import {
   ARCHIVE_FORMAT_VERSION,

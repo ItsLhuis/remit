@@ -11,15 +11,13 @@ import {
   type CSSProperties
 } from "react"
 
-import { useIsMobile } from "@/hooks"
-
 import { cva, type VariantProps } from "class-variance-authority"
-
-import { cn } from "@/lib/utils"
 
 import { Slot } from "radix-ui"
 
 import { useTranslation } from "@/lib/i18n"
+
+import { cn } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"
@@ -34,6 +32,8 @@ import {
 } from "@/components/ui/Sheet"
 import { Skeleton } from "@/components/ui/Skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/Tooltip"
+
+import { useIsMobile } from "@/hooks"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7

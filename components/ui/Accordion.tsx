@@ -2,9 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { Accordion as AccordionPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 

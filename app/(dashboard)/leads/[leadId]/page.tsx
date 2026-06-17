@@ -1,12 +1,11 @@
-import { type Metadata } from "next"
-
 import { notFound } from "next/navigation"
+
+import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
-import { getLeadDefaults, getLeadDetail, getLeadForEdit } from "@/features/leads/server"
-
 import { LeadDetailPage } from "@/features/leads"
+import { getLeadDefaults, getLeadDetail, getLeadForEdit } from "@/features/leads/server"
 
 export const metadata: Metadata = {
   title: t("leads.metadata.detail")

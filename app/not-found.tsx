@@ -1,6 +1,6 @@
-import { t } from "@/lib/i18n/server"
-
 import Link from "next/link"
+
+import { t } from "@/lib/i18n/server"
 
 import { Button, Typography } from "@/components/ui"
 

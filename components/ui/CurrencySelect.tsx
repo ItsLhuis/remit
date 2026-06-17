@@ -2,9 +2,11 @@
 
 import { type Ref, useCallback, useMemo } from "react"
 
-import { cn } from "@/lib/utils"
+import { currencies as AllCurrencies } from "country-data-list"
 
 import { useTranslation } from "@/lib/i18n"
+
+import { cn } from "@/lib/utils"
 
 import {
   Select,
@@ -14,8 +16,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/Select"
-
-import { currencies as AllCurrencies } from "country-data-list"
 
 type Currency = {
   code: string

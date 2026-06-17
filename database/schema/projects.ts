@@ -1,6 +1,5 @@
-import { bigint, check, date, index, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { bigint, check, date, index, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core"
 
 import { clients } from "./clients"
 import { projectStatus } from "./enums"

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-
 import path from "node:path"
 
 import * as p from "@clack/prompts"
@@ -8,9 +7,10 @@ import chalk from "chalk"
 
 import { resolveLocalUploadsDirectory } from "@/lib/storage/local"
 
-import { formatBytes } from "../utils/format"
+import pkg from "@/package.json"
 
 import { buildPreRestoreSnapshotPath, formatArchiveTimestamp } from "../backup/filename"
+import { formatBytes } from "../utils/format"
 
 import { getRestoreHelpText, parseRestoreArgs } from "./args"
 import {
@@ -36,8 +36,6 @@ import { restoreDatabaseDump } from "./restoreDump"
 import { takePreRestoreSnapshot } from "./snapshot"
 import { applyUploadsAtomicSwap } from "./uploadsSwap"
 import { getDatabaseName, verifyArchivePayload, type ChecksumDescriptor } from "./verifyArchive"
-
-import pkg from "@/package.json"
 
 export async function runRestore(): Promise<void> {
   const parsed = parseRestoreArgs(process.argv.slice(2))

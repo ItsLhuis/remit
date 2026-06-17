@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
@@ -12,11 +13,9 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
-import { sql } from "drizzle-orm"
-
+import { clients } from "./clients"
 import { recurringCadence, recurringInvoiceStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { clients } from "./clients"
 import { projects } from "./projects"
 import { templates } from "./templates"
 

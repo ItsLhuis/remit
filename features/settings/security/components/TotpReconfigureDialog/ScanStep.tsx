@@ -2,14 +2,12 @@
 
 import { Fragment, useMemo, useState } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/auth/client"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { totpVerifySchema, type TotpVerifyValues } from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
 
 import {
   Button,
@@ -25,6 +23,8 @@ import {
   InputOTPSlot,
   Spinner
 } from "@/components/ui"
+
+import { totpVerifySchema, type TotpVerifyValues } from "../../schemas"
 
 import { ManualEntryCode } from "./ManualEntryCode"
 import { QrCodeDisplay } from "./QrCodeDisplay"

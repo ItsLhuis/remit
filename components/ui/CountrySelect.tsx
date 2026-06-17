@@ -2,11 +2,13 @@
 
 import { type Ref } from "react"
 
-import { cn } from "@/lib/utils"
+import { countries } from "country-data-list"
+
+import { CircleFlag } from "react-circle-flags"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { CircleFlag } from "react-circle-flags"
+import { cn } from "@/lib/utils"
 
 import {
   Select,
@@ -16,8 +18,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/Select"
-
-import { countries } from "country-data-list"
 
 type Country = {
   alpha2: string

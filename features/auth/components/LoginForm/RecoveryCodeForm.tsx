@@ -1,14 +1,15 @@
 "use client"
 
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/auth/client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
-import { recoveryCodeSchema, type RecoveryCodeValues } from "../../schemas"
-
 import { Button, Field, FieldError, FieldLabel, Input, Spinner } from "@/components/ui"
+
+import { recoveryCodeSchema, type RecoveryCodeValues } from "../../schemas"
 
 type RecoveryCodeFormProps = {
   onSuccess: () => void

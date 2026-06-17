@@ -4,13 +4,10 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { saveBusinessAddressSettings } from "../../mutations"
-import { businessAddressSettingsSchema, type BusinessAddressSettingsValues } from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -23,6 +20,9 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { saveBusinessAddressSettings } from "../../mutations"
+import { businessAddressSettingsSchema, type BusinessAddressSettingsValues } from "../../schemas"
 
 type AddressSectionProps = {
   initialValues: BusinessAddressSettingsValues

@@ -2,9 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"

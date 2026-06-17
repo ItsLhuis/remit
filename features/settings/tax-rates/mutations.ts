@@ -21,7 +21,6 @@ import { database } from "@/database"
 import { taxRates } from "@/database/schema"
 
 import { toTaxRateListItem } from "./queries"
-
 import {
   createTaxRateSchema,
   taxRateIdSchema,

@@ -1,18 +1,15 @@
+import { createHash } from "node:crypto"
+import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { PassThrough } from "node:stream"
+import { gzipSync } from "node:zlib"
+
 // @integration
 import { afterEach, expect, test } from "vitest"
 
-import { createHash } from "node:crypto"
-
-import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
-
-import os from "node:os"
-
-import path from "node:path"
-import { gzipSync } from "node:zlib"
-
-import { PassThrough } from "node:stream"
-
 import { auditLogs, settings } from "@/database/schema"
+
 import { database } from "@/tests/integration/database"
 
 import {
@@ -22,7 +19,6 @@ import {
   writeArchiveHeader
 } from "../../archive/header"
 import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../../backup/manifest"
-
 import { startS3TestServer } from "../../destination/testing/s3TestServer"
 
 const originalPath = process.env.PATH

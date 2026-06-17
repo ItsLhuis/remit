@@ -8,12 +8,11 @@ import { eq } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
-import { env } from "@/lib/config/env"
-
 import { auth } from "@/lib/auth"
 
 import { logger } from "@/lib/logger"
 
+import { env } from "@/lib/config/env"
 import { deleteStorageObject } from "@/lib/storage/s3"
 
 import { database } from "@/database"

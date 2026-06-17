@@ -2,17 +2,12 @@
 
 import { useState } from "react"
 
-import { useTranslation } from "@/lib/i18n"
+import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
-
-import { saveBusinessProfile } from "../mutations"
-import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
-
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -26,6 +21,10 @@ import {
   StepProgress,
   Typography
 } from "@/components/ui"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
+import { saveBusinessProfile } from "../mutations"
+import { businessProfileSchema, type BusinessProfileValues } from "../schemas"
 
 type BusinessStepProps = {
   onComplete: () => void

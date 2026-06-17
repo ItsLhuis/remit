@@ -1,15 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto"
-
+import { once } from "node:events"
 import { createReadStream, createWriteStream } from "node:fs"
 import { mkdir, rm, stat } from "node:fs/promises"
-
 import path from "node:path"
-import { createGunzip } from "node:zlib"
-
-import { once } from "node:events"
-
 import type { Writable } from "node:stream"
 import { finished } from "node:stream/promises"
+import { createGunzip } from "node:zlib"
 
 import {
   ARCHIVE_HEADER_LENGTH,
@@ -24,7 +20,6 @@ import {
   parseTarHeader,
   type TarEntry
 } from "../archive/tar"
-
 import { AsyncBufferReader, TarTruncatedError } from "../utils/asyncBufferReader"
 import { isSameOrChildPath } from "../utils/fs"
 import { sha256Hex } from "../utils/hash"

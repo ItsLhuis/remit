@@ -1,7 +1,7 @@
+import { logger } from "@/lib/logger"
+
 import { database } from "@/database"
 import { auditLogs } from "@/database/schema"
-
-import { logger } from "@/lib/logger"
 
 export type AuditEvent =
   | "auth.login.succeeded"

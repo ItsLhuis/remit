@@ -1,9 +1,7 @@
 import * as p from "@clack/prompts"
 
 import { loadCliEnvironment } from "./core/cli/bootstrap"
-
 import { isDirectRun } from "./core/cli/isDirectRun"
-
 import { parseSeedDemoArgs } from "./core/seedDemo/args"
 import { hasExistingSeedableRows } from "./core/seedDemo/plan"
 import {

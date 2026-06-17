@@ -1,5 +1,4 @@
 import { english } from "./locales/en"
-
 import { type Language } from "./types"
 
 export const Locales = {

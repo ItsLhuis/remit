@@ -1,6 +1,5 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
-
 import { sql } from "drizzle-orm"
+import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { organizations } from "./organizations"
 

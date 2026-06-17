@@ -30,7 +30,6 @@ import {
   emitLeadUpdated
 } from "./events"
 import { toLeadFormData } from "./queries"
-import { canTransitionLeadStatus } from "./services"
 import {
   convertLeadSchema,
   createLeadSchema,
@@ -40,6 +39,7 @@ import {
   type CreateLeadValues,
   type UpdateLeadValues
 } from "./schemas"
+import { canTransitionLeadStatus } from "./services"
 import { type LeadFormData } from "./types"
 
 export type LeadMutationResult = { data: { lead: LeadFormData } } | { error: string }

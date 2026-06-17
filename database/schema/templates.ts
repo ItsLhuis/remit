@@ -1,6 +1,5 @@
-import { boolean, index, jsonb, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { boolean, index, jsonb, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 
 import { emailLogs } from "./emailLogs"
 import { templateType } from "./enums"

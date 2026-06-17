@@ -4,9 +4,8 @@ import { t } from "@/lib/i18n/server"
 
 import { requireRole } from "@/lib/auth/session"
 
-import { getHealthChecks, getSystemInfo } from "@/features/health/server"
-
 import { HealthSettingsPage } from "@/features/health"
+import { getHealthChecks, getSystemInfo } from "@/features/health/server"
 
 export const dynamic = "force-dynamic"
 

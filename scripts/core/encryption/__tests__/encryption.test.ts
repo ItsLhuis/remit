@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 
-import { decryptValue, encryptValue } from "../values"
 import { keysEqual, validateKey } from "../keyValidation"
+import { decryptValue, encryptValue } from "../values"
 
 describe("encryption helpers", () => {
   test("validates base64 keys that decode to 32 bytes", () => {

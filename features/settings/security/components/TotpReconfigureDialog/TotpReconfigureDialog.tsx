@@ -6,8 +6,8 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Button, Dialog, DialogContent, DialogTrigger, toast } from "@/components/ui"
 
-import { ConfirmStep } from "./ConfirmStep"
 import { CodesStep } from "./CodesStep"
+import { ConfirmStep } from "./ConfirmStep"
 import { ScanStep } from "./ScanStep"
 
 type Step = "confirm" | "scan" | "codes"

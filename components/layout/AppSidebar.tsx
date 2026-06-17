@@ -5,7 +5,6 @@ import { Fragment, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
 import Image from "next/image"
-
 import Link from "next/link"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
@@ -14,11 +13,9 @@ import { useTranslation } from "@/lib/i18n"
 
 import { signOut, useSession } from "@/lib/auth/client"
 
-import { resolveStorageUrl } from "@/lib/storage"
-
 import { cn, getInitials } from "@/lib/utils"
 
-import { useScroll } from "@/hooks"
+import { resolveStorageUrl } from "@/lib/storage"
 
 import {
   Avatar,
@@ -60,6 +57,8 @@ import {
 } from "@/components/ui"
 
 import { SignOutDialog } from "@/features/auth/components/SignOutDialog"
+
+import { useScroll } from "@/hooks"
 
 const mainNavItems = [
   { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },

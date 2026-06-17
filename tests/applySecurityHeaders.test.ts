@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { applySecurityHeaders, buildContentSecurityPolicy, proxy } from "../proxy"

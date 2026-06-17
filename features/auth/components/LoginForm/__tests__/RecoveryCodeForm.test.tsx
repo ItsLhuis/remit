@@ -1,9 +1,9 @@
 import { useState } from "react"
 
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
-
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { RecoveryCodeForm } from "../RecoveryCodeForm"
 

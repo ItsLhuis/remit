@@ -1,8 +1,7 @@
-import { mapWithConcurrency } from "../utils/concurrency"
-
-import { hashFile } from "../utils/hash"
-
 import type { LocalStorageObject } from "@/lib/storage/local"
+
+import { mapWithConcurrency } from "../utils/concurrency"
+import { hashFile } from "../utils/hash"
 
 // Bound concurrency so instances with thousands of uploads do not open every file
 // at once and exhaust file descriptors (EMFILE) while hashing.

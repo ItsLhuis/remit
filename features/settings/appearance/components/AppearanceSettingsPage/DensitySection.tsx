@@ -4,9 +4,9 @@ import { type ReactNode } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useAppearance, type Density } from "@/providers"
-
 import { ToggleGroup, ToggleGroupItem, Typography } from "@/components/ui"
+
+import { useAppearance, type Density } from "@/providers"
 
 import { DensityPreview } from "./DensityPreview"
 

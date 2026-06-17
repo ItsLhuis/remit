@@ -1,15 +1,11 @@
-import { afterEach, describe, expect, test } from "vitest"
-
 import { createHash } from "node:crypto"
-
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises"
-
 import os from "node:os"
-
 import path from "node:path"
+import { PassThrough } from "node:stream"
 import { gzipSync } from "node:zlib"
 
-import { PassThrough } from "node:stream"
+import { afterEach, describe, expect, test } from "vitest"
 
 import {
   ARCHIVE_HEADER_LENGTH,
@@ -20,8 +16,8 @@ import {
 } from "../../archive/header"
 import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../../backup/manifest"
 import { readAndValidateRestoreHeader } from "../header"
-import { verifyArchivePayload } from "../verifyArchive"
 import { applyUploadsAtomicSwap } from "../uploadsSwap"
+import { verifyArchivePayload } from "../verifyArchive"
 
 const key = Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64")
 const otherKey = Buffer.from("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", "base64")

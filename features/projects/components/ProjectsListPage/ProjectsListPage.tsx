@@ -8,8 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import { exportTableToCsv } from "@/lib/utils"
 
-import { useDataTable, type ColumnDef } from "@/hooks"
-
 import {
   Badge,
   Button,
@@ -47,6 +45,8 @@ import {
   toast
 } from "@/components/ui"
 
+import { useDataTable, type ColumnDef } from "@/hooks"
+
 import { useProjectListState } from "../../hooks"
 import { softDeleteProject } from "../../mutations"
 import { type ProjectStatusFilter } from "../../schemas"
@@ -55,11 +55,10 @@ import {
   type ProjectListItem,
   type ProjectListPageData
 } from "../../types"
-
 import { ProjectFormSheet } from "../ProjectFormSheet"
 
-import { ProjectsSummaryBand } from "./ProjectsSummaryBand"
 import { getProjectColumns } from "./columns"
+import { ProjectsSummaryBand } from "./ProjectsSummaryBand"
 
 function asStatusFilter(value: string): ProjectStatusFilter {
   return value === "deleted" || value === "all" ? value : "active"

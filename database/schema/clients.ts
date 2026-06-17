@@ -1,6 +1,5 @@
-import { index, pgTable, text, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
-
 import { relations, sql } from "drizzle-orm"
+import { index, pgTable, text, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
 
 import { encryptedColumn, softDelete, timestamps } from "./helpers"
 import { projects } from "./projects"

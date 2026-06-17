@@ -2,13 +2,13 @@
 
 import { type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
-import { useTranslation } from "@/lib/i18n"
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react"
 
 import { Select as SelectPrimitive } from "radix-ui"
 
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
+
+import { cn } from "@/lib/utils"
 
 const Select = ({ ...props }: ComponentProps<typeof SelectPrimitive.Root>) => (
   <SelectPrimitive.Root data-slot="select" {...props} />

@@ -1,7 +1,6 @@
 import { type ReactNode } from "react"
 
 import { cookies } from "next/headers"
-
 import { headers } from "next/headers"
 
 import { getCurrentRole, requireSession } from "@/lib/auth/session"

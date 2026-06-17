@@ -1,8 +1,8 @@
 import { t } from "@/lib/i18n/server"
 
-import { getTaxRates } from "../../queries"
-
 import { SettingsPageHeader } from "@/components/layout"
+
+import { getTaxRates } from "../../queries"
 
 import { TaxRatesSettingsForm } from "./TaxRatesSettingsForm"
 

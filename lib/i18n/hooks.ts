@@ -1,7 +1,6 @@
 import { useTranslation as useI18nTranslation } from "react-i18next"
 
 import type i18n from "./config"
-
 import { locales } from "./resources"
 
 export type UseTranslationState = {

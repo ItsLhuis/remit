@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import {
   boolean,
   check,
@@ -8,8 +9,6 @@ import {
   uuid,
   varchar
 } from "drizzle-orm/pg-core"
-
-import { sql } from "drizzle-orm"
 
 import { backupCadence, backupDestination, emailProvider } from "./enums"
 import { encryptedColumn, timestamps } from "./helpers"

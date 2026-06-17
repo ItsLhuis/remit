@@ -2,9 +2,9 @@
 
 import { useMemo, type ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { Slider as SliderPrimitive } from "radix-ui"
+
+import { cn } from "@/lib/utils"
 
 const Slider = ({
   className,

@@ -8,9 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import { formatPercentage } from "@/lib/utils"
 
-import { deleteTaxRate, setDefaultTaxRate } from "../../mutations"
-import { type TaxRateListItem } from "../../schemas"
-
 import {
   Badge,
   Button,
@@ -39,6 +36,9 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { deleteTaxRate, setDefaultTaxRate } from "../../mutations"
+import { type TaxRateListItem } from "../../schemas"
 
 import { DeleteTaxRateDialog } from "./DeleteTaxRateDialog"
 import { TaxRateFormDialog, type TaxRateFormState } from "./TaxRateFormDialog"

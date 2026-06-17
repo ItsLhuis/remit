@@ -1,14 +1,13 @@
 import { type ReactNode } from "react"
 
 import { type Metadata } from "next"
-
 import { DM_Sans, Inter, JetBrains_Mono } from "next/font/google"
 
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 
-import { cn } from "@/lib/utils"
-
 import { t } from "@/lib/i18n/server"
+
+import { cn } from "@/lib/utils"
 
 import { Toaster, TooltipProvider } from "@/components/ui"
 

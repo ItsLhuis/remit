@@ -1,8 +1,7 @@
 import type postgres from "postgres"
 
-import { decryptValue } from "../encryption/values"
-
 import type { BackupCredentials, BackupDestination } from "../destination"
+import { decryptValue } from "../encryption/values"
 
 import { RotationCliError } from "./errors"
 import { readNullableUnknownString } from "./verifyOldKey"

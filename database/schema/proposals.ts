@@ -1,3 +1,4 @@
+import { relations, sql } from "drizzle-orm"
 import {
   type AnyPgColumn,
   bigint,
@@ -14,11 +15,9 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
-import { relations, sql } from "drizzle-orm"
-
+import { contracts } from "./contracts"
 import { discountType, proposalStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { contracts } from "./contracts"
 import { invoices } from "./invoices"
 import { lineItems } from "./lineItems"
 import { projects } from "./projects"

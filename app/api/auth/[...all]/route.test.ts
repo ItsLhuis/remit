@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from "vitest"
-
 import { NextRequest } from "next/server"
+
+import { beforeEach, describe, expect, test, vi } from "vitest"
 
 const USER_ID = "00000000-0000-0000-0000-000000000001"
 const REQUEST_IP = "203.0.113.1"

@@ -1,9 +1,10 @@
 import nodemailer from "nodemailer"
+
 import { Resend } from "resend"
 
-import { env } from "@/lib/config/env"
-
 import { logger } from "@/lib/logger"
+
+import { env } from "@/lib/config/env"
 
 import { database } from "@/database"
 

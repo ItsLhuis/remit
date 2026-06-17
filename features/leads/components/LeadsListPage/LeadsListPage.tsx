@@ -8,8 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import { exportTableToCsv } from "@/lib/utils"
 
-import { useDataTable, type ColumnDef } from "@/hooks"
-
 import {
   Badge,
   Button,
@@ -47,15 +45,16 @@ import {
   toast
 } from "@/components/ui"
 
+import { useDataTable, type ColumnDef } from "@/hooks"
+
 import { useLeadListState } from "../../hooks"
 import { softDeleteLead } from "../../mutations"
 import { type LeadStatusFilter } from "../../schemas"
 import { type LeadListItem, type LeadListPageData } from "../../types"
-
 import { LeadFormSheet } from "../LeadFormSheet"
 
-import { LeadsSummaryBand } from "./LeadsSummaryBand"
 import { getLeadColumns } from "./columns"
+import { LeadsSummaryBand } from "./LeadsSummaryBand"
 
 function asStatusFilter(value: string): LeadStatusFilter {
   return value === "deleted" || value === "all" ? value : "active"

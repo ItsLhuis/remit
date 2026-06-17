@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
-
 import Image from "next/image"
 
+import { useTranslation } from "@/lib/i18n"
+
 import { Button, Checkbox, Label, RecoveryCodes, StepProgress, Typography } from "@/components/ui"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "../constants/onboarding"
 
 type RecoveryCodesStepProps = {
   backupCodes: string[]

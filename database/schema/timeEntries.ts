@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
@@ -10,14 +11,12 @@ import {
   uuid
 } from "drizzle-orm/pg-core"
 
-import { sql } from "drizzle-orm"
-
+import { users } from "./auth"
 import { timeEntrySource } from "./enums"
 import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { projects } from "./projects"
 import { tasks } from "./tasks"
-import { users } from "./auth"
 
 export const timeEntries = pgTable(
   "time_entries",

@@ -1,10 +1,10 @@
 "use client"
 
-import { useCopyWithFeedback } from "@/hooks"
-
 import { useTranslation } from "@/lib/i18n"
 
 import { CopyIcon, IconButton, Typography } from "@/components/ui"
+
+import { useCopyWithFeedback } from "@/hooks"
 
 type ManualEntryCodeProps = {
   secret: string

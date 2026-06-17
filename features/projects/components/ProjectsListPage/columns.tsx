@@ -8,8 +8,6 @@ import { type TFunction } from "@/lib/i18n"
 
 import { formatCurrency, formatDay } from "@/lib/utils"
 
-import { type ColumnDef } from "@/hooks"
-
 import {
   Badge,
   Checkbox,
@@ -24,9 +22,10 @@ import {
   Skeleton
 } from "@/components/ui"
 
+import { type ColumnDef } from "@/hooks"
+
 import { PROJECT_STATUS_VALUES } from "../../schemas"
 import { type ProjectListItem } from "../../types"
-
 import { ProjectStatusBadge } from "../ProjectStatusBadge"
 
 export function getProjectColumns(

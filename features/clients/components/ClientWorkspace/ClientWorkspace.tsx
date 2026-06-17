@@ -52,7 +52,6 @@ import { ClientProjectsPanel } from "@/features/projects"
 import { softDeleteClient } from "../../mutations"
 import { formatLocation } from "../../services"
 import { type ClientDetail, type ClientFormData } from "../../types"
-
 import { ClientFormSheet } from "../ClientFormSheet"
 import { ClientHealthBadge } from "../ClientHealthBadge"
 import { DeleteClientDialog } from "../DeleteClientDialog"

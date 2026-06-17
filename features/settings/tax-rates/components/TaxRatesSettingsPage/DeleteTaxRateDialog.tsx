@@ -1,7 +1,5 @@
 "use client"
 
-import { type TaxRateListItem } from "../../schemas"
-
 import { useTranslation } from "@/lib/i18n"
 
 import {
@@ -15,6 +13,8 @@ import {
   DialogTitle,
   Spinner
 } from "@/components/ui"
+
+import { type TaxRateListItem } from "../../schemas"
 
 type DeleteTaxRateDialogProps = {
   taxRate: TaxRateListItem | null

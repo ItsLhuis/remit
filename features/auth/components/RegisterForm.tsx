@@ -4,17 +4,14 @@ import { useState } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
-import { authClient } from "@/lib/auth/client"
-
-import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "@/features/setup"
+import Image from "next/image"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
-import { accountSchema, type AccountValues } from "../schemas"
 
-import Image from "next/image"
+import { useTranslation } from "@/lib/i18n"
+
+import { authClient } from "@/lib/auth/client"
 
 import {
   Button,
@@ -26,6 +23,10 @@ import {
   StepProgress,
   Typography
 } from "@/components/ui"
+
+import { ONBOARDING_STEPS, ONBOARDING_TOTAL_STEPS } from "@/features/setup"
+
+import { accountSchema, type AccountValues } from "../schemas"
 
 import { PasswordRequirements } from "./PasswordRequirements"
 

@@ -2,9 +2,9 @@
 
 import { type ComponentProps, useContext } from "react"
 
-import { cn } from "@/lib/utils"
-
 import { OTPInput, OTPInputContext } from "input-otp"
+
+import { cn } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 

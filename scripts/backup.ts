@@ -1,12 +1,9 @@
 import * as p from "@clack/prompts"
 
-import { loadCliEnvironment } from "./core/cli/bootstrap"
-
-import { isDirectRunNamed } from "./core/cli/isDirectRun"
-
 import { getBackupHelpText, parseBackupArgs } from "./core/backup/args"
-
 import { formatBackupError, runBackup } from "./core/backup/runBackup"
+import { loadCliEnvironment } from "./core/cli/bootstrap"
+import { isDirectRunNamed } from "./core/cli/isDirectRun"
 
 export { runBackup }
 

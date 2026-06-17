@@ -1,40 +1,28 @@
 import { mkdir, rm } from "node:fs/promises"
-
 import path from "node:path"
 
 import * as p from "@clack/prompts"
 
 import chalk from "chalk"
 
-import { exitOnCancel } from "../cli/exitOnCancel"
-import { redactOperationalError } from "../cli/redact"
+import pkg from "@/package.json"
 
 import { writeOperationalAudit } from "../audit/operationalAudit"
-
+import { exitOnCancel } from "../cli/exitOnCancel"
+import { redactOperationalError } from "../cli/redact"
+import type { BackupDestination, BackupDestinationAdapter } from "../destination"
 import { formatBytes } from "../utils/format"
 import { pathExists } from "../utils/fs"
 
-import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
-
-import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "./manifest"
-
-import { DEFAULT_BACKUP_DIRNAME } from "./filename"
-
-import { buildConfiguredDestinationAdapter } from "./credentials"
-
-import { buildChecksumsFile, describeUploads } from "./uploads"
-
-import { dumpDatabaseToTempFile, type DatabaseDumpDescriptor } from "./databaseDump"
-
-import { enforceRemoteRetention, uploadArchive, writeEncryptedTar } from "./writeArchive"
-
-import { updateBackupFailure, updateBackupSuccess } from "./statusUpdate"
-
 import type { BackupCliOptions } from "./args"
-
-import type { BackupDestination, BackupDestinationAdapter } from "../destination"
-
-import pkg from "@/package.json"
+import { buildConfiguredDestinationAdapter } from "./credentials"
+import { dumpDatabaseToTempFile, type DatabaseDumpDescriptor } from "./databaseDump"
+import { DEFAULT_BACKUP_DIRNAME } from "./filename"
+import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "./manifest"
+import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
+import { updateBackupFailure, updateBackupSuccess } from "./statusUpdate"
+import { buildChecksumsFile, describeUploads } from "./uploads"
+import { enforceRemoteRetention, uploadArchive, writeEncryptedTar } from "./writeArchive"
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")

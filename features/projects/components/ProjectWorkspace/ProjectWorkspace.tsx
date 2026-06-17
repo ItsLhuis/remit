@@ -37,7 +37,6 @@ import {
 
 import { softDeleteProject } from "../../mutations"
 import { type ProjectClientOption, type ProjectDetail, type ProjectFormData } from "../../types"
-
 import { DeleteProjectDialog } from "../DeleteProjectDialog"
 import { ProjectFormSheet } from "../ProjectFormSheet"
 import { ProjectStatusBadge } from "../ProjectStatusBadge"

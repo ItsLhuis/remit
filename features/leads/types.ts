@@ -1,5 +1,5 @@
-import { type LeadsSummary } from "./services"
 import { type LeadFormValues, type LeadListQuery, type LeadStatus } from "./schemas"
+import { type LeadsSummary } from "./services"
 
 export type LeadListItem = {
   id: string

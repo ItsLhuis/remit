@@ -1,16 +1,12 @@
 import { randomUUID } from "node:crypto"
 
 import { betterAuth } from "better-auth"
-
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-
 import {
   organization as organizationPlugin,
   twoFactor as twoFactorPlugin
 } from "better-auth/plugins"
 import { defaultAc, ownerAc } from "better-auth/plugins/organization/access"
-
-import { sendTransactionalEmail } from "@/features/email/server"
 
 import { env } from "@/lib/config/env"
 
@@ -25,6 +21,8 @@ import {
   users,
   verifications
 } from "@/database/schema"
+
+import { sendTransactionalEmail } from "@/features/email/server"
 
 const limitedOrganizationRole = defaultAc.newRole({
   organization: [],

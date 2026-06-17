@@ -2,9 +2,9 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { useCopyWithFeedback } from "@/hooks"
-
 import { CopyIcon, IconButton } from "@/components/ui"
+
+import { useCopyWithFeedback } from "@/hooks"
 
 type FingerprintCopyButtonProps = {
   fingerprint: string

@@ -1,25 +1,17 @@
+import { createHash } from "node:crypto"
+import { mkdir, rm, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { PassThrough } from "node:stream"
+import { gzipSync } from "node:zlib"
+
 // @integration
 import { afterEach, expect, test } from "vitest"
 
-import { createHash } from "node:crypto"
-
-import { mkdir, rm, writeFile } from "node:fs/promises"
-
-import os from "node:os"
-
-import path from "node:path"
-import { PassThrough } from "node:stream"
-
-import { gzipSync } from "node:zlib"
+import { auditLogs, clients, settings } from "@/database/schema"
 
 import pkg from "@/package.json"
-
-import { auditLogs, clients, settings } from "@/database/schema"
 import { client, database } from "@/tests/integration/database"
-
-import { runKeyRotation } from "../runRotation"
-
-import { decryptValue, encryptValue } from "../../encryption/values"
 
 import {
   ARCHIVE_HEADER_LENGTH,
@@ -28,8 +20,10 @@ import {
   writeArchiveHeader
 } from "../../archive/header"
 import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../../backup/manifest"
+import { decryptValue, encryptValue } from "../../encryption/values"
 import { readAndValidateRestoreHeader } from "../../restore/header"
 import { verifyArchivePayload } from "../../restore/verifyArchive"
+import { runKeyRotation } from "../runRotation"
 
 const oldKey = Buffer.alloc(32, 0)
 const newKey = Buffer.alloc(32, 1)

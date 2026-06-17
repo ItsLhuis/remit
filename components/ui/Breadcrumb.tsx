@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
+import { Slot } from "radix-ui"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
-
-import { Slot } from "radix-ui"
 
 import { Icon } from "@/components/ui/Icon"
 

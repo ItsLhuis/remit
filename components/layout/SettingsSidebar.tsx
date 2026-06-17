@@ -4,13 +4,11 @@ import { useState } from "react"
 
 import { usePathname } from "next/navigation"
 
+import Link from "next/link"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { useScroll } from "@/hooks"
-
 import { cn } from "@/lib/utils"
-
-import Link from "next/link"
 
 import {
   Icon,
@@ -27,6 +25,8 @@ import {
   SidebarMenuItem,
   Typography
 } from "@/components/ui"
+
+import { useScroll } from "@/hooks"
 
 type NavItem = {
   labelKey: string

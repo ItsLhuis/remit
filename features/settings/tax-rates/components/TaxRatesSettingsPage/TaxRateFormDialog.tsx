@@ -2,18 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react"
 
-import { useTranslation } from "@/lib/i18n"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 
-import { createTaxRate, updateTaxRate } from "../../mutations"
-import {
-  taxRateFormSchema,
-  type TaxRateFormInputValues,
-  type TaxRateFormValues,
-  type TaxRateListItem
-} from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -34,6 +26,14 @@ import {
   Spinner,
   toast
 } from "@/components/ui"
+
+import { createTaxRate, updateTaxRate } from "../../mutations"
+import {
+  taxRateFormSchema,
+  type TaxRateFormInputValues,
+  type TaxRateFormValues,
+  type TaxRateListItem
+} from "../../schemas"
 
 export type TaxRateFormState =
   | { mode: "create" }

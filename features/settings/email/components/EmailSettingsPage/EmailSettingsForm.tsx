@@ -4,19 +4,10 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { saveEmailSettings, sendEmailSettingsTest } from "../../mutations"
-import {
-  emailSettingsSchema,
-  testEmailSettingsSchema,
-  type EmailSettingsInputValues,
-  type EmailSettingsValues,
-  type TestEmailSettingsValues
-} from "../../schemas"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -44,6 +35,15 @@ import {
   toast,
   Typography
 } from "@/components/ui"
+
+import { saveEmailSettings, sendEmailSettingsTest } from "../../mutations"
+import {
+  emailSettingsSchema,
+  testEmailSettingsSchema,
+  type EmailSettingsInputValues,
+  type EmailSettingsValues,
+  type TestEmailSettingsValues
+} from "../../schemas"
 
 type EmailSettingsFormProps = {
   initialValues: EmailSettingsValues

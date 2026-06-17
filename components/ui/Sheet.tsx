@@ -2,11 +2,11 @@
 
 import { type ComponentProps } from "react"
 
+import { Dialog as SheetPrimitive } from "radix-ui"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
-
-import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"

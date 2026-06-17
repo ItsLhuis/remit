@@ -5,7 +5,6 @@ import * as p from "@clack/prompts"
 import { and, eq } from "drizzle-orm"
 
 import { loadCliEnvironment } from "./core/cli/bootstrap"
-
 import { exitOnCancel } from "./core/cli/exitOnCancel"
 
 loadCliEnvironment()

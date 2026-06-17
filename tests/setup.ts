@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom/vitest"
-import "vitest-axe/extend-expect"
 
 import { vi } from "vitest"
+
+import "vitest-axe/extend-expect"
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

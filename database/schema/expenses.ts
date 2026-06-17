@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
@@ -11,10 +12,8 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
-import { sql } from "drizzle-orm"
-
-import { softDelete, timestamps } from "./helpers"
 import { clients } from "./clients"
+import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
 import { projects } from "./projects"
 import { uploads } from "./uploads"

@@ -1,12 +1,12 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { type HealthCheckResult } from "../../types"
+import { cn } from "@/lib/utils"
 
 import { Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
+
+import { type HealthCheckResult } from "../../types"
 
 type HealthSummaryProps = {
   checks: HealthCheckResult[]

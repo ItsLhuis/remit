@@ -1,9 +1,7 @@
 import * as p from "@clack/prompts"
 
 import { loadCliEnvironment } from "./core/cli/bootstrap"
-
 import { isDirectRun } from "./core/cli/isDirectRun"
-
 import { getRotateHelpText, parseRotateArgs } from "./core/keyRotation/args"
 import { releaseRotationLock } from "./core/keyRotation/lock"
 import { readRotationKeys } from "./core/keyRotation/readKeys"
