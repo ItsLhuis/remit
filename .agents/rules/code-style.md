@@ -103,11 +103,18 @@ owns the answer, so different models converge on the same output.
   settles it. Do not hand-tune what the formatter sets.
 - **Structure** - declaration order (see "File-level organization") and the body-section order
   below. This is deterministic: classify each statement by its syntax and place it in its section,
-  so two models given the same component produce the same order. Only `.tsx` helper placement is
-  lint-backed (`remit/helper-placement`); the rest is convention you follow exactly.
-- **Meaning** - the semantic blank lines between concerns. This is the small residual tooling cannot
-  decide. Mirror the nearest canonical exemplar and never invent a new rhythm (see "Formatting
-  rhythm").
+  so two models given the same file produce the same order. It is **recursive**: it governs the
+  top-level body of a file _and_ the body of every function, callback, and `try` block inside it, so
+  same-role functions across the repo are organized identically (see "Intra-function structure").
+  Only `.tsx` helper placement is lint-backed (`remit/helper-placement`); the section order itself
+  is convention you follow exactly. It is not lint-enforced on purpose - the canonical exemplars
+  legitimately interleave hooks and derived values by data dependency and cohesion (the two nuances
+  below), which an AST rule cannot tell apart from real disorder without flagging the exemplars
+  themselves.
+- **Meaning** - the blank lines between concerns. Most of this is now a deterministic rule, not
+  judgment: see "The blank-line law". The only residual judgment is _which statements form one
+  cohesive group_; for that, mirror the nearest canonical exemplar and never invent a new rhythm
+  (see "Formatting rhythm").
 
 ## React component body structure
 
@@ -167,6 +174,47 @@ const user = session?.user
 const initials = user?.name ? getInitials(user.name) : "?"
 ```
 
+The default reading of the table is non-decreasing: a statement does not appear in a section that
+precedes a section already seen. The two nuances above are the only sanctioned exceptions, and both
+are driven by data dependency or cohesion - which is exactly why this is applied by hand and in
+review rather than by a lint rule. The order _inside_ a handler and the blank lines between
+statements are governed separately, by "Intra-function structure" and the blank-line law below.
+
+## Body-section order by file category
+
+Deterministic section order is not a component-only rule. Every file category has a fixed body
+sequence: classify each top-level statement by its syntax, place it in the matching section, and let
+the blank-line law govern the spacing between sections. Where a rule file already specifies the
+sequence, that file is authoritative; this table is the index.
+
+| Category              | Body-section sequence                                                                                                                                                                    | Authority                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| component `.tsx`      | the 10-section table above; file-private `function` helpers sit above the component                                                                                                      | this file + `components.md`           |
+| `mutations.ts` action | read request/session → validate (`safeParse`, early return) → normalize `parsed.data` → service calls → writes in a scoped `try` → audit + events → revalidate → `return { data }`       | `actions.md`                          |
+| `queries.ts` read     | validate untrusted input (`safeParse`, early empty return) → reads (independent ones in `Promise.all`) → map via `to<Model>` → return; `where`/`order-by` helpers below the public reads | `queries.md`                          |
+| `services/*.ts`       | pure functions, inputs typed and no IO; config/result types before the function that uses them; private helpers below the public function                                                | `architecture.md`                     |
+| `schemas.ts`          | shared constants first → each `schema` immediately followed by its `z.infer` type                                                                                                        | this file ("Schemas")                 |
+| generic `.ts`         | file-private constants → file-private types → public function/export → private helpers below                                                                                             | this file ("File-level organization") |
+
+## Intra-function structure
+
+The body-section discipline recurses: the rules above order the _top-level_ statements of a file,
+and the rules here order the statements _inside_ each function, callback, and `try` block. Imagine
+rewriting the file from scratch - the inside of a function is organized as deliberately as the file
+around it.
+
+**Same-role functions are organized identically.** Two functions that play the same role anywhere in
+the repo - a form submit handler, a `to<Model>` mapper, a service predicate, a `where`-clause
+builder, an event handler - share the same internal section order and the same blank-line rhythm, so
+a reader finds the same piece of logic in the same place in every file. Derive that order from the
+statement-classification rules, never from a per-function catalogue: there is no "the submit-handler
+rule", only the general rule applied to a submit handler.
+
+A function body classifies into the same kind of sections as a file body, in this order: guard
+returns → read/derive inputs → normalize values → IO inside a scoped `try` → post-write side effects
+(audit, events, revalidate) → the final return. The async-flow shape below is this list for an IO
+function; a pure function collapses to derive → compute → return.
+
 ## Function and logic structure
 
 Prefer early returns, including compact one-line guards when the body is trivial:
@@ -213,26 +261,36 @@ try {
 }
 ```
 
-## Formatting rhythm
+## The blank-line law
 
-The author favors short visual blocks. Use blank lines to separate concerns, but keep cohesive
-statement clusters dense.
+The author favors short visual blocks. The spacing between statements is a deterministic rule, not a
+free choice:
 
-Only two blank-line conventions are lint-enforced: no blank lines inside a JSX return
-(`remit/no-blank-lines-in-jsx-return`, auto-fixable) and the blank line after a `"use server"` /
-`"use client"` directive. The remaining rhythm guidance below is reviewer judgment, not tooling - a
-blanket `padding-line-between-statements` rule would break the sanctioned one-line guards and
-compact expression bodies, so it is deliberately not configured.
+- **Exactly one blank line between two adjacent statements of different sections** (different
+  concern).
+- **No blank line between statements of the same cohesive group** (one concern). A cohesive group is
+  statements serving a single concern: related `useState` for one feature (e.g. all the filters of
+  one list), a value normalization immediately feeding the `return` beneath it, stacked one-line
+  guard returns.
+- **Never more than one consecutive blank line.** Prettier collapses extras, so two or more blank
+  lines in a row is always a defect to remove.
 
-Use a blank line between:
+The law applies at every nesting level - the top-level body and the inside of every function,
+callback, and `try` block (see "Intra-function structure"). The only judgment it leaves is _which
+statements belong to one cohesive group_; resolve that by mirroring the nearest canonical exemplar,
+never by inventing a new rhythm.
 
-- Import groups.
-- Type aliases and runtime constants when they are distinct concepts.
-- Hook groups with different roles.
-- Guards and the next body section.
-- Database reads, derived values, and writes.
-- Logger calls and the following return.
-- Hooks/derived-values/handlers and the `return` statement.
+Why it is not a blanket lint rule: a `padding-line-between-statements` rule would force a blank line
+between the sanctioned stacked one-line guards and break compact expression bodies, so it is
+deliberately not configured. The lint-enforced slice is narrower and exact - no blank lines inside a
+JSX return (`remit/no-blank-lines-in-jsx-return`, auto-fixable) and the blank line after a
+`"use server"` / `"use client"` directive. Everything else in this law is applied by hand and
+checked in review, but it is a rule with a right answer, not a preference.
+
+Concretely, insert one blank line between: import groups; type aliases and runtime constants when
+they are distinct concepts; hook groups with different roles; a guard and the next body section;
+database reads, derived values, and writes; a logger call and the following return; and the
+hooks/derived-values/handlers block and the `return` statement.
 
 JSX `return (...)` trees contain **no blank lines**, regardless of how many logical sections the
 markup has. Visual separation of sections is achieved by **component decomposition** (extract a
