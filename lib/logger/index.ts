@@ -15,7 +15,3 @@ export const logger = pino({
     }
   })
 })
-
-export function withRequestId(requestId: string) {
-  return logger.child({ requestId })
-}

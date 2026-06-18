@@ -1,6 +1,6 @@
-import type { Readable } from "node:stream"
+import { type Readable } from "node:stream"
 
-import type { S3ClientConfig } from "@aws-sdk/client-s3"
+import { type S3ClientConfig } from "@aws-sdk/client-s3"
 
 export type BackupDestination = "local" | "s3" | "r2" | "b2"
 

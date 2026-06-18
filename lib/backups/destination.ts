@@ -3,7 +3,7 @@ import { mkdir, rm, stat } from "node:fs/promises"
 import path from "node:path"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
-import type { ReadableStream as NodeReadableStream } from "node:stream/web"
+import { type ReadableStream as NodeReadableStream } from "node:stream/web"
 
 import {
   DeleteObjectCommand,
@@ -13,13 +13,14 @@ import {
   S3Client
 } from "@aws-sdk/client-s3"
 
-import type {
-  BackupCredentials,
-  BackupDestination,
-  BackupDestinationAdapter,
-  CompleteBackupCredentials
+import {
+  buildS3ClientConfig,
+  validateBackupCredentials,
+  type BackupCredentials,
+  type BackupDestination,
+  type BackupDestinationAdapter,
+  type CompleteBackupCredentials
 } from "./destinationConfig"
-import { buildS3ClientConfig, validateBackupCredentials } from "./destinationConfig"
 
 export {
   buildS3ClientConfig,

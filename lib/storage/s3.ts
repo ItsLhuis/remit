@@ -9,7 +9,7 @@ import {
 
 import { env } from "@/lib/config/env"
 
-export const s3 = new S3Client({
+const s3 = new S3Client({
   endpoint: env.MINIO_ENDPOINT,
   region: "us-east-1",
   credentials: {
