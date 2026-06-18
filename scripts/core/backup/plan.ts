@@ -4,14 +4,14 @@ import path from "node:path"
 import { sql } from "drizzle-orm"
 
 import { listLocalStorageObjects, resolveLocalUploadsDirectory } from "@/lib/storage/local"
-import type { LocalStorageObject } from "@/lib/storage/local"
+import { type LocalStorageObject } from "@/lib/storage/local"
 
 import migrationJournal from "@/drizzle/migrations/meta/_journal.json"
 import pkg from "@/package.json"
 
-import type { BackupDestination } from "../destination"
+import { type BackupDestination } from "../destination"
 
-import type { BackupCliOptions } from "./args"
+import { type BackupCliOptions } from "./args"
 import { buildBackupFilename, buildRemoteBackupKey, DEFAULT_BACKUP_DIRNAME } from "./filename"
 
 type Database = typeof import("@/database").database

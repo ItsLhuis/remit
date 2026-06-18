@@ -15,13 +15,13 @@ import {
   writeArchiveHeader
 } from "../archive/header"
 import { TarWriter } from "../archive/tar"
-import type { BackupDestinationAdapter } from "../destination"
+import { type BackupDestinationAdapter } from "../destination"
 
-import type { DatabaseDumpDescriptor } from "./databaseDump"
+import { type DatabaseDumpDescriptor } from "./databaseDump"
 import { REMOTE_BACKUP_PREFIX } from "./filename"
-import type { BackupPlan } from "./plan"
+import { type BackupPlan } from "./plan"
 import { computeRetentionDeletions } from "./retention"
-import type { UploadDescriptor } from "./uploads"
+import { type UploadDescriptor } from "./uploads"
 
 export class BackupWriteError extends Error {}
 

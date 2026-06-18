@@ -4,7 +4,7 @@ import type postgres from "postgres"
 
 import { decryptValue } from "../encryption/values"
 
-import type { EncryptedTable } from "./columns"
+import { type EncryptedTable } from "./columns"
 import { RotationCliError } from "./errors"
 
 type Sql = postgres.Sql

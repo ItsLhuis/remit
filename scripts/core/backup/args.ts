@@ -1,6 +1,6 @@
 import chalk from "chalk"
 
-import type { BackupDestination } from "../destination"
+import { type BackupDestination } from "../destination"
 
 export type BackupCliOptions = {
   destinationOverride?: BackupDestination

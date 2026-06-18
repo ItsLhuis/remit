@@ -4,7 +4,7 @@ import { once } from "node:events"
 import { createWriteStream } from "node:fs"
 import { rm } from "node:fs/promises"
 import path from "node:path"
-import type { Readable, Writable } from "node:stream"
+import { type Readable, type Writable } from "node:stream"
 import { finished } from "node:stream/promises"
 
 import { waitForProcess } from "../utils/process"

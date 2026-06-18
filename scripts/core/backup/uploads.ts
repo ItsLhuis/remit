@@ -1,4 +1,4 @@
-import type { LocalStorageObject } from "@/lib/storage/local"
+import { type LocalStorageObject } from "@/lib/storage/local"
 
 import { mapWithConcurrency } from "../utils/concurrency"
 import { hashFile } from "../utils/hash"

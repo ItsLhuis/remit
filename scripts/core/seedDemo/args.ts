@@ -6,7 +6,7 @@ import {
   MAX_DEMO_SEED_INVOICES,
   MAX_DEMO_SEED_PROJECTS
 } from "./inventory"
-import type { DemoSeedSize, SeedDemoCliOptions } from "./types"
+import { type DemoSeedSize, type SeedDemoCliOptions } from "./types"
 
 type ParseArgsResult = { data: SeedDemoCliOptions } | { error: string }
 

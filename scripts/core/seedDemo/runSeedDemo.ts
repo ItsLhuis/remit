@@ -16,11 +16,11 @@ import {
   SEED_INVENTORY
 } from "./inventory"
 import { buildDemoSeedPlan, hasExistingSeedableRows } from "./plan"
-import type {
-  DemoSeedPlan,
-  ReseedTableCounts,
-  SeedDemoCliOptions,
-  SeedDemoRowCounts
+import {
+  type DemoSeedPlan,
+  type ReseedTableCounts,
+  type SeedDemoCliOptions,
+  type SeedDemoRowCounts
 } from "./types"
 
 export { parseSeedDemoArgs }

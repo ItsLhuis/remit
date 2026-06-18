@@ -3,7 +3,7 @@ import {
   ENCRYPTION_ALGORITHM_NAME,
   computeKeyFingerprint
 } from "../archive/header"
-import type { BackupDestination } from "../destination"
+import { type BackupDestination } from "../destination"
 import { sha256Hex } from "../utils/hash"
 
 export { sha256Hex }

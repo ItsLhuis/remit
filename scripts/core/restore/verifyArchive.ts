@@ -3,7 +3,7 @@ import { once } from "node:events"
 import { createReadStream, createWriteStream } from "node:fs"
 import { mkdir, rm, stat } from "node:fs/promises"
 import path from "node:path"
-import type { Writable } from "node:stream"
+import { type Writable } from "node:stream"
 import { finished } from "node:stream/promises"
 import { createGunzip } from "node:zlib"
 

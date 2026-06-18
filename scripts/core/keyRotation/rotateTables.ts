@@ -5,7 +5,7 @@ import type postgres from "postgres"
 import { decryptValue, encryptValue } from "../encryption/values"
 
 import { writeRotationAudit } from "./audit"
-import type { EncryptedTable } from "./columns"
+import { type EncryptedTable } from "./columns"
 import { RotationCliError } from "./errors"
 import { readNullableString } from "./verifyOldKey"
 

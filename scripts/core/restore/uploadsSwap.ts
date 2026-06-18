@@ -5,7 +5,7 @@ import { isMissingPathError, pathExists } from "../utils/fs"
 import { hashFile } from "../utils/hash"
 
 import { RestoreCliError } from "./errors"
-import type { ChecksumDescriptor } from "./verifyArchive"
+import { type ChecksumDescriptor } from "./verifyArchive"
 
 export type AtomicSwapResult = {
   previousUploadsDir: string | null

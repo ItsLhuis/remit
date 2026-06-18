@@ -17,6 +17,7 @@ import { verifyArchivePayload } from "../restore/verifyArchive"
 import { formatBytes } from "../utils/format"
 
 import { listArchivePlans, reencryptConfiguredArchives, type ArchivePlan } from "./archives"
+import { type RotateCliOptions } from "./args"
 import { writeRotationAudit } from "./audit"
 import { groupEncryptedColumns, type EncryptedTable } from "./columns"
 import { RotationCliError } from "./errors"
@@ -37,12 +38,7 @@ type Schema = typeof import("@/database/schema")
 type ReservedSql = postgres.ReservedSql
 type Sql = postgres.Sql
 
-export type RotateCliOptions = {
-  backupFile: string | null
-  dryRun: boolean
-  help: boolean
-  resume: boolean
-}
+export type { RotateCliOptions }
 
 export type RotationRuntimeOptions = RotateCliOptions & {
   currentEnvKey: Buffer

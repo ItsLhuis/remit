@@ -1,7 +1,7 @@
 import { faker } from "@faker-js/faker"
 
 import { MAX_DEMO_SEED_INVOICES, MAX_DEMO_SEED_PROJECTS } from "./inventory"
-import type { DemoSeedCountOverrides, DemoSeedSize } from "./types"
+import { type DemoSeedCountOverrides, type DemoSeedSize } from "./types"
 
 const CUSTOM_PROJECTS_PER_CLIENT = 4
 const CUSTOM_INVOICES_PER_PROJECT = 5

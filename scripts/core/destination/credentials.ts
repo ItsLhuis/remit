@@ -1,4 +1,4 @@
-import type { BackupCredentials } from "./index"
+import { type BackupCredentials } from "./index"
 
 type SettingsRowLike =
   | (Partial<{

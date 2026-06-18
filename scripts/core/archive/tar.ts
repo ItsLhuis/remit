@@ -1,5 +1,5 @@
 import { once } from "node:events"
-import type { Readable, Writable } from "node:stream"
+import { type Readable, type Writable } from "node:stream"
 
 export const TAR_BLOCK_SIZE = 512
 

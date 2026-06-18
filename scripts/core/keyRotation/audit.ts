@@ -1,6 +1,6 @@
 import type postgres from "postgres"
 
-import type { RotationAuditEvent } from "./progress"
+import { type RotationAuditEvent } from "./progress"
 
 type Sql = postgres.Sql
 

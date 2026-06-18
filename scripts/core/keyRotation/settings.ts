@@ -1,6 +1,6 @@
 import type postgres from "postgres"
 
-import type { BackupCredentials, BackupDestination } from "../destination"
+import { type BackupCredentials, type BackupDestination } from "../destination"
 import { decryptValue } from "../encryption/values"
 
 import { RotationCliError } from "./errors"

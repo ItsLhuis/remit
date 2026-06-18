@@ -1,4 +1,4 @@
-import type { EncryptedColumn } from "@/database/schema/helpers"
+import { type EncryptedColumn } from "@/database/schema/helpers"
 
 export type EncryptedTable = {
   table: string

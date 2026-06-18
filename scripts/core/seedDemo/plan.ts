@@ -10,26 +10,26 @@ import {
   postalCodeForMarket,
   type DemoSeedSizeProfile
 } from "./profile"
-import type {
-  DemoClientRow,
-  DemoContractRow,
-  DemoCreditNoteRow,
-  DemoExpenseRow,
-  DemoInvoiceRow,
-  DemoLeadRow,
-  DemoLineItemRow,
-  DemoPaymentRow,
-  DemoProjectRow,
-  DemoProposalRow,
-  DemoRecurringInvoiceRow,
-  DemoSeedCountOverrides,
-  DemoSeedPlan,
-  DemoSeedSize,
-  DemoSettingsRow,
-  DemoTaskRow,
-  DemoTaxRateRow,
-  DemoTimeEntryRow,
-  ReseedTableCounts
+import {
+  type DemoClientRow,
+  type DemoContractRow,
+  type DemoCreditNoteRow,
+  type DemoExpenseRow,
+  type DemoInvoiceRow,
+  type DemoLeadRow,
+  type DemoLineItemRow,
+  type DemoPaymentRow,
+  type DemoProjectRow,
+  type DemoProposalRow,
+  type DemoRecurringInvoiceRow,
+  type DemoSeedCountOverrides,
+  type DemoSeedPlan,
+  type DemoSeedSize,
+  type DemoSettingsRow,
+  type DemoTaskRow,
+  type DemoTaxRateRow,
+  type DemoTimeEntryRow,
+  type ReseedTableCounts
 } from "./types"
 
 const DAY_MS = 24 * 60 * 60 * 1000
