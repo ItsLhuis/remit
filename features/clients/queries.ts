@@ -233,14 +233,14 @@ export async function getClientDetail(input: unknown): Promise<ClientDetail | nu
       listProjectsByClient(client.id, client.currency ?? defaults.defaultCurrency)
     ])
 
-  return toClientDetail(
-    client,
+  return toClientDetail({
+    row: client,
     outstandingBalanceCents,
     relatedResources,
     billingTrend,
-    clientProjects,
-    defaults.defaultCurrency
-  )
+    projects: clientProjects,
+    defaultCurrency: defaults.defaultCurrency
+  })
 }
 
 export async function getClient(input: unknown): Promise<ClientOption | null> {
@@ -526,14 +526,23 @@ function toClientListItem(row: ClientListRow, defaultCurrency: string): ClientLi
   }
 }
 
-function toClientDetail(
-  row: ClientDetailRow,
-  outstandingBalanceCents: number,
-  relatedResources: ClientRelatedResourceCounts,
-  billingTrend: ClientBillingPoint[],
-  projects: ClientDetail["projects"],
+type ToClientDetailInput = {
+  row: ClientDetailRow
+  outstandingBalanceCents: number
+  relatedResources: ClientRelatedResourceCounts
+  billingTrend: ClientBillingPoint[]
+  projects: ClientDetail["projects"]
   defaultCurrency: string
-): ClientDetail {
+}
+
+function toClientDetail({
+  row,
+  outstandingBalanceCents,
+  relatedResources,
+  billingTrend,
+  projects,
+  defaultCurrency
+}: ToClientDetailInput): ClientDetail {
   return {
     id: row.id,
     name: row.name,
