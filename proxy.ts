@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth"
 
 import { writeAudit } from "@/lib/audit"
 
+import { getIpAddress } from "@/lib/utils"
+
 import { rateLimitInstance } from "@/lib/rateLimit"
 
 import { database } from "@/database"
@@ -82,7 +84,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isPublicToken) {
-    const ipAddress = getIpAddress(request)
+    const ipAddress = getIpAddress(request.headers) || "unknown"
     const rateLimitResult = await rateLimitInstance.consume(ipAddress, 60, 60000)
 
     if (!rateLimitResult.allowed) {
@@ -170,12 +172,6 @@ export async function proxy(request: NextRequest) {
   }
 
   return applySecurityHeaders(NextResponse.next(), false)
-}
-
-function getIpAddress(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-
-  return forwardedFor || request.headers.get("x-real-ip") || "unknown"
 }
 
 async function getMustChangePassword(userId: string): Promise<boolean> {
