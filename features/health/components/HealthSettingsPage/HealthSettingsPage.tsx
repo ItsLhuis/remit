@@ -23,23 +23,25 @@ type SectionDefinition = {
   description: string
 }
 
-const getSections = (t: ReturnType<typeof useTranslation>["t"]): SectionDefinition[] => [
-  {
-    category: "core",
-    title: t("health.sections.core.title"),
-    description: t("health.sections.core.description")
-  },
-  {
-    category: "safety",
-    title: t("health.sections.safety.title"),
-    description: t("health.sections.safety.description")
-  },
-  {
-    category: "integrations",
-    title: t("health.sections.integrations.title"),
-    description: t("health.sections.integrations.description")
-  }
-]
+function getSections(t: ReturnType<typeof useTranslation>["t"]): SectionDefinition[] {
+  return [
+    {
+      category: "core",
+      title: t("health.sections.core.title"),
+      description: t("health.sections.core.description")
+    },
+    {
+      category: "safety",
+      title: t("health.sections.safety.title"),
+      description: t("health.sections.safety.description")
+    },
+    {
+      category: "integrations",
+      title: t("health.sections.integrations.title"),
+      description: t("health.sections.integrations.description")
+    }
+  ]
+}
 
 const HealthSettingsPage = ({ checks, systemInfo }: HealthSettingsPageProps) => {
   const { t } = useTranslation()

@@ -108,6 +108,7 @@ export const resetPasswordSchema = z
   })
 
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>
+
 export const accountSchema = z
   .object({
     name: z.string().min(1, i18n.t("auth.register.validation.nameRequired")),

@@ -31,10 +31,10 @@ type AddressSectionProps = {
 const AddressSection = ({ initialValues }: AddressSectionProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  const router = useRouter()
 
   const form = useForm<BusinessAddressSettingsValues>({
     resolver: zodResolver(businessAddressSettingsSchema),

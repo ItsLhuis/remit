@@ -41,9 +41,9 @@ const DEFAULT_VALUES: ChangePasswordValues = {
 const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormProps) => {
   const { t } = useTranslation()
 
-  const [submitError, setSubmitError] = useState<string | null>(null)
-
   const router = useRouter()
+
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),

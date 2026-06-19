@@ -1,5 +1,7 @@
 const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const
 
+const COMPACT_CURRENCY_THRESHOLD = 10_000
+
 type FormatDateOptions = {
   locale: string
   timeZone?: string
@@ -31,8 +33,6 @@ export function formatCurrency(cents: number, currency: string, locale?: string)
     currency
   }).format(cents / 100)
 }
-
-const COMPACT_CURRENCY_THRESHOLD = 10_000
 
 export function formatCompactNumber(value: number, locale?: string): string {
   return new Intl.NumberFormat(locale, {

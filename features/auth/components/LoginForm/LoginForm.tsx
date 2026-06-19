@@ -26,10 +26,10 @@ type LoginFormProps = {
 const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
   const { t } = useTranslation()
 
+  const router = useRouter()
+
   const [authError, setAuthError] = useState<string | null>(null)
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
-
-  const router = useRouter()
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),

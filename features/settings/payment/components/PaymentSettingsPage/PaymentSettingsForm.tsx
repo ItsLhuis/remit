@@ -38,20 +38,22 @@ type PaymentSettingsFormProps = {
   initialStripeTestConnectionAt: string | null
 }
 
-const getSecretSafePaymentSettingsValues = (
-  values: PaymentSettingsValues
-): PaymentSettingsValues => ({
-  ...values,
-  paymentIban: values.paymentIbanConfigured ? "" : values.paymentIban,
-  stripeSecretKey: values.stripeSecretKeyConfigured ? "" : values.stripeSecretKey,
-  stripeWebhookSecret: values.stripeWebhookSecretConfigured ? "" : values.stripeWebhookSecret
-})
+function getSecretSafePaymentSettingsValues(values: PaymentSettingsValues): PaymentSettingsValues {
+  return {
+    ...values,
+    paymentIban: values.paymentIbanConfigured ? "" : values.paymentIban,
+    stripeSecretKey: values.stripeSecretKeyConfigured ? "" : values.stripeSecretKey,
+    stripeWebhookSecret: values.stripeWebhookSecretConfigured ? "" : values.stripeWebhookSecret
+  }
+}
 
 const PaymentSettingsForm = ({
   initialValues,
   initialStripeTestConnectionAt
 }: PaymentSettingsFormProps) => {
   const { t } = useTranslation()
+
+  const router = useRouter()
 
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [testError, setTestError] = useState<string | null>(null)
@@ -65,8 +67,6 @@ const PaymentSettingsForm = ({
 
   const [isSaving, startSaving] = useTransition()
   const [isTesting, startTesting] = useTransition()
-
-  const router = useRouter()
 
   const form = useForm<PaymentSettingsInputValues, unknown, PaymentSettingsValues>({
     resolver: zodResolver(paymentSettingsSchema),

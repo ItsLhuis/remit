@@ -37,9 +37,9 @@ const AccountDetailsSection = ({ user, emailConfigured }: AccountDetailsSectionP
 
   const router = useRouter()
 
-  const [isPending, startTransition] = useTransition()
-
   const { refetch: refetchSession } = authClient.useSession()
+
+  const [isPending, startTransition] = useTransition()
 
   const form = useForm<AccountDetailsValues>({
     resolver: zodResolver(accountDetailsSchema),

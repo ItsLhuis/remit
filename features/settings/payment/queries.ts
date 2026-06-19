@@ -73,7 +73,7 @@ export function toPaymentSettingsFormData(row: PaymentSettingsRow | null): Payme
   }
 }
 
-export function toPublicPaymentBlock(row: PublicPaymentBlockRow | null): PublicPaymentBlock {
+function toPublicPaymentBlock(row: PublicPaymentBlockRow | null): PublicPaymentBlock {
   const bankName = emptyToNull(row?.paymentBankName ?? null)
   const paymentInstructions = emptyToNull(row?.paymentInstructions ?? null)
   const paymentIbanDisplay = row?.paymentIban ? maskIbanForDisplay(row.paymentIban) : null

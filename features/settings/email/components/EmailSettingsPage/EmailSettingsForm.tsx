@@ -51,11 +51,13 @@ type EmailSettingsFormProps = {
   initialEmailTestSendAt: string | null
 }
 
-const getSecretSafeEmailSettingsValues = (values: EmailSettingsValues): EmailSettingsValues => ({
-  ...values,
-  smtpPass: values.smtpPassConfigured ? "" : values.smtpPass,
-  resendApiKey: values.resendApiKeyConfigured ? "" : values.resendApiKey
-})
+function getSecretSafeEmailSettingsValues(values: EmailSettingsValues): EmailSettingsValues {
+  return {
+    ...values,
+    smtpPass: values.smtpPassConfigured ? "" : values.smtpPass,
+    resendApiKey: values.resendApiKeyConfigured ? "" : values.resendApiKey
+  }
+}
 
 const EmailSettingsForm = ({
   initialValues,

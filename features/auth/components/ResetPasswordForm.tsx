@@ -37,9 +37,9 @@ type ResetPasswordFormProps = {
 const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   const { t } = useTranslation()
 
-  const [submitError, setSubmitError] = useState<string | null>(null)
-
   const router = useRouter()
+
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),

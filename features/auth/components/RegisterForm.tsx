@@ -33,9 +33,9 @@ import { PasswordRequirements } from "./PasswordRequirements"
 const RegisterForm = () => {
   const { t } = useTranslation()
 
-  const [serverError, setServerError] = useState<string | null>(null)
-
   const router = useRouter()
+
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<AccountValues>({
     resolver: zodResolver(accountSchema),
