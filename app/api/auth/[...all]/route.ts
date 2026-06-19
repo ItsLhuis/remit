@@ -89,6 +89,12 @@ async function getSessionUser(request: NextRequest): Promise<SessionUser | null>
   return session?.user ? { id: session.user.id } : null
 }
 
+type WriteAuditContext = AuditContext & {
+  actorUserId?: string
+  targetEntityType?: "user"
+  targetEntityId?: string
+}
+
 function withUserAuditContext(context: AuditContext, user: SessionUser | null): WriteAuditContext {
   if (!user) return context
 
@@ -98,12 +104,6 @@ function withUserAuditContext(context: AuditContext, user: SessionUser | null): 
     targetEntityType: "user",
     targetEntityId: user.id
   }
-}
-
-type WriteAuditContext = AuditContext & {
-  actorUserId?: string
-  targetEntityType?: "user"
-  targetEntityId?: string
 }
 
 // Remit-owned recovery flag; Better Auth remains responsible for password and session state.
@@ -119,6 +119,31 @@ function getEmailMetadata(body: unknown): { email: string } | undefined {
 
 function isSuccess(response: Response): boolean {
   return response.status >= 200 && response.status < 300
+}
+
+async function auditSignInResponse(
+  response: Response,
+  context: AuditContext,
+  body: unknown
+): Promise<void> {
+  if (isSuccess(response)) {
+    const responseBody = await readResponseJson(response)
+    const actorUserId = getResponseUserId(responseBody)
+
+    await writeAudit("auth.login.succeeded", {
+      ...context,
+      ...(actorUserId ? { actorUserId } : {})
+    })
+
+    return
+  }
+
+  const emailMetadata = getEmailMetadata(body)
+
+  await writeAudit("auth.login.failed", {
+    ...context,
+    ...(emailMetadata ? { metadata: emailMetadata } : {})
+  })
 }
 
 export const GET = handler.GET
@@ -155,24 +180,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (auditedRoute === "signIn") {
-    if (isSuccess(response)) {
-      const responseBody = await readResponseJson(response)
-      const actorUserId = getResponseUserId(responseBody)
-
-      await writeAudit("auth.login.succeeded", {
-        ...context,
-        ...(actorUserId ? { actorUserId } : {})
-      })
-
-      return response
-    }
-
-    const emailMetadata = getEmailMetadata(body)
-
-    await writeAudit("auth.login.failed", {
-      ...context,
-      ...(emailMetadata ? { metadata: emailMetadata } : {})
-    })
+    await auditSignInResponse(response, context, body)
 
     return response
   }
