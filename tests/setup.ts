@@ -1,8 +1,12 @@
 import "@testing-library/jest-dom/vitest"
 
-import { vi } from "vitest"
+import { afterEach, vi } from "vitest"
 
 import "vitest-axe/extend-expect"
+
+afterEach(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0))
+})
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
