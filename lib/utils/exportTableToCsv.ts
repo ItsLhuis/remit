@@ -29,7 +29,14 @@ export function exportTableToCsv<TData>(
 function escapeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return ""
 
-  const text = value instanceof Date ? value.toISOString() : String(value)
+  const text =
+    value instanceof Date
+      ? value.toISOString()
+      : typeof value === "string"
+        ? value
+        : typeof value === "number" || typeof value === "boolean" || typeof value === "bigint"
+          ? String(value)
+          : JSON.stringify(value)
 
   if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`
 
