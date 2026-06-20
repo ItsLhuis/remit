@@ -134,13 +134,19 @@ deterministic: classify each top-level statement by its syntax and place it in t
 | 9   | Guard returns                    | `if (...) return ...` before the JSX                                      |
 | 10  | JSX return                       | `return ( ... )`                                                          |
 
-Two nuances override a statement's table position; the canonical exemplar is the tiebreaker:
+Three nuances override a statement's table position; the canonical exemplar is the tiebreaker:
 
 - When one hook's result is an argument to another, the producer precedes the consumer even when the
   table would order them the other way. `ClientForm` declares its `useMemo` default values before
   `useForm` because the form consumes them.
 - Statements serving one concern stay adjacent. `ClientsListPage` places `useTransition` next to the
   `useClientListState(startTransition)` call it feeds rather than with the other state.
+- A value derived only after an early guard return may follow that guard. Idiomatic React guards
+  first (`if (!data) return null`) and then computes values that depend on the guard having passed
+  (`const name = data.name`); such **derived values and handlers** legitimately appear after a guard
+  return even though the table lists guards (9) after them (6, 7). A **hook** (sections 1-5, 8) must
+  never follow a guard return — that is a conditional-hook bug, and it is the one part of this
+  ordering that _is_ mechanically enforced, by `react-hooks/rules-of-hooks`.
 
 Do not insert blank lines between every hook mechanically. Related state values can stay together:
 
@@ -175,10 +181,11 @@ const initials = user?.name ? getInitials(user.name) : "?"
 ```
 
 The default reading of the table is non-decreasing: a statement does not appear in a section that
-precedes a section already seen. The two nuances above are the only sanctioned exceptions, and both
-are driven by data dependency or cohesion - which is exactly why this is applied by hand and in
-review rather than by a lint rule. The order _inside_ a handler and the blank lines between
-statements are governed separately, by "Intra-function structure" and the blank-line law below.
+precedes a section already seen. The three nuances above are the only sanctioned exceptions, driven
+by data dependency, cohesion, or guard-dependent computation - which is exactly why this is applied
+by hand and in review rather than by a lint rule. The order _inside_ a handler and the blank lines
+between statements are governed separately, by "Intra-function structure" and the blank-line law
+below.
 
 ## Body-section order by file category
 

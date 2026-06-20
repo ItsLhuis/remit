@@ -215,6 +215,15 @@ const eslintConfig = defineConfig([
         { fixMixedExportsWithInlineTypeSpecifier: true }
       ],
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true
+        }
+      ],
       "@typescript-eslint/switch-exhaustiveness-check": "warn",
       "perfectionist/sort-imports": importOrderRule,
       "padding-line-between-statements": [
@@ -236,7 +245,15 @@ const eslintConfig = defineConfig([
     ],
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        { checksVoidReturn: { attributes: false } }
+      ],
+      "@typescript-eslint/await-thenable": "error",
+      "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      "no-console": "error",
       "no-restricted-syntax": forbidInlineForwardedHeaderRule,
       "max-params": ["warn", 4],
       "max-lines": ["warn", { max: 500, skipBlankLines: true, skipComments: true }]
@@ -339,6 +356,32 @@ const eslintConfig = defineConfig([
     rules: {
       "remit/helper-placement": "error",
       "remit/no-blank-lines-in-jsx-return": "error"
+    }
+  },
+  {
+    // Vitest unit/integration tests only — Playwright e2e (tests/e2e) legitimately uses test.skip
+    // for conditional skips, so it is excluded.
+    files: ["**/*.{test,spec}.{ts,tsx}"],
+    ignores: ["tests/e2e/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.object.name=/^(describe|test|it|suite|bench)$/][callee.property.name=/^(only|skip)$/]",
+          message:
+            "Do not commit focused or skipped tests (.only/.skip). Remove the modifier before committing (see testing.md)."
+        }
+      ]
+    }
+  },
+  {
+    files: ["features/**/mutations.ts", "features/**/queries.ts", "app/**/route.ts"],
+    plugins: {
+      remit: remitRules
+    },
+    rules: {
+      "remit/validate-before-io": "error"
     }
   },
   globalIgnores([
