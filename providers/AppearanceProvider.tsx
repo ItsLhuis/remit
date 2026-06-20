@@ -33,11 +33,11 @@ type AppearanceContextValue = {
 
 const AppearanceContext = createContext<AppearanceContextValue | null>(null)
 
-const readStored = <Value extends string>(
+function readStored<Value extends string>(
   key: string,
   allowed: readonly Value[],
   fallback: Value
-): Value => {
+): Value {
   if (typeof window === "undefined") return fallback
 
   const stored = window.localStorage.getItem(key)
@@ -47,13 +47,13 @@ const readStored = <Value extends string>(
   return fallback
 }
 
-const writeStored = (key: string, value: string) => {
+function writeStored(key: string, value: string) {
   if (typeof window === "undefined") return
 
   window.localStorage.setItem(key, value)
 }
 
-const writeAttribute = (name: string, value: string) => {
+function writeAttribute(name: string, value: string) {
   if (typeof document === "undefined") return
 
   document.documentElement.setAttribute(name, value)

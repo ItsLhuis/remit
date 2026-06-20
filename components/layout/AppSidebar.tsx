@@ -56,7 +56,7 @@ import {
   useSidebar
 } from "@/components/ui"
 
-import { SignOutDialog } from "@/features/auth/components/SignOutDialog"
+import { SignOutDialog } from "@/features/auth"
 
 import { useScroll } from "@/hooks"
 
@@ -212,7 +212,7 @@ const AppSidebar = () => {
               >
                 <Icon name="Search" />
                 <Typography className="flex-1 text-left">{t("common.actions.search")}</Typography>
-                <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
+                <Kbd className="hidden sm:inline-flex">{"⌘ K"}</Kbd>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" align="center" hidden={!isCollapsed || isMobile}>

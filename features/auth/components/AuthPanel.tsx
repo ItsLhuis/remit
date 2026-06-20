@@ -49,7 +49,7 @@ const AuthPanel = () => {
       <div className="absolute top-8 left-8 z-20 flex items-center gap-2.5">
         <Image src="/logo.png" width={32} height={32} alt={t("app.logoAlt")} />
         <Typography variant="h5" className="tracking-tight text-white">
-          Remit
+          {"Remit"}
         </Typography>
       </div>
       <div className="absolute inset-x-8 bottom-8 z-20 flex flex-col items-start">

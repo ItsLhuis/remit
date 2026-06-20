@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: t("settings.metadata.appearance")
 }
 
-export default function Page() {
+const AppearancePage = () => {
   return <AppearanceSettingsPage />
 }
+
+export default AppearancePage

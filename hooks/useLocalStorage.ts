@@ -15,6 +15,24 @@ type Store<T> = {
   subscribe: (onChange: () => void) => () => void
 }
 
+export function useLocalStorage<T>(
+  key: string | null,
+  defaultValue: T
+): [T, Dispatch<SetStateAction<T>>] {
+  const [store] = useState(() => createStore(key, defaultValue))
+
+  const value = useSyncExternalStore(store.subscribe, store.get, store.getServerValue)
+
+  const setValue = useCallback<Dispatch<SetStateAction<T>>>(
+    (next) => {
+      store.set(typeof next === "function" ? (next as (previous: T) => T)(store.get()) : next)
+    },
+    [store]
+  )
+
+  return [value, setValue]
+}
+
 function createStore<T>(key: string | null, defaultValue: T): Store<T> {
   const listeners = new Set<() => void>()
 
@@ -80,22 +98,4 @@ function createStore<T>(key: string | null, defaultValue: T): Store<T> {
   }
 
   return { get, getServerValue: () => defaultValue, set, subscribe }
-}
-
-export function useLocalStorage<T>(
-  key: string | null,
-  defaultValue: T
-): [T, Dispatch<SetStateAction<T>>] {
-  const [store] = useState(() => createStore(key, defaultValue))
-
-  const value = useSyncExternalStore(store.subscribe, store.get, store.getServerValue)
-
-  const setValue = useCallback<Dispatch<SetStateAction<T>>>(
-    (next) => {
-      store.set(typeof next === "function" ? (next as (previous: T) => T)(store.get()) : next)
-    },
-    [store]
-  )
-
-  return [value, setValue]
 }

@@ -74,6 +74,8 @@ const Fade = ({
         return { x: offset }
       case "right":
         return { x: -offset }
+      case "none":
+        return {}
       default:
         return {}
     }

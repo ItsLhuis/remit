@@ -48,9 +48,9 @@ declare module "@tanstack/react-table" {
   }
 }
 
-export type DataTableFilterVariant = "text" | "multiSelect" | "range" | "date"
+type DataTableFilterVariant = "text" | "multiSelect" | "range" | "date"
 
-export type DataTableFilterOption = {
+type DataTableFilterOption = {
   label: string
   value: string
   count?: number

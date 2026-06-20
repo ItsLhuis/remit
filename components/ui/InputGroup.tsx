@@ -46,6 +46,7 @@ const InputGroupAddon = ({
   align = "inline-start",
   ...props
 }: ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) => (
+  // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- decorative click-to-focus sugar; the wrapped input stays fully keyboard accessible
   <div
     role="group"
     data-slot="input-group-addon"

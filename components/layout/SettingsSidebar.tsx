@@ -108,7 +108,7 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
     <Sidebar collapsible="panel">
       <SidebarHeader className="flex h-14 justify-center">
         <div className="px-1 text-start">
-          <Typography variant="h4">Settings</Typography>
+          <Typography variant="h4">{t("app.navigation.settings")}</Typography>
         </div>
       </SidebarHeader>
       <div className="mt-2 px-2 pb-2">
