@@ -52,6 +52,8 @@ function mapStripeError(error: unknown): StripeConnectionTestErrorCode {
       return "rejected"
     case "StripeAPIError":
       return "api"
+    case null:
+      return "provider_failed"
     default:
       return "provider_failed"
   }

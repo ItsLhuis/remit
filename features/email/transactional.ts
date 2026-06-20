@@ -237,6 +237,8 @@ export function mapResendError(name: string | undefined): EmailDeliveryErrorCode
     case "invalid_from_address":
     case "invalid_to_address":
       return "resend_rejected"
+    case undefined:
+      return "provider_failed"
     default:
       return "provider_failed"
   }
@@ -261,6 +263,8 @@ export function mapNodemailerError(error: unknown): EmailDeliveryErrorCode {
     case "EENVELOPE":
     case "EMESSAGE":
       return "provider_failed"
+    case null:
+      return "smtp_connection"
     default:
       return "smtp_connection"
   }
