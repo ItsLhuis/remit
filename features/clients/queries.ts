@@ -20,8 +20,6 @@ import {
 import { database } from "@/database"
 import { clients, invoices, payments, projects, recurringInvoices } from "@/database/schema"
 
-import { listProjectsByClient } from "@/features/projects/server"
-
 import {
   clientIdSchema,
   parseClientListQuery,
@@ -225,20 +223,17 @@ export async function getClientDetail(input: unknown): Promise<ClientDetail | nu
 
   const now = new Date()
 
-  const [outstandingBalanceCents, relatedResources, billingTrend, clientProjects] =
-    await Promise.all([
-      getOutstandingBalanceCents(client.id),
-      getClientRelatedResourceCounts(client.id),
-      getClientBillingTrend(client.id, now),
-      listProjectsByClient(client.id, client.currency ?? defaults.defaultCurrency)
-    ])
+  const [outstandingBalanceCents, relatedResources, billingTrend] = await Promise.all([
+    getOutstandingBalanceCents(client.id),
+    getClientRelatedResourceCounts(client.id),
+    getClientBillingTrend(client.id, now)
+  ])
 
   return toClientDetail({
     row: client,
     outstandingBalanceCents,
     relatedResources,
     billingTrend,
-    projects: clientProjects,
     defaultCurrency: defaults.defaultCurrency
   })
 }
@@ -531,7 +526,6 @@ type ToClientDetailInput = {
   outstandingBalanceCents: number
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
-  projects: ClientDetail["projects"]
   defaultCurrency: string
 }
 
@@ -540,7 +534,6 @@ function toClientDetail({
   outstandingBalanceCents,
   relatedResources,
   billingTrend,
-  projects,
   defaultCurrency
 }: ToClientDetailInput): ClientDetail {
   return {
@@ -569,7 +562,6 @@ function toClientDetail({
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     relatedResources,
-    billingTrend,
-    projects
+    billingTrend
   }
 }

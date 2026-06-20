@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n/server"
 
 import { ClientDetailPage } from "@/features/clients"
 import { getClientDefaults, getClientDetail, getClientForEdit } from "@/features/clients/server"
+import { listProjectsByClient } from "@/features/projects/server"
 
 export const metadata: Metadata = {
   title: t("clients.metadata.detail")
@@ -26,7 +27,16 @@ const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
 
   if (!client || !formData) notFound()
 
-  return <ClientDetailPage client={client} formData={formData} locale={defaults.defaultLocale} />
+  const projects = await listProjectsByClient(clientId, client.currency)
+
+  return (
+    <ClientDetailPage
+      client={client}
+      projects={projects}
+      formData={formData}
+      locale={defaults.defaultLocale}
+    />
+  )
 }
 
 export default ClientDetailRoute

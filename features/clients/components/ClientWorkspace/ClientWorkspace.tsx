@@ -47,7 +47,7 @@ import {
   toast
 } from "@/components/ui"
 
-import { ClientProjectsPanel } from "@/features/projects"
+import { ClientProjectsPanel, type ProjectListItem } from "@/features/projects"
 
 import { softDeleteClient } from "../../mutations"
 import { formatLocation } from "../../services"
@@ -63,11 +63,12 @@ import { TeachingEmpty } from "./TeachingEmpty"
 
 type ClientWorkspaceProps = {
   client: ClientDetail
+  projects: ProjectListItem[]
   formData: ClientFormData
   locale: string
 }
 
-const ClientWorkspace = ({ client, formData, locale }: ClientWorkspaceProps) => {
+const ClientWorkspace = ({ client, projects, formData, locale }: ClientWorkspaceProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -328,7 +329,7 @@ const ClientWorkspace = ({ client, formData, locale }: ClientWorkspaceProps) => 
                   clientId={client.id}
                   clientName={client.name}
                   clientCurrency={client.currency}
-                  projects={client.projects}
+                  projects={projects}
                   locale={locale}
                 />
               </TabsContent>
