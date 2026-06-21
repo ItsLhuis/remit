@@ -8,11 +8,6 @@ import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
   DataTable,
   DataTableFacetedFilter,
   Empty,
@@ -20,7 +15,8 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  Icon
+  Icon,
+  Typography
 } from "@/components/ui"
 
 import { useDataTable, type ColumnDef } from "@/hooks"
@@ -67,18 +63,12 @@ const ClientProjectsPanel = ({
   const stageColumn = table.getColumn("stage")
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{t("projects.clientPanel.title")}</CardTitle>
-        <CardAction>
-          <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-            <Icon name="Plus" aria-hidden="true" />
-            {t("projects.clientPanel.create")}
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        {projects.length === 0 ? (
+    <>
+      <DataTable
+        table={table}
+        caption={t("projects.clientPanel.title")}
+        onRowClick={(project) => router.push(`/projects/${project.id}`)}
+        empty={
           <Empty className="border-0 py-8">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -88,20 +78,21 @@ const ClientProjectsPanel = ({
               <EmptyDescription>{t("projects.clientPanel.emptyDescription")}</EmptyDescription>
             </EmptyHeader>
           </Empty>
-        ) : (
-          <DataTable
-            table={table}
-            caption={t("projects.clientPanel.title")}
-            onRowClick={(project) => router.push(`/projects/${project.id}`)}
-          >
-            <div className="flex w-full items-center justify-end">
-              {stageColumn ? (
-                <DataTableFacetedFilter column={stageColumn} title={t("projects.fields.status")} />
-              ) : null}
-            </div>
-          </DataTable>
-        )}
-      </CardContent>
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Typography affects={["small", "medium"]}>{t("projects.clientPanel.title")}</Typography>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {stageColumn ? (
+              <DataTableFacetedFilter column={stageColumn} title={t("projects.fields.status")} />
+            ) : null}
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+              <Icon name="Plus" aria-hidden="true" />
+              {t("projects.clientPanel.create")}
+            </Button>
+          </div>
+        </div>
+      </DataTable>
       <ProjectFormSheet
         mode="create"
         clients={[{ id: clientId, name: clientName, currency: clientCurrency }]}
@@ -115,7 +106,7 @@ const ClientProjectsPanel = ({
           router.refresh()
         }}
       />
-    </Card>
+    </>
   )
 }
 
