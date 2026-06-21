@@ -8,7 +8,7 @@ import { env } from "@/lib/config/env"
 
 import { database } from "@/database"
 
-import { isEmailConfigured } from "@/features/settings"
+import { isEmailConfigured } from "./services/isEmailConfigured"
 
 export type TransactionalEmail = {
   to: string

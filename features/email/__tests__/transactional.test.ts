@@ -28,7 +28,7 @@ vi.mock("@/database", () => ({
   database: { query: { settings: { findFirst: mocks.findFirst } } }
 }))
 
-vi.mock("@/features/settings", () => ({
+vi.mock("../services/isEmailConfigured", () => ({
   isEmailConfigured: (settings: Record<string, unknown> | null) => {
     if (!settings) return false
 

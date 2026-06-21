@@ -300,6 +300,7 @@ const eslintConfig = defineConfig([
       import: importPlugin
     },
     rules: {
+      "import/no-cycle": ["error", { ignoreExternal: true }],
       "import/no-default-export": "error",
       "import/no-duplicates": "error"
     }

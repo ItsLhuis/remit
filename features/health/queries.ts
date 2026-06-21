@@ -16,7 +16,7 @@ import { env } from "@/lib/config/env"
 import { database } from "@/database"
 import { type settings } from "@/database/schema"
 
-import { isEmailConfigured } from "@/features/settings"
+import { isEmailConfigured } from "@/features/email/server"
 
 import pkg from "@/package.json"
 

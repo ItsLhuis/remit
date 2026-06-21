@@ -1,6 +1,6 @@
 import { database } from "@/database"
 
-import { isEmailConfigured } from "../services/isEmailConfigured"
+import { isEmailConfigured } from "@/features/email/server"
 
 export async function getProfileEmailConfigured(): Promise<boolean> {
   const settings = await database.query.settings.findFirst({
