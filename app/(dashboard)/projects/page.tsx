@@ -3,6 +3,7 @@ import { type Metadata } from "next"
 import { t } from "@/lib/i18n/server"
 
 import { listClientOptions } from "@/features/clients/server"
+
 import { ProjectsListPage } from "@/features/projects"
 import { getProjectsPageData } from "@/features/projects/server"
 

@@ -12,6 +12,7 @@ import sonarjs from "eslint-plugin-sonarjs"
 
 import remitRules from "./tools/eslint-rules/index.mjs"
 
+import { readdirSync } from "node:fs"
 import { createRequire } from "node:module"
 
 const pkg = createRequire(import.meta.url)("./package.json")
@@ -63,6 +64,20 @@ const externalTierGroups = [
   "external"
 ]
 
+// Each feature under features/ becomes its own perfectionist group, so imports from different
+// features sit in separate paragraphs while same-feature imports (root barrel + /server) stay
+// together. Generated from the features/ directory so new features are covered without editing
+// this file.
+const featureOrigins = readdirSync(new URL("./features", import.meta.url), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort()
+
+const featureOriginCustomGroups = featureOrigins.map((name) => ({
+  groupName: `features:${name}`,
+  elementNamePattern: `^@/features/${escapeRegex(name)}(/.*)?$`
+}))
+
 const forbidInlineForwardedHeaderRule = [
   "error",
   {
@@ -97,6 +112,7 @@ const importOrderRule = [
       { groupName: "components-ui", elementNamePattern: "^@/components/ui(/.*)?$" },
       { groupName: "components-layout", elementNamePattern: "^@/components/layout(/.*)?$" },
       { groupName: "components-other", elementNamePattern: "^@/components(/.*)?$" },
+      ...featureOriginCustomGroups,
       { groupName: "features", elementNamePattern: "^@/features(/.*)?$" },
       { groupName: "hooks", elementNamePattern: "^@/hooks(/.*)?$" },
       { groupName: "providers", elementNamePattern: "^@/providers(/.*)?$" },
@@ -122,6 +138,7 @@ const importOrderRule = [
       "components-ui",
       "components-layout",
       "components-other",
+      ...featureOrigins.map((name) => `features:${name}`),
       "features",
       "hooks",
       "providers",

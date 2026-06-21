@@ -9,6 +9,7 @@ import { getSession } from "@/lib/auth/session"
 import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel, LoginForm } from "@/features/auth"
+
 import { getProfileEmailConfigured } from "@/features/settings/server"
 
 export const metadata: Metadata = { title: t("auth.login.metadataTitle") }

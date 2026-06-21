@@ -5,6 +5,7 @@ import { type Metadata } from "next"
 import { t } from "@/lib/i18n/server"
 
 import { listClientOptions } from "@/features/clients/server"
+
 import { ProjectDetailPage } from "@/features/projects"
 import { getProjectDefaults, getProjectDetail, getProjectForEdit } from "@/features/projects/server"
 

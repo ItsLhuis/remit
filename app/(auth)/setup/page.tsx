@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/auth/session"
 import { ScrollArea } from "@/components/ui"
 
 import { AuthPanel } from "@/features/auth"
+
 import { SetupForm } from "@/features/setup"
 import { getSetupProgress } from "@/features/setup/server"
 

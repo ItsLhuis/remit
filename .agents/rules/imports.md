@@ -49,7 +49,9 @@ Imports follow this group order, each group its own paragraph separated by a bla
 8. `@/lib/utils`.
 9. `@/database` + `@/database/schema` (adjacent).
 10. `@/components/ui`, then `@/components/layout`, then other `@/components`.
-11. `@/features/*` (cross-feature public/server barrels) as its own paragraph.
+11. `@/features/*` (cross-feature public/server barrels), **one paragraph per feature** —
+    same-feature imports stay together (`@/features/clients` root barrel +
+    `@/features/clients/server`); different features are separated by a blank line.
 12. `@/hooks`, then `@/providers` — each its own paragraph.
 13. Other `@/` internal imports (e.g. `@/package.json`) as their own paragraph.
 14. Relative imports: parent (`../*`), then sibling/index (`./events`, `./queries`, `./schemas`,
@@ -66,13 +68,16 @@ auto-fixable.
 Concretely: Node builtins and external npm packages are different "sides" and never share a
 paragraph (`node:crypto` is not lumped with `@aws-sdk/*` or `chalk`); two different external origins
 such as `@tanstack/react-hotkeys` and `next-themes` each get their own paragraph, while same-origin
-imports such as `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` stay together;
+imports such as `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` stay together; two
+different features such as `@/features/clients/server` and `@/features/projects/server` each get
+their own paragraph, while a feature's root barrel and its `/server` barrel stay together;
 `@/features/*` and a bare `@/` import such as `@/package.json` are different groups and carry a
 blank line between them.
 
-The per-origin external groups are generated from `package.json` in `eslint.config.mjs`, so a new
-dependency is separated automatically with no config edit. The form triad is the single hardcoded
-exception that keeps `@hookform/resolvers/*` and `react-hook-form` in one paragraph.
+The per-origin external groups are generated from `package.json` in `eslint.config.mjs`, and the
+per-feature groups are generated from the `features/` directory, so a new dependency or feature is
+separated automatically with no config edit. The form triad is the single hardcoded exception that
+keeps `@hookform/resolvers/*` and `react-hook-form` in one paragraph.
 
 Where two files of the same role disagree, the canonical exemplar (`code-style.md`) wins, not the
 nearest neighbor. The only sanctioned adjacency exception is the form triad

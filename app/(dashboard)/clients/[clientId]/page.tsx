@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n/server"
 
 import { ClientDetailPage } from "@/features/clients"
 import { getClientDefaults, getClientDetail, getClientForEdit } from "@/features/clients/server"
+
 import { listProjectsByClient } from "@/features/projects/server"
 
 export const metadata: Metadata = {
