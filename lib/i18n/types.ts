@@ -712,19 +712,20 @@ export type Translations = {
       backToLead: string
       since: string
       quickEmail: string
-      convertedBadge: string
+      statusLabel: string
       contactTitle: string
       updatedLabel: string
       emptyValue: string
-      statStage: string
-      statStageHint: string
-      statSourceHint: string
       statConverted: string
-      statConvertedHint: string
       convertedYes: string
       convertedNo: string
-      pipelineTitle: string
-      currentStage: string
+      activityTitle: string
+      activityEmptyTitle: string
+      activityEmpty: string
+      convertTitle: string
+      convertDescription: string
+      convertedTitle: string
+      convertedOn: string
       viewClient: string
       lostReasonTitle: string
       notesTitle: string
@@ -733,8 +734,7 @@ export type Translations = {
     }
     stage: {
       changed: string
-      terminal: string
-      moveTo: string
+      changeStatus: string
       lostTitle: string
       lostDescription: string
       markLost: string
@@ -870,21 +870,17 @@ export type Translations = {
       since: string
       updatedLabel: string
       emptyValue: string
-      statStatus: string
-      statStatusHint: string
-      statBudgetHint: string
-      statHourlyRateHint: string
       overviewTitle: string
-      statusTitle: string
-      currentStatus: string
+      activityTitle: string
+      activityEmptyTitle: string
+      activityEmpty: string
       descriptionTitle: string
       descriptionEmpty: string
       editDetails: string
     }
     stage: {
       changed: string
-      terminal: string
-      moveTo: string
+      changeStatus: string
     }
     clientPanel: {
       title: string
