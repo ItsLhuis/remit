@@ -1,4 +1,5 @@
 export * from "./Accordion"
+export * from "./ActivityTimeline"
 export * from "./Alert"
 export * from "./AlertDialog"
 export * from "./AuroraText"
