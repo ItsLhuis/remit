@@ -15,7 +15,7 @@ type StatusPresentation = {
   icon: "Play" | "Pause" | "CircleCheck" | "CircleX"
 }
 
-const STATUS_PRESENTATION: Record<ProjectStatus, StatusPresentation> = {
+const projectStatusPresentation: Record<ProjectStatus, StatusPresentation> = {
   active: { variant: "success", icon: "Play" },
   on_hold: { variant: "warning", icon: "Pause" },
   completed: { variant: "info", icon: "CircleCheck" },
@@ -25,7 +25,7 @@ const STATUS_PRESENTATION: Record<ProjectStatus, StatusPresentation> = {
 const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
   const { t } = useTranslation()
 
-  const presentation = STATUS_PRESENTATION[status]
+  const presentation = projectStatusPresentation[status]
 
   return (
     <Badge variant={presentation.variant}>
@@ -35,4 +35,4 @@ const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
   )
 }
 
-export { ProjectStatusBadge }
+export { ProjectStatusBadge, projectStatusPresentation }

@@ -15,7 +15,7 @@ type StatusPresentation = {
   icon: "Sparkles" | "Phone" | "CircleDot" | "Send" | "Trophy" | "CircleX"
 }
 
-const STATUS_PRESENTATION: Record<LeadStatus, StatusPresentation> = {
+const leadStatusPresentation: Record<LeadStatus, StatusPresentation> = {
   new: { variant: "secondary", icon: "Sparkles" },
   contacted: { variant: "info", icon: "Phone" },
   qualified: { variant: "warning", icon: "CircleDot" },
@@ -27,7 +27,7 @@ const STATUS_PRESENTATION: Record<LeadStatus, StatusPresentation> = {
 const LeadStatusBadge = ({ status }: LeadStatusBadgeProps) => {
   const { t } = useTranslation()
 
-  const presentation = STATUS_PRESENTATION[status]
+  const presentation = leadStatusPresentation[status]
 
   return (
     <Badge variant={presentation.variant}>
@@ -37,4 +37,4 @@ const LeadStatusBadge = ({ status }: LeadStatusBadgeProps) => {
   )
 }
 
-export { LeadStatusBadge }
+export { LeadStatusBadge, leadStatusPresentation }
