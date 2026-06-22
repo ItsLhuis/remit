@@ -11,6 +11,8 @@ import { useTranslation } from "@/lib/i18n"
 import { formatDay, getInitials } from "@/lib/utils"
 
 import {
+  ActivityTimeline,
+  type ActivityTimelineItem,
   Avatar,
   AvatarFallback,
   Badge,
@@ -30,8 +32,6 @@ import {
   ScrollArea,
   Separator,
   SidebarTrigger,
-  StatCard,
-  StatValue,
   Typography,
   toast
 } from "@/components/ui"
@@ -41,11 +41,11 @@ import { type LeadDetail, type LeadFormData } from "../../types"
 import { ConvertLeadDialog } from "../ConvertLeadDialog"
 import { DeleteLeadDialog } from "../DeleteLeadDialog"
 import { LeadFormSheet } from "../LeadFormSheet"
-import { LeadStatusBadge } from "../LeadStatusBadge"
 
 import { ContactRow } from "./ContactRow"
 import { DetailGroup } from "./DetailGroup"
-import { LeadStageControl } from "./LeadStageControl"
+import { LeadConversionPanel } from "./LeadConversionPanel"
+import { LeadStatusSelector } from "./LeadStatusSelector"
 
 type LeadWorkspaceProps = {
   lead: LeadDetail
@@ -65,7 +65,8 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
   const [isDeleting, startDelete] = useTransition()
 
   const isConverted = lead.convertedAt !== null
-  const canConvert = !isConverted && lead.deletedAt === null
+
+  const activity: ActivityTimelineItem[] = []
 
   const onDelete = () => {
     if (isDeleting) return
@@ -113,22 +114,9 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
               <Avatar className="size-16">
                 <AvatarFallback className="text-lg">{getInitials(lead.displayName)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-center gap-2">
-                <Typography variant="h2" className="text-2xl text-balance">
-                  {lead.displayName}
-                </Typography>
-                {lead.deletedAt ? (
-                  <Badge variant="outline">{t("leads.statusFilter.deleted")}</Badge>
-                ) : (
-                  <LeadStatusBadge status={lead.status} />
-                )}
-                {isConverted ? (
-                  <Badge variant="success">
-                    <Icon name="UserCheck" aria-hidden="true" />
-                    {t("leads.detail.convertedBadge")}
-                  </Badge>
-                ) : null}
-              </div>
+              <Typography variant="h2" className="text-2xl text-balance">
+                {lead.displayName}
+              </Typography>
               <Typography affects={["muted", "small"]}>
                 {t("leads.detail.since", { date: formatDay(lead.createdAt, locale) })}
               </Typography>
@@ -164,30 +152,66 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
               </DropdownMenu>
             </div>
             <Separator />
-            <div className="flex flex-col gap-3 p-4">
-              <Typography affects={["muted", "tiny", "uppercase"]}>
-                {t("leads.detail.contactTitle")}
-              </Typography>
-              <dl className="flex flex-col gap-3">
-                <ContactRow
-                  icon="Mail"
-                  label={t("leads.fields.email")}
-                  value={lead.email}
-                  href={`mailto:${lead.email}`}
+            <div className="flex flex-col gap-4 p-4">
+              <div className="flex items-start gap-2.5">
+                <Icon
+                  name="GitBranch"
+                  className="text-muted-foreground mt-0.5 size-4 shrink-0"
+                  aria-hidden="true"
                 />
-                <ContactRow
-                  icon="Phone"
-                  label={t("leads.fields.phone")}
-                  value={lead.phone}
-                  href={lead.phone ? `tel:${lead.phone}` : undefined}
-                />
-                <ContactRow
-                  icon="Building2"
-                  label={t("leads.fields.company")}
-                  value={lead.company}
-                />
-                <ContactRow icon="Compass" label={t("leads.fields.source")} value={lead.source} />
-              </dl>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Typography affects={["muted", "tiny"]}>
+                    {t("leads.detail.statusLabel")}
+                  </Typography>
+                  {lead.deletedAt ? (
+                    <Badge variant="outline" className="w-fit">
+                      {t("leads.statusFilter.deleted")}
+                    </Badge>
+                  ) : (
+                    <LeadStatusSelector
+                      leadId={lead.id}
+                      status={lead.status}
+                      onChanged={() => router.refresh()}
+                    />
+                  )}
+                </div>
+              </div>
+              <Separator />
+              <div className="flex flex-col gap-3">
+                <Typography affects={["muted", "tiny", "uppercase"]}>
+                  {t("leads.detail.contactTitle")}
+                </Typography>
+                <dl className="flex flex-col gap-3">
+                  <ContactRow
+                    icon="Mail"
+                    label={t("leads.fields.email")}
+                    value={lead.email}
+                    href={`mailto:${lead.email}`}
+                  />
+                  <ContactRow
+                    icon="Phone"
+                    label={t("leads.fields.phone")}
+                    value={lead.phone}
+                    href={lead.phone ? `tel:${lead.phone}` : undefined}
+                  />
+                  <ContactRow
+                    icon="Building2"
+                    label={t("leads.fields.company")}
+                    value={lead.company}
+                  />
+                  <ContactRow icon="Compass" label={t("leads.fields.source")} value={lead.source} />
+                  <ContactRow
+                    icon="UserCheck"
+                    label={t("leads.detail.statConverted")}
+                    value={
+                      isConverted ? t("leads.detail.convertedYes") : t("leads.detail.convertedNo")
+                    }
+                    href={
+                      lead.convertedToClientId ? `/clients/${lead.convertedToClientId}` : undefined
+                    }
+                  />
+                </dl>
+              </div>
             </div>
             <CardFooter className="text-muted-foreground mt-auto gap-1.5 px-4 py-3 text-xs">
               <Icon name="Clock" className="size-3.5 shrink-0" aria-hidden="true" />
@@ -197,86 +221,32 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
             </CardFooter>
           </Card>
           <div className="flex min-w-0 flex-col gap-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <StatCard icon="GitBranch" label={t("leads.detail.statStage")}>
-                <StatValue
-                  value={t(`leads.status.${lead.status}`)}
-                  title={t(`leads.status.${lead.status}`)}
-                  hint={t("leads.detail.statStageHint")}
-                />
-              </StatCard>
-              <StatCard icon="Compass" label={t("leads.fields.source")}>
-                <StatValue
-                  value={lead.source || t("leads.detail.emptyValue")}
-                  title={lead.source || t("leads.detail.emptyValue")}
-                  hint={t("leads.detail.statSourceHint")}
-                />
-              </StatCard>
-              <StatCard icon="UserCheck" label={t("leads.detail.statConverted")}>
-                <StatValue
-                  value={
-                    isConverted ? t("leads.detail.convertedYes") : t("leads.detail.convertedNo")
-                  }
-                  title={
-                    isConverted ? t("leads.detail.convertedYes") : t("leads.detail.convertedNo")
-                  }
-                  hint={
-                    isConverted && lead.convertedAt
-                      ? formatDay(lead.convertedAt, locale)
-                      : t("leads.detail.statConvertedHint")
-                  }
-                />
-              </StatCard>
-            </div>
+            <LeadConversionPanel
+              lead={lead}
+              locale={locale}
+              onConvert={() => setConvertOpen(true)}
+            />
             <Card size="sm">
               <CardHeader>
-                <CardTitle>{t("leads.detail.pipelineTitle")}</CardTitle>
+                <CardTitle>{t("leads.detail.activityTitle")}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Typography affects={["muted", "small"]}>
-                    {t("leads.detail.currentStage")}
-                  </Typography>
-                  <LeadStatusBadge status={lead.status} />
-                </div>
-                {lead.deletedAt ? null : (
-                  <LeadStageControl
-                    leadId={lead.id}
-                    status={lead.status}
-                    onChanged={() => router.refresh()}
-                  />
-                )}
-                {canConvert ? (
-                  <div className="border-t pt-4">
-                    <Button onClick={() => setConvertOpen(true)}>
-                      <Icon name="UserPlus" aria-hidden="true" />
-                      {t("leads.actions.convert")}
-                    </Button>
-                  </div>
-                ) : null}
-                {isConverted && lead.convertedToClientId ? (
-                  <div className="border-t pt-4">
-                    <Button asChild variant="outline">
-                      <Link href={`/clients/${lead.convertedToClientId}`}>
-                        <Icon name="ArrowRight" aria-hidden="true" />
-                        {t("leads.detail.viewClient")}
-                      </Link>
-                    </Button>
-                  </div>
-                ) : null}
+              <CardContent>
+                <ActivityTimeline
+                  items={activity}
+                  emptyTitle={t("leads.detail.activityEmptyTitle")}
+                  emptyDescription={t("leads.detail.activityEmpty")}
+                />
               </CardContent>
             </Card>
-            {lead.status === "lost" && lead.lostReason ? (
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>{t("leads.detail.lostReasonTitle")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Typography className="whitespace-pre-wrap">{lead.lostReason}</Typography>
-                </CardContent>
-              </Card>
-            ) : null}
             <Card size="sm" className="gap-0 py-0">
+              {lead.status === "lost" && lead.lostReason ? (
+                <>
+                  <DetailGroup title={t("leads.detail.lostReasonTitle")}>
+                    <Typography className="whitespace-pre-wrap">{lead.lostReason}</Typography>
+                  </DetailGroup>
+                  <Separator />
+                </>
+              ) : null}
               <DetailGroup title={t("leads.detail.notesTitle")}>
                 {lead.notes ? (
                   <Typography className="whitespace-pre-wrap">{lead.notes}</Typography>

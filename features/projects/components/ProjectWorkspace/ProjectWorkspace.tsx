@@ -11,6 +11,8 @@ import { useTranslation } from "@/lib/i18n"
 import { formatCurrency, formatDay, getInitials } from "@/lib/utils"
 
 import {
+  ActivityTimeline,
+  type ActivityTimelineItem,
   Avatar,
   AvatarFallback,
   Badge,
@@ -29,8 +31,6 @@ import {
   ScrollArea,
   Separator,
   SidebarTrigger,
-  StatCard,
-  StatValue,
   Typography,
   toast
 } from "@/components/ui"
@@ -39,11 +39,10 @@ import { softDeleteProject } from "../../mutations"
 import { type ProjectClientOption, type ProjectDetail, type ProjectFormData } from "../../types"
 import { DeleteProjectDialog } from "../DeleteProjectDialog"
 import { ProjectFormSheet } from "../ProjectFormSheet"
-import { ProjectStatusBadge } from "../ProjectStatusBadge"
 
 import { DetailGroup } from "./DetailGroup"
 import { DetailRow } from "./DetailRow"
-import { ProjectStageControl } from "./ProjectStageControl"
+import { ProjectStatusSelector } from "./ProjectStatusSelector"
 
 type ProjectWorkspaceProps = {
   project: ProjectDetail
@@ -71,6 +70,8 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
       : formatCurrency(project.hourlyRateCents, project.currency, locale)
   const startDateText = project.startDate ? formatDay(project.startDate, locale) : ""
   const endDateText = project.endDate ? formatDay(project.endDate, locale) : ""
+
+  const activity: ActivityTimelineItem[] = []
 
   const onDelete = () => {
     if (isDeleting) return
@@ -112,16 +113,9 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
               <Avatar className="size-16">
                 <AvatarFallback className="text-lg">{getInitials(project.name)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-center gap-2">
-                <Typography variant="h2" className="text-2xl text-balance">
-                  {project.name}
-                </Typography>
-                {project.deletedAt ? (
-                  <Badge variant="outline">{t("projects.statusFilter.deleted")}</Badge>
-                ) : (
-                  <ProjectStatusBadge status={project.status} />
-                )}
-              </div>
+              <Typography variant="h2" className="text-2xl text-balance">
+                {project.name}
+              </Typography>
               <Typography affects={["muted", "small"]}>
                 {t("projects.detail.since", { date: formatDay(project.createdAt, locale) })}
               </Typography>
@@ -146,30 +140,71 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
               </DropdownMenu>
             </div>
             <Separator />
-            <DetailGroup title={t("projects.detail.overviewTitle")}>
-              <DetailRow
-                icon="Building2"
-                label={t("projects.fields.client")}
-                value={project.clientName}
-                href={`/clients/${project.clientId}`}
-              />
-              <DetailRow
-                icon="Coins"
-                label={t("projects.fields.currency")}
-                value={project.currency}
-                mono
-              />
-              <DetailRow
-                icon="CalendarPlus"
-                label={t("projects.fields.startDate")}
-                value={startDateText}
-              />
-              <DetailRow
-                icon="CalendarCheck"
-                label={t("projects.fields.endDate")}
-                value={endDateText}
-              />
-            </DetailGroup>
+            <div className="flex flex-col gap-4 p-4">
+              <div className="flex items-start gap-2.5">
+                <Icon
+                  name="GitBranch"
+                  className="text-muted-foreground mt-0.5 size-4 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <Typography affects={["muted", "tiny"]}>{t("projects.fields.status")}</Typography>
+                  {project.deletedAt ? (
+                    <Badge variant="outline" className="w-fit">
+                      {t("projects.statusFilter.deleted")}
+                    </Badge>
+                  ) : (
+                    <ProjectStatusSelector
+                      projectId={project.id}
+                      status={project.status}
+                      onChanged={() => router.refresh()}
+                    />
+                  )}
+                </div>
+              </div>
+              <Separator />
+              <div className="flex flex-col gap-3">
+                <Typography affects={["muted", "tiny", "uppercase"]}>
+                  {t("projects.detail.overviewTitle")}
+                </Typography>
+                <dl className="flex flex-col gap-3">
+                  <DetailRow
+                    icon="Building2"
+                    label={t("projects.fields.client")}
+                    value={project.clientName}
+                    href={`/clients/${project.clientId}`}
+                  />
+                  <DetailRow
+                    icon="Wallet"
+                    label={t("projects.fields.budget")}
+                    value={budgetText}
+                    mono
+                  />
+                  <DetailRow
+                    icon="Clock"
+                    label={t("projects.fields.hourlyRate")}
+                    value={hourlyRateText}
+                    mono
+                  />
+                  <DetailRow
+                    icon="Coins"
+                    label={t("projects.fields.currency")}
+                    value={project.currency}
+                    mono
+                  />
+                  <DetailRow
+                    icon="CalendarPlus"
+                    label={t("projects.fields.startDate")}
+                    value={startDateText}
+                  />
+                  <DetailRow
+                    icon="CalendarCheck"
+                    label={t("projects.fields.endDate")}
+                    value={endDateText}
+                  />
+                </dl>
+              </div>
+            </div>
             <CardFooter className="text-muted-foreground mt-auto gap-1.5 px-4 py-3 text-xs">
               <Icon name="Clock" className="size-3.5 shrink-0" aria-hidden="true" />
               <span>
@@ -178,49 +213,16 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
             </CardFooter>
           </Card>
           <div className="flex min-w-0 flex-col gap-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <StatCard icon="GitBranch" label={t("projects.detail.statStatus")}>
-                <StatValue
-                  value={t(`projects.status.${project.status}`)}
-                  title={t(`projects.status.${project.status}`)}
-                  hint={t("projects.detail.statStatusHint")}
-                />
-              </StatCard>
-              <StatCard icon="Wallet" label={t("projects.fields.budget")}>
-                <StatValue
-                  value={budgetText}
-                  title={budgetText}
-                  hint={t("projects.detail.statBudgetHint")}
-                  mono
-                />
-              </StatCard>
-              <StatCard icon="Clock" label={t("projects.fields.hourlyRate")}>
-                <StatValue
-                  value={hourlyRateText}
-                  title={hourlyRateText}
-                  hint={t("projects.detail.statHourlyRateHint")}
-                  mono
-                />
-              </StatCard>
-            </div>
             <Card size="sm">
               <CardHeader>
-                <CardTitle>{t("projects.detail.statusTitle")}</CardTitle>
+                <CardTitle>{t("projects.detail.activityTitle")}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Typography affects={["muted", "small"]}>
-                    {t("projects.detail.currentStatus")}
-                  </Typography>
-                  <ProjectStatusBadge status={project.status} />
-                </div>
-                {project.deletedAt ? null : (
-                  <ProjectStageControl
-                    projectId={project.id}
-                    status={project.status}
-                    onChanged={() => router.refresh()}
-                  />
-                )}
+              <CardContent>
+                <ActivityTimeline
+                  items={activity}
+                  emptyTitle={t("projects.detail.activityEmptyTitle")}
+                  emptyDescription={t("projects.detail.activityEmpty")}
+                />
               </CardContent>
             </Card>
             <Card size="sm" className="gap-0 py-0">

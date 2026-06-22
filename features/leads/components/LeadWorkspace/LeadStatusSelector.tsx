@@ -12,27 +12,32 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
   Field,
   FieldError,
   FieldLabel,
   Icon,
   Spinner,
   Textarea,
-  Typography,
   toast
 } from "@/components/ui"
 
 import { updateLeadStatus } from "../../mutations"
 import { type LeadStatus } from "../../schemas"
 import { getNextLeadStatuses } from "../../services"
+import { LeadStatusBadge, leadStatusPresentation } from "../LeadStatusBadge"
 
-type LeadStageControlProps = {
+type LeadStatusSelectorProps = {
   leadId: string
   status: LeadStatus
   onChanged: () => void
 }
 
-const LeadStageControl = ({ leadId, status, onChanged }: LeadStageControlProps) => {
+const LeadStatusSelector = ({ leadId, status, onChanged }: LeadStatusSelectorProps) => {
   const { t } = useTranslation()
 
   const [isPending, startTransition] = useTransition()
@@ -85,23 +90,51 @@ const LeadStageControl = ({ leadId, status, onChanged }: LeadStageControlProps) 
   }
 
   if (nextStatuses.length === 0) {
-    return <Typography affects={["muted", "small"]}>{t("leads.stage.terminal")}</Typography>
+    return <LeadStatusBadge status={status} />
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {nextStatuses.map((next) => (
-        <Button
-          key={next}
-          variant={next === "won" ? "default" : "outline"}
-          size="sm"
-          disabled={isPending}
-          onClick={() => onSelectNext(next)}
-        >
-          {isPending ? <Spinner /> : <Icon name="ArrowRight" aria-hidden="true" />}
-          {t("leads.stage.moveTo", { stage: t(`leads.status.${next}`) })}
-        </Button>
-      ))}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            className="w-full justify-between font-normal"
+          >
+            <span className="flex min-w-0 items-center gap-1.5">
+              {isPending ? (
+                <Spinner />
+              ) : (
+                <Icon name={leadStatusPresentation[status].icon} aria-hidden="true" />
+              )}
+              <span className="truncate">{t(`leads.status.${status}`)}</span>
+            </span>
+            <Icon name="ChevronsUpDown" className="text-muted-foreground" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-56">
+          <DropdownMenuLabel>{t("leads.stage.changeStatus")}</DropdownMenuLabel>
+          <DropdownMenuItem disabled className="justify-between">
+            <span className="flex items-center gap-1.5">
+              <Icon name={leadStatusPresentation[status].icon} aria-hidden="true" />
+              {t(`leads.status.${status}`)}
+            </span>
+            <Icon name="Check" aria-hidden="true" />
+          </DropdownMenuItem>
+          {nextStatuses.map((next) => (
+            <DropdownMenuItem
+              key={next}
+              variant={next === "lost" ? "destructive" : "default"}
+              onSelect={() => onSelectNext(next)}
+            >
+              <Icon name={leadStatusPresentation[next].icon} aria-hidden="true" />
+              {t(`leads.status.${next}`)}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Dialog
         open={lostDialogOpen}
         onOpenChange={(open) => {
@@ -147,8 +180,8 @@ const LeadStageControl = ({ leadId, status, onChanged }: LeadStageControlProps) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 
-export { LeadStageControl }
+export { LeadStatusSelector }
