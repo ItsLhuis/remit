@@ -43,6 +43,13 @@
       "when": 1780389912898,
       "tag": "0005_free_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782151102389,
+      "tag": "0006_glamorous_tag",
+      "breakpoints": true
     }
   ]
 }

@@ -573,18 +573,18 @@ Lightweight task system inside projects.
 
 ### `tasks`
 
-| Column            | Type        | Null | Default             | Notes                                  |
-| ----------------- | ----------- | ---- | ------------------- | -------------------------------------- |
-| id                | uuid        | no   | `gen_random_uuid()` | PK                                     |
-| project_id        | uuid        | no   |                     | FK → `projects.id` (cascade)           |
-| title             | text        | no   |                     |                                        |
-| description       | text        | yes  |                     | Markdown                               |
-| status            | enum        | no   | `'todo'`            | `todo \| doing \| done`                |
-| priority          | enum        | no   | `'normal'`          | `low \| normal \| high \| urgent`      |
-| due_at            | timestamptz | yes  |                     |                                        |
-| completed_at      | timestamptz | yes  |                     |                                        |
-| position          | integer     | no   | `0`                 | Manual ordering within the project     |
-| hourly_rate_cents | bigint      | yes  |                     | Override for time entries on this task |
+| Column            | Type        | Null | Default             | Notes                                                 |
+| ----------------- | ----------- | ---- | ------------------- | ----------------------------------------------------- |
+| id                | uuid        | no   | `gen_random_uuid()` | PK                                                    |
+| project_id        | uuid        | no   |                     | FK → `projects.id` (cascade)                          |
+| title             | text        | no   |                     |                                                       |
+| description       | text        | yes  |                     | Markdown                                              |
+| status            | enum        | no   | `'todo'`            | `backlog \| todo \| in_progress \| done \| cancelled` |
+| priority          | enum        | no   | `'normal'`          | `low \| normal \| high \| urgent`                     |
+| due_at            | timestamptz | yes  |                     |                                                       |
+| completed_at      | timestamptz | yes  |                     |                                                       |
+| position          | integer     | no   | `0`                 | Manual ordering within the project                    |
+| hourly_rate_cents | bigint      | yes  |                     | Override for time entries on this task                |
 
 Standard `timestamps` and `softDelete`.
 
@@ -1024,7 +1024,7 @@ All enum types declared in `database/schema/enums.ts`.
 | `member_role`              | `owner`, `accountant`, `assistant`                                                                                                                                                                   |
 | `lead_status`              | `new`, `contacted`, `qualified`, `proposal_sent`, `won`, `lost`                                                                                                                                      |
 | `project_status`           | `active`, `completed`, `on_hold`, `cancelled`                                                                                                                                                        |
-| `task_status`              | `todo`, `doing`, `done`                                                                                                                                                                              |
+| `task_status`              | `backlog`, `todo`, `in_progress`, `done`, `cancelled`                                                                                                                                                |
 | `task_priority`            | `low`, `normal`, `high`, `urgent`                                                                                                                                                                    |
 | `time_entry_source`        | `timer`, `manual`                                                                                                                                                                                    |
 | `proposal_status`          | `draft`, `sent`, `accepted`, `rejected`                                                                                                                                                              |

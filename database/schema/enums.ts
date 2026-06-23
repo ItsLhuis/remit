@@ -55,7 +55,13 @@ export const leadStatus = pgEnum("lead_status", [
   "lost"
 ])
 
-export const taskStatus = pgEnum("task_status", ["todo", "doing", "done"])
+export const taskStatus = pgEnum("task_status", [
+  "backlog",
+  "todo",
+  "in_progress",
+  "done",
+  "cancelled"
+])
 
 export const taskPriority = pgEnum("task_priority", ["low", "normal", "high", "urgent"])
 
