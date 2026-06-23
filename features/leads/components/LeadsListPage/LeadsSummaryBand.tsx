@@ -34,6 +34,7 @@ const LeadsSummaryBand = ({ summary, locale }: LeadsSummaryBandProps) => {
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("leads.summary.trendTotalLabel")}
+          emptyLabel={t("leads.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Workflow" label={t("leads.summary.open")}>
@@ -46,6 +47,7 @@ const LeadsSummaryBand = ({ summary, locale }: LeadsSummaryBandProps) => {
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("leads.summary.trendNewLabel")}
+          emptyLabel={t("leads.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Trophy" label={t("leads.summary.won")}>

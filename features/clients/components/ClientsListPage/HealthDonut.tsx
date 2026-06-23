@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment } from "react"
+
 import { Pie, PieChart } from "recharts"
 
 import { useTranslation } from "@/lib/i18n"
@@ -8,6 +10,7 @@ import { formatCompactNumber } from "@/lib/utils"
 
 import {
   ChartContainer,
+  ChartEmpty,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -54,10 +57,15 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
 
   if (total === 0) {
     return (
-      <div className="flex flex-col gap-0.5">
-        <span className="text-foreground text-2xl font-semibold tracking-tight">0</span>
-        <Typography affects={["muted", "tiny"]}>{t("clients.summary.healthHint")}</Typography>
-      </div>
+      <Fragment>
+        <div className="flex flex-col gap-0.5">
+          <Typography variant="h3" className="text-foreground">
+            0
+          </Typography>
+          <Typography affects={["muted", "tiny"]}>{t("clients.summary.healthHint")}</Typography>
+        </div>
+        <ChartEmpty label={t("common.chart.noData")} />
+      </Fragment>
     )
   }
 
@@ -82,9 +90,9 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-foreground text-lg font-semibold tabular-nums">
+          <Typography affects={["large"]} className="text-foreground font-semibold tabular-nums">
             {formatCompactNumber(total, locale)}
-          </span>
+          </Typography>
         </div>
       </div>
       <ul className="flex flex-1 flex-col gap-1.5">
@@ -98,7 +106,9 @@ const HealthDonut = ({ distribution, total, locale }: HealthDonutProps) => {
               />
               <Typography affects={["muted", "tiny"]}>{segment.label}</Typography>
             </span>
-            <span className="font-mono text-xs font-medium tabular-nums">{segment.value}</span>
+            <Typography affects={["tiny"]} className="font-mono font-medium tabular-nums">
+              {segment.value}
+            </Typography>
           </li>
         ))}
       </ul>

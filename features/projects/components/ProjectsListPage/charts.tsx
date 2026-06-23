@@ -8,6 +8,7 @@ import { formatMonthShort } from "@/lib/utils"
 
 import {
   ChartContainer,
+  ChartEmpty,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -20,9 +21,12 @@ type TrendChartProps = {
   data: ProjectsSummary["acquisitionTrend"]
   locale: string
   label: string
+  emptyLabel: string
 }
 
-const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
+const GrowthAreaChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.totalProjects > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { totalProjects: { label, color: "var(--chart-4)" } }
 
   return (
@@ -52,7 +56,9 @@ const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
   )
 }
 
-const NewProjectsBarChart = ({ data, locale, label }: TrendChartProps) => {
+const NewProjectsBarChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.newProjects > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { newProjects: { label, color: "var(--chart-4)" } }
 
   return (
@@ -82,7 +88,7 @@ const StatusBreakdownDonut = ({ summary }: StatusBreakdownDonutProps) => {
 
   const total = summary.active + summary.onHold + summary.completed + summary.cancelled
 
-  if (total === 0) return null
+  if (total === 0) return <ChartEmpty label={t("common.chart.noData")} />
 
   const config: ChartConfig = {
     active: { label: t("projects.status.active"), color: "var(--chart-3)" },
@@ -119,9 +125,9 @@ const StatusBreakdownDonut = ({ summary }: StatusBreakdownDonutProps) => {
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-foreground text-sm font-semibold tabular-nums">
+          <Typography className="text-foreground text-sm font-semibold tabular-nums">
             {summary.onHold}
-          </span>
+          </Typography>
         </div>
       </div>
       <ul className="flex flex-1 flex-col gap-1.5">
@@ -135,7 +141,9 @@ const StatusBreakdownDonut = ({ summary }: StatusBreakdownDonutProps) => {
               />
               <Typography affects={["muted", "tiny"]}>{config[segment.key]?.label}</Typography>
             </span>
-            <span className="font-mono text-xs font-medium tabular-nums">{segment.value}</span>
+            <Typography affects={["tiny"]} className="font-mono font-medium tabular-nums">
+              {segment.value}
+            </Typography>
           </li>
         ))}
       </ul>
@@ -151,7 +159,7 @@ type CompletionRateDonutProps = {
 const CompletionRateDonut = ({ completed, total }: CompletionRateDonutProps) => {
   const { t } = useTranslation()
 
-  if (total === 0) return null
+  if (total === 0) return <ChartEmpty label={t("common.chart.noData")} />
 
   const remaining = total - completed
 
@@ -188,7 +196,9 @@ const CompletionRateDonut = ({ completed, total }: CompletionRateDonutProps) => 
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-foreground text-sm font-semibold tabular-nums">{completePct}%</span>
+          <Typography className="text-foreground text-sm font-semibold tabular-nums">
+            {completePct}%
+          </Typography>
         </div>
       </div>
       <ul className="flex flex-1 flex-col gap-1.5">
@@ -202,7 +212,9 @@ const CompletionRateDonut = ({ completed, total }: CompletionRateDonutProps) => 
               />
               <Typography affects={["muted", "tiny"]}>{config[segment.key]?.label}</Typography>
             </span>
-            <span className="font-mono text-xs font-medium tabular-nums">{segment.value}</span>
+            <Typography affects={["tiny"]} className="font-mono font-medium tabular-nums">
+              {segment.value}
+            </Typography>
           </li>
         ))}
       </ul>

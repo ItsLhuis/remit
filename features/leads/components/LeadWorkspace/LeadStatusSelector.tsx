@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { Fragment, useState, useTransition } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -94,7 +94,7 @@ const LeadStatusSelector = ({ leadId, status, onChanged }: LeadStatusSelectorPro
   }
 
   return (
-    <>
+    <Fragment>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -180,7 +180,7 @@ const LeadStatusSelector = ({ leadId, status, onChanged }: LeadStatusSelectorPro
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </Fragment>
   )
 }
 

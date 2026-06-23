@@ -6,6 +6,7 @@ import { formatMonthShort } from "@/lib/utils"
 
 import {
   ChartContainer,
+  ChartEmpty,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig
@@ -17,9 +18,12 @@ type TrendChartProps = {
   data: ClientsSummary["acquisitionTrend"]
   locale: string
   label: string
+  emptyLabel: string
 }
 
-const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
+const GrowthAreaChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.totalClients > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { totalClients: { label, color: "var(--chart-4)" } }
 
   return (
@@ -49,7 +53,9 @@ const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
   )
 }
 
-const NewClientsBarChart = ({ data, locale, label }: TrendChartProps) => {
+const NewClientsBarChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.newClients > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { newClients: { label, color: "var(--chart-4)" } }
 
   return (

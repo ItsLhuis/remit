@@ -125,6 +125,12 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
                 <Icon name="Pencil" aria-hidden="true" />
                 {t("projects.actions.edit")}
               </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/projects/${project.id}/tasks`}>
+                  <Icon name="ListTodo" aria-hidden="true" />
+                  {t("tasks.board.title")}
+                </Link>
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <IconButton variant="outline" size="icon-sm" label={t("projects.list.actions")}>

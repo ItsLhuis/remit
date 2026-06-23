@@ -39,6 +39,7 @@ const ProjectsSummaryBand = ({ summary, locale }: ProjectsSummaryBandProps) => {
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("projects.summary.trendTotalLabel")}
+          emptyLabel={t("projects.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Play" label={t("projects.summary.active")}>
@@ -51,6 +52,7 @@ const ProjectsSummaryBand = ({ summary, locale }: ProjectsSummaryBandProps) => {
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("projects.summary.trendNewLabel")}
+          emptyLabel={t("projects.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Pause" label={t("projects.summary.onHold")}>

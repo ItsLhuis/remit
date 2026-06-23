@@ -99,7 +99,7 @@ export type DemoTaskRow = {
   projectId: string
   title: string
   description: string
-  status: "todo" | "doing" | "done"
+  status: "backlog" | "todo" | "in_progress" | "done" | "cancelled"
   priority: "low" | "normal" | "high" | "urgent"
   dueAt: Date | null
   completedAt: Date | null

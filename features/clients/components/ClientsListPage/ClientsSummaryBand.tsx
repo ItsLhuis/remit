@@ -47,6 +47,7 @@ const ClientsSummaryBand = ({ summary, locale, defaultCurrency }: ClientsSummary
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("clients.summary.trendTotalLabel")}
+          emptyLabel={t("clients.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Wallet" label={t("clients.summary.outstanding")}>
@@ -72,6 +73,7 @@ const ClientsSummaryBand = ({ summary, locale, defaultCurrency }: ClientsSummary
           data={summary.acquisitionTrend}
           locale={locale}
           label={t("clients.summary.trendNewLabel")}
+          emptyLabel={t("clients.summary.trendEmpty")}
         />
       </StatCard>
       <StatCard icon="Activity" label={t("clients.summary.healthTitle")}>

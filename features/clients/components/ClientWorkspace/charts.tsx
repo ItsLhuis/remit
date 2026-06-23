@@ -6,6 +6,7 @@ import { formatCurrency, formatMonthShort } from "@/lib/utils"
 
 import {
   ChartContainer,
+  ChartEmpty,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig
@@ -24,16 +25,6 @@ type CountBarChartProps = TrendChartProps & {
   dataKey: "invoiceCount" | "projectCount" | "recurringCount"
 }
 
-const TrendEmpty = ({ label }: { label: string }) => (
-  <div className="mt-auto flex h-14 w-full items-center" aria-hidden="true">
-    <div className="bg-border relative h-px w-full">
-      <span className="bg-card text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-2 text-[10px] whitespace-nowrap">
-        {label}
-      </span>
-    </div>
-  </div>
-)
-
 const BilledAreaChart = ({
   data,
   locale,
@@ -41,7 +32,7 @@ const BilledAreaChart = ({
   label,
   emptyLabel
 }: TrendChartProps & { currency: string }) => {
-  if (!data.some((point) => point.billedCents > 0)) return <TrendEmpty label={emptyLabel} />
+  if (!data.some((point) => point.billedCents > 0)) return <ChartEmpty label={emptyLabel} />
 
   const config: ChartConfig = { billedCents: { label, color: "var(--chart-4)" } }
 
@@ -74,7 +65,7 @@ const BilledAreaChart = ({
 }
 
 const CountBarChart = ({ data, locale, label, emptyLabel, dataKey }: CountBarChartProps) => {
-  if (!data.some((point) => point[dataKey] > 0)) return <TrendEmpty label={emptyLabel} />
+  if (!data.some((point) => point[dataKey] > 0)) return <ChartEmpty label={emptyLabel} />
 
   const config: ChartConfig = { [dataKey]: { label, color: "var(--chart-4)" } }
 

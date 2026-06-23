@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -63,7 +63,7 @@ const ClientProjectsPanel = ({
   const stageColumn = table.getColumn("stage")
 
   return (
-    <>
+    <Fragment>
       <DataTable
         table={table}
         caption={t("projects.clientPanel.title")}
@@ -106,7 +106,7 @@ const ClientProjectsPanel = ({
           router.refresh()
         }}
       />
-    </>
+    </Fragment>
   )
 }
 

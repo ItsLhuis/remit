@@ -8,6 +8,7 @@ import { formatMonthShort } from "@/lib/utils"
 
 import {
   ChartContainer,
+  ChartEmpty,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -20,9 +21,12 @@ type TrendChartProps = {
   data: LeadsSummary["acquisitionTrend"]
   locale: string
   label: string
+  emptyLabel: string
 }
 
-const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
+const GrowthAreaChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.totalLeads > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { totalLeads: { label, color: "var(--chart-4)" } }
 
   return (
@@ -52,7 +56,9 @@ const GrowthAreaChart = ({ data, locale, label }: TrendChartProps) => {
   )
 }
 
-const NewLeadsBarChart = ({ data, locale, label }: TrendChartProps) => {
+const NewLeadsBarChart = ({ data, locale, label, emptyLabel }: TrendChartProps) => {
+  if (!data.some((point) => point.newLeads > 0)) return <ChartEmpty label={emptyLabel} />
+
   const config: ChartConfig = { newLeads: { label, color: "var(--chart-4)" } }
 
   return (
@@ -83,7 +89,7 @@ const WonRateDonut = ({ won, lost }: WonRateDonutProps) => {
 
   const total = won + lost
 
-  if (total === 0) return null
+  if (total === 0) return <ChartEmpty label={t("common.chart.noData")} />
 
   const config: ChartConfig = {
     won: { label: t("leads.status.won"), color: "var(--chart-3)" },
@@ -118,7 +124,9 @@ const WonRateDonut = ({ won, lost }: WonRateDonutProps) => {
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-foreground text-sm font-semibold tabular-nums">{wonPct}%</span>
+          <Typography className="text-foreground text-sm font-semibold tabular-nums">
+            {wonPct}%
+          </Typography>
         </div>
       </div>
       <ul className="flex flex-1 flex-col gap-1.5">
@@ -132,7 +140,9 @@ const WonRateDonut = ({ won, lost }: WonRateDonutProps) => {
               />
               <Typography affects={["muted", "tiny"]}>{config[segment.key]?.label}</Typography>
             </span>
-            <span className="font-mono text-xs font-medium tabular-nums">{segment.value}</span>
+            <Typography affects={["tiny"]} className="font-mono font-medium tabular-nums">
+              {segment.value}
+            </Typography>
           </li>
         ))}
       </ul>
@@ -148,7 +158,7 @@ type ConversionDonutProps = {
 const ConversionDonut = ({ converted, total }: ConversionDonutProps) => {
   const { t } = useTranslation()
 
-  if (total === 0) return null
+  if (total === 0) return <ChartEmpty label={t("common.chart.noData")} />
 
   const notConverted = total - converted
 
@@ -185,7 +195,9 @@ const ConversionDonut = ({ converted, total }: ConversionDonutProps) => {
           </PieChart>
         </ChartContainer>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-foreground text-sm font-semibold tabular-nums">{convPct}%</span>
+          <Typography className="text-foreground text-sm font-semibold tabular-nums">
+            {convPct}%
+          </Typography>
         </div>
       </div>
       <ul className="flex flex-1 flex-col gap-1.5">
@@ -199,7 +211,9 @@ const ConversionDonut = ({ converted, total }: ConversionDonutProps) => {
               />
               <Typography affects={["muted", "tiny"]}>{config[segment.key]?.label}</Typography>
             </span>
-            <span className="font-mono text-xs font-medium tabular-nums">{segment.value}</span>
+            <Typography affects={["tiny"]} className="font-mono font-medium tabular-nums">
+              {segment.value}
+            </Typography>
           </li>
         ))}
       </ul>

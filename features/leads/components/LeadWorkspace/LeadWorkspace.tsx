@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { Fragment, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -240,12 +240,12 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
             </Card>
             <Card size="sm" className="gap-0 py-0">
               {lead.status === "lost" && lead.lostReason ? (
-                <>
+                <Fragment>
                   <DetailGroup title={t("leads.detail.lostReasonTitle")}>
                     <Typography className="whitespace-pre-wrap">{lead.lostReason}</Typography>
                   </DetailGroup>
                   <Separator />
-                </>
+                </Fragment>
               ) : null}
               <DetailGroup title={t("leads.detail.notesTitle")}>
                 {lead.notes ? (

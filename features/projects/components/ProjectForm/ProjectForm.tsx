@@ -11,6 +11,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
+  DatePicker,
   Field,
   FieldError,
   FieldGroup,
@@ -174,6 +175,34 @@ const ProjectForm = (props: ProjectFormProps) => {
     />
   )
 
+  const renderDateField = ({
+    name,
+    label
+  }: {
+    name: FieldPath<ProjectFormInputValues>
+    label: string
+  }) => (
+    <Controller
+      name={name}
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+          <DatePicker
+            id={field.name}
+            ref={field.ref}
+            value={field.value}
+            onChangeAction={field.onChange}
+            onBlur={field.onBlur}
+            valid={!fieldState.invalid}
+            disabled={isSaving}
+          />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+
   const moneyLabel = (key: "budget" | "hourlyRate") =>
     selectedCurrency
       ? `${t(`projects.fields.${key}`)} (${selectedCurrency})`
@@ -254,15 +283,13 @@ const ProjectForm = (props: ProjectFormProps) => {
             placeholder: t("projects.placeholders.amount"),
             inputMode: "decimal"
           })}
-          {renderTextField({
+          {renderDateField({
             name: "startDate",
-            label: t("projects.fields.startDate"),
-            type: "date"
+            label: t("projects.fields.startDate")
           })}
-          {renderTextField({
+          {renderDateField({
             name: "endDate",
-            label: t("projects.fields.endDate"),
-            type: "date"
+            label: t("projects.fields.endDate")
           })}
         </FieldGroup>
       </FormSection>

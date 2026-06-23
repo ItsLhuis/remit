@@ -327,7 +327,7 @@ function buildTasks(
     "Implementation sprint",
     "Launch checklist"
   ]
-  const statuses: DemoTaskRow["status"][] = ["done", "doing", "todo", "todo"]
+  const statuses: DemoTaskRow["status"][] = ["done", "in_progress", "todo", "backlog"]
   const priorities: DemoTaskRow["priority"][] = ["normal", "high", "normal", "low"]
 
   return projects.flatMap((project, projectIndex) =>
