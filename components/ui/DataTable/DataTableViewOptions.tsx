@@ -10,7 +10,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/DropdownMenu"
 import { Icon } from "@/components/ui/Icon"
@@ -38,7 +37,6 @@ const DataTableViewOptions = <TData,>({ table }: DataTableViewOptionsProps<TData
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuLabel>{t("common.table.toggleColumns")}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         {columns.map((column) => (
           <DropdownMenuCheckboxItem
             key={column.id}

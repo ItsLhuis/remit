@@ -215,6 +215,26 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --default-transition-duration: 300ms;
+  --animate-shake: shake 0.2s ease-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shake {
+    animation: none;
+  }
 }
 
 html[data-font-size="compact"] {
@@ -256,5 +276,10 @@ html[data-font-family="system"] {
 
   ::selection {
     @apply bg-primary text-primary-foreground;
+  }
+
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
   }
 }

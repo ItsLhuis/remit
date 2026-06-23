@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
 
+import { Button } from "@/components/ui/Button"
 import {
   Select,
   SelectContent,
@@ -75,46 +76,46 @@ const CountrySelect = ({
   const currentCountry = options.find((c) => c.alpha2 === value)
 
   return (
-    <Select
-      data-slot="country-select"
-      value={value ?? ""}
-      onValueChange={handleValueChange}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        ref={ref}
-        id={id}
-        className={cn("w-full", slim && "w-fit gap-2")}
-        data-valid={valid}
-        aria-invalid={!valid}
-        clearable={clearable}
-        onClear={handleClear}
-      >
-        {currentCountry && slim ? (
-          <SelectValue placeholder={resolvedPlaceholder}>
-            <span>{currentCountry.alpha2}</span>
-          </SelectValue>
-        ) : (
-          <SelectValue placeholder={resolvedPlaceholder} />
-        )}
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {options
-            .filter((x) => x.name && x.alpha3)
-            .map((option) => (
-              <SelectItem key={option.alpha2} value={option.alpha2}>
-                <div className="flex w-full items-center gap-2">
-                  <div className="inline-flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                    <CircleFlag countryCode={option.alpha2.toLowerCase()} height={20} />
+    <div data-slot="country-select" className="flex items-center gap-2">
+      <Select value={value ?? ""} onValueChange={handleValueChange} disabled={disabled}>
+        <SelectTrigger
+          ref={ref}
+          id={id}
+          className={cn("flex-1", slim && "w-fit flex-none gap-2")}
+          data-valid={valid}
+          aria-invalid={!valid}
+        >
+          {currentCountry && slim ? (
+            <SelectValue placeholder={resolvedPlaceholder}>
+              <span>{currentCountry.alpha2}</span>
+            </SelectValue>
+          ) : (
+            <SelectValue placeholder={resolvedPlaceholder} />
+          )}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {options
+              .filter((x) => x.name && x.alpha3)
+              .map((option) => (
+                <SelectItem key={option.alpha2} value={option.alpha2}>
+                  <div className="flex w-full items-center gap-2">
+                    <div className="inline-flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                      <CircleFlag countryCode={option.alpha2.toLowerCase()} height={20} />
+                    </div>
+                    <span>{option.name}</span>
                   </div>
-                  <span>{option.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+                </SelectItem>
+              ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {clearable && currentCountry ? (
+        <Button type="button" variant="outline" onClick={handleClear} disabled={disabled}>
+          {t("common.actions.clear")}
+        </Button>
+      ) : null}
+    </div>
   )
 }
 

@@ -8,6 +8,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
 
+import { Button } from "@/components/ui/Button"
 import {
   Select,
   SelectContent,
@@ -149,43 +150,44 @@ const CurrencySelect = ({
   const handleClear = useCallback(() => onValueChangeAction?.(""), [onValueChangeAction])
 
   return (
-    <Select
-      data-slot="currency-select"
-      value={value}
-      onValueChange={handleValueChange}
-      name={name}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        ref={ref}
-        id={id}
-        className={cn("w-full", variant === "small" && "w-fit gap-2")}
-        data-valid={valid}
-        aria-invalid={!valid}
-        clearable={clearable}
-        onClear={handleClear}
-      >
-        {value && variant === "small" ? (
-          <SelectValue placeholder={resolvedPlaceholder}>
-            <span>{value}</span>
-          </SelectValue>
-        ) : (
-          <SelectValue placeholder={resolvedPlaceholder} />
-        )}
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {uniqueCurrencies.map((currency) => (
-            <SelectItem key={currency.code} value={currency.code}>
-              <div className="flex w-full items-center gap-2">
-                <span className="text-muted-foreground w-8 text-left text-sm">{currency.code}</span>
-                <span>{currency.name}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <div data-slot="currency-select" className="flex items-center gap-2">
+      <Select value={value} onValueChange={handleValueChange} name={name} disabled={disabled}>
+        <SelectTrigger
+          ref={ref}
+          id={id}
+          className={cn("flex-1", variant === "small" && "w-fit flex-none gap-2")}
+          data-valid={valid}
+          aria-invalid={!valid}
+        >
+          {value && variant === "small" ? (
+            <SelectValue placeholder={resolvedPlaceholder}>
+              <span>{value}</span>
+            </SelectValue>
+          ) : (
+            <SelectValue placeholder={resolvedPlaceholder} />
+          )}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {uniqueCurrencies.map((currency) => (
+              <SelectItem key={currency.code} value={currency.code}>
+                <div className="flex w-full items-center gap-2">
+                  <span className="text-muted-foreground w-8 text-left text-sm">
+                    {currency.code}
+                  </span>
+                  <span>{currency.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {clearable && value ? (
+        <Button type="button" variant="outline" onClick={handleClear} disabled={disabled}>
+          {t("common.actions.clear")}
+        </Button>
+      ) : null}
+    </div>
   )
 }
 
