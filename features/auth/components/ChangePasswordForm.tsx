@@ -17,7 +17,7 @@ import {
   Field,
   FieldError,
   FieldLabel,
-  Input,
+  PasswordInput,
   Spinner,
   toast,
   Typography
@@ -119,10 +119,9 @@ const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormP
                   ? t("settings.security.changePassword.currentPassword")
                   : t("auth.changePassword.currentPassword")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={
                   variant === "settings"
                     ? t("settings.security.changePassword.currentPasswordPlaceholder")
@@ -146,10 +145,9 @@ const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormP
                   ? t("settings.security.changePassword.newPassword")
                   : t("auth.changePassword.newPassword")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={
                   variant === "settings"
                     ? t("settings.security.changePassword.newPasswordPlaceholder")
@@ -174,10 +172,9 @@ const ChangePasswordForm = ({ onSuccess, variant = "auth" }: ChangePasswordFormP
                   ? t("settings.security.changePassword.confirmPassword")
                   : t("auth.changePassword.confirmPassword")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={
                   variant === "settings"
                     ? t("settings.security.changePassword.confirmPasswordPlaceholder")

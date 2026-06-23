@@ -21,7 +21,7 @@ import {
   Field,
   FieldError,
   FieldLabel,
-  Input,
+  PasswordInput,
   Spinner,
   Typography
 } from "@/components/ui"
@@ -108,10 +108,9 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>{t("auth.resetPassword.newPassword")}</FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={t("auth.resetPassword.newPasswordPlaceholder")}
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
@@ -130,10 +129,9 @@ const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
               <FieldLabel htmlFor={field.name}>
                 {t("auth.resetPassword.confirmPassword")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={t("auth.resetPassword.confirmPasswordPlaceholder")}
                 autoComplete="new-password"
                 aria-invalid={fieldState.invalid}

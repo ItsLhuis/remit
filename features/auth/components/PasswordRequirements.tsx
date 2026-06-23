@@ -4,9 +4,27 @@ import { useMemo } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Icon, Progress, Typography } from "@/components/ui"
+import { cn } from "@/lib/utils"
+
+import { Icon, Typography } from "@/components/ui"
 
 import { passwordRules } from "../schemas"
+
+const STRENGTH_SEGMENTS = 5
+
+function getStrengthLabelKey(score: number) {
+  if (score <= 0) return "auth.register.passwordStrengthEmpty"
+  if (score <= 2) return "auth.register.passwordStrengthWeak"
+  if (score === 3) return "auth.register.passwordStrengthMedium"
+  if (score === 4) return "auth.register.passwordStrengthStrong"
+  return "auth.register.passwordStrengthVeryStrong"
+}
+
+function getStrengthColor(score: number) {
+  if (score <= 2) return "bg-destructive"
+  if (score <= 4) return "bg-warning-border"
+  return "bg-success-border"
+}
 
 type PasswordRequirementsProps = {
   password: string
@@ -22,12 +40,12 @@ const PasswordRequirements = ({ password }: PasswordRequirementsProps) => {
         valid: password.length >= passwordRules.minLength
       },
       {
-        label: t("auth.register.passwordUppercase"),
-        valid: passwordRules.hasUppercase.test(password)
-      },
-      {
         label: t("auth.register.passwordLowercase"),
         valid: passwordRules.hasLowercase.test(password)
+      },
+      {
+        label: t("auth.register.passwordUppercase"),
+        valid: passwordRules.hasUppercase.test(password)
       },
       { label: t("auth.register.passwordNumber"), valid: passwordRules.hasNumber.test(password) },
       {
@@ -37,31 +55,39 @@ const PasswordRequirements = ({ password }: PasswordRequirementsProps) => {
     ],
     [password, t]
   )
-  const passedChecks = passwordChecks.filter((check) => check.valid).length
+
+  const score = passwordChecks.filter((check) => check.valid).length
 
   return (
-    <div className="dark:bg-input/30 mt-2 rounded-md border p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <Typography affects="tiny">{t("auth.register.passwordRequirements")}</Typography>
-        <Typography affects="tiny" className="text-foreground font-medium">
-          {passedChecks}/{passwordChecks.length}
-        </Typography>
+    <div className="mt-1 flex flex-col gap-2">
+      <div aria-hidden="true" className="flex items-center gap-1.5">
+        {Array.from({ length: STRENGTH_SEGMENTS }, (_, index) => (
+          <span
+            key={index}
+            className={cn(
+              "h-1 flex-1 rounded-full transition-colors",
+              index < score ? getStrengthColor(score) : "bg-muted"
+            )}
+          />
+        ))}
       </div>
-      <Progress
-        className="mb-3"
-        value={(passedChecks / passwordChecks.length) * 100}
-        aria-label={t("auth.register.passwordRequirementsProgress")}
-      />
-      <div className="space-y-1">
+      <Typography affects="small" aria-live="polite" className="text-foreground font-medium">
+        {t(getStrengthLabelKey(score))}
+      </Typography>
+      <div className="flex flex-col gap-1.5">
         {passwordChecks.map((check) => (
-          <div key={check.label} className="flex items-center gap-2 rounded-sm px-1 py-0.5">
+          <div key={check.label} className="flex items-center gap-2">
             <Icon
-              name={check.valid ? "CheckCircle2" : "Circle"}
-              className={check.valid ? "text-success-foreground" : "text-muted-foreground"}
+              name={check.valid ? "Check" : "X"}
+              aria-hidden="true"
+              className={cn(
+                "size-4 shrink-0",
+                check.valid ? "text-success-border" : "text-muted-foreground"
+              )}
             />
             <Typography
-              affects="tiny"
-              className={check.valid ? "text-foreground" : "text-muted-foreground"}
+              affects="small"
+              className={check.valid ? "text-success-foreground" : "text-muted-foreground"}
             >
               {check.label}
             </Typography>

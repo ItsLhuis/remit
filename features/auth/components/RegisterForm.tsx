@@ -19,6 +19,7 @@ import {
   FieldError,
   FieldLabel,
   Input,
+  PasswordInput,
   Spinner,
   StepProgress,
   Typography
@@ -124,11 +125,11 @@ const RegisterForm = () => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={t("auth.register.passwordPlaceholder")}
+                autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />
@@ -143,11 +144,11 @@ const RegisterForm = () => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>{t("auth.register.confirmPassword")}</FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={t("auth.register.confirmPasswordPlaceholder")}
+                autoComplete="new-password"
                 aria-invalid={fieldState.invalid}
                 disabled={isSubmitting}
               />

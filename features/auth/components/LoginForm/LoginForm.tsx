@@ -13,7 +13,16 @@ import { useTranslation } from "@/lib/i18n"
 
 import { authClient } from "@/lib/auth/client"
 
-import { Button, Field, FieldError, FieldLabel, Input, Spinner, Typography } from "@/components/ui"
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  PasswordInput,
+  Spinner,
+  Typography
+} from "@/components/ui"
 
 import { loginSchema, type LoginValues } from "../../schemas"
 
@@ -112,10 +121,9 @@ const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>{t("common.fields.password")}</FieldLabel>
-              <Input
+              <PasswordInput
                 {...field}
                 id={field.name}
-                type="password"
                 placeholder={t("auth.register.passwordPlaceholder")}
                 autoComplete="current-password"
                 aria-invalid={fieldState.invalid}
