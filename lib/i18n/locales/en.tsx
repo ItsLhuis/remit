@@ -26,7 +26,9 @@ export const english: Language = {
         search: "Search",
         retry: "Try again",
         previous: "Previous",
-        copyAllCodes: "Copy all codes"
+        copyAllCodes: "Copy all codes",
+        showPassword: "Show password",
+        hidePassword: "Hide password"
       },
       fields: {
         email: "Email",
@@ -37,7 +39,8 @@ export const english: Language = {
         optional: "Optional",
         required: "Required",
         selectCountry: "Select a country",
-        selectCurrency: "Select currency"
+        selectCurrency: "Select currency",
+        selectDate: "Pick a date"
       },
       status: {
         loading: "Loading...",
@@ -49,6 +52,9 @@ export const english: Language = {
         copied: "Copied!",
         yes: "Yes",
         no: "No"
+      },
+      chart: {
+        noData: "No data yet"
       },
       navigation: {
         account: "Account",
@@ -371,8 +377,12 @@ export const english: Language = {
         emailPlaceholder: "Your email",
         passwordPlaceholder: "Your password",
         confirmPasswordPlaceholder: "Repeat your password",
-        passwordRequirements: "Password strength requirements",
-        passwordRequirementsProgress: "Password requirements completion",
+        passwordStrengthLabel: "Password strength",
+        passwordStrengthEmpty: "Enter a password. Must contain:",
+        passwordStrengthWeak: "Weak password. Must contain:",
+        passwordStrengthMedium: "Medium password. Must contain:",
+        passwordStrengthStrong: "Strong password. Must contain:",
+        passwordStrengthVeryStrong: "Very strong password. Must contain:",
         passwordMinLength: "At least {count} characters",
         passwordUppercase: "1 uppercase letter",
         passwordLowercase: "1 lowercase letter",
@@ -484,6 +494,7 @@ export const english: Language = {
         last6Months: "Last 6 months",
         trendNewLabel: "New clients",
         trendTotalLabel: "Total clients",
+        trendEmpty: "No activity in 6 months",
         healthTitle: "Portfolio health",
         healthHint: "By billing activity"
       },
@@ -686,7 +697,8 @@ export const english: Language = {
         converted: "Converted",
         convertedHint: "turned into clients",
         trendTotalLabel: "Total leads",
-        trendNewLabel: "New leads"
+        trendNewLabel: "New leads",
+        trendEmpty: "No activity in 6 months"
       },
       filters: {
         title: "Filters",
@@ -845,7 +857,8 @@ export const english: Language = {
         completed: "Completed",
         completedHint: "delivered and closed",
         trendTotalLabel: "Total projects",
-        trendNewLabel: "New projects"
+        trendNewLabel: "New projects",
+        trendEmpty: "No activity in 6 months"
       },
       filters: {
         title: "Filters",
@@ -937,6 +950,118 @@ export const english: Language = {
           "Name must be {count, plural, one {# character} other {# characters}} or fewer.",
         endBeforeStart: "End date must be on or after the start date.",
         idInvalid: "Invalid project."
+      }
+    },
+    tasks: {
+      metadata: {
+        board: "Tasks"
+      },
+      board: {
+        title: "Tasks",
+        description: "Plan and track the work for this project.",
+        backToProject: "Back to project",
+        createButton: "New task",
+        count: "{count, plural, one {# task} other {# tasks}}"
+      },
+      view: {
+        label: "View",
+        kanban: "Board",
+        table: "Table"
+      },
+      status: {
+        backlog: "Backlog",
+        todo: "To do",
+        in_progress: "In progress",
+        done: "Done",
+        cancelled: "Cancelled"
+      },
+      priority: {
+        low: "Low",
+        normal: "Normal",
+        high: "High",
+        urgent: "Urgent"
+      },
+      card: {
+        actions: "Task actions",
+        changeStatus: "Change status",
+        moveUp: "Move up",
+        moveDown: "Move down",
+        edit: "Edit task",
+        delete: "Delete task",
+        dragHandle: "Reorder task",
+        dueLabel: "Due",
+        noDue: "No due date"
+      },
+      columns: {
+        empty: "No tasks"
+      },
+      table: {
+        titleColumn: "Title",
+        statusColumn: "Status",
+        priorityColumn: "Priority",
+        dueColumn: "Due",
+        rateColumn: "Hourly rate",
+        actions: "Actions"
+      },
+      fields: {
+        title: "Title",
+        description: "Description",
+        status: "Status",
+        priority: "Priority",
+        dueDate: "Due date",
+        hourlyRate: "Hourly rate"
+      },
+      placeholders: {
+        title: "Task title",
+        description: "Add more detail",
+        amount: "0.00"
+      },
+      form: {
+        createTitle: "New task",
+        createDescription: "Add a task to this project.",
+        editTitle: "Edit task",
+        editDescription: "Update the details of this task.",
+        saveCreate: "Create task",
+        saveEdit: "Save changes"
+      },
+      delete: {
+        title: "Delete task",
+        description: "This task will be removed from the project. You can restore it later.",
+        confirm: "Delete task",
+        deleted: "Task deleted"
+      },
+      empty: {
+        title: "No tasks yet",
+        description: "Create the first task to start planning this project."
+      },
+      actions: {
+        create: "New task",
+        edit: "Edit",
+        delete: "Delete"
+      },
+      notifications: {
+        created: "Task created",
+        updated: "Task updated",
+        statusChanged: "Status updated",
+        reordered: "Task moved"
+      },
+      validation: {
+        titleRequired: "Title is required.",
+        titleTooLong:
+          "Title must be {count, plural, one {# character} other {# characters}} or fewer.",
+        descriptionTooLong:
+          "Description must be {count, plural, one {# character} other {# characters}} or fewer.",
+        amountInvalid: "Enter a valid amount such as 1500 or 1500.00.",
+        dateInvalid: "Enter a valid date.",
+        idInvalid: "Invalid task.",
+        projectRequired: "Select a project.",
+        positionInvalid: "Invalid task position."
+      },
+      errors: {
+        notFound: "Task not found",
+        projectNotFound: "Project not found",
+        invalidTransition: "That status change is not allowed",
+        updateFailed: "Failed to update task"
       }
     },
     setup: {

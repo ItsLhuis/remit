@@ -28,6 +28,8 @@ export type Translations = {
       retry: string
       previous: string
       copyAllCodes: string
+      showPassword: string
+      hidePassword: string
     }
     fields: {
       email: string
@@ -39,6 +41,7 @@ export type Translations = {
       required: string
       selectCountry: string
       selectCurrency: string
+      selectDate: string
     }
     status: {
       loading: string
@@ -50,6 +53,9 @@ export type Translations = {
       copied: string
       yes: string
       no: string
+    }
+    chart: {
+      noData: string
     }
     navigation: {
       account: string
@@ -352,8 +358,12 @@ export type Translations = {
       emailPlaceholder: string
       passwordPlaceholder: string
       confirmPasswordPlaceholder: string
-      passwordRequirements: string
-      passwordRequirementsProgress: string
+      passwordStrengthLabel: string
+      passwordStrengthEmpty: string
+      passwordStrengthWeak: string
+      passwordStrengthMedium: string
+      passwordStrengthStrong: string
+      passwordStrengthVeryStrong: string
       passwordMinLength: string
       passwordUppercase: string
       passwordLowercase: string
@@ -465,6 +475,7 @@ export type Translations = {
       last6Months: string
       trendNewLabel: string
       trendTotalLabel: string
+      trendEmpty: string
       healthTitle: string
       healthHint: string
     }
@@ -661,6 +672,7 @@ export type Translations = {
       convertedHint: string
       trendTotalLabel: string
       trendNewLabel: string
+      trendEmpty: string
     }
     filters: {
       title: string
@@ -817,6 +829,7 @@ export type Translations = {
       completedHint: string
       trendTotalLabel: string
       trendNewLabel: string
+      trendEmpty: string
     }
     filters: {
       title: string
@@ -903,6 +916,116 @@ export type Translations = {
       nameTooLong: string
       endBeforeStart: string
       idInvalid: string
+    }
+  }
+  tasks: {
+    metadata: {
+      board: string
+    }
+    board: {
+      title: string
+      description: string
+      backToProject: string
+      createButton: string
+      count: string
+    }
+    view: {
+      label: string
+      kanban: string
+      table: string
+    }
+    status: {
+      backlog: string
+      todo: string
+      in_progress: string
+      done: string
+      cancelled: string
+    }
+    priority: {
+      low: string
+      normal: string
+      high: string
+      urgent: string
+    }
+    card: {
+      actions: string
+      changeStatus: string
+      moveUp: string
+      moveDown: string
+      edit: string
+      delete: string
+      dragHandle: string
+      dueLabel: string
+      noDue: string
+    }
+    columns: {
+      empty: string
+    }
+    table: {
+      titleColumn: string
+      statusColumn: string
+      priorityColumn: string
+      dueColumn: string
+      rateColumn: string
+      actions: string
+    }
+    fields: {
+      title: string
+      description: string
+      status: string
+      priority: string
+      dueDate: string
+      hourlyRate: string
+    }
+    placeholders: {
+      title: string
+      description: string
+      amount: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    empty: {
+      title: string
+      description: string
+    }
+    actions: {
+      create: string
+      edit: string
+      delete: string
+    }
+    notifications: {
+      created: string
+      updated: string
+      statusChanged: string
+      reordered: string
+    }
+    validation: {
+      titleRequired: string
+      titleTooLong: string
+      descriptionTooLong: string
+      amountInvalid: string
+      dateInvalid: string
+      idInvalid: string
+      projectRequired: string
+      positionInvalid: string
+    }
+    errors: {
+      notFound: string
+      projectNotFound: string
+      invalidTransition: string
+      updateFailed: string
     }
   }
   setup: {

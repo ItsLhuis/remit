@@ -90,4 +90,27 @@ export type EventMap = {
     from: string
     to: string
   }
+  "task.created": {
+    taskId: string
+    projectId: string
+    userId: string
+  }
+  "task.updated": {
+    taskId: string
+    projectId: string
+    userId: string
+    changedFields: string[]
+  }
+  "task.deleted": {
+    taskId: string
+    projectId: string
+    userId: string
+  }
+  "task.status_changed": {
+    taskId: string
+    projectId: string
+    userId: string
+    from: string
+    to: string
+  }
 }
