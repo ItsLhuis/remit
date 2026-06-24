@@ -67,7 +67,9 @@ const TaskKanban = ({
   const findColumn = (id: string): TaskStatus | null => {
     if (isTaskStatus(id)) return id
 
-    return TASK_STATUS_VALUES.find((status) => columns[status].some((task) => task.id === id)) ?? null
+    return (
+      TASK_STATUS_VALUES.find((status) => columns[status].some((task) => task.id === id)) ?? null
+    )
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -91,7 +93,10 @@ const TaskKanban = ({
 
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
 
-      setColumns((previous) => ({ ...previous, [from]: arrayMove(previous[from], oldIndex, newIndex) }))
+      setColumns((previous) => ({
+        ...previous,
+        [from]: arrayMove(previous[from], oldIndex, newIndex)
+      }))
 
       onMove(activeId, newIndex)
 

@@ -8,16 +8,6 @@ export {
   type TaskMutationResult
 } from "./mutations"
 
-export {
-  getTaskBoardData,
-  getTaskDefaults,
-  getTaskForEdit,
-  listTasksByProject
-} from "./queries"
+export { getTaskBoardData, getTaskDefaults, getTaskForEdit, listTasksByProject } from "./queries"
 
-export {
-  emitTaskCreated,
-  emitTaskDeleted,
-  emitTaskStatusChanged,
-  emitTaskUpdated
-} from "./events"
+export { emitTaskCreated, emitTaskDeleted, emitTaskStatusChanged, emitTaskUpdated } from "./events"

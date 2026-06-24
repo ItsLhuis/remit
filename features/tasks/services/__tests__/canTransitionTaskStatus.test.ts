@@ -5,9 +5,10 @@ import { canTransitionTaskStatus, getNextTaskStatuses } from "../canTransitionTa
 
 const distinctPairs: ReadonlyArray<[TaskStatus, TaskStatus]> = TASK_STATUS_VALUES.flatMap(
   (current) =>
-    TASK_STATUS_VALUES.filter((next) => next !== current).map(
-      (next): [TaskStatus, TaskStatus] => [current, next]
-    )
+    TASK_STATUS_VALUES.filter((next) => next !== current).map((next): [TaskStatus, TaskStatus] => [
+      current,
+      next
+    ])
 )
 
 describe("canTransitionTaskStatus", () => {

@@ -175,7 +175,11 @@ const TaskForm = (props: TaskFormProps) => {
   )
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex min-h-0 flex-1 flex-col">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      noValidate
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <ScrollArea className="min-h-0 flex-1">
         <FieldGroup className="grid gap-4 p-4">
           {renderTextField({

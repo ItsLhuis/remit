@@ -20,12 +20,7 @@ import { getIpAddress } from "@/lib/utils"
 import { database } from "@/database"
 import { projects, tasks } from "@/database/schema"
 
-import {
-  emitTaskCreated,
-  emitTaskDeleted,
-  emitTaskStatusChanged,
-  emitTaskUpdated
-} from "./events"
+import { emitTaskCreated, emitTaskDeleted, emitTaskStatusChanged, emitTaskUpdated } from "./events"
 import { getTaskForEdit } from "./queries"
 import {
   createTaskSchema,
@@ -138,8 +133,7 @@ export async function updateTask(input: unknown): Promise<TaskMutationResult> {
     if (!existing) throw new ExpectedTaskError(t("tasks.errors.notFound"))
 
     const writeValues = toTaskWriteValues(parsed.data)
-    const completedAt =
-      writeValues.status === "done" ? (existing.completedAt ?? new Date()) : null
+    const completedAt = writeValues.status === "done" ? (existing.completedAt ?? new Date()) : null
 
     const [updatedTask] = await database
       .update(tasks)
@@ -229,12 +223,7 @@ export async function updateTaskStatus(input: unknown): Promise<TaskMutationResu
 
     return await loadTaskResult(updatedTask.id)
   } catch (error) {
-    return handleTaskActionError(
-      error,
-      "updateTaskStatus",
-      context?.userId ?? null,
-      parsed.data.id
-    )
+    return handleTaskActionError(error, "updateTaskStatus", context?.userId ?? null, parsed.data.id)
   }
 }
 
@@ -336,9 +325,7 @@ async function getNextColumnPosition(
   const rows = await database
     .select({ position: tasks.position })
     .from(tasks)
-    .where(
-      and(eq(tasks.projectId, projectId), eq(tasks.status, status), isNull(tasks.deletedAt))
-    )
+    .where(and(eq(tasks.projectId, projectId), eq(tasks.status, status), isNull(tasks.deletedAt)))
 
   return getInitialTaskPosition(rows.map((row) => row.position))
 }
@@ -415,7 +402,10 @@ function toTaskWriteValues(values: CreateTaskValues | UpdateTaskValues): TaskWri
   }
 }
 
-function getChangedTaskFields(existing: typeof tasks.$inferSelect, next: TaskWriteValues): string[] {
+function getChangedTaskFields(
+  existing: typeof tasks.$inferSelect,
+  next: TaskWriteValues
+): string[] {
   return AUDIT_FIELDS.filter((field) => !isSameValue(existing[field], next[field]))
 }
 

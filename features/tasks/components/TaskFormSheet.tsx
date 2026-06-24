@@ -2,13 +2,7 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle
-} from "@/components/ui"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
 
 import { type TaskFormData } from "../types"
 
@@ -38,7 +32,9 @@ const TaskFormSheet = (props: TaskFormSheetProps) => {
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
       <SheetContent className="w-full gap-0 sm:max-w-xl">
         <SheetHeader className="border-border border-b">
-          <SheetTitle>{isEdit ? t("tasks.form.editTitle") : t("tasks.form.createTitle")}</SheetTitle>
+          <SheetTitle>
+            {isEdit ? t("tasks.form.editTitle") : t("tasks.form.createTitle")}
+          </SheetTitle>
           <SheetDescription>
             {isEdit ? t("tasks.form.editDescription") : t("tasks.form.createDescription")}
           </SheetDescription>

@@ -25,9 +25,4 @@ export {
   type UpdateTaskValues
 } from "./schemas"
 
-export {
-  type TaskBoardData,
-  type TaskDefaults,
-  type TaskFormData,
-  type TaskItem
-} from "./types"
+export { type TaskBoardData, type TaskDefaults, type TaskFormData, type TaskItem } from "./types"

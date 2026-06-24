@@ -140,7 +140,11 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
         <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Icon name="ListTodo" className="text-muted-foreground size-6 shrink-0" aria-hidden="true" />
+              <Icon
+                name="ListTodo"
+                className="text-muted-foreground size-6 shrink-0"
+                aria-hidden="true"
+              />
               <Typography variant="h2">{data.projectName}</Typography>
             </div>
             <Typography variant="p" affects={["muted", "removePMargin"]}>

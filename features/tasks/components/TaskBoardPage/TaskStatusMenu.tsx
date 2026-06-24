@@ -49,7 +49,12 @@ const TaskStatusMenu = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <IconButton variant="ghost" size="icon-sm" label={t("tasks.card.actions")} disabled={disabled}>
+        <IconButton
+          variant="ghost"
+          size="icon-sm"
+          label={t("tasks.card.actions")}
+          disabled={disabled}
+        >
           <Icon name="EllipsisVertical" />
         </IconButton>
       </DropdownMenuTrigger>
@@ -65,9 +70,7 @@ const TaskStatusMenu = ({
             {t(`tasks.status.${next}`)}
           </DropdownMenuItem>
         ))}
-        {showMove ? (
-          <DropdownMenuSeparator />
-        ) : null}
+        {showMove ? <DropdownMenuSeparator /> : null}
         {onMoveUp ? (
           <DropdownMenuItem disabled={!canMoveUp} onSelect={() => onMoveUp()}>
             <Icon name="ArrowUp" aria-hidden="true" />

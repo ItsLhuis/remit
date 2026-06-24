@@ -21,12 +21,7 @@ type DeleteTaskDialogProps = {
   onConfirm: () => void
 }
 
-const DeleteTaskDialog = ({
-  open,
-  isDeleting,
-  onOpenChange,
-  onConfirm
-}: DeleteTaskDialogProps) => {
+const DeleteTaskDialog = ({ open, isDeleting, onOpenChange, onConfirm }: DeleteTaskDialogProps) => {
   const { t } = useTranslation()
 
   return (
