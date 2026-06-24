@@ -4,6 +4,9 @@ import { createParser } from "nuqs"
 
 import { z } from "zod"
 
+export const DEFAULT_PAGE_SIZE = 20
+export const MAX_PAGE_SIZE = 100
+
 const sortingItemSchema = z.object({
   id: z.string(),
   desc: z.boolean()

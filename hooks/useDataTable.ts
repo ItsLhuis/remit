@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  type ReactNode,
-  type TransitionStartFunction,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react"
+import { type ReactNode, type TransitionStartFunction, useEffect, useMemo, useState } from "react"
 
 import {
   type ColumnDef,
@@ -30,7 +23,7 @@ import {
 
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs"
 
-import { getSortingStateParser } from "@/lib/utils"
+import { DEFAULT_PAGE_SIZE, getSortingStateParser } from "@/lib/utils"
 
 import { useLocalStorage } from "./useLocalStorage"
 
@@ -57,7 +50,6 @@ type DataTableFilterOption = {
   icon?: string
 }
 
-const DEFAULT_PAGE_SIZE = 10
 const ARRAY_SEPARATOR = ","
 
 const filterValueParser = parseAsArrayOf(parseAsString, ARRAY_SEPARATOR)
@@ -79,7 +71,6 @@ export type UseDataTableOptions<TData> = Omit<
   clearOnDefault?: boolean
   startTransition?: TransitionStartFunction
   columnVisibilityStorageKey?: string
-  pageSizeStorageKey?: string
   initialState?: Omit<Partial<TableState>, "sorting"> & { sorting?: SortingState }
 }
 
@@ -91,10 +82,9 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     pageCount,
     initialState,
     shallow = true,
-    clearOnDefault = false,
+    clearOnDefault = true,
     startTransition,
     columnVisibilityStorageKey,
-    pageSizeStorageKey,
     ...tableOptions
   } = options
 
@@ -110,18 +100,13 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     [columns]
   )
 
-  const [storedPageSize, setStoredPageSize] = useLocalStorage<number>(
-    pageSizeStorageKey ?? null,
-    initialState?.pagination?.pageSize ?? DEFAULT_PAGE_SIZE
-  )
-
   const [page, setPage] = useQueryState(
     "page",
     parseAsInteger.withOptions(queryOptions).withDefault(1)
   )
   const [perPage, setPerPage] = useQueryState(
     "perPage",
-    parseAsInteger.withOptions(queryOptions).withDefault(storedPageSize)
+    parseAsInteger.withOptions(queryOptions).withDefault(DEFAULT_PAGE_SIZE)
   )
   const [sorting, setSorting] = useQueryState(
     "sort",
@@ -167,36 +152,30 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     initialState?.rowSelection ?? {}
   )
 
-  const syncedRef = useRef(false)
-
+  // Server-side pagination never clamps the page on its own, so a page that points past the end of
+  // the result set (after deletions or a newly applied filter) would render an empty table. Snap the
+  // page back into range whenever the row count or page size shrinks the available pages.
   useEffect(() => {
-    if (syncedRef.current || !pageSizeStorageKey) return
+    if (rowCount === undefined) return
 
-    const urlParams = new URLSearchParams(window.location.search)
+    const lastPage = Math.max(1, Math.ceil(rowCount / perPage))
 
-    if (urlParams.has("perPage")) {
-      syncedRef.current = true
-      return
-    }
-
-    if (storedPageSize !== DEFAULT_PAGE_SIZE) {
-      void setPerPage(storedPageSize)
-      syncedRef.current = true
-    }
-  }, [storedPageSize, pageSizeStorageKey]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (page > lastPage) void setPage(lastPage)
+  }, [rowCount, perPage, page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPaginationChange = (updater: Updater<PaginationState>) => {
     const next = typeof updater === "function" ? updater(pagination) : updater
 
-    void setPage(next.pageIndex + 1)
-    void setPerPage(next.pageSize)
+    const pageSizeChanged = next.pageSize !== pagination.pageSize
 
-    setStoredPageSize(next.pageSize)
+    void setPage(pageSizeChanged ? 1 : next.pageIndex + 1)
+    void setPerPage(next.pageSize)
   }
 
   const onSortingChange = (updater: Updater<SortingState>) => {
     const next = typeof updater === "function" ? updater(sorting) : updater
 
+    void setPage(1)
     void setSorting(next)
   }
 
