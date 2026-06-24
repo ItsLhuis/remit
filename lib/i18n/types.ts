@@ -928,6 +928,10 @@ export type Translations = {
       backToProject: string
       createButton: string
       count: string
+      searchPlaceholder: string
+      searchLabel: string
+      priorityFilter: string
+      clearFilters: string
     }
     view: {
       label: string
@@ -960,6 +964,20 @@ export type Translations = {
     }
     columns: {
       empty: string
+      dropHint: string
+    }
+    quickAdd: {
+      button: string
+      placeholder: string
+      submit: string
+      cancel: string
+    }
+    dnd: {
+      instructions: string
+      onDragStart: string
+      onDragOver: string
+      onDragEnd: string
+      onDragCancel: string
     }
     table: {
       titleColumn: string

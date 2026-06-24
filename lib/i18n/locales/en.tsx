@@ -961,7 +961,11 @@ export const english: Language = {
         description: "Plan and track the work for this project.",
         backToProject: "Back to project",
         createButton: "New task",
-        count: "{count, plural, one {# task} other {# tasks}}"
+        count: "{count, plural, one {# task} other {# tasks}}",
+        searchPlaceholder: "Search tasks",
+        searchLabel: "Search tasks",
+        priorityFilter: "Priority",
+        clearFilters: "Clear filters"
       },
       view: {
         label: "View",
@@ -993,7 +997,22 @@ export const english: Language = {
         noDue: "No due date"
       },
       columns: {
-        empty: "No tasks"
+        empty: "No tasks",
+        dropHint: "Drop tasks here"
+      },
+      quickAdd: {
+        button: "Add task",
+        placeholder: "Task title",
+        submit: "Add task",
+        cancel: "Cancel"
+      },
+      dnd: {
+        instructions:
+          "To pick up a task, press space or enter. While dragging, use the arrow keys to move it between columns and positions. Press space or enter again to drop, or escape to cancel.",
+        onDragStart: "Picked up task {title}.",
+        onDragOver: "Task {title} is over the {column} column.",
+        onDragEnd: "Task {title} was dropped in the {column} column.",
+        onDragCancel: "Dragging cancelled. Task {title} returned to its original position."
       },
       table: {
         titleColumn: "Title",
