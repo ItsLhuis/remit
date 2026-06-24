@@ -92,8 +92,8 @@ const LeadsListPage = ({ data }: LeadsListPageProps) => {
     shallow: false,
     startTransition,
     columnVisibilityStorageKey: "leads:column-visibility",
-    pageSizeStorageKey: "leads:page-size",
-    enableRowSelection: (row) => !row.original.deletedAt
+    enableRowSelection: (row) => !row.original.deletedAt,
+    initialState: { sorting: [{ id: "created", desc: true }] }
   })
 
   const stageColumn = table.getColumn("stage")

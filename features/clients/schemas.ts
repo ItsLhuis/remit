@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-import { isSafeHttpUrl } from "@/lib/utils"
+import { DEFAULT_PAGE_SIZE, isSafeHttpUrl, MAX_PAGE_SIZE } from "@/lib/utils"
 
 export const CLIENT_NAME_MAX_LENGTH = 160
 export const CLIENT_EMAIL_MAX_LENGTH = 320
@@ -115,7 +115,7 @@ export const clientListQuerySchema = z.object({
   joinedFrom: z.coerce.date().nullable().catch(null),
   joinedTo: z.coerce.date().nullable().catch(null),
   page: z.number().int().positive().catch(1),
-  perPage: z.number().int().positive().max(100).catch(10),
+  perPage: z.number().int().positive().max(MAX_PAGE_SIZE).catch(DEFAULT_PAGE_SIZE),
   sort: z.array(clientSortItemSchema).catch([{ id: "name", desc: false }])
 })
 
@@ -138,7 +138,7 @@ export function parseClientListQuery(input: unknown): ClientListQuery {
     joinedFrom: readDateAt(joined, 0),
     joinedTo: readDateAt(joined, 1),
     page: readIntParam(input, "page", 1),
-    perPage: readIntParam(input, "perPage", 10),
+    perPage: readIntParam(input, "perPage", DEFAULT_PAGE_SIZE),
     sort: readSortParam(input)
   })
 }

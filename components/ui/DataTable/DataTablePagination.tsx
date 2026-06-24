@@ -6,7 +6,7 @@ import { type Table } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
+import { cn, MAX_PAGE_SIZE } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/Select"
 import { Typography } from "@/components/ui/Typography"
 
+const PAGE_SIZE_OPTIONS = Array.from({ length: Math.ceil(MAX_PAGE_SIZE / 10) }, (_, index) =>
+  Math.min((index + 1) * 10, MAX_PAGE_SIZE)
+)
+
 type DataTablePaginationProps<TData> = {
   table: Table<TData>
   pageSizeOptions?: number[]
@@ -27,7 +31,7 @@ type DataTablePaginationProps<TData> = {
 
 const DataTablePagination = <TData,>({
   table,
-  pageSizeOptions = [10, 20, 30, 40, 50],
+  pageSizeOptions = PAGE_SIZE_OPTIONS,
   className,
   ...props
 }: DataTablePaginationProps<TData>) => {

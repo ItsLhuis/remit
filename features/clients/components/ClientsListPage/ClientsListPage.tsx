@@ -96,8 +96,8 @@ const ClientsListPage = ({ data }: ClientsListPageProps) => {
     shallow: false,
     startTransition,
     columnVisibilityStorageKey: "clients:column-visibility",
-    pageSizeStorageKey: "clients:page-size",
-    enableRowSelection: (row) => !row.original.deletedAt
+    enableRowSelection: (row) => !row.original.deletedAt,
+    initialState: { sorting: [{ id: "name", desc: false }] }
   })
 
   const healthColumn = table.getColumn("health")

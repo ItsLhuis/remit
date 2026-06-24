@@ -2,6 +2,8 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/lib/utils"
+
 export const LEAD_TEXT_MAX_LENGTH = 255
 export const LEAD_EMAIL_MAX_LENGTH = 320
 export const LEAD_NOTES_MAX_LENGTH = 5000
@@ -169,7 +171,7 @@ export const leadListQuerySchema = z.object({
   status: leadStatusFilterSchema.default("active"),
   stages: z.array(z.enum(LEAD_STATUS_VALUES)).default([]),
   page: z.number().int().positive().catch(1),
-  perPage: z.number().int().positive().max(100).catch(10),
+  perPage: z.number().int().positive().max(MAX_PAGE_SIZE).catch(DEFAULT_PAGE_SIZE),
   sort: z.array(leadSortItemSchema).catch([{ id: "created", desc: true }])
 })
 
@@ -183,7 +185,7 @@ export function parseLeadListQuery(input: unknown): LeadListQuery {
       (LEAD_STATUS_VALUES as readonly string[]).includes(value)
     ),
     page: readIntParam(input, "page", 1),
-    perPage: readIntParam(input, "perPage", 10),
+    perPage: readIntParam(input, "perPage", DEFAULT_PAGE_SIZE),
     sort: readSortParam(input)
   })
 }

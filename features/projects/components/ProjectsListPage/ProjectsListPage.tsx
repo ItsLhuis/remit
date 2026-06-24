@@ -97,8 +97,8 @@ const ProjectsListPage = ({ data, clients }: ProjectsListPageProps) => {
     shallow: false,
     startTransition,
     columnVisibilityStorageKey: "projects:column-visibility",
-    pageSizeStorageKey: "projects:page-size",
-    enableRowSelection: (row) => !row.original.deletedAt
+    enableRowSelection: (row) => !row.original.deletedAt,
+    initialState: { sorting: [{ id: "created", desc: true }] }
   })
 
   const stageColumn = table.getColumn("stage")

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-import { isValidAmount, parseAmountToCents } from "@/lib/utils"
+import { DEFAULT_PAGE_SIZE, isValidAmount, MAX_PAGE_SIZE, parseAmountToCents } from "@/lib/utils"
 
 export const PROJECT_NAME_MAX_LENGTH = 200
 export const PROJECT_DESCRIPTION_MAX_LENGTH = 5000
@@ -112,7 +112,7 @@ export const projectListQuerySchema = z.object({
   status: projectStatusFilterSchema.default("active"),
   stages: z.array(z.enum(PROJECT_STATUS_VALUES)).default([]),
   page: z.number().int().positive().catch(1),
-  perPage: z.number().int().positive().max(100).catch(10),
+  perPage: z.number().int().positive().max(MAX_PAGE_SIZE).catch(DEFAULT_PAGE_SIZE),
   sort: z.array(projectSortItemSchema).catch([{ id: "created", desc: true }])
 })
 
@@ -126,7 +126,7 @@ export function parseProjectListQuery(input: unknown): ProjectListQuery {
       (PROJECT_STATUS_VALUES as readonly string[]).includes(value)
     ),
     page: readIntParam(input, "page", 1),
-    perPage: readIntParam(input, "perPage", 10),
+    perPage: readIntParam(input, "perPage", DEFAULT_PAGE_SIZE),
     sort: readSortParam(input)
   })
 }
