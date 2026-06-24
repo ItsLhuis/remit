@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useDeferredValue, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -12,12 +12,6 @@ import { formatCentsForInput } from "@/lib/utils"
 
 import {
   Button,
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
   Icon,
   ScrollArea,
   SidebarTrigger,
@@ -28,12 +22,14 @@ import {
 } from "@/components/ui"
 
 import { useTaskBoardState } from "../../hooks"
-import { reorderTask, softDeleteTask, updateTaskStatus } from "../../mutations"
+import { createTask, reorderTask, softDeleteTask, updateTaskStatus } from "../../mutations"
 import { TASK_VIEW_VALUES, type TaskStatus } from "../../schemas"
 import { type TaskBoardData, type TaskFormData, type TaskItem } from "../../types"
 import { DeleteTaskDialog } from "../DeleteTaskDialog"
 import { TaskFormSheet } from "../TaskFormSheet"
 
+import { TaskBoardEmpty } from "./TaskBoardEmpty"
+import { TaskBoardFilters } from "./TaskBoardFilters"
 import { TaskKanban } from "./TaskKanban"
 import { TaskTable } from "./TaskTable"
 
@@ -53,6 +49,13 @@ function isTaskView(value: string): value is (typeof TASK_VIEW_VALUES)[number] {
   return (TASK_VIEW_VALUES as readonly string[]).includes(value)
 }
 
+type TaskMoveInput = {
+  id: string
+  fromStatus: TaskStatus
+  toStatus: TaskStatus
+  toIndex: number
+}
+
 type TaskBoardPageProps = {
   data: TaskBoardData
 }
@@ -62,45 +65,93 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
 
   const router = useRouter()
 
-  const { view, setView } = useTaskBoardState()
+  const {
+    view,
+    setView,
+    search,
+    setSearch,
+    priorities,
+    togglePriority,
+    setPriorities,
+    clearFilters,
+    hasActiveFilters
+  } = useTaskBoardState()
+
+  const deferredSearch = useDeferredValue(search)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editTask, setEditTask] = useState<TaskItem | null>(null)
   const [deleteTask, setDeleteTask] = useState<TaskItem | null>(null)
 
-  const [, startMutating] = useTransition()
   const [isDeleting, startDeleting] = useTransition()
 
   const locale = data.defaults.defaultLocale
 
+  const persistMove = async ({
+    id,
+    fromStatus,
+    toStatus,
+    toIndex
+  }: TaskMoveInput): Promise<boolean> => {
+    if (fromStatus !== toStatus) {
+      const statusResult = await updateTaskStatus({ id, status: toStatus })
+
+      if ("error" in statusResult) {
+        toast.error(statusResult.error)
+
+        router.refresh()
+
+        return false
+      }
+    }
+
+    const reorderResult = await reorderTask({ id, toIndex })
+
+    if ("error" in reorderResult) {
+      toast.error(reorderResult.error)
+
+      router.refresh()
+
+      return false
+    }
+
+    router.refresh()
+
+    return true
+  }
+
+  const persistCreate = async (status: TaskStatus, title: string): Promise<boolean> => {
+    const result = await createTask({
+      projectId: data.projectId,
+      title,
+      description: "",
+      status,
+      priority: "normal",
+      dueDate: "",
+      hourlyRate: ""
+    })
+
+    if ("error" in result) {
+      toast.error(result.error)
+
+      return false
+    }
+
+    router.refresh()
+
+    return true
+  }
+
   const handleChangeStatus = (taskId: string, status: TaskStatus) => {
-    startMutating(async () => {
+    void (async () => {
       const result = await updateTaskStatus({ id: taskId, status })
 
       if ("error" in result) {
         toast.error(result.error)
-
-        router.refresh()
-
-        return
-      }
-
-      toast.success(t("tasks.notifications.statusChanged"))
-
-      router.refresh()
-    })
-  }
-
-  const handleMove = (taskId: string, toIndex: number) => {
-    startMutating(async () => {
-      const result = await reorderTask({ id: taskId, toIndex })
-
-      if ("error" in result) {
-        toast.error(result.error)
       }
 
       router.refresh()
-    })
+    })()
   }
 
   const handleConfirmDelete = () => {
@@ -126,8 +177,8 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
   }
 
   return (
-    <ScrollArea className="size-full">
-      <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-col gap-4 p-4 md:p-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:hidden" />
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
@@ -177,38 +228,43 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
             </Button>
           </div>
         </header>
-        {data.tasks.length === 0 ? (
-          <Empty className="border py-12">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Icon name="ListTodo" />
-              </EmptyMedia>
-              <EmptyTitle>{t("tasks.empty.title")}</EmptyTitle>
-              <EmptyDescription>{t("tasks.empty.description")}</EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Button onClick={() => setCreateOpen(true)}>
-                <Icon name="Plus" aria-hidden="true" />
-                {t("tasks.board.createButton")}
-              </Button>
-            </EmptyContent>
-          </Empty>
-        ) : view === "table" ? (
-          <TaskTable
-            tasks={data.tasks}
-            locale={locale}
-            onChangeStatus={handleChangeStatus}
-            onEdit={setEditTask}
-            onDelete={setDeleteTask}
+        {view === "kanban" && data.tasks.length > 0 ? (
+          <TaskBoardFilters
+            search={search}
+            onSearchChange={setSearch}
+            priorities={priorities}
+            onTogglePriority={togglePriority}
+            onClearPriorities={() => setPriorities([])}
+            hasActiveFilters={hasActiveFilters}
+            onClearAll={clearFilters}
           />
+        ) : null}
+      </div>
+      <div className="min-h-0 flex-1 px-4 pb-4 md:px-6 md:pb-6">
+        {data.tasks.length === 0 ? (
+          <TaskBoardEmpty onCreate={() => setCreateOpen(true)} />
+        ) : view === "table" ? (
+          <ScrollArea className="h-full">
+            <TaskTable
+              tasks={data.tasks}
+              locale={locale}
+              onChangeStatus={handleChangeStatus}
+              onEdit={setEditTask}
+              onDelete={setDeleteTask}
+            />
+          </ScrollArea>
         ) : (
           <TaskKanban
             tasks={data.tasks}
             locale={locale}
-            onChangeStatus={handleChangeStatus}
-            onMove={handleMove}
+            projectId={data.projectId}
+            currency={data.currency}
+            search={deferredSearch}
+            priorities={priorities}
             onEdit={setEditTask}
             onDelete={setDeleteTask}
+            onPersistMove={persistMove}
+            onPersistCreate={persistCreate}
           />
         )}
       </div>
@@ -240,7 +296,7 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
         }}
         onConfirm={handleConfirmDelete}
       />
-    </ScrollArea>
+    </div>
   )
 }
 
