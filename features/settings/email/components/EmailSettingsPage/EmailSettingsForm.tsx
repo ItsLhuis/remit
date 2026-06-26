@@ -45,6 +45,11 @@ import {
   type TestEmailSettingsValues
 } from "../../schemas"
 
+const TEST_SEND_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short"
+})
+
 type EmailSettingsFormProps = {
   initialValues: EmailSettingsValues
   defaultTestRecipient: string
@@ -430,10 +435,7 @@ const EmailSettingsForm = ({
           {emailTestSendAt ? (
             <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
               {t("settings.email.lastTestSend", {
-                date: new Intl.DateTimeFormat(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short"
-                }).format(new Date(emailTestSendAt))
+                date: TEST_SEND_DATE_FORMAT.format(new Date(emailTestSendAt))
               })}
             </Typography>
           ) : (

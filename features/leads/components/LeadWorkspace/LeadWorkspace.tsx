@@ -47,6 +47,8 @@ import { DetailGroup } from "./DetailGroup"
 import { LeadConversionPanel } from "./LeadConversionPanel"
 import { LeadStatusSelector } from "./LeadStatusSelector"
 
+const EMPTY_ACTIVITY: ActivityTimelineItem[] = []
+
 type LeadWorkspaceProps = {
   lead: LeadDetail
   formData: LeadFormData
@@ -66,7 +68,7 @@ const LeadWorkspace = ({ lead, formData, locale, defaultCurrency }: LeadWorkspac
 
   const isConverted = lead.convertedAt !== null
 
-  const activity: ActivityTimelineItem[] = []
+  const activity = EMPTY_ACTIVITY
 
   const onDelete = () => {
     if (isDeleting) return

@@ -73,7 +73,7 @@ const emailSettingsReturnColumns = {
   emailFromName: settings.emailFromName,
   emailFromAddress: settings.emailFromAddress,
   emailTestSendAt: settings.emailTestSendAt
-}
+} as const
 
 const emailDeliveryErrorCodes = [
   "not_configured",

@@ -48,7 +48,7 @@ type TaxRatesSettingsFormProps = {
 }
 
 function sortTaxRates(taxRates: TaxRateListItem[]): TaxRateListItem[] {
-  return [...taxRates].sort((first, second) => {
+  return taxRates.toSorted((first, second) => {
     if (first.isDefault !== second.isDefault) return first.isDefault ? -1 : 1
 
     return first.name.localeCompare(second.name)

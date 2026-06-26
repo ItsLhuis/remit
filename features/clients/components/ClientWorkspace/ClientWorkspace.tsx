@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
+import dynamic from "next/dynamic"
 import Link from "next/link"
 
 import { useTranslation } from "@/lib/i18n"
@@ -56,10 +57,22 @@ import { ClientFormSheet } from "../ClientFormSheet"
 import { ClientHealthBadge } from "../ClientHealthBadge"
 import { DeleteClientDialog } from "../DeleteClientDialog"
 
-import { BilledAreaChart, InvoiceBarChart, ProjectBarChart, RecurringBarChart } from "./charts"
 import { ContactRow } from "./ContactRow"
 import { DetailGroup } from "./DetailGroup"
 import { TeachingEmpty } from "./TeachingEmpty"
+
+const BilledAreaChart = dynamic(() => import("./charts").then((m) => m.BilledAreaChart), {
+  ssr: false
+})
+const InvoiceBarChart = dynamic(() => import("./charts").then((m) => m.InvoiceBarChart), {
+  ssr: false
+})
+const ProjectBarChart = dynamic(() => import("./charts").then((m) => m.ProjectBarChart), {
+  ssr: false
+})
+const RecurringBarChart = dynamic(() => import("./charts").then((m) => m.RecurringBarChart), {
+  ssr: false
+})
 
 type ClientWorkspaceProps = {
   client: ClientDetail

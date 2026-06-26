@@ -161,7 +161,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     const lastPage = Math.max(1, Math.ceil(rowCount / perPage))
 
     if (page > lastPage) void setPage(lastPage)
-  }, [rowCount, perPage, page]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rowCount, perPage, page, setPage])
 
   const onPaginationChange = (updater: Updater<PaginationState>) => {
     const next = typeof updater === "function" ? updater(pagination) : updater
@@ -184,8 +184,10 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
 
     const updates: Record<string, string[] | null> = {}
 
+    const filtersById = new Map(next.map((filter) => [filter.id, filter]))
+
     for (const id of Object.keys(filterParsers)) {
-      const match = next.find((filter) => filter.id === id)
+      const match = filtersById.get(id)
 
       updates[id] = match ? (match.value as string[]) : null
     }

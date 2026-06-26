@@ -79,7 +79,7 @@ const clientReturnColumns = {
   deletedAt: clients.deletedAt,
   createdAt: clients.createdAt,
   updatedAt: clients.updatedAt
-}
+} as const
 
 const auditFields = [
   "name",

@@ -33,6 +33,11 @@ import {
   type PaymentSettingsValues
 } from "../../schemas"
 
+const STRIPE_TEST_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short"
+})
+
 type PaymentSettingsFormProps = {
   initialValues: PaymentSettingsValues
   initialStripeTestConnectionAt: string | null
@@ -343,10 +348,7 @@ const PaymentSettingsForm = ({
             {stripeTestConnectionAt ? (
               <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
                 {t("settings.payment.lastStripeTest", {
-                  date: new Intl.DateTimeFormat(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short"
-                  }).format(new Date(stripeTestConnectionAt))
+                  date: STRIPE_TEST_DATE_FORMAT.format(new Date(stripeTestConnectionAt))
                 })}
               </Typography>
             ) : (

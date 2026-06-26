@@ -68,7 +68,7 @@ const paymentSettingsReturnColumns = {
   stripeSecretKey: settings.stripeSecretKey,
   stripeWebhookSecret: settings.stripeWebhookSecret,
   stripeTestConnectionAt: settings.stripeTestConnectionAt
-}
+} as const
 
 export async function savePaymentSettings(input: unknown): Promise<SavePaymentSettingsResult> {
   const parsed = paymentSettingsSchema.safeParse(input)

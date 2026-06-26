@@ -52,7 +52,7 @@ const taxRateReturnColumns = {
   name: taxRates.name,
   percentage: taxRates.percentage,
   isDefault: taxRates.isDefault
-}
+} as const
 
 export async function createTaxRate(input: unknown): Promise<TaxRateWriteResult> {
   const parsed = createTaxRateSchema.safeParse(input)

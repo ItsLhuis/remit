@@ -146,6 +146,7 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
+            aria-label={t("settings.business.uploadLogo")}
             onChange={handleLogoChange}
           />
           <Button

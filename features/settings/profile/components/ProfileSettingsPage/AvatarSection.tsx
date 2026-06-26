@@ -145,6 +145,7 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
+            aria-label={t("settings.profile.uploadPhoto")}
             onChange={handleFileChange}
           />
           <Button

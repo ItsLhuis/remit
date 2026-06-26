@@ -13,9 +13,10 @@ import { AvatarSection } from "./AvatarSection"
 import { LogoutSection } from "./LogoutSection"
 
 const ProfileSettingsPage = async () => {
-  const session = await requireSession(undefined, { disableCookieCache: true })
-
-  const emailConfigured = await getProfileEmailConfigured()
+  const [session, emailConfigured] = await Promise.all([
+    requireSession(undefined, { disableCookieCache: true }),
+    getProfileEmailConfigured()
+  ])
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">

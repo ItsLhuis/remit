@@ -57,7 +57,7 @@ const invoicingSettingsReturnColumns = {
   paymentTermsDays: settings.paymentTermsDays,
   defaultNotesInvoice: settings.defaultNotesInvoice,
   defaultInvoiceFooter: settings.defaultInvoiceFooter
-}
+} as const
 
 export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoicingSettingsResult> {
   const parsed = invoicingSettingsSchema.safeParse(input)

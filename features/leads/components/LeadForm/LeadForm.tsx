@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useMemo, useState, useTransition } from "react"
+import { Fragment, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -74,10 +74,7 @@ const LeadForm = (props: LeadFormProps) => {
   const [status, setStatus] = useState<LeadStatus>("new")
   const [isSaving, startSaving] = useTransition()
 
-  const defaultValues = useMemo<LeadFormValues>(
-    () => (props.mode === "edit" ? props.lead : EMPTY_LEAD_FORM),
-    [props]
-  )
+  const defaultValues: LeadFormValues = props.mode === "edit" ? props.lead : EMPTY_LEAD_FORM
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),

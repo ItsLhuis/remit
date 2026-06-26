@@ -20,6 +20,10 @@ import { uploads } from "@/database/schema"
 
 import { changeEmailSchema, confirmAvatarUploadSchema } from "./schemas"
 
+// auth is enforced by auth.api.changeEmail() below, which requires an authenticated Better Auth
+// session and throws UNAUTHORIZED otherwise. The gate is a member-expression API call, not a named
+// function, so serverAuthFunctionNames cannot match it; single instance, no config class.
+// react-doctor-disable-next-line server-auth-actions
 export async function changeEmailAddress(
   input: unknown
 ): Promise<{ data: { pendingVerification: true } } | { error: string }> {

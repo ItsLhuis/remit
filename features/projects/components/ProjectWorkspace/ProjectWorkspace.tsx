@@ -44,6 +44,8 @@ import { DetailGroup } from "./DetailGroup"
 import { DetailRow } from "./DetailRow"
 import { ProjectStatusSelector } from "./ProjectStatusSelector"
 
+const EMPTY_ACTIVITY: ActivityTimelineItem[] = []
+
 type ProjectWorkspaceProps = {
   project: ProjectDetail
   formData: ProjectFormData
@@ -71,7 +73,7 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
   const startDateText = project.startDate ? formatDay(project.startDate, locale) : ""
   const endDateText = project.endDate ? formatDay(project.endDate, locale) : ""
 
-  const activity: ActivityTimelineItem[] = []
+  const activity = EMPTY_ACTIVITY
 
   const onDelete = () => {
     if (isDeleting) return

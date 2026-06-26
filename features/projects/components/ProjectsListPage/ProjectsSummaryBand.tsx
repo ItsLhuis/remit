@@ -1,5 +1,7 @@
 "use client"
 
+import dynamic from "next/dynamic"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { formatCompactNumber } from "@/lib/utils"
@@ -8,12 +10,18 @@ import { StatCard, StatValue } from "@/components/ui"
 
 import { type ProjectsSummary } from "../../services"
 
-import {
-  CompletionRateDonut,
-  GrowthAreaChart,
-  NewProjectsBarChart,
-  StatusBreakdownDonut
-} from "./charts"
+const CompletionRateDonut = dynamic(() => import("./charts").then((m) => m.CompletionRateDonut), {
+  ssr: false
+})
+const GrowthAreaChart = dynamic(() => import("./charts").then((m) => m.GrowthAreaChart), {
+  ssr: false
+})
+const NewProjectsBarChart = dynamic(() => import("./charts").then((m) => m.NewProjectsBarChart), {
+  ssr: false
+})
+const StatusBreakdownDonut = dynamic(() => import("./charts").then((m) => m.StatusBreakdownDonut), {
+  ssr: false
+})
 
 type ProjectsSummaryBandProps = {
   summary: ProjectsSummary
