@@ -1,8 +1,7 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { boolean, check, numeric, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 
 import { softDelete, timestamps } from "./helpers"
-import { lineItems } from "./lineItems"
 
 export const taxRates = pgTable(
   "tax_rates",
@@ -21,7 +20,3 @@ export const taxRates = pgTable(
     check("chk_tax_rates_percentage", sql`${table.percentage} >= 0 AND ${table.percentage} <= 100`)
   ]
 )
-
-export const taxRatesRelations = relations(taxRates, ({ many }) => ({
-  lineItems: many(lineItems)
-}))

@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { check, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { proposalAction } from "./enums"
@@ -32,10 +32,3 @@ export const proposalOtps = pgTable(
     )
   ]
 )
-
-export const proposalOtpsRelations = relations(proposalOtps, ({ one }) => ({
-  proposal: one(proposals, {
-    fields: [proposalOtps.proposalId],
-    references: [proposals.id]
-  })
-}))

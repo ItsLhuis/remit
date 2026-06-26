@@ -1,8 +1,7 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { index, pgTable, text, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
 
 import { encryptedColumn, softDelete, timestamps } from "./helpers"
-import { projects } from "./projects"
 
 export const clients = pgTable(
   "clients",
@@ -37,7 +36,3 @@ export const clients = pgTable(
       .where(sql`${table.portalToken} IS NOT NULL`)
   ]
 )
-
-export const clientsRelations = relations(clients, ({ many }) => ({
-  projects: many(projects)
-}))

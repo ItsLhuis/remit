@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import {
   type AnyPgColumn,
   bigint,
@@ -18,7 +18,6 @@ import {
 import { clients } from "./clients"
 import { discountType, invoiceStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { lineItems } from "./lineItems"
 import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { recurringInvoices } from "./recurringInvoices"
@@ -105,27 +104,3 @@ export const invoices = pgTable(
     check("chk_invoices_late_fee", sql`${table.lateFeeCents} IS NULL OR ${table.lateFeeCents} >= 0`)
   ]
 )
-
-export const invoicesRelations = relations(invoices, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [invoices.projectId],
-    references: [projects.id]
-  }),
-  client: one(clients, {
-    fields: [invoices.clientId],
-    references: [clients.id]
-  }),
-  proposal: one(proposals, {
-    fields: [invoices.proposalId],
-    references: [proposals.id]
-  }),
-  recurringInvoice: one(recurringInvoices, {
-    fields: [invoices.recurringInvoiceId],
-    references: [recurringInvoices.id]
-  }),
-  template: one(templates, {
-    fields: [invoices.templateId],
-    references: [templates.id]
-  }),
-  lineItems: many(lineItems)
-}))

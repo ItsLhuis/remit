@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { entityType } from "./enums"
@@ -23,5 +23,3 @@ export const activityLogs = pgTable(
       .where(sql`${table.readAt} IS NULL`)
   ]
 )
-
-export const activityLogsRelations = relations(activityLogs, () => ({}))

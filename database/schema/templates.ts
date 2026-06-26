@@ -1,11 +1,8 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { boolean, index, jsonb, pgTable, text, uniqueIndex, uuid } from "drizzle-orm/pg-core"
 
-import { emailLogs } from "./emailLogs"
 import { templateType } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { invoices } from "./invoices"
-import { proposals } from "./proposals"
 
 export const templates = pgTable(
   "templates",
@@ -30,9 +27,3 @@ export const templates = pgTable(
       .where(sql`${table.isDefault} = true AND ${table.deletedAt} IS NULL`)
   ]
 )
-
-export const templatesRelations = relations(templates, ({ many }) => ({
-  proposals: many(proposals),
-  invoices: many(invoices),
-  emailLogs: many(emailLogs)
-}))

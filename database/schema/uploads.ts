@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { bigint, check, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 export const uploads = pgTable(
@@ -13,5 +13,3 @@ export const uploads = pgTable(
   },
   (table) => [check("chk_uploads_size_bytes", sql`${table.sizeBytes} > 0`)]
 )
-
-export const uploadsRelations = relations(uploads, () => ({}))

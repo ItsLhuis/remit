@@ -1,4 +1,3 @@
-import { relations } from "drizzle-orm"
 import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { users } from "./auth"
@@ -24,10 +23,3 @@ export const auditLogs = pgTable(
     index("audit_logs_target_idx").on(table.targetEntityType, table.targetEntityId)
   ]
 )
-
-export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  actorUser: one(users, {
-    fields: [auditLogs.actorUserId],
-    references: [users.id]
-  })
-}))

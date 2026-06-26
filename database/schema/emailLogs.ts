@@ -1,4 +1,3 @@
-import { relations } from "drizzle-orm"
 import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { documentType, emailProvider, emailStatus } from "./enums"
@@ -28,10 +27,3 @@ export const emailLogs = pgTable(
     index("email_logs_created_at_idx").on(table.createdAt.desc())
   ]
 )
-
-export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
-  template: one(templates, {
-    fields: [emailLogs.templateId],
-    references: [templates.id]
-  })
-}))

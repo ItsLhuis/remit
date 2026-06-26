@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import {
   bigint,
   check,
@@ -110,18 +110,3 @@ export const lineItems = pgTable(
     )
   ]
 )
-
-export const lineItemsRelations = relations(lineItems, ({ one }) => ({
-  proposal: one(proposals, {
-    fields: [lineItems.proposalId],
-    references: [proposals.id]
-  }),
-  invoice: one(invoices, {
-    fields: [lineItems.invoiceId],
-    references: [invoices.id]
-  }),
-  taxRate: one(taxRates, {
-    fields: [lineItems.taxRateId],
-    references: [taxRates.id]
-  })
-}))

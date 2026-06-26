@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import {
   type AnyPgColumn,
   bigint,
@@ -19,9 +19,7 @@ import { contracts } from "./contracts"
 import { discountType, proposalStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
 import { invoices } from "./invoices"
-import { lineItems } from "./lineItems"
 import { projects } from "./projects"
-import { proposalOtps } from "./proposalOtps"
 import { templates } from "./templates"
 
 export const proposals = pgTable(
@@ -98,25 +96,3 @@ export const proposals = pgTable(
     )
   ]
 )
-
-export const proposalsRelations = relations(proposals, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [proposals.projectId],
-    references: [projects.id]
-  }),
-  template: one(templates, {
-    fields: [proposals.templateId],
-    references: [templates.id]
-  }),
-  convertedToInvoice: one(invoices, {
-    fields: [proposals.convertedToInvoiceId],
-    references: [invoices.id]
-  }),
-  convertedToContract: one(contracts, {
-    fields: [proposals.convertedToContractId],
-    references: [contracts.id]
-  }),
-  lineItems: many(lineItems),
-  proposalOtps: many(proposalOtps),
-  invoices: many(invoices)
-}))

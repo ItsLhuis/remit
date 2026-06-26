@@ -1,11 +1,9 @@
-import { relations, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { bigint, check, date, index, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core"
 
 import { clients } from "./clients"
 import { projectStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { invoices } from "./invoices"
-import { proposals } from "./proposals"
 
 export const projects = pgTable(
   "projects",
@@ -42,12 +40,3 @@ export const projects = pgTable(
     )
   ]
 )
-
-export const projectsRelations = relations(projects, ({ one, many }) => ({
-  client: one(clients, {
-    fields: [projects.clientId],
-    references: [clients.id]
-  }),
-  proposals: many(proposals),
-  invoices: many(invoices)
-}))
