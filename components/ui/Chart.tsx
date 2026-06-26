@@ -69,8 +69,10 @@ const ChartContainer = ({
 
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
 
+  const chartContextValue = useMemo(() => ({ config }), [config])
+
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={chartContextValue}>
       <div
         data-slot="chart"
         data-chart={chartId}
@@ -144,8 +146,12 @@ const ChartTooltipContent = ({
   >) => {
   const { config } = useChart()
 
-  const tooltipLabel = useMemo(() => {
-    if (hideLabel || !payload?.length) {
+  if (!active || !payload?.length) {
+    return null
+  }
+
+  const tooltipLabel = (() => {
+    if (hideLabel) {
       return null
     }
 
@@ -167,11 +173,7 @@ const ChartTooltipContent = ({
     }
 
     return <div className={cn("font-medium", labelClassName)}>{value}</div>
-  }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey])
-
-  if (!active || !payload?.length) {
-    return null
-  }
+  })()
 
   const nestLabel = payload.length === 1 && indicator !== "dot"
 
@@ -193,7 +195,7 @@ const ChartTooltipContent = ({
 
             return (
               <div
-                key={index}
+                key={key}
                 className={cn(
                   "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
                   indicator === "dot" && "items-center"
@@ -285,13 +287,13 @@ const ChartLegendContent = ({
     >
       {payload
         .filter((item) => item.type !== "none")
-        .map((item, index) => {
+        .map((item) => {
           const key = `${nameKey ?? item.dataKey ?? "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
           return (
             <div
-              key={index}
+              key={key}
               className={cn(
                 "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
               )}

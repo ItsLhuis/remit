@@ -2,7 +2,15 @@
 
 import { type CSSProperties, type ElementType, type ReactNode, type Ref, useState } from "react"
 
-import { AnimatePresence, motion, type Transition, type Variant, type Variants } from "motion/react"
+import {
+  AnimatePresence,
+  domAnimation,
+  LazyMotion,
+  type Transition,
+  type Variant,
+  type Variants
+} from "motion/react"
+import * as m from "motion/react-m"
 
 export type FadeProps = {
   children: ReactNode
@@ -62,7 +70,7 @@ const Fade = ({
     setIsMounted(true)
   }
 
-  const MotionComponent = motion[as as keyof typeof motion] as typeof motion.div
+  const MotionComponent = m[as as keyof typeof m] as typeof m.div
 
   const getDirectionOffset = () => {
     switch (direction) {
@@ -140,13 +148,15 @@ const Fade = ({
 
   if (unmountOnExit) {
     return (
-      <AnimatePresence mode={mode} onExitComplete={handleExitComplete}>
-        {show && fadeContent}
-      </AnimatePresence>
+      <LazyMotion features={domAnimation}>
+        <AnimatePresence mode={mode} onExitComplete={handleExitComplete}>
+          {show && fadeContent}
+        </AnimatePresence>
+      </LazyMotion>
     )
   }
 
-  return fadeContent
+  return <LazyMotion features={domAnimation}>{fadeContent}</LazyMotion>
 }
 
 export { Fade }

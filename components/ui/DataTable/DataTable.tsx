@@ -83,8 +83,7 @@ const DataTable = <TData,>({
     <div className={cn("ring-foreground/10 overflow-hidden rounded-xl ring-1", className)}>
       {children ? <div className="border-b p-3">{children}</div> : null}
       {hasSelectionBar ? (
-        <div
-          role="region"
+        <section
           aria-label={t("common.table.selectedCount", { count: selectedRows.length })}
           className="bg-muted/40 flex flex-wrap items-center gap-2 border-b px-3 py-2"
         >
@@ -97,7 +96,7 @@ const DataTable = <TData,>({
               {t("common.table.clearSelection")}
             </Button>
           </div>
-        </div>
+        </section>
       ) : null}
       <div>
         <ScrollArea

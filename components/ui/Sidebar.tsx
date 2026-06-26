@@ -325,6 +325,7 @@ const SidebarRail = ({ className, ...props }: ComponentProps<"button">) => {
 
   return (
     <button
+      type="button"
       data-sidebar="rail"
       data-slot="sidebar-rail"
       aria-label={t("common.navigation.toggleSidebar")}

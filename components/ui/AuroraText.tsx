@@ -28,15 +28,10 @@ const AuroraText = ({
   }
 
   return (
-    <span
-      data-slot="aurora-text"
-      className={`relative inline-block ${className}`}
-      aria-label={typeof children === "string" ? children : undefined}
-    >
+    <span data-slot="aurora-text" className={`relative inline-block ${className}`}>
       <span
         className="animate-aurora relative bg-size-[200%_auto] bg-clip-text text-transparent"
         style={gradientStyle}
-        aria-hidden="true"
       >
         {children}
       </span>
