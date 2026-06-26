@@ -35,4 +35,4 @@ const TaskPriorityBadge = ({ priority }: TaskPriorityBadgeProps) => {
   )
 }
 
-export { TaskPriorityBadge, taskPriorityPresentation }
+export { TaskPriorityBadge }

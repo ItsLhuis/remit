@@ -28,7 +28,7 @@ import { type TaskStatus } from "../../schemas"
 import { getNextTaskStatuses } from "../../services"
 import { type TaskItem } from "../../types"
 import { TaskPriorityBadge } from "../TaskPriorityBadge"
-import { taskStatusPresentation } from "../TaskStatusBadge"
+import { taskStatusPresentation } from "../taskStatusPresentation"
 
 import { TaskCardPlaceholder } from "./TaskCardPlaceholder"
 

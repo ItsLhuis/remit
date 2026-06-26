@@ -15,7 +15,7 @@ import {
 
 import { type TaskStatus } from "../../schemas"
 import { getNextTaskStatuses } from "../../services"
-import { taskStatusPresentation } from "../TaskStatusBadge"
+import { taskStatusPresentation } from "../taskStatusPresentation"
 
 type TaskStatusMenuProps = {
   status: TaskStatus

@@ -6,21 +6,10 @@ import { Badge, Icon } from "@/components/ui"
 
 import { type TaskStatus } from "../schemas"
 
+import { taskStatusPresentation } from "./taskStatusPresentation"
+
 type TaskStatusBadgeProps = {
   status: TaskStatus
-}
-
-type StatusPresentation = {
-  variant: "secondary" | "info" | "warning" | "success" | "error"
-  icon: "Inbox" | "Circle" | "LoaderCircle" | "CircleCheck" | "CircleX"
-}
-
-const taskStatusPresentation: Record<TaskStatus, StatusPresentation> = {
-  backlog: { variant: "secondary", icon: "Inbox" },
-  todo: { variant: "info", icon: "Circle" },
-  in_progress: { variant: "warning", icon: "LoaderCircle" },
-  done: { variant: "success", icon: "CircleCheck" },
-  cancelled: { variant: "error", icon: "CircleX" }
 }
 
 const TaskStatusBadge = ({ status }: TaskStatusBadgeProps) => {
@@ -36,4 +25,4 @@ const TaskStatusBadge = ({ status }: TaskStatusBadgeProps) => {
   )
 }
 
-export { TaskStatusBadge, taskStatusPresentation }
+export { TaskStatusBadge }

@@ -19,7 +19,8 @@ import {
 import { updateProjectStatus } from "../../mutations"
 import { type ProjectStatus } from "../../schemas"
 import { getNextProjectStatuses } from "../../services"
-import { ProjectStatusBadge, projectStatusPresentation } from "../ProjectStatusBadge"
+import { ProjectStatusBadge } from "../ProjectStatusBadge"
+import { projectStatusPresentation } from "../projectStatusPresentation"
 
 type ProjectStatusSelectorProps = {
   projectId: string

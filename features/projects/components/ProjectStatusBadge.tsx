@@ -6,20 +6,10 @@ import { Badge, Icon } from "@/components/ui"
 
 import { type ProjectStatus } from "../schemas"
 
+import { projectStatusPresentation } from "./projectStatusPresentation"
+
 type ProjectStatusBadgeProps = {
   status: ProjectStatus
-}
-
-type StatusPresentation = {
-  variant: "secondary" | "info" | "warning" | "default" | "success" | "error"
-  icon: "Play" | "Pause" | "CircleCheck" | "CircleX"
-}
-
-const projectStatusPresentation: Record<ProjectStatus, StatusPresentation> = {
-  active: { variant: "success", icon: "Play" },
-  on_hold: { variant: "warning", icon: "Pause" },
-  completed: { variant: "info", icon: "CircleCheck" },
-  cancelled: { variant: "error", icon: "CircleX" }
 }
 
 const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
@@ -35,4 +25,4 @@ const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
   )
 }
 
-export { ProjectStatusBadge, projectStatusPresentation }
+export { ProjectStatusBadge }

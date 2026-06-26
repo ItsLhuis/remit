@@ -6,22 +6,10 @@ import { Badge, Icon } from "@/components/ui"
 
 import { type LeadStatus } from "../schemas"
 
+import { leadStatusPresentation } from "./leadStatusPresentation"
+
 type LeadStatusBadgeProps = {
   status: LeadStatus
-}
-
-type StatusPresentation = {
-  variant: "secondary" | "info" | "warning" | "default" | "success" | "error"
-  icon: "Sparkles" | "Phone" | "CircleDot" | "Send" | "Trophy" | "CircleX"
-}
-
-const leadStatusPresentation: Record<LeadStatus, StatusPresentation> = {
-  new: { variant: "secondary", icon: "Sparkles" },
-  contacted: { variant: "info", icon: "Phone" },
-  qualified: { variant: "warning", icon: "CircleDot" },
-  proposal_sent: { variant: "default", icon: "Send" },
-  won: { variant: "success", icon: "Trophy" },
-  lost: { variant: "error", icon: "CircleX" }
 }
 
 const LeadStatusBadge = ({ status }: LeadStatusBadgeProps) => {
@@ -37,4 +25,4 @@ const LeadStatusBadge = ({ status }: LeadStatusBadgeProps) => {
   )
 }
 
-export { LeadStatusBadge, leadStatusPresentation }
+export { LeadStatusBadge }
