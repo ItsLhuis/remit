@@ -2,6 +2,7 @@ packages:
   - "."
 
 minimumReleaseAge: 1440
+trustPolicy: no-downgrade
 engineStrict: true
 packageManagerStrict: true
 packageManagerStrictVersion: true
