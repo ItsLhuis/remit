@@ -20,7 +20,5 @@ export async function emit<E extends keyof EventMap>(
 ): Promise<void> {
   const handlers = (registry.get(event) ?? []) as Handler<E>[]
 
-  for (const handler of handlers) {
-    await handler(payload)
-  }
+  await Promise.all(handlers.map((handler) => Promise.resolve(handler(payload))))
 }

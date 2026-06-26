@@ -1,6 +1,14 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode
+} from "react"
 
 export type FontSize = "compact" | "default" | "comfortable"
 export type Density = "compact" | "default" | "spacious"
@@ -116,13 +124,12 @@ const AppearanceProvider = ({ children }: AppearanceProviderProps) => {
   const setDensity = useCallback((value: Density) => setDensityState(value), [])
   const setFontFamily = useCallback((value: FontFamily) => setFontFamilyState(value), [])
 
-  return (
-    <AppearanceContext
-      value={{ fontSize, setFontSize, density, setDensity, fontFamily, setFontFamily }}
-    >
-      {children}
-    </AppearanceContext>
+  const contextValue = useMemo(
+    () => ({ fontSize, setFontSize, density, setDensity, fontFamily, setFontFamily }),
+    [fontSize, setFontSize, density, setDensity, fontFamily, setFontFamily]
   )
+
+  return <AppearanceContext value={contextValue}>{children}</AppearanceContext>
 }
 
 export function useAppearance() {

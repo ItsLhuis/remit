@@ -2,13 +2,47 @@ const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const
 
 const COMPACT_CURRENCY_THRESHOLD = 10_000
 
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>()
+
+const numberFormatters = new Map<string, Intl.NumberFormat>()
+
+function getDateTimeFormatter(
+  cacheKey: string,
+  locale: string | undefined,
+  options: Intl.DateTimeFormatOptions
+): Intl.DateTimeFormat {
+  let formatter = dateTimeFormatters.get(cacheKey)
+
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options)
+    dateTimeFormatters.set(cacheKey, formatter)
+  }
+
+  return formatter
+}
+
+function getNumberFormatter(
+  cacheKey: string,
+  locale: string | undefined,
+  options: Intl.NumberFormatOptions
+): Intl.NumberFormat {
+  let formatter = numberFormatters.get(cacheKey)
+
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, options)
+    numberFormatters.set(cacheKey, formatter)
+  }
+
+  return formatter
+}
+
 type FormatDateOptions = {
   locale: string
   timeZone?: string
 }
 
 export function formatDate(date: Date, { locale, timeZone }: FormatDateOptions): string {
-  return new Intl.DateTimeFormat(locale, {
+  return getDateTimeFormatter(`${locale}|${timeZone ?? ""}`, locale, {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone
@@ -16,26 +50,26 @@ export function formatDate(date: Date, { locale, timeZone }: FormatDateOptions):
 }
 
 export function formatDay(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date)
+  return getDateTimeFormatter(`day|${locale}`, locale, { dateStyle: "medium" }).format(date)
 }
 
 export function formatMonthShort(monthKey: string, locale: string): string {
   const [year, month] = monthKey.split("-").map(Number)
 
-  return new Intl.DateTimeFormat(locale, { month: "short" }).format(
+  return getDateTimeFormatter(`month|${locale}`, locale, { month: "short" }).format(
     new Date(Date.UTC(year, month - 1, 1))
   )
 }
 
 export function formatCurrency(cents: number, currency: string, locale?: string): string {
-  return new Intl.NumberFormat(locale, {
+  return getNumberFormatter(`currency|${locale ?? ""}|${currency}`, locale, {
     style: "currency",
     currency
   }).format(cents / 100)
 }
 
 export function formatCompactNumber(value: number, locale?: string): string {
-  return new Intl.NumberFormat(locale, {
+  return getNumberFormatter(`compactNumber|${locale ?? ""}`, locale, {
     notation: "compact",
     maximumFractionDigits: 1
   }).format(value)
@@ -45,7 +79,7 @@ export function formatCompactCurrency(cents: number, currency: string, locale?: 
   const value = cents / 100
   const compact = Math.abs(value) >= COMPACT_CURRENCY_THRESHOLD
 
-  return new Intl.NumberFormat(locale, {
+  return getNumberFormatter(`compactCurrency|${locale ?? ""}|${currency}|${compact}`, locale, {
     style: "currency",
     currency,
     notation: compact ? "compact" : "standard",
@@ -54,7 +88,7 @@ export function formatCompactCurrency(cents: number, currency: string, locale?: 
 }
 
 export function formatPercentage(value: number, locale?: string): string {
-  return new Intl.NumberFormat(locale, {
+  return getNumberFormatter(`percentage|${locale ?? ""}`, locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(value)
@@ -70,7 +104,7 @@ export function formatBytes(bytes: number, locale: string): string {
   }
 
   const fractionDigits = unitIndex === 0 ? 0 : 1
-  const formattedValue = new Intl.NumberFormat(locale, {
+  const formattedValue = getNumberFormatter(`bytes|${locale}|${fractionDigits}`, locale, {
     maximumFractionDigits: fractionDigits,
     minimumFractionDigits: fractionDigits
   }).format(value)
