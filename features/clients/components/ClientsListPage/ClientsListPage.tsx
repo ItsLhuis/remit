@@ -19,13 +19,6 @@ import {
   DataTableFacetedFilter,
   DataTableRangeFilter,
   DataTableViewOptions,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -42,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
   SidebarTrigger,
-  Spinner,
   Typography,
   toast
 } from "@/components/ui"
@@ -54,6 +46,7 @@ import { softDeleteClient } from "../../mutations"
 import { type ClientListItem, type ClientListPageData } from "../../types"
 import { ClientFormSheet } from "../ClientFormSheet"
 
+import { BulkDeleteDialog } from "./BulkDeleteDialog"
 import { ClientsSummaryBand } from "./ClientsSummaryBand"
 import { getClientColumns } from "./columns"
 
@@ -333,37 +326,14 @@ const ClientsListPage = ({ data }: ClientsListPageProps) => {
             router.refresh()
           }}
         />
-        <Dialog
-          open={deleteIds.length > 0}
+        <BulkDeleteDialog
+          count={deleteIds.length}
+          isDeleting={isBulkDeleting}
           onOpenChange={(open) => {
             if (!open && !isBulkDeleting) setDeleteIds([])
           }}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{t("clients.delete.title")}</DialogTitle>
-              <DialogDescription>
-                {t("clients.list.bulkDelete")} ({deleteIds.length})
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isBulkDeleting}>
-                  {t("common.actions.cancel")}
-                </Button>
-              </DialogClose>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isBulkDeleting}
-                onClick={onConfirmDelete}
-              >
-                {isBulkDeleting ? <Spinner /> : null}
-                {t("clients.delete.confirm")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          onConfirm={onConfirmDelete}
+        />
       </div>
     </ScrollArea>
   )
