@@ -377,6 +377,12 @@ export const totpVerifySchema = z.object({
 export type TotpVerifyValues = z.infer<typeof totpVerifySchema>
 ```
 
+Export a schema, its inferred type, or a schema constant only when something consumes it. One used
+only inside its own file — a base schema that another schema `.extend()`s, or a `MAX_LENGTH`
+constant referenced only by the schema it bounds — stays unexported; add the `export` when a
+consumer outside the file imports it. Do not export an inferred type that nothing uses: the fix for
+an unused export is to unexport it (or delete an unused type), never to suppress the warning.
+
 Shared constants used by several schemas, such as password rules, appear before the dependent
 schemas. Re-export bridge schemas at the top only when a feature intentionally exposes another
 feature's schema through its own surface.

@@ -23,7 +23,9 @@ paths:
 - Extend HTML element props via `ComponentProps<"element">` from React.
 - When using `cva`, compose with `VariantProps<typeof variants>` from `class-variance-authority`.
 - Derive form value types from Zod schemas with `z.infer<typeof schema>` and place the type
-  immediately after the schema.
+  immediately after the schema. Export the inferred type only when something consumes it; do not
+  export an inferred type that nothing uses — add the export when a form, component, or another
+  module needs it (YAGNI).
 
 ```ts
 export const accountDetailsSchema = z.object({
