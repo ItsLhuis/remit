@@ -1,7 +1,24 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["scripts/*.ts"],
-  "ignorePatterns": ["database/schema/**", "scripts/dist/**", "**/*.generated.ts"],
+  "entry": [
+    "scripts/*.ts",
+    "instrumentation.ts",
+    "features/*/index.ts",
+    "features/*/server.ts",
+    "lib/*/index.ts"
+  ],
+  "ignorePatterns": [
+    "database/schema/**",
+    "scripts/dist/**",
+    "**/*.generated.ts",
+    "doctor.config.ts"
+  ],
+  "ignoreDependencies": ["pino-pretty", "postcss-load-config"],
+  "dynamicallyLoaded": ["lib/storage/s3.ts"],
+  "rules": {
+    "unused-exports": "warn",
+    "unused-types": "warn"
+  },
   "duplicates": {
     "ignore": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "tests/**"]
   }

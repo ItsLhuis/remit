@@ -69,8 +69,7 @@ const externalTierGroups = [
 // together. Generated from the features/ directory so new features are covered without editing
 // this file.
 const featureOrigins = readdirSync(new URL("./features", import.meta.url), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
+  .flatMap((entry) => (entry.isDirectory() ? [entry.name] : []))
   .sort()
 
 const featureOriginCustomGroups = featureOrigins.map((name) => ({
