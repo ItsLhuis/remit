@@ -163,7 +163,7 @@ function getChangedFields(
     [field: string, previous: string | number | null, next: string | number | null]
   >
 ): string[] {
-  return comparisons.filter(([, previous, next]) => previous !== next).map(([field]) => field)
+  return comparisons.flatMap(([field, previous, next]) => (previous !== next ? [field] : []))
 }
 
 async function upsertInvoicingSettings(

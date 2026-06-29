@@ -296,7 +296,7 @@ function getChangedFields(
     [field: string, previous: string | number | boolean | null, next: string | number | boolean]
   >
 ): string[] {
-  return comparisons.filter(([, previous, next]) => previous !== next).map(([field]) => field)
+  return comparisons.flatMap(([field, previous, next]) => (previous !== next ? [field] : []))
 }
 
 async function upsertEmailSettings(

@@ -258,7 +258,7 @@ function buildPaymentSettingsWritePlan(
 function getChangedFields(
   comparisons: Array<[field: string, previous: string | null, next: string | null]>
 ): string[] {
-  return comparisons.filter(([, previous, next]) => previous !== next).map(([field]) => field)
+  return comparisons.flatMap(([field, previous, next]) => (previous !== next ? [field] : []))
 }
 
 async function upsertPaymentSettings(
