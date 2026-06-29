@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-export type EmailProvider = "smtp" | "resend"
+type EmailProvider = "smtp" | "resend"
 
 function isEmailProvider(value: string): value is EmailProvider {
   return value === "smtp" || value === "resend"

@@ -4,8 +4,8 @@ import i18n from "@/lib/i18n/i18n"
 
 import { isValidAmount, parseAmountToCents } from "@/lib/utils"
 
-export const TASK_TITLE_MAX_LENGTH = 200
-export const TASK_DESCRIPTION_MAX_LENGTH = 5000
+const TASK_TITLE_MAX_LENGTH = 200
+const TASK_DESCRIPTION_MAX_LENGTH = 5000
 
 export const TASK_STATUS_VALUES = ["backlog", "todo", "in_progress", "done", "cancelled"] as const
 export type TaskStatus = (typeof TASK_STATUS_VALUES)[number]

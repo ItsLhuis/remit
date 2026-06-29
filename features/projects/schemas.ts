@@ -4,8 +4,8 @@ import i18n from "@/lib/i18n/i18n"
 
 import { DEFAULT_PAGE_SIZE, isValidAmount, MAX_PAGE_SIZE, parseAmountToCents } from "@/lib/utils"
 
-export const PROJECT_NAME_MAX_LENGTH = 200
-export const PROJECT_DESCRIPTION_MAX_LENGTH = 5000
+const PROJECT_NAME_MAX_LENGTH = 200
+const PROJECT_DESCRIPTION_MAX_LENGTH = 5000
 
 export const PROJECT_STATUS_VALUES = ["active", "completed", "on_hold", "cancelled"] as const
 export type ProjectStatus = (typeof PROJECT_STATUS_VALUES)[number]
@@ -152,10 +152,11 @@ function readArrayParam(input: unknown, key: string): string[] {
 
   if (!raw) return []
 
-  return raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
+  return raw.split(",").flatMap((value) => {
+    const trimmed = value.trim()
+
+    return trimmed ? [trimmed] : []
+  })
 }
 
 function readIntParam(input: unknown, key: string, fallback: number): number {

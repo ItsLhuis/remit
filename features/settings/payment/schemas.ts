@@ -72,5 +72,3 @@ export type PaymentSettingsValues = z.infer<typeof paymentSettingsSchema>
 export type PaymentSettingsInputValues = z.input<typeof paymentSettingsSchema>
 
 export const testStripeConnectionSchema = z.object({})
-
-export type TestStripeConnectionValues = z.infer<typeof testStripeConnectionSchema>

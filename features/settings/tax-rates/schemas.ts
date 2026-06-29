@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-export const TAX_RATE_NAME_MAX_LENGTH = 80
+const TAX_RATE_NAME_MAX_LENGTH = 80
 
 function hasAtMostTwoDecimalPlaces(value: number): boolean {
   return /^\d+(\.\d{1,2})?$/.test(value.toString())
@@ -40,10 +40,6 @@ export const updateTaxRateSchema = taxRateFormSchema.extend({
 export const taxRateIdSchema = z.object({
   id: z.uuid(i18n.t("settings.taxRates.validation.idInvalid"))
 })
-
-export type CreateTaxRateValues = z.infer<typeof createTaxRateSchema>
-export type UpdateTaxRateValues = z.infer<typeof updateTaxRateSchema>
-export type TaxRateIdValues = z.infer<typeof taxRateIdSchema>
 
 export type TaxRateListItem = {
   id: string

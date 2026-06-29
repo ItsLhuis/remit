@@ -4,10 +4,10 @@ import i18n from "@/lib/i18n/i18n"
 
 import { DEFAULT_PAGE_SIZE, isSafeHttpUrl, MAX_PAGE_SIZE } from "@/lib/utils"
 
-export const CLIENT_NAME_MAX_LENGTH = 160
-export const CLIENT_EMAIL_MAX_LENGTH = 320
-export const CLIENT_TEXT_MAX_LENGTH = 255
-export const CLIENT_NOTES_MAX_LENGTH = 5000
+const CLIENT_NAME_MAX_LENGTH = 160
+const CLIENT_EMAIL_MAX_LENGTH = 320
+const CLIENT_TEXT_MAX_LENGTH = 255
+const CLIENT_NOTES_MAX_LENGTH = 5000
 export const CLIENT_STATUS_FILTERS = ["active", "deleted", "all"] as const
 
 const optionalTextSchema = (maxLength = CLIENT_TEXT_MAX_LENGTH) =>
@@ -164,10 +164,11 @@ function readArrayParam(input: unknown, key: string): string[] {
 
   if (!raw) return []
 
-  return raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
+  return raw.split(",").flatMap((value) => {
+    const trimmed = value.trim()
+
+    return trimmed ? [trimmed] : []
+  })
 }
 
 function readIntParam(input: unknown, key: string, fallback: number): number {

@@ -74,7 +74,7 @@ export const businessSettingsSchema = businessProfileSettingsSchema
 
 export type BusinessSettingsValues = z.infer<typeof businessSettingsSchema>
 
-export const businessLogoUploadRequestSchema = z.object({
+const businessLogoUploadRequestSchema = z.object({
   filename: z.string().trim().min(1, i18n.t("settings.business.validation.logoFilenameRequired")),
   contentType: z
     .string()
@@ -87,13 +87,9 @@ export const businessLogoUploadRequestSchema = z.object({
     .max(5 * 1024 * 1024, i18n.t("settings.business.validation.logoTooLarge"))
 })
 
-export type BusinessLogoUploadRequestValues = z.infer<typeof businessLogoUploadRequestSchema>
-
 export const confirmBusinessLogoUploadSchema = businessLogoUploadRequestSchema.extend({
   objectKey: z.string().trim().min(1, i18n.t("settings.business.validation.logoObjectKeyRequired"))
 })
-
-export type ConfirmBusinessLogoUploadValues = z.infer<typeof confirmBusinessLogoUploadSchema>
 
 function isValidLocale(value: string): boolean {
   return Object.keys(Locales).includes(value)

@@ -13,13 +13,9 @@ export const changeEmailSchema = z.object({
   email: z.email(i18n.t("settings.profile.validation.emailInvalid"))
 })
 
-export type ChangeEmailValues = z.infer<typeof changeEmailSchema>
-
 export const confirmAvatarUploadSchema = z.object({
   objectKey: z.string().min(1),
   filename: z.string().min(1),
   mimeType: z.string().min(1),
   sizeBytes: z.number().int().positive()
 })
-
-export type ConfirmAvatarUploadValues = z.infer<typeof confirmAvatarUploadSchema>
