@@ -150,7 +150,7 @@ export async function listClients(
   }
 }
 
-export async function getClientsSummary(defaultCurrency = "EUR"): Promise<ClientsSummary> {
+async function getClientsSummary(defaultCurrency = "EUR"): Promise<ClientsSummary> {
   const invoiceTotals = getClientInvoiceTotalsSubquery()
   const paymentTotals = getClientPaymentTotalsSubquery()
   const invoiceCounts = getClientInvoiceCountSubquery()
