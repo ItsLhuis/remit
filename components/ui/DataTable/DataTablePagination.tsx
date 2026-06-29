@@ -8,9 +8,15 @@ import { useTranslation } from "@/lib/i18n"
 
 import { cn, MAX_PAGE_SIZE } from "@/lib/utils"
 
-import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink
+} from "@/components/ui/Pagination"
 import {
   Select,
   SelectContent,
@@ -56,73 +62,79 @@ const DataTablePagination = <TData,>({
       <Typography affects={["muted", "small"]} aria-live="polite" className="whitespace-nowrap">
         {t("common.table.rowsSelectedOfTotal", { selected: selectedCount, total: totalCount })}
       </Typography>
-      <div className="flex items-center gap-1">
-        <IconButton
-          variant="ghost"
-          size="icon-sm"
-          label={t("common.table.goToFirstPage")}
-          onClick={() => table.setPageIndex(0)}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <Icon name="ChevronsLeft" />
-        </IconButton>
-        <IconButton
-          variant="ghost"
-          size="icon-sm"
-          label={t("common.table.goToPreviousPage")}
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <Icon name="ChevronLeft" />
-        </IconButton>
-        {pageItems.map((item, index) =>
-          item === "ellipsis" ? (
-            <span
-              key={`ellipsis-${index}`}
-              aria-hidden="true"
-              className="text-muted-foreground flex size-7 items-center justify-center"
-            >
-              <Icon name="MoreHorizontal" className="size-4" />
-            </span>
-          ) : (
-            <Button
-              key={item}
-              variant={item === currentPage ? "outline" : "ghost"}
+      <Pagination className="mx-0 w-auto">
+        <PaginationContent className="gap-1">
+          <PaginationItem>
+            <IconButton
+              variant="ghost"
               size="icon-sm"
-              aria-label={t("common.table.goToPage", { page: item })}
-              aria-current={item === currentPage ? "page" : undefined}
-              className="font-normal tabular-nums"
-              onClick={() => table.setPageIndex(item - 1)}
+              label={t("common.table.goToFirstPage")}
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
             >
-              {item}
-            </Button>
-          )
-        )}
-        <IconButton
-          variant="ghost"
-          size="icon-sm"
-          label={t("common.table.goToNextPage")}
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          <Icon name="ChevronRight" />
-        </IconButton>
-        <IconButton
-          variant="ghost"
-          size="icon-sm"
-          label={t("common.table.goToLastPage")}
-          onClick={() => table.setPageIndex(pageCount - 1)}
-          disabled={!table.getCanNextPage()}
-        >
-          <Icon name="ChevronsRight" />
-        </IconButton>
-      </div>
+              <Icon name="ChevronsLeft" />
+            </IconButton>
+          </PaginationItem>
+          <PaginationItem>
+            <IconButton
+              variant="ghost"
+              size="icon-sm"
+              label={t("common.table.goToPreviousPage")}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <Icon name="ChevronLeft" />
+            </IconButton>
+          </PaginationItem>
+          {pageItems.map((item, index) =>
+            item === "ellipsis" ? (
+              <PaginationItem key={`ellipsis-${index}`}>
+                <PaginationEllipsis className="text-muted-foreground size-7" />
+              </PaginationItem>
+            ) : (
+              <PaginationItem key={item}>
+                <PaginationLink
+                  size="icon-sm"
+                  isActive={item === currentPage}
+                  aria-label={t("common.table.goToPage", { page: item })}
+                  className="font-normal tabular-nums"
+                  onClick={() => table.setPageIndex(item - 1)}
+                >
+                  {item}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          )}
+          <PaginationItem>
+            <IconButton
+              variant="ghost"
+              size="icon-sm"
+              label={t("common.table.goToNextPage")}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <Icon name="ChevronRight" />
+            </IconButton>
+          </PaginationItem>
+          <PaginationItem>
+            <IconButton
+              variant="ghost"
+              size="icon-sm"
+              label={t("common.table.goToLastPage")}
+              onClick={() => table.setPageIndex(pageCount - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              <Icon name="ChevronsRight" />
+            </IconButton>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
       <div className="flex items-center gap-2">
         <Typography affects={["muted", "small"]} className="whitespace-nowrap">
           {t("common.table.rowsPerPage")}
         </Typography>
         <Select value={`${pageSize}`} onValueChange={(value) => table.setPageSize(Number(value))}>
-          <SelectTrigger size="sm" className="w-[4.5rem]">
+          <SelectTrigger size="sm" className="w-18">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

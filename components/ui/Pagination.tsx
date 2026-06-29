@@ -36,59 +36,20 @@ const PaginationItem = ({ ...props }: ComponentProps<"li">) => (
 
 type PaginationLinkProps = {
   isActive?: boolean
-} & Pick<ComponentProps<typeof Button>, "size"> &
-  ComponentProps<"a">
+} & ComponentProps<typeof Button>
 
 const PaginationLink = ({ className, isActive, size = "icon", ...props }: PaginationLinkProps) => (
-  <Button asChild variant={isActive ? "outline" : "ghost"} size={size} className={cn(className)}>
-    <a
-      aria-current={isActive ? "page" : undefined}
-      data-slot="pagination-link"
-      data-active={isActive}
-      {...props}
-    />
-  </Button>
+  <Button
+    type="button"
+    variant={isActive ? "outline" : "ghost"}
+    size={size}
+    aria-current={isActive ? "page" : undefined}
+    data-slot="pagination-link"
+    data-active={isActive}
+    className={cn(className)}
+    {...props}
+  />
 )
-
-const PaginationPrevious = ({
-  className,
-  text,
-  ...props
-}: ComponentProps<typeof PaginationLink> & { text?: string }) => {
-  const { t } = useTranslation()
-
-  return (
-    <PaginationLink
-      aria-label={t("common.navigation.goToPreviousPage")}
-      size="default"
-      className={cn("pl-1.5!", className)}
-      {...props}
-    >
-      <Icon name="ChevronLeft" data-icon="inline-start" />
-      <span className="hidden sm:block">{text ?? t("common.actions.previous")}</span>
-    </PaginationLink>
-  )
-}
-
-const PaginationNext = ({
-  className,
-  text,
-  ...props
-}: ComponentProps<typeof PaginationLink> & { text?: string }) => {
-  const { t } = useTranslation()
-
-  return (
-    <PaginationLink
-      aria-label={t("common.navigation.goToNextPage")}
-      size="default"
-      className={cn("pr-1.5!", className)}
-      {...props}
-    >
-      <span className="hidden sm:block">{text ?? t("common.actions.next")}</span>
-      <Icon name="ChevronRight" data-icon="inline-end" />
-    </PaginationLink>
-  )
-}
 
 const PaginationEllipsis = ({ className, ...props }: ComponentProps<"span">) => {
   const { t } = useTranslation()
@@ -109,12 +70,4 @@ const PaginationEllipsis = ({ className, ...props }: ComponentProps<"span">) => 
   )
 }
 
-export {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious
-}
+export { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink }

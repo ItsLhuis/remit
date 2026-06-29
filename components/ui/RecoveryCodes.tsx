@@ -58,7 +58,7 @@ const RecoveryCodes = ({ codes, className }: RecoveryCodesProps) => {
       </div>
       <div className="dark:bg-input/30 divide-y overflow-hidden rounded-lg border">
         {Array.from({ length: Math.ceil(codes.length / 2) }, (_, i) => (
-          <div key={i} className="grid grid-cols-[1fr_1px_1fr]">
+          <div key={codes[i * 2]} className="grid grid-cols-[1fr_1px_1fr]">
             <RecoveryCodeButton code={codes[i * 2]} />
             <div className="bg-border" />
             {codes[i * 2 + 1] !== undefined && <RecoveryCodeButton code={codes[i * 2 + 1]} />}

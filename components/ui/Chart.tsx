@@ -104,12 +104,11 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     .map(
       ([theme, prefix]) =>
         `${prefix} [data-chart=${id}] {\n${colorConfig
-          .map(([key, itemConfig]) => {
+          .flatMap(([key, itemConfig]) => {
             const color =
               itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ?? itemConfig.color
-            return color ? `  --color-${key}: ${color};` : null
+            return color ? [`  --color-${key}: ${color};`] : []
           })
-          .filter(Boolean)
           .join("\n")}\n}`
     )
     .join("\n")
