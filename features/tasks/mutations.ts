@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, asc, eq, isNull } from "drizzle-orm"
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -258,14 +258,20 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
     const updates = planTaskReorder(siblings, existing.id, parsed.data.toIndex)
 
     if (updates.length > 0) {
-      await database.transaction(async (transaction) => {
-        for (const update of updates) {
-          await transaction
-            .update(tasks)
-            .set({ position: update.position })
-            .where(eq(tasks.id, update.id))
-        }
-      })
+      await database
+        .update(tasks)
+        .set({
+          position: sql`CASE ${tasks.id} ${sql.join(
+            updates.map((update) => sql`WHEN ${update.id} THEN ${update.position}`),
+            sql` `
+          )} END`
+        })
+        .where(
+          inArray(
+            tasks.id,
+            updates.map((update) => update.id)
+          )
+        )
     }
 
     await writeTaskAudit(context, "task.updated", existing.id, {
