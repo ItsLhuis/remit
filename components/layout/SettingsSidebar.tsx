@@ -95,14 +95,13 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
     ? navGroups
     : navGroups.filter((group) => group.label !== "settings.navigation.system")
 
-  const filteredGroups = visibleGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) =>
-        t(item.labelKey).toLowerCase().includes(search.toLowerCase())
-      )
-    }))
-    .filter((group) => group.items.length > 0)
+  const filteredGroups = visibleGroups.flatMap((group) => {
+    const items = group.items.filter((item) =>
+      t(item.labelKey).toLowerCase().includes(search.toLowerCase())
+    )
+
+    return items.length > 0 ? [{ ...group, items }] : []
+  })
 
   return (
     <Sidebar collapsible="panel">
