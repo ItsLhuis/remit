@@ -70,6 +70,44 @@ function findColumn(columns: TaskColumns, id: string): TaskStatus | null {
   return TASK_STATUS_VALUES.find((status) => columns[status].some((task) => task.id === id)) ?? null
 }
 
+function createPendingTask({
+  id,
+  projectId,
+  currency,
+  status,
+  title
+}: {
+  id: string
+  projectId: string
+  currency: string
+  status: TaskStatus
+  title: string
+}): TaskItem {
+  return {
+    id,
+    projectId,
+    title,
+    description: "",
+    status,
+    priority: "normal",
+    dueAt: null,
+    completedAt: null,
+    position: Number.MAX_SAFE_INTEGER,
+    hourlyRateCents: null,
+    currency,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+}
+
+function removePendingId(pendingIds: Set<string>, id: string): Set<string> {
+  const next = new Set(pendingIds)
+
+  next.delete(id)
+
+  return next
+}
+
 const TaskKanban = ({
   tasks,
   locale,
@@ -316,21 +354,7 @@ const TaskKanban = ({
   const handleCreate = async (status: TaskStatus, title: string): Promise<boolean> => {
     const tempId = `pending-${crypto.randomUUID()}`
 
-    const tempTask: TaskItem = {
-      id: tempId,
-      projectId,
-      title,
-      description: "",
-      status,
-      priority: "normal",
-      dueAt: null,
-      completedAt: null,
-      position: Number.MAX_SAFE_INTEGER,
-      hourlyRateCents: null,
-      currency,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
+    const tempTask = createPendingTask({ id: tempId, projectId, currency, status, title })
 
     setPendingIds((previous) => new Set(previous).add(tempId))
     setColumns((previous) => ({ ...previous, [status]: [...previous[status], tempTask] }))
@@ -344,13 +368,7 @@ const TaskKanban = ({
       }))
     }
 
-    setPendingIds((previous) => {
-      const next = new Set(previous)
-
-      next.delete(tempId)
-
-      return next
-    })
+    setPendingIds((previous) => removePendingId(previous, tempId))
 
     return created
   }
