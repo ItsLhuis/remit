@@ -61,12 +61,17 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
   const router = useRouter()
 
   const [taxRates, setTaxRates] = useState(initialTaxRates)
-  const [formState, setFormState] = useState<TaxRateFormState>(null)
-  const [deleteTarget, setDeleteTarget] = useState<TaxRateListItem | null>(null)
+  const [activeDialog, setActiveDialog] = useState<
+    | { kind: "form"; state: NonNullable<TaxRateFormState> }
+    | { kind: "delete"; taxRate: TaxRateListItem }
+    | null
+  >(null)
 
   const [actionError, setActionError] = useState<string | null>(null)
-  const [pendingDefaultId, setPendingDefaultId] = useState<string | null>(null)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<{
+    kind: "default" | "delete"
+    id: string
+  } | null>(null)
 
   const [isDefaultPending, startDefaultTransition] = useTransition()
   const [isDeletePending, startDeleteTransition] = useTransition()
@@ -77,6 +82,9 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
 
   const sortedTaxRates = useMemo(() => sortTaxRates(taxRates), [taxRates])
   const defaultTaxRate = sortedTaxRates.find((taxRate) => taxRate.isDefault) ?? null
+
+  const formState = activeDialog?.kind === "form" ? activeDialog.state : null
+  const deleteTarget = activeDialog?.kind === "delete" ? activeDialog.taxRate : null
 
   const onSaved = (taxRate: TaxRateListItem) => {
     setTaxRates((currentTaxRates) => {
@@ -94,7 +102,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
     })
 
     setActionError(null)
-    setFormState(null)
+    setActiveDialog(null)
 
     router.refresh()
   }
@@ -103,7 +111,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
     if (taxRate.isDefault || isDefaultPending) return
 
     setActionError(null)
-    setPendingDefaultId(taxRate.id)
+    setPendingAction({ kind: "default", id: taxRate.id })
 
     startDefaultTransition(async () => {
       try {
@@ -128,7 +136,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
 
         toast.success(t("settings.taxRates.defaultUpdated"))
       } finally {
-        setPendingDefaultId(null)
+        setPendingAction(null)
       }
     })
   }
@@ -137,7 +145,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
     if (!deleteTarget || isDeletePending) return
 
     setActionError(null)
-    setPendingDeleteId(deleteTarget.id)
+    setPendingAction({ kind: "delete", id: deleteTarget.id })
 
     startDeleteTransition(async () => {
       try {
@@ -152,13 +160,13 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
         setTaxRates((currentTaxRates) =>
           currentTaxRates.filter((taxRate) => taxRate.id !== result.data.id)
         )
-        setDeleteTarget(null)
+        setActiveDialog(null)
 
         router.refresh()
 
         toast.success(t("settings.taxRates.deleted"))
       } finally {
-        setPendingDeleteId(null)
+        setPendingAction(null)
       }
     })
   }
@@ -173,7 +181,10 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
             : t("settings.taxRates.noDefault")}
         </CardDescription>
         <CardAction>
-          <Button type="button" onClick={() => setFormState({ mode: "create" })}>
+          <Button
+            type="button"
+            onClick={() => setActiveDialog({ kind: "form", state: { mode: "create" } })}
+          >
             <Icon name="Plus" />
             {t("settings.taxRates.addRate")}
           </Button>
@@ -227,7 +238,9 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
                       <IconButton
                         label={t("settings.taxRates.editRate")}
                         size="icon-sm"
-                        onClick={() => setFormState({ mode: "edit", taxRate })}
+                        onClick={() =>
+                          setActiveDialog({ kind: "form", state: { mode: "edit", taxRate } })
+                        }
                         disabled={isDefaultPending || isDeletePending}
                       >
                         <Icon name="Pencil" />
@@ -238,16 +251,24 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
                         onClick={() => onSetDefault(taxRate)}
                         disabled={taxRate.isDefault || isDefaultPending || isDeletePending}
                       >
-                        {pendingDefaultId === taxRate.id ? <Spinner /> : <Icon name="BadgeCheck" />}
+                        {pendingAction?.kind === "default" && pendingAction.id === taxRate.id ? (
+                          <Spinner />
+                        ) : (
+                          <Icon name="BadgeCheck" />
+                        )}
                       </IconButton>
                       <IconButton
                         label={t("settings.taxRates.deleteRate")}
                         size="icon-sm"
                         variant="destructive"
-                        onClick={() => setDeleteTarget(taxRate)}
+                        onClick={() => setActiveDialog({ kind: "delete", taxRate })}
                         disabled={isDefaultPending || isDeletePending}
                       >
-                        {pendingDeleteId === taxRate.id ? <Spinner /> : <Icon name="Trash2" />}
+                        {pendingAction?.kind === "delete" && pendingAction.id === taxRate.id ? (
+                          <Spinner />
+                        ) : (
+                          <Icon name="Trash2" />
+                        )}
                       </IconButton>
                     </div>
                   </TableCell>
@@ -265,7 +286,10 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
               <EmptyDescription>{t("settings.taxRates.emptyDescription")}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button type="button" onClick={() => setFormState({ mode: "create" })}>
+              <Button
+                type="button"
+                onClick={() => setActiveDialog({ kind: "form", state: { mode: "create" } })}
+              >
                 <Icon name="Plus" />
                 {t("settings.taxRates.addRate")}
               </Button>
@@ -276,7 +300,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
       <TaxRateFormDialog
         formState={formState}
         onOpenChange={(open) => {
-          if (!open) setFormState(null)
+          if (!open) setActiveDialog(null)
         }}
         onSaved={onSaved}
       />
@@ -284,7 +308,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
         taxRate={deleteTarget}
         isDeleting={isDeletePending}
         onOpenChange={(open) => {
-          if (!open && !isDeletePending) setDeleteTarget(null)
+          if (!open && !isDeletePending) setActiveDialog(null)
         }}
         onConfirm={onDelete}
       />
