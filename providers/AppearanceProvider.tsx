@@ -2,8 +2,8 @@
 
 import {
   createContext,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -133,7 +133,7 @@ const AppearanceProvider = ({ children }: AppearanceProviderProps) => {
 }
 
 export function useAppearance() {
-  const context = useContext(AppearanceContext)
+  const context = use(AppearanceContext)
 
   if (!context) throw new Error("useAppearance must be used within an AppearanceProvider")
 
