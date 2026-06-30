@@ -261,8 +261,11 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
       await database
         .update(tasks)
         .set({
-          position: sql`CASE ${tasks.id} ${sql.join(
-            updates.map((update) => sql`WHEN ${update.id} THEN ${update.position}`),
+          position: sql`CASE ${sql.join(
+            updates.map(
+              (update) =>
+                sql`WHEN ${tasks.id} = ${update.id}::uuid THEN ${update.position}::integer`
+            ),
             sql` `
           )} END`
         })
