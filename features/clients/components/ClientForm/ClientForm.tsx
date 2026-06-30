@@ -5,7 +5,7 @@ import { Fragment, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, type FieldPath, useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -17,8 +17,8 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FormTextField,
   Icon,
-  Input,
   PhoneInput,
   ScrollArea,
   Separator,
@@ -135,40 +135,6 @@ const ClientForm = (props: ClientFormProps) => {
     router.back()
   }
 
-  const renderTextField = ({
-    name,
-    label,
-    placeholder,
-    type = "text",
-    autoComplete
-  }: {
-    name: FieldPath<ClientFormValues>
-    label: string
-    placeholder?: string
-    type?: string
-    autoComplete?: string
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={field.name}
-            type={type}
-            placeholder={placeholder}
-            autoComplete={autoComplete}
-            aria-invalid={fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
   const fields = (
     <Fragment>
       <FormSection
@@ -176,19 +142,23 @@ const ClientForm = (props: ClientFormProps) => {
         description={t("clients.form.profileDescription")}
       >
         <FieldGroup className="grid gap-4">
-          {renderTextField({
-            name: "name",
-            label: t("clients.fields.name"),
-            placeholder: t("clients.placeholders.name"),
-            autoComplete: "organization"
-          })}
-          {renderTextField({
-            name: "email",
-            label: t("clients.fields.email"),
-            placeholder: t("clients.placeholders.email"),
-            type: "email",
-            autoComplete: "email"
-          })}
+          <FormTextField
+            control={form.control}
+            name="name"
+            label={t("clients.fields.name")}
+            placeholder={t("clients.placeholders.name")}
+            autoComplete="organization"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="email"
+            label={t("clients.fields.email")}
+            placeholder={t("clients.placeholders.email")}
+            type="email"
+            autoComplete="email"
+            disabled={isSaving}
+          />
           <Controller
             name="phone"
             control={form.control}
@@ -228,18 +198,22 @@ const ClientForm = (props: ClientFormProps) => {
               </Field>
             )}
           />
-          {renderTextField({
-            name: "taxId",
-            label: t("clients.fields.taxId"),
-            placeholder: t("clients.placeholders.taxId")
-          })}
-          {renderTextField({
-            name: "website",
-            label: t("clients.fields.website"),
-            placeholder: t("clients.placeholders.website"),
-            type: "url",
-            autoComplete: "url"
-          })}
+          <FormTextField
+            control={form.control}
+            name="taxId"
+            label={t("clients.fields.taxId")}
+            placeholder={t("clients.placeholders.taxId")}
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="website"
+            label={t("clients.fields.website")}
+            placeholder={t("clients.placeholders.website")}
+            type="url"
+            autoComplete="url"
+            disabled={isSaving}
+          />
         </FieldGroup>
       </FormSection>
       <Separator />
@@ -248,36 +222,46 @@ const ClientForm = (props: ClientFormProps) => {
         description={t("clients.form.addressDescription")}
       >
         <FieldGroup className="grid gap-4">
-          {renderTextField({
-            name: "addressLine1",
-            label: t("clients.fields.addressLine1"),
-            placeholder: t("clients.placeholders.addressLine1"),
-            autoComplete: "address-line1"
-          })}
-          {renderTextField({
-            name: "addressLine2",
-            label: t("clients.fields.addressLine2"),
-            placeholder: t("clients.placeholders.addressLine2"),
-            autoComplete: "address-line2"
-          })}
-          {renderTextField({
-            name: "city",
-            label: t("clients.fields.city"),
-            placeholder: t("clients.placeholders.city"),
-            autoComplete: "address-level2"
-          })}
-          {renderTextField({
-            name: "state",
-            label: t("clients.fields.state"),
-            placeholder: t("clients.placeholders.state"),
-            autoComplete: "address-level1"
-          })}
-          {renderTextField({
-            name: "postalCode",
-            label: t("clients.fields.postalCode"),
-            placeholder: t("clients.placeholders.postalCode"),
-            autoComplete: "postal-code"
-          })}
+          <FormTextField
+            control={form.control}
+            name="addressLine1"
+            label={t("clients.fields.addressLine1")}
+            placeholder={t("clients.placeholders.addressLine1")}
+            autoComplete="address-line1"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="addressLine2"
+            label={t("clients.fields.addressLine2")}
+            placeholder={t("clients.placeholders.addressLine2")}
+            autoComplete="address-line2"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="city"
+            label={t("clients.fields.city")}
+            placeholder={t("clients.placeholders.city")}
+            autoComplete="address-level2"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="state"
+            label={t("clients.fields.state")}
+            placeholder={t("clients.placeholders.state")}
+            autoComplete="address-level1"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="postalCode"
+            label={t("clients.fields.postalCode")}
+            placeholder={t("clients.placeholders.postalCode")}
+            autoComplete="postal-code"
+            disabled={isSaving}
+          />
           <Controller
             name="country"
             control={form.control}

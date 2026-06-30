@@ -5,19 +5,19 @@ import { Fragment, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, type FieldPath, useForm, useWatch } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
-  DatePicker,
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
+  FormDateField,
+  FormTextField,
   Icon,
-  Input,
   ScrollArea,
   Select,
   SelectContent,
@@ -141,68 +141,6 @@ const ProjectForm = (props: ProjectFormProps) => {
     router.back()
   }
 
-  const renderTextField = ({
-    name,
-    label,
-    placeholder,
-    type = "text",
-    inputMode
-  }: {
-    name: FieldPath<ProjectFormInputValues>
-    label: string
-    placeholder?: string
-    type?: string
-    inputMode?: "decimal"
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={field.name}
-            type={type}
-            inputMode={inputMode}
-            placeholder={placeholder}
-            aria-invalid={fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
-  const renderDateField = ({
-    name,
-    label
-  }: {
-    name: FieldPath<ProjectFormInputValues>
-    label: string
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <DatePicker
-            id={field.name}
-            ref={field.ref}
-            value={field.value}
-            onChangeAction={field.onChange}
-            onBlur={field.onBlur}
-            valid={!fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
   const moneyLabel = (key: "budget" | "hourlyRate") =>
     selectedCurrency
       ? `${t(`projects.fields.${key}`)} (${selectedCurrency})`
@@ -239,11 +177,13 @@ const ProjectForm = (props: ProjectFormProps) => {
               </Field>
             )}
           />
-          {renderTextField({
-            name: "name",
-            label: t("projects.fields.name"),
-            placeholder: t("projects.placeholders.name")
-          })}
+          <FormTextField
+            control={form.control}
+            name="name"
+            label={t("projects.fields.name")}
+            placeholder={t("projects.placeholders.name")}
+            disabled={isSaving}
+          />
           {!isEdit ? (
             <Field>
               <FieldLabel htmlFor="project-status">{t("projects.fields.status")}</FieldLabel>
@@ -271,26 +211,34 @@ const ProjectForm = (props: ProjectFormProps) => {
         description={t("projects.form.budgetDescription")}
       >
         <FieldGroup className="grid gap-4 sm:grid-cols-2">
-          {renderTextField({
-            name: "budget",
-            label: moneyLabel("budget"),
-            placeholder: t("projects.placeholders.amount"),
-            inputMode: "decimal"
-          })}
-          {renderTextField({
-            name: "hourlyRate",
-            label: moneyLabel("hourlyRate"),
-            placeholder: t("projects.placeholders.amount"),
-            inputMode: "decimal"
-          })}
-          {renderDateField({
-            name: "startDate",
-            label: t("projects.fields.startDate")
-          })}
-          {renderDateField({
-            name: "endDate",
-            label: t("projects.fields.endDate")
-          })}
+          <FormTextField
+            control={form.control}
+            name="budget"
+            label={moneyLabel("budget")}
+            placeholder={t("projects.placeholders.amount")}
+            inputMode="decimal"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="hourlyRate"
+            label={moneyLabel("hourlyRate")}
+            placeholder={t("projects.placeholders.amount")}
+            inputMode="decimal"
+            disabled={isSaving}
+          />
+          <FormDateField
+            control={form.control}
+            name="startDate"
+            label={t("projects.fields.startDate")}
+            disabled={isSaving}
+          />
+          <FormDateField
+            control={form.control}
+            name="endDate"
+            label={t("projects.fields.endDate")}
+            disabled={isSaving}
+          />
         </FieldGroup>
       </FormSection>
       <Separator />

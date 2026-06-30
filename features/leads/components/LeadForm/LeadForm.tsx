@@ -5,7 +5,7 @@ import { Fragment, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, type FieldPath, useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -15,8 +15,8 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FormTextField,
   Icon,
-  Input,
   PhoneInput,
   ScrollArea,
   Select,
@@ -137,40 +137,6 @@ const LeadForm = (props: LeadFormProps) => {
     router.back()
   }
 
-  const renderTextField = ({
-    name,
-    label,
-    placeholder,
-    type = "text",
-    autoComplete
-  }: {
-    name: FieldPath<LeadFormValues>
-    label: string
-    placeholder?: string
-    type?: string
-    autoComplete?: string
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={field.name}
-            type={type}
-            placeholder={placeholder}
-            autoComplete={autoComplete}
-            aria-invalid={fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
   const fields = (
     <Fragment>
       <FormSection
@@ -178,31 +144,39 @@ const LeadForm = (props: LeadFormProps) => {
         description={t("leads.form.contactDescription")}
       >
         <FieldGroup className="grid gap-4">
-          {renderTextField({
-            name: "firstName",
-            label: t("leads.fields.firstName"),
-            placeholder: t("leads.placeholders.firstName"),
-            autoComplete: "given-name"
-          })}
-          {renderTextField({
-            name: "lastName",
-            label: t("leads.fields.lastName"),
-            placeholder: t("leads.placeholders.lastName"),
-            autoComplete: "family-name"
-          })}
-          {renderTextField({
-            name: "company",
-            label: t("leads.fields.company"),
-            placeholder: t("leads.placeholders.company"),
-            autoComplete: "organization"
-          })}
-          {renderTextField({
-            name: "email",
-            label: t("leads.fields.email"),
-            placeholder: t("leads.placeholders.email"),
-            type: "email",
-            autoComplete: "email"
-          })}
+          <FormTextField
+            control={form.control}
+            name="firstName"
+            label={t("leads.fields.firstName")}
+            placeholder={t("leads.placeholders.firstName")}
+            autoComplete="given-name"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="lastName"
+            label={t("leads.fields.lastName")}
+            placeholder={t("leads.placeholders.lastName")}
+            autoComplete="family-name"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="company"
+            label={t("leads.fields.company")}
+            placeholder={t("leads.placeholders.company")}
+            autoComplete="organization"
+            disabled={isSaving}
+          />
+          <FormTextField
+            control={form.control}
+            name="email"
+            label={t("leads.fields.email")}
+            placeholder={t("leads.placeholders.email")}
+            type="email"
+            autoComplete="email"
+            disabled={isSaving}
+          />
           <Controller
             name="phone"
             control={form.control}
@@ -232,11 +206,13 @@ const LeadForm = (props: LeadFormProps) => {
         description={t("leads.form.pipelineDescription")}
       >
         <FieldGroup className="grid gap-4">
-          {renderTextField({
-            name: "source",
-            label: t("leads.fields.source"),
-            placeholder: t("leads.placeholders.source")
-          })}
+          <FormTextField
+            control={form.control}
+            name="source"
+            label={t("leads.fields.source")}
+            placeholder={t("leads.placeholders.source")}
+            disabled={isSaving}
+          />
           {!isEdit ? (
             <Field>
               <FieldLabel htmlFor="lead-status">{t("leads.fields.status")}</FieldLabel>

@@ -5,19 +5,19 @@ import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, type FieldPath, useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
-  DatePicker,
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
+  FormDateField,
+  FormTextField,
   Icon,
-  Input,
   ScrollArea,
   Select,
   SelectContent,
@@ -112,68 +112,6 @@ const TaskForm = (props: TaskFormProps) => {
     props.onCancel?.()
   }
 
-  const renderTextField = ({
-    name,
-    label,
-    placeholder,
-    type = "text",
-    inputMode
-  }: {
-    name: FieldPath<TaskFormInputValues>
-    label: string
-    placeholder?: string
-    type?: string
-    inputMode?: "decimal"
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <Input
-            {...field}
-            id={field.name}
-            type={type}
-            inputMode={inputMode}
-            placeholder={placeholder}
-            aria-invalid={fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
-  const renderDateField = ({
-    name,
-    label
-  }: {
-    name: FieldPath<TaskFormInputValues>
-    label: string
-  }) => (
-    <Controller
-      name={name}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-          <DatePicker
-            id={field.name}
-            ref={field.ref}
-            value={field.value}
-            onChangeAction={field.onChange}
-            onBlur={field.onBlur}
-            valid={!fieldState.invalid}
-            disabled={isSaving}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
@@ -182,11 +120,13 @@ const TaskForm = (props: TaskFormProps) => {
     >
       <ScrollArea className="min-h-0 flex-1">
         <FieldGroup className="grid gap-4 p-4">
-          {renderTextField({
-            name: "title",
-            label: t("tasks.fields.title"),
-            placeholder: t("tasks.placeholders.title")
-          })}
+          <FormTextField
+            control={form.control}
+            name="title"
+            label={t("tasks.fields.title")}
+            placeholder={t("tasks.placeholders.title")}
+            disabled={isSaving}
+          />
           <Controller
             name="description"
             control={form.control}
@@ -252,16 +192,20 @@ const TaskForm = (props: TaskFormProps) => {
                 </Field>
               )}
             />
-            {renderDateField({
-              name: "dueDate",
-              label: t("tasks.fields.dueDate")
-            })}
-            {renderTextField({
-              name: "hourlyRate",
-              label: `${t("tasks.fields.hourlyRate")} (${props.currency})`,
-              placeholder: t("tasks.placeholders.amount"),
-              inputMode: "decimal"
-            })}
+            <FormDateField
+              control={form.control}
+              name="dueDate"
+              label={t("tasks.fields.dueDate")}
+              disabled={isSaving}
+            />
+            <FormTextField
+              control={form.control}
+              name="hourlyRate"
+              label={`${t("tasks.fields.hourlyRate")} (${props.currency})`}
+              placeholder={t("tasks.placeholders.amount")}
+              inputMode="decimal"
+              disabled={isSaving}
+            />
           </div>
         </FieldGroup>
       </ScrollArea>
