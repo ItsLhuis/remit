@@ -1283,7 +1283,7 @@ client, and send a test invoice.
 Remit separates two concepts that are often conflated:
 
 **App UI language** — which language the dashboard, labels, and error messages appear in. Controlled
-by i18next client-side. Currently English only; additional languages are additive.
+by i18next client-side. English only; additional languages are additive.
 
 **Document locale** — the BCP 47 locale tag used for number and date formatting (`1.234,56 €` vs
 `1,234.56`) and the language of text labels in generated PDFs and emails ("Fatura" vs "Invoice",
@@ -1438,8 +1438,8 @@ domains do not receive placeholder tests; E2E coverage expands only when the cor
 exists in the product.
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
-`.agents/rules/testing.md`. The project currently ships Vitest unit tests, Vitest integration tests
-against Dockerized Postgres, and Playwright E2E tests.
+`.agents/rules/testing.md`. The project ships Vitest unit tests, Vitest integration tests against
+Dockerized Postgres, and Playwright E2E tests.
 
 ### CI gates
 
@@ -1513,43 +1513,22 @@ See ADR-0014.
 
 ## 19. Open architectural questions
 
-Honest record of decisions that are not yet made. Each becomes an ADR when decided. Listing them
-here serves three purposes: it forces awareness of the trade-off space, it prevents accidental
-de-facto decisions (where the first prototype becomes the answer), and it is honest about the state
-of the project for any reader.
+Architectural questions that are genuinely undecided are recorded here, each with its candidate
+options and decision criteria, until an ADR settles it; a settled decision lives in its ADR and in
+the relevant architecture section, not here. Recording open questions forces awareness of the
+trade-off space and prevents accidental de-facto decisions where the first prototype becomes the
+answer.
 
-### PDF rendering engine
+No architectural questions are open. Two that a system of this shape commonly leaves unsettled are
+decided and recorded as ADRs:
 
-**The question.** What renders invoice, proposal, contract, and credit-note PDFs?
-
-**Candidates.**
-
-- **Puppeteer / Playwright headless** - full HTML/CSS fidelity, slow startup, large memory
-  footprint, requires a Chromium dependency in the Docker image.
-- **`react-pdf`** - lightweight, no browser dependency, but the visual fidelity is constrained by
-  the renderer's own subset of CSS.
-- **`pdfmake`** - programmatic, no HTML at all, very lightweight, but means the template editor
-  produces a different intermediate representation than what the user sees.
-
-**Decision criteria.** Bundle and runtime cost vs. template fidelity. Whether the WYSIWYG editor
-preview should match the rendered PDF exactly.
-
-### In-process queue vs. external worker
-
-**The question.** How are recurring invoices, overdue detection, reminder emails, and other
-scheduled or asynchronous tasks executed?
-
-**Candidates.**
-
-- **In-process scheduler.** A small `setInterval`-based scheduler inside the Next.js process.
-  Sufficient for single-instance scale; no external dependency.
-- **External worker process.** A separate Node process that owns the scheduler and an outbound
-  queue. Closer to "correct" under load; doubles the Docker image complexity.
-- **BullMQ-style queue with Redis.** Best practice for serious background work; introduces Redis as
-  a hard infrastructure dependency.
-
-**Decision criteria.** When the simplest option starts producing user-visible failures (missed runs,
-duplicate emails). Until then, simpler is better.
+- **PDF rendering engine.** Invoice, proposal, contract, and credit-note PDFs render via a headless
+  Chromium browser (Puppeteer/Playwright) from the same block-model HTML that powers the templates
+  editor preview, run as a background job, so the editor preview and the rendered PDF share one
+  HTML/CSS path. See ADR-0022.
+- **Background job execution.** Recurring-invoice generation, overdue detection, reminder emails,
+  and PDF rendering run as durable, retryable, idempotent jobs on BullMQ backed by Redis. Redis is
+  shared infrastructure for the job queue and a planned cache layer. See ADR-0023.
 
 ---
 
@@ -1585,6 +1564,8 @@ the standard template: **Context**, **Decision**, **Consequences**, **Alternativ
 | [0019](adr/0019-storage-backend-adapters.md)     | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
 | [0020](adr/0020-operational-cli-contract.md)     | Operational CLI contract                                                    | Accepted |
 | [0021](adr/0021-encryption-key-rotation.md)      | Encryption key rotation                                                     | Accepted |
+| [0022](adr/0022-pdf-rendering-engine.md)         | Headless-browser PDF rendering (Puppeteer/Playwright)                       | Accepted |
+| [0023](adr/0023-job-scheduling-bullmq-redis.md)  | Background jobs and scheduling via BullMQ + Redis                           | Accepted |
 
 ---
 
