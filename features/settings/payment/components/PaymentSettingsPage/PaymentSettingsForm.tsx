@@ -18,7 +18,6 @@ import {
   FieldLabel,
   Icon,
   Input,
-  SecretField,
   Separator,
   Spinner,
   Textarea,
@@ -32,6 +31,8 @@ import {
   type PaymentSettingsInputValues,
   type PaymentSettingsValues
 } from "../../schemas"
+
+import { PaymentSecretField } from "./PaymentSecretField"
 
 const STRIPE_TEST_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -66,9 +67,11 @@ const PaymentSettingsForm = ({
     initialStripeTestConnectionAt
   )
 
-  const [editingPaymentIban, setEditingPaymentIban] = useState(false)
-  const [editingStripeSecretKey, setEditingStripeSecretKey] = useState(false)
-  const [editingStripeWebhookSecret, setEditingStripeWebhookSecret] = useState(false)
+  const [editing, setEditing] = useState({
+    paymentIban: false,
+    stripeSecretKey: false,
+    stripeWebhookSecret: false
+  })
 
   const [isSaving, startSaving] = useTransition()
   const [isTesting, startTesting] = useTransition()
@@ -117,9 +120,7 @@ const PaymentSettingsForm = ({
       form.reset(getSecretSafePaymentSettingsValues(result.data.settings))
 
       setStripeTestConnectionAt(result.data.settings.stripeTestConnectionAt)
-      setEditingPaymentIban(false)
-      setEditingStripeSecretKey(false)
-      setEditingStripeWebhookSecret(false)
+      setEditing({ paymentIban: false, stripeSecretKey: false, stripeWebhookSecret: false })
 
       router.refresh()
 
@@ -179,40 +180,26 @@ const PaymentSettingsForm = ({
                 </Field>
               )}
             />
-            <Controller
-              name="paymentIban"
+            <PaymentSecretField
               control={form.control}
-              render={({ field, fieldState }) => (
-                <SecretField
-                  id={field.name}
-                  name={field.name}
-                  label={t("settings.payment.iban")}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  inputRef={field.ref}
-                  description={
-                    paymentIbanConfigured ? t("settings.payment.encryptedValuePreserved") : ""
-                  }
-                  configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
-                  unconfiguredPlaceholder={t("settings.payment.ibanPlaceholder")}
-                  changeLabel={t("settings.payment.changeSecret")}
-                  cancelLabel={t("common.actions.cancel")}
-                  configured={paymentIbanConfigured}
-                  editing={editingPaymentIban}
-                  disabled={isSaving || isTesting}
-                  invalid={fieldState.invalid}
-                  error={fieldState.error}
-                  onEdit={() => {
-                    form.setValue("paymentIban", "", { shouldValidate: true })
-                    setEditingPaymentIban(true)
-                  }}
-                  onCancel={() => {
-                    setEditingPaymentIban(false)
-                    form.setValue("paymentIban", "", { shouldValidate: true })
-                  }}
-                />
-              )}
+              name="paymentIban"
+              label={t("settings.payment.iban")}
+              configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
+              unconfiguredPlaceholder={t("settings.payment.ibanPlaceholder")}
+              configuredDescription={t("settings.payment.encryptedValuePreserved")}
+              changeLabel={t("settings.payment.changeSecret")}
+              cancelLabel={t("common.actions.cancel")}
+              configured={paymentIbanConfigured}
+              editing={editing.paymentIban}
+              disabled={isSaving || isTesting}
+              onEdit={() => {
+                form.setValue("paymentIban", "", { shouldValidate: true })
+                setEditing((prev) => ({ ...prev, paymentIban: true }))
+              }}
+              onCancel={() => {
+                setEditing((prev) => ({ ...prev, paymentIban: false }))
+                form.setValue("paymentIban", "", { shouldValidate: true })
+              }}
             />
           </div>
           <Controller
@@ -270,78 +257,50 @@ const PaymentSettingsForm = ({
             )}
           />
           <div className="grid gap-4 md:grid-cols-2">
-            <Controller
+            <PaymentSecretField
+              control={form.control}
               name="stripeSecretKey"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <SecretField
-                  id={field.name}
-                  name={field.name}
-                  label={t("settings.payment.stripeSecretKey")}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  inputRef={field.ref}
-                  description={
-                    stripeSecretKeyConfigured ? t("settings.payment.secretPreserved") : ""
-                  }
-                  configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
-                  unconfiguredPlaceholder={t("settings.payment.stripeSecretKeyPlaceholder")}
-                  changeLabel={t("settings.payment.changeSecret")}
-                  cancelLabel={t("common.actions.cancel")}
-                  configured={stripeSecretKeyConfigured}
-                  editing={editingStripeSecretKey}
-                  disabled={isSaving || isTesting}
-                  invalid={fieldState.invalid}
-                  error={fieldState.error}
-                  autoComplete="new-password"
-                  onChangeAfter={() => void form.trigger("stripePublishableKey")}
-                  onEdit={() => {
-                    form.setValue("stripeSecretKey", "", { shouldValidate: true })
-                    setEditingStripeSecretKey(true)
-                  }}
-                  onCancel={() => {
-                    setEditingStripeSecretKey(false)
-                    form.setValue("stripeSecretKey", "", { shouldValidate: true })
-                  }}
-                />
-              )}
+              label={t("settings.payment.stripeSecretKey")}
+              configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
+              unconfiguredPlaceholder={t("settings.payment.stripeSecretKeyPlaceholder")}
+              configuredDescription={t("settings.payment.secretPreserved")}
+              changeLabel={t("settings.payment.changeSecret")}
+              cancelLabel={t("common.actions.cancel")}
+              configured={stripeSecretKeyConfigured}
+              editing={editing.stripeSecretKey}
+              disabled={isSaving || isTesting}
+              autoComplete="new-password"
+              onChangeAfter={() => void form.trigger("stripePublishableKey")}
+              onEdit={() => {
+                form.setValue("stripeSecretKey", "", { shouldValidate: true })
+                setEditing((prev) => ({ ...prev, stripeSecretKey: true }))
+              }}
+              onCancel={() => {
+                setEditing((prev) => ({ ...prev, stripeSecretKey: false }))
+                form.setValue("stripeSecretKey", "", { shouldValidate: true })
+              }}
             />
-            <Controller
-              name="stripeWebhookSecret"
+            <PaymentSecretField
               control={form.control}
-              render={({ field, fieldState }) => (
-                <SecretField
-                  id={field.name}
-                  name={field.name}
-                  label={t("settings.payment.stripeWebhookSecret")}
-                  value={field.value}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  inputRef={field.ref}
-                  description={
-                    stripeWebhookSecretConfigured ? t("settings.payment.secretPreserved") : ""
-                  }
-                  configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
-                  unconfiguredPlaceholder={t("settings.payment.stripeWebhookSecretPlaceholder")}
-                  changeLabel={t("settings.payment.changeSecret")}
-                  cancelLabel={t("common.actions.cancel")}
-                  configured={stripeWebhookSecretConfigured}
-                  editing={editingStripeWebhookSecret}
-                  disabled={isSaving || isTesting}
-                  invalid={fieldState.invalid}
-                  error={fieldState.error}
-                  autoComplete="new-password"
-                  onEdit={() => {
-                    form.setValue("stripeWebhookSecret", "", { shouldValidate: true })
-                    setEditingStripeWebhookSecret(true)
-                  }}
-                  onCancel={() => {
-                    setEditingStripeWebhookSecret(false)
-                    form.setValue("stripeWebhookSecret", "", { shouldValidate: true })
-                  }}
-                />
-              )}
+              name="stripeWebhookSecret"
+              label={t("settings.payment.stripeWebhookSecret")}
+              configuredPlaceholder={t("settings.payment.configuredPlaceholder")}
+              unconfiguredPlaceholder={t("settings.payment.stripeWebhookSecretPlaceholder")}
+              configuredDescription={t("settings.payment.secretPreserved")}
+              changeLabel={t("settings.payment.changeSecret")}
+              cancelLabel={t("common.actions.cancel")}
+              configured={stripeWebhookSecretConfigured}
+              editing={editing.stripeWebhookSecret}
+              disabled={isSaving || isTesting}
+              autoComplete="new-password"
+              onEdit={() => {
+                form.setValue("stripeWebhookSecret", "", { shouldValidate: true })
+                setEditing((prev) => ({ ...prev, stripeWebhookSecret: true }))
+              }}
+              onCancel={() => {
+                setEditing((prev) => ({ ...prev, stripeWebhookSecret: false }))
+                form.setValue("stripeWebhookSecret", "", { shouldValidate: true })
+              }}
             />
           </div>
           <div className="space-y-1" aria-live="polite">
