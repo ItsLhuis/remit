@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import { useSortable } from "@dnd-kit/react/sortable"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -30,10 +29,9 @@ import { type TaskItem } from "../../types"
 import { TaskPriorityBadge } from "../TaskPriorityBadge"
 import { taskStatusPresentation } from "../taskStatusPresentation"
 
-import { TaskCardPlaceholder } from "./TaskCardPlaceholder"
-
 type TaskCardProps = {
   task: TaskItem
+  index: number
   locale: string
   isPending?: boolean
   onEdit: (task: TaskItem) => void
@@ -43,6 +41,7 @@ type TaskCardProps = {
 
 const TaskCard = ({
   task,
+  index,
   locale,
   isPending = false,
   onEdit,
@@ -51,17 +50,17 @@ const TaskCard = ({
 }: TaskCardProps) => {
   const { t } = useTranslation()
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { ref, handleRef, isDragSource } = useSortable({
     id: task.id,
-    disabled: isPending
+    index,
+    group: task.status,
+    type: "item",
+    accept: "item",
+    disabled: isPending,
+    data: { title: task.title }
   })
 
   const [menuOpen, setMenuOpen] = useState(false)
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition
-  }
 
   const nextStatuses = getNextTaskStatuses(task.status)
 
@@ -69,16 +68,8 @@ const TaskCard = ({
     ? `${t("tasks.card.dueLabel")} ${formatDay(task.dueAt, locale)}`
     : t("tasks.card.noDue")
 
-  if (isDragging) {
-    return (
-      <div ref={setNodeRef} style={style}>
-        <TaskCardPlaceholder title={task.title} />
-      </div>
-    )
-  }
-
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={ref}>
       <Card
         size="sm"
         data-pending={isPending}
@@ -91,6 +82,7 @@ const TaskCard = ({
         }}
         className={cn(
           "group/task hover:ring-foreground/20 hover:bg-muted/50 relative gap-0 transition-colors",
+          isDragSource && "opacity-50",
           isPending && "pointer-events-none opacity-60"
         )}
       >
@@ -101,12 +93,11 @@ const TaskCard = ({
           )}
         >
           <IconButton
+            ref={handleRef}
             size="icon-sm"
             label={t("tasks.card.dragHandle")}
             disabled={isPending}
             className="cursor-grab touch-none active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
           >
             <Icon name="GripVertical" />
           </IconButton>

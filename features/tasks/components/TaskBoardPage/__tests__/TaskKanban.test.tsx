@@ -23,45 +23,17 @@ vi.mock("@/lib/i18n", () => ({
   })
 }))
 
-vi.mock("@dnd-kit/core", () => ({
-  DndContext: ({ children, ...props }: { children: React.ReactNode }) => {
+vi.mock("@dnd-kit/react", () => ({
+  DragDropProvider: ({ children, ...props }: { children: React.ReactNode }) => {
     dnd.props = props as Record<string, (event: unknown) => unknown>
 
     return children
   },
-  DragOverlay: ({ children }: { children: React.ReactNode }) => children,
-  closestCorners: vi.fn(),
-  KeyboardSensor: class {},
-  PointerSensor: class {},
-  useSensor: () => ({}),
-  useSensors: () => [],
-  useDroppable: () => ({ setNodeRef: () => {}, isOver: false })
+  useDroppable: () => ({ ref: () => {}, isDropTarget: false })
 }))
 
-vi.mock("@dnd-kit/sortable", () => ({
-  SortableContext: ({ children }: { children: React.ReactNode }) => children,
-  verticalListSortingStrategy: vi.fn(),
-  sortableKeyboardCoordinates: vi.fn(),
-  arrayMove: <T,>(items: T[], from: number, to: number) => {
-    const next = [...items]
-    const [moved] = next.splice(from, 1)
-
-    next.splice(to, 0, moved)
-
-    return next
-  },
-  useSortable: () => ({
-    attributes: {},
-    listeners: {},
-    setNodeRef: () => {},
-    transform: null,
-    transition: undefined,
-    isDragging: false
-  })
-}))
-
-vi.mock("@dnd-kit/utilities", () => ({
-  CSS: { Transform: { toString: () => undefined } }
+vi.mock("@dnd-kit/react/sortable", () => ({
+  useSortable: () => ({ ref: () => {}, handleRef: () => {}, isDragSource: false })
 }))
 
 afterEach(() => {
@@ -156,13 +128,19 @@ test("persists a move with the target status and index when a task is dropped in
   const { onPersistMove } = renderBoard({ tasks: [makeTask({ id: "t1", status: "todo" })] })
 
   await act(async () => {
-    dnd.props?.onDragStart({ active: { id: "t1" } })
+    dnd.props?.onDragStart({ operation: { source: { id: "t1" } }, canceled: false })
   })
   await act(async () => {
-    dnd.props?.onDragOver({ active: { id: "t1" }, over: { id: "done" } })
+    dnd.props?.onDragOver({
+      operation: { source: { id: "t1" }, target: { id: "done" } },
+      canceled: false
+    })
   })
   await act(async () => {
-    await dnd.props?.onDragEnd({ active: { id: "t1" }, over: { id: "done" } })
+    await dnd.props?.onDragEnd({
+      operation: { source: { id: "t1" }, target: { id: "done" } },
+      canceled: false
+    })
   })
 
   expect(onPersistMove).toHaveBeenCalledWith({
@@ -177,13 +155,109 @@ test("fires no mutation when a task is dropped in its original position", async 
   const { onPersistMove } = renderBoard({ tasks: [makeTask({ id: "t1", status: "todo" })] })
 
   await act(async () => {
-    dnd.props?.onDragStart({ active: { id: "t1" } })
+    dnd.props?.onDragStart({ operation: { source: { id: "t1" } }, canceled: false })
   })
   await act(async () => {
-    await dnd.props?.onDragEnd({ active: { id: "t1" }, over: { id: "t1" } })
+    await dnd.props?.onDragEnd({
+      operation: { source: { id: "t1" }, target: { id: "t1" } },
+      canceled: false
+    })
   })
 
   expect(onPersistMove).not.toHaveBeenCalled()
+})
+
+test("restores the snapshot when the drag is canceled", async () => {
+  const { onPersistMove } = renderBoard({ tasks: [makeTask({ id: "t1", status: "todo" })] })
+
+  await act(async () => {
+    dnd.props?.onDragStart({ operation: { source: { id: "t1" } }, canceled: false })
+  })
+  await act(async () => {
+    dnd.props?.onDragOver({
+      operation: { source: { id: "t1" }, target: { id: "done" } },
+      canceled: false
+    })
+  })
+  await act(async () => {
+    await dnd.props?.onDragEnd({
+      operation: { source: { id: "t1" }, target: null },
+      canceled: true
+    })
+  })
+
+  expect(onPersistMove).not.toHaveBeenCalled()
+  expect(getColumnCount("todo")).toBe("1")
+  expect(getColumnCount("done")).toBe("0")
+})
+
+test("rolls the board back to its pre-drag order when a move fails to persist", async () => {
+  const onPersistMove = vi.fn().mockResolvedValue(false)
+
+  render(
+    <TooltipProvider>
+      <TaskKanban
+        tasks={[makeTask({ id: "t1", status: "todo" })]}
+        locale="en"
+        projectId="project-1"
+        currency="EUR"
+        search=""
+        priorities={[]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onPersistMove={onPersistMove}
+        onPersistCreate={vi.fn().mockResolvedValue(true)}
+      />
+    </TooltipProvider>
+  )
+
+  await act(async () => {
+    dnd.props?.onDragStart({ operation: { source: { id: "t1" } }, canceled: false })
+  })
+  await act(async () => {
+    dnd.props?.onDragOver({
+      operation: { source: { id: "t1" }, target: { id: "done" } },
+      canceled: false
+    })
+  })
+  await act(async () => {
+    await dnd.props?.onDragEnd({
+      operation: { source: { id: "t1" }, target: { id: "done" } },
+      canceled: false
+    })
+  })
+
+  expect(onPersistMove).toHaveBeenCalledTimes(1)
+  expect(getColumnCount("todo")).toBe("1")
+  expect(getColumnCount("done")).toBe("0")
+})
+
+test("persists a reorder at the full-column index when filters hide siblings", async () => {
+  const { onPersistMove } = renderBoard({
+    tasks: [
+      makeTask({ id: "d1", title: "Hidden done", status: "done" }),
+      makeTask({ id: "d2", title: "Alpha done", status: "done" }),
+      makeTask({ id: "d3", title: "Alpha later", status: "done" })
+    ],
+    search: "alph"
+  })
+
+  await act(async () => {
+    dnd.props?.onDragStart({ operation: { source: { id: "d3" } }, canceled: false })
+  })
+  await act(async () => {
+    await dnd.props?.onDragEnd({
+      operation: { source: { id: "d3" }, target: { id: "d2" } },
+      canceled: false
+    })
+  })
+
+  expect(onPersistMove).toHaveBeenCalledWith({
+    id: "d3",
+    fromStatus: "done",
+    toStatus: "done",
+    toIndex: 1
+  })
 })
 
 test("creates a task in the column where quick add is used", async () => {

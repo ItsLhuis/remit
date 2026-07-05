@@ -1,7 +1,7 @@
 "use client"
 
-import { useDroppable } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { CollisionPriority } from "@dnd-kit/abstract"
+import { useDroppable } from "@dnd-kit/react"
 
 import { cn } from "@/lib/utils"
 
@@ -36,7 +36,12 @@ const TaskKanbanColumn = ({
   onChangeStatus,
   onCreate
 }: TaskKanbanColumnProps) => {
-  const { setNodeRef, isOver } = useDroppable({ id: status })
+  const { ref, isDropTarget } = useDroppable({
+    id: status,
+    type: "column",
+    accept: "item",
+    collisionPriority: CollisionPriority.Low
+  })
 
   return (
     <Card className="flex h-full w-80 shrink-0 flex-col gap-0 py-0">
@@ -46,34 +51,30 @@ const TaskKanbanColumn = ({
           {tasks.length}
         </Badge>
       </div>
-      <div ref={setNodeRef} className="min-h-0 flex-1 overflow-y-auto px-3">
-        <SortableContext
-          items={tasks.map((task) => task.id)}
-          strategy={verticalListSortingStrategy}
+      <div ref={ref} className="min-h-0 flex-1 overflow-y-auto px-3">
+        <div
+          className={cn(
+            "flex min-h-full flex-col gap-2 rounded-lg pb-3 transition-colors",
+            isDropTarget && "bg-primary/5 ring-primary/30 ring-1"
+          )}
         >
-          <div
-            className={cn(
-              "flex min-h-full flex-col gap-2 rounded-lg pb-3 transition-colors",
-              isOver && "bg-primary/5 ring-primary/30 ring-1"
-            )}
-          >
-            {tasks.length === 0 ? (
-              <TaskColumnEmpty />
-            ) : (
-              tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  locale={locale}
-                  isPending={pendingIds.has(task.id)}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onChangeStatus={onChangeStatus}
-                />
-              ))
-            )}
-          </div>
-        </SortableContext>
+          {tasks.length === 0 ? (
+            <TaskColumnEmpty />
+          ) : (
+            tasks.map((task, index) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={index}
+                locale={locale}
+                isPending={pendingIds.has(task.id)}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onChangeStatus={onChangeStatus}
+              />
+            ))
+          )}
+        </div>
       </div>
       <div className="border-border/60 shrink-0 border-t p-2">
         <TaskQuickAdd onCreate={(title) => onCreate(status, title)} />

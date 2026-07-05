@@ -2,28 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { type Plugins } from "@dnd-kit/abstract"
 import {
-  closestCorners,
-  DndContext,
-  DragOverlay,
+  Accessibility,
+  Feedback,
   KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type Announcements,
+  PointerActivationConstraints,
+  PointerSensor
+} from "@dnd-kit/dom"
+import {
+  DragDropProvider,
   type DragEndEvent,
   type DragOverEvent,
-  type DragStartEvent,
-  type ScreenReaderInstructions
-} from "@dnd-kit/core"
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
+  type DragStartEvent
+} from "@dnd-kit/react"
 
 import { useTranslation } from "@/lib/i18n"
 
 import { TASK_STATUS_VALUES, type TaskPriority, type TaskStatus } from "../../schemas"
 import { type TaskItem } from "../../types"
 
-import { TaskCardOverlay } from "./TaskCardOverlay"
 import { TaskKanbanColumn } from "./TaskKanbanColumn"
 
 type TaskColumns = Record<TaskStatus, TaskItem[]>
@@ -108,6 +106,31 @@ function removePendingId(pendingIds: Set<string>, id: string): Set<string> {
   return next
 }
 
+function resolveTitle(columns: TaskColumns, id: string): string {
+  const status = findColumn(columns, id)
+  const task = status ? columns[status].find((item) => item.id === id) : undefined
+
+  return task?.title ?? ""
+}
+
+function moveItem<T>(items: T[], from: number, to: number): T[] {
+  const next = [...items]
+  const [moved] = next.splice(from, 1)
+
+  if (!moved) return items
+
+  next.splice(to, 0, moved)
+
+  return next
+}
+
+const sensors = [
+  PointerSensor.configure({
+    activationConstraints: [new PointerActivationConstraints.Distance({ value: 8 })]
+  }),
+  KeyboardSensor
+]
+
 const TaskKanban = ({
   tasks,
   locale,
@@ -123,18 +146,12 @@ const TaskKanban = ({
   const { t } = useTranslation()
 
   const [columns, setColumns] = useState<TaskColumns>(() => groupTasksByStatus(tasks))
-  const [activeTask, setActiveTask] = useState<TaskItem | null>(null)
   const [pendingIds, setPendingIds] = useState<Set<string>>(() => new Set())
 
   const columnsRef = useRef(columns)
   const snapshotRef = useRef<TaskColumns | null>(null)
 
   const [previousTasks, setPreviousTasks] = useState(tasks)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
 
   if (tasks !== previousTasks) {
     setPreviousTasks(tasks)
@@ -158,61 +175,60 @@ const TaskKanban = ({
     ) as TaskColumns
   }, [columns, search, priorities])
 
-  const resolveColumnLabel = (id: string): string => {
-    const status = findColumn(columnsRef.current, id)
+  const plugins = useMemo(
+    () => (defaults: Plugins) => {
+      const columnLabel = (id: string): string => {
+        const status = findColumn(columnsRef.current, id)
 
-    return status ? t(`tasks.status.${status}`) : ""
-  }
+        return status ? t(`tasks.status.${status}`) : ""
+      }
 
-  const resolveTitle = (id: string): string => {
-    const status = findColumn(columnsRef.current, id)
-    const task = status ? columnsRef.current[status].find((item) => item.id === id) : undefined
+      return [
+        ...defaults.filter((plugin) => plugin !== Accessibility),
+        Feedback.configure({ dropAnimation: null }),
+        Accessibility.configure({
+          announcements: {
+            dragstart: (event: DragStartEvent) =>
+              t("tasks.dnd.onDragStart", {
+                title: resolveTitle(columnsRef.current, String(event.operation.source?.id))
+              }),
+            dragover: (event: DragOverEvent) =>
+              event.operation.target
+                ? t("tasks.dnd.onDragOver", {
+                    title: resolveTitle(columnsRef.current, String(event.operation.source?.id)),
+                    column: columnLabel(String(event.operation.target.id))
+                  })
+                : undefined,
+            dragend: (event: DragEndEvent) =>
+              event.canceled
+                ? t("tasks.dnd.onDragCancel", {
+                    title: resolveTitle(columnsRef.current, String(event.operation.source?.id))
+                  })
+                : event.operation.target
+                  ? t("tasks.dnd.onDragEnd", {
+                      title: resolveTitle(columnsRef.current, String(event.operation.source?.id)),
+                      column: columnLabel(String(event.operation.target.id))
+                    })
+                  : undefined
+          },
+          screenReaderInstructions: { draggable: t("tasks.dnd.instructions") }
+        })
+      ]
+    },
+    [t]
+  )
 
-    return task?.title ?? ""
-  }
-
-  const announcements: Announcements = {
-    onDragStart: ({ active }) =>
-      t("tasks.dnd.onDragStart", { title: resolveTitle(String(active.id)) }),
-    onDragOver: ({ active, over }) =>
-      over
-        ? t("tasks.dnd.onDragOver", {
-            title: resolveTitle(String(active.id)),
-            column: resolveColumnLabel(String(over.id))
-          })
-        : undefined,
-    onDragEnd: ({ active, over }) =>
-      over
-        ? t("tasks.dnd.onDragEnd", {
-            title: resolveTitle(String(active.id)),
-            column: resolveColumnLabel(String(over.id))
-          })
-        : undefined,
-    onDragCancel: ({ active }) =>
-      t("tasks.dnd.onDragCancel", { title: resolveTitle(String(active.id)) })
-  }
-
-  const screenReaderInstructions: ScreenReaderInstructions = {
-    draggable: t("tasks.dnd.instructions")
-  }
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const id = String(event.active.id)
-    const status = findColumn(columnsRef.current, id)
-    const task = status ? columnsRef.current[status].find((item) => item.id === id) : undefined
-
+  const handleDragStart = () => {
     snapshotRef.current = columnsRef.current
-
-    setActiveTask(task ?? null)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
+    const { source, target } = event.operation
 
-    if (!over) return
+    if (!source || !target) return
 
-    const activeId = String(active.id)
-    const overId = String(over.id)
+    const activeId = String(source.id)
+    const overId = String(target.id)
 
     if (activeId === overId) return
 
@@ -247,24 +263,31 @@ const TaskKanban = ({
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
     const snapshot = snapshotRef.current
 
     snapshotRef.current = null
 
-    setActiveTask(null)
-
     if (!snapshot) return
 
-    const id = String(active.id)
-
-    if (!over) {
+    if (event.canceled) {
       setColumns(snapshot)
 
       return
     }
 
-    const overId = String(over.id)
+    const { source, target } = event.operation
+
+    if (!source) return
+
+    const id = String(source.id)
+
+    if (!target) {
+      setColumns(snapshot)
+
+      return
+    }
+
+    const overId = String(target.id)
     const activeColumn = findColumn(columnsRef.current, id)
     const overColumn = findColumn(columnsRef.current, overId)
 
@@ -284,7 +307,7 @@ const TaskKanban = ({
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
         finalColumns = {
           ...columnsRef.current,
-          [activeColumn]: arrayMove(items, oldIndex, newIndex)
+          [activeColumn]: moveItem(items, oldIndex, newIndex)
         }
 
         setColumns(finalColumns)
@@ -313,16 +336,6 @@ const TaskKanban = ({
     })
 
     if (!persisted) setColumns(snapshot)
-  }
-
-  const handleDragCancel = () => {
-    const snapshot = snapshotRef.current
-
-    snapshotRef.current = null
-
-    setActiveTask(null)
-
-    if (snapshot) setColumns(snapshot)
   }
 
   const handleMenuChangeStatus = async (task: TaskItem, status: TaskStatus) => {
@@ -374,14 +387,12 @@ const TaskKanban = ({
   }
 
   return (
-    <DndContext
+    <DragDropProvider
       sensors={sensors}
-      collisionDetection={closestCorners}
-      accessibility={{ announcements, screenReaderInstructions }}
+      plugins={plugins}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
     >
       <div className="flex h-full min-h-0 gap-4 overflow-x-auto overflow-y-hidden pb-2">
         {TASK_STATUS_VALUES.map((status) => (
@@ -398,10 +409,7 @@ const TaskKanban = ({
           />
         ))}
       </div>
-      <DragOverlay>
-        {activeTask ? <TaskCardOverlay task={activeTask} locale={locale} /> : null}
-      </DragOverlay>
-    </DndContext>
+    </DragDropProvider>
   )
 }
 
