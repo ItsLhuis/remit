@@ -100,6 +100,7 @@ const DataTable = <TData,>({
       ) : null}
       <div>
         <ScrollArea
+          orientation="both"
           className="**:data-[slot=table-container]:overflow-visible"
           style={maxHeight !== undefined ? { maxHeight } : undefined}
         >

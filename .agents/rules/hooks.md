@@ -16,7 +16,7 @@ paths:
   bottom.
 - Shared hooks live in `hooks/`. Feature-scoped hooks live alongside their feature components.
 - `hooks/` carries an `index.ts` barrel (`export * from "./useX"`, alphabetized), like every other
-  shared folder. Consumers import through it (`import { useScroll } from "@/hooks"`), never by
+  shared folder. Consumers import through it (`import { useIsMobile } from "@/hooks"`), never by
   direct file path. Sibling hooks inside `hooks/` import each other by direct relative path
   (`./useX`), not through the barrel, to avoid a self-cycle. See `imports.md`.
 

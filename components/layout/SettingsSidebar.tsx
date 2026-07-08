@@ -8,8 +8,6 @@ import Link from "next/link"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
-
 import {
   Icon,
   InputGroup,
@@ -25,8 +23,6 @@ import {
   SidebarMenuItem,
   Typography
 } from "@/components/ui"
-
-import { useScroll } from "@/hooks"
 
 type NavItem = {
   labelKey: string
@@ -89,8 +85,6 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
 
   const [search, setSearch] = useState("")
 
-  const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
-
   const visibleGroups = showSystem
     ? navGroups
     : navGroups.filter((group) => group.label !== "settings.navigation.system")
@@ -122,48 +116,33 @@ const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
           </InputGroupAddon>
         </InputGroup>
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        <ScrollArea
-          className="min-h-0 flex-1"
-          data-slot="sidebar-content"
-          data-sidebar="content"
-          viewportRef={viewportRef}
-        >
-          {filteredGroups.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                      tooltip={t(item.labelKey)}
-                    >
-                      <Link href={item.href}>
-                        <Icon name={item.icon} />
-                        {t(item.labelKey)}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))}
-        </ScrollArea>
-        <div
-          className={cn(
-            "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
-            canScrollUp ? "opacity-100" : "opacity-0"
-          )}
-        />
-        <div
-          className={cn(
-            "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
-            canScrollDown ? "opacity-100" : "opacity-0"
-          )}
-        />
-      </div>
+      <ScrollArea
+        className="**:data-[slot=scroll-area-viewport]:scroll-fade min-h-0 flex-1"
+        data-slot="sidebar-content"
+        data-sidebar="content"
+      >
+        {filteredGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                    tooltip={t(item.labelKey)}
+                  >
+                    <Link href={item.href}>
+                      <Icon name={item.icon} />
+                      {t(item.labelKey)}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
+      </ScrollArea>
     </Sidebar>
   )
 }

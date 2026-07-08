@@ -1,30 +1,34 @@
 "use client"
 
-import { type ComponentProps, type Ref } from "react"
+import { type ComponentProps } from "react"
 
 import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
 type ScrollAreaProps = ComponentProps<typeof ScrollAreaPrimitive.Root> & {
-  viewportRef?: Ref<HTMLDivElement>
+  orientation?: "vertical" | "horizontal" | "both"
 }
 
-const ScrollArea = ({ className, children, viewportRef, ...props }: ScrollAreaProps) => (
+const ScrollArea = ({
+  className,
+  children,
+  orientation = "vertical",
+  ...props
+}: ScrollAreaProps) => (
   <ScrollAreaPrimitive.Root
     data-slot="scroll-area"
     className={cn("relative", className)}
     {...props}
   >
     <ScrollAreaPrimitive.Viewport
-      ref={viewportRef}
       data-slot="scroll-area-viewport"
-      className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-all outline-none focus-visible:ring-[3px] focus-visible:outline-1 [&>div]:!block"
+      className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-all outline-none focus-visible:ring-[3px] focus-visible:outline-1 [&>div]:block!"
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
-    <ScrollBar />
-    <ScrollBar orientation="horizontal" />
+    {orientation !== "horizontal" && <ScrollBar />}
+    {orientation !== "vertical" && <ScrollBar orientation="horizontal" />}
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 )

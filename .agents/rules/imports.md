@@ -196,12 +196,12 @@ exceptions. `hooks/` and `providers/` follow the same rule as `components/`, `li
 
 ```ts
 // Good - import through the folder barrel
-import { useScroll } from "@/hooks"
+import { useIsMobile } from "@/hooks"
 
 import { AppearanceProvider } from "@/providers"
 
 // Bad - direct file path bypasses the barrel
-import { useScroll } from "@/hooks/useScroll"
+import { useIsMobile } from "@/hooks/useIsMobile"
 ```
 
 The barrel uses `export * from "./X"`, alphabetized. Sibling files inside the folder import each

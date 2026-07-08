@@ -244,7 +244,7 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
         {data.tasks.length === 0 ? (
           <TaskBoardEmpty onCreate={() => setCreateOpen(true)} />
         ) : view === "table" ? (
-          <ScrollArea className="h-full">
+          <ScrollArea orientation="both" className="h-full">
             <TaskTable
               tasks={data.tasks}
               locale={locale}

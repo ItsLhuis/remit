@@ -13,7 +13,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { signOut, useSession } from "@/lib/auth/client"
 
-import { cn, getInitials } from "@/lib/utils"
+import { getInitials } from "@/lib/utils"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
@@ -57,8 +57,6 @@ import {
 } from "@/components/ui"
 
 import { SignOutDialog } from "@/features/auth"
-
-import { useScroll } from "@/hooks"
 
 const mainNavItems = [
   { labelKey: "app.navigation.dashboard", href: "/", icon: "LayoutDashboard" as const },
@@ -168,8 +166,6 @@ const AppSidebar = () => {
 
   const [commandOpen, setCommandOpen] = useState(false)
 
-  const { ref: viewportRef, canScrollUp, canScrollDown } = useScroll()
-
   const isCollapsed = state === "collapsed"
 
   const user = session?.user
@@ -220,67 +216,50 @@ const AppSidebar = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <ScrollArea
-            className="min-h-0 flex-1 group-data-[collapsible=icon]:overflow-hidden"
-            data-slot="sidebar-content"
-            data-sidebar="content"
-            viewportRef={viewportRef}
-          >
-            <SidebarGroup>
-              <SidebarGroupLabel>{t("app.navigation.navigation")}</SidebarGroupLabel>
-              <SidebarMenu>
-                {mainNavItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={
-                        item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
-                      }
-                      tooltip={t(item.labelKey)}
-                    >
-                      <Link href={item.href}>
-                        <Icon name={item.icon} />
-                        {t(item.labelKey)}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>{t("app.navigation.configuration")}</SidebarGroupLabel>
-              <SidebarMenu>
-                {configNavItems.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={t(item.labelKey)}
-                    >
-                      <Link href={item.href}>
-                        <Icon name={item.icon} />
-                        {t(item.labelKey)}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          </ScrollArea>
-          <div
-            className={cn(
-              "from-sidebar pointer-events-none absolute inset-x-0 top-0 h-10 bg-linear-to-b to-transparent transition-opacity",
-              canScrollUp ? "opacity-100" : "opacity-0"
-            )}
-          />
-          <div
-            className={cn(
-              "from-sidebar pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t to-transparent transition-opacity",
-              canScrollDown ? "opacity-100" : "opacity-0"
-            )}
-          />
-        </div>
+        <ScrollArea
+          className="**:data-[slot=scroll-area-viewport]:scroll-fade min-h-0 flex-1 group-data-[collapsible=icon]:overflow-hidden"
+          data-slot="sidebar-content"
+          data-sidebar="content"
+        >
+          <SidebarGroup>
+            <SidebarGroupLabel>{t("app.navigation.navigation")}</SidebarGroupLabel>
+            <SidebarMenu>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
+                    tooltip={t(item.labelKey)}
+                  >
+                    <Link href={item.href}>
+                      <Icon name={item.icon} />
+                      {t(item.labelKey)}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>{t("app.navigation.configuration")}</SidebarGroupLabel>
+            <SidebarMenu>
+              {configNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.href)}
+                    tooltip={t(item.labelKey)}
+                  >
+                    <Link href={item.href}>
+                      <Icon name={item.icon} />
+                      {t(item.labelKey)}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </ScrollArea>
         <SidebarFooter>
           <NavUser
             name={user?.name}
