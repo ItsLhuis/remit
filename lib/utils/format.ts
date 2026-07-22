@@ -53,6 +53,21 @@ export function formatDay(date: Date, locale: string): string {
   return getDateTimeFormatter(`day|${locale}`, locale, { dateStyle: "medium" }).format(date)
 }
 
+export function formatIsoDay(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
+
+export function formatMonthDay(date: Date, locale: string): string {
+  return getDateTimeFormatter(`monthDay|${locale}`, locale, {
+    month: "short",
+    day: "numeric"
+  }).format(date)
+}
+
 export function formatMonthShort(monthKey: string, locale: string): string {
   const [year, month] = monthKey.split("-").map(Number)
 

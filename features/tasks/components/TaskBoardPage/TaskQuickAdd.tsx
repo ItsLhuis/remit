@@ -35,11 +35,13 @@ const TaskQuickAdd = ({ onCreate }: TaskQuickAddProps) => {
 
     setIsSubmitting(true)
 
-    const created = await onCreate(title)
+    try {
+      const created = await onCreate(title)
 
-    setIsSubmitting(false)
-
-    if (created) setValue("")
+      if (created) setValue("")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!open) {

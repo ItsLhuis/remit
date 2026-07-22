@@ -81,7 +81,7 @@ const ProjectForm = (props: ProjectFormProps) => {
       endDate: "",
       description: ""
     }
-  }, [props])
+  }, [props.mode, props.project, props.defaultClientId])
 
   const form = useForm<ProjectFormInputValues, unknown, ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),

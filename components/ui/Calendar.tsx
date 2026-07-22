@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, type ComponentProps } from "react"
 
-import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from "react-day-picker"
+import { DayPicker, getDefaultClassNames, type DayButton } from "react-day-picker"
 
-import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
+
+import { cn, formatIsoDay } from "@/lib/utils"
 
 import { Button, buttonVariants } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
@@ -22,7 +24,11 @@ const Calendar = ({
 }: ComponentProps<typeof DayPicker> & {
   buttonVariant?: ComponentProps<typeof Button>["variant"]
 }) => {
+  const { i18n } = useTranslation()
+
   const defaultClassNames = getDefaultClassNames()
+
+  const localeCode = locale?.code ?? i18n.resolvedLanguage ?? i18n.language
 
   return (
     <DayPicker
@@ -36,7 +42,7 @@ const Calendar = ({
       captionLayout={captionLayout}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString(locale?.code, { month: "short" }),
+        formatMonthDropdown: (date) => date.toLocaleString(localeCode, { month: "short" }),
         ...formatters
       }}
       classNames={{
@@ -127,7 +133,7 @@ const Calendar = ({
           }
           return <Icon name="ChevronDown" className={cn("size-4", className)} />
         },
-        DayButton: ({ ...props }) => <CalendarDayButton locale={locale} {...props} />,
+        DayButton: ({ ...props }) => <CalendarDayButton {...props} />,
         WeekNumber: ({ children, ...props }) => (
           <td {...props}>
             <div className="flex size-(--cell-size) items-center justify-center text-center">
@@ -146,9 +152,8 @@ const CalendarDayButton = ({
   className,
   day,
   modifiers,
-  locale,
   ...props
-}: ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) => {
+}: ComponentProps<typeof DayButton>) => {
   const ref = useRef<HTMLButtonElement>(null)
 
   const defaultClassNames = getDefaultClassNames()
@@ -162,7 +167,7 @@ const CalendarDayButton = ({
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString(locale?.code)}
+      data-day={formatIsoDay(day.date)}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

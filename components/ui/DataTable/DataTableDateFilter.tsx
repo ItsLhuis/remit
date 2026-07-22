@@ -6,6 +6,8 @@ import { type Column } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { formatMonthDay } from "@/lib/utils"
+
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { Calendar } from "@/components/ui/Calendar"
@@ -17,8 +19,6 @@ type DataTableDateFilterProps<TData, TValue> = {
   column: Column<TData, TValue>
   title: string
 }
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" })
 
 const parseDateRange = (value: unknown): { from?: Date; to?: Date } => {
   if (!Array.isArray(value)) return {}
@@ -37,13 +37,15 @@ const DataTableDateFilter = <TData, TValue>({
   column,
   title
 }: DataTableDateFilterProps<TData, TValue>) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  const locale = i18n.resolvedLanguage ?? i18n.language
 
   const range = parseDateRange(column.getFilterValue())
   const hasValue = Boolean(range.from ?? range.to)
 
   const label = [range.from, range.to]
-    .map((date) => (date ? dateFormatter.format(date) : "…"))
+    .map((date) => (date ? formatMonthDay(date, locale) : "..."))
     .join(" – ")
 
   return (

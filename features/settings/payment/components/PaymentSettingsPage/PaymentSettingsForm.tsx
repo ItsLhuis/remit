@@ -9,6 +9,8 @@ import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { formatDate } from "@/lib/utils"
+
 import {
   Button,
   Field,
@@ -34,11 +36,6 @@ import {
 
 import { PaymentSecretField } from "./PaymentSecretField"
 
-const STRIPE_TEST_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short"
-})
-
 type PaymentSettingsFormProps = {
   initialValues: PaymentSettingsValues
   initialStripeTestConnectionAt: string | null
@@ -57,7 +54,9 @@ const PaymentSettingsForm = ({
   initialValues,
   initialStripeTestConnectionAt
 }: PaymentSettingsFormProps) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  const locale = i18n.resolvedLanguage ?? i18n.language
 
   const router = useRouter()
 
@@ -307,7 +306,7 @@ const PaymentSettingsForm = ({
             {stripeTestConnectionAt ? (
               <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
                 {t("settings.payment.lastStripeTest", {
-                  date: STRIPE_TEST_DATE_FORMAT.format(new Date(stripeTestConnectionAt))
+                  date: formatDate(new Date(stripeTestConnectionAt), { locale })
                 })}
               </Typography>
             ) : (

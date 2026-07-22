@@ -8,12 +8,17 @@ import { Button } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"
 import { Input } from "@/components/ui/Input"
 
-type NumberInputProps = Omit<ComponentProps<"input">, "type"> & {
+type NumberInputProps = ComponentProps<"input"> & {
   step?: number
 }
 
+// Defaults to the native number input; a caller that needs to accept non-numeric interim text (an
+// arithmetic expression mid-type) can pass type="text" and still gets the same stepper buttons and
+// clamping math below, which read the current value with Number(...) rather than relying on the
+// input's own type-driven parsing.
 const NumberInput = ({
   className,
+  type = "number",
   value,
   onChange,
   min,
@@ -66,7 +71,7 @@ const NumberInput = ({
       </Button>
       <Input
         {...props}
-        type="number"
+        type={type}
         value={value}
         onChange={onChange}
         min={min}

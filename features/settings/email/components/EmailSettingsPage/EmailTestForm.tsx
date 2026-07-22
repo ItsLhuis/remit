@@ -9,6 +9,8 @@ import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { formatDate } from "@/lib/utils"
+
 import {
   Button,
   Field,
@@ -25,11 +27,6 @@ import {
 import { sendEmailSettingsTest } from "../../mutations"
 import { testEmailSettingsSchema, type TestEmailSettingsValues } from "../../schemas"
 
-const TEST_SEND_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short"
-})
-
 type EmailTestFormProps = {
   defaultTestRecipient: string
   settingsDirty: boolean
@@ -45,7 +42,9 @@ const EmailTestForm = ({
   lastTestSendAt,
   onTested
 }: EmailTestFormProps) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  const locale = i18n.resolvedLanguage ?? i18n.language
 
   const router = useRouter()
 
@@ -91,7 +90,7 @@ const EmailTestForm = ({
         {lastTestSendAt ? (
           <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
             {t("settings.email.lastTestSend", {
-              date: TEST_SEND_DATE_FORMAT.format(new Date(lastTestSendAt))
+              date: formatDate(new Date(lastTestSendAt), { locale })
             })}
           </Typography>
         ) : (

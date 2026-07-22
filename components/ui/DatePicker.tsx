@@ -4,7 +4,7 @@ import { type Ref } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatDay } from "@/lib/utils"
+import { cn, formatDay, formatIsoDay } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import { Calendar } from "@/components/ui/Calendar"
@@ -29,14 +29,6 @@ function toDate(value?: string): Date | undefined {
   const date = new Date(year, month - 1, day)
 
   return Number.isNaN(date.getTime()) ? undefined : date
-}
-
-function toIsoDay(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-
-  return `${year}-${month}-${day}`
 }
 
 const DatePicker = ({
@@ -82,7 +74,7 @@ const DatePicker = ({
           mode="single"
           selected={selected}
           defaultMonth={selected}
-          onSelect={(date) => onChangeAction?.(date ? toIsoDay(date) : "")}
+          onSelect={(date) => onChangeAction?.(date ? formatIsoDay(date) : "")}
         />
       </PopoverContent>
     </Popover>

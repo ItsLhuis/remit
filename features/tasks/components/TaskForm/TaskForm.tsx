@@ -69,7 +69,7 @@ const TaskForm = (props: TaskFormProps) => {
       dueDate: "",
       hourlyRate: ""
     }
-  }, [props])
+  }, [props.mode, props.task])
 
   const form = useForm<TaskFormInputValues, unknown, TaskFormValues>({
     resolver: zodResolver(taskFormSchema),

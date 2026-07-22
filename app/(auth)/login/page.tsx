@@ -23,10 +23,10 @@ const LoginPage = async () => {
   if (session) redirect("/setup")
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <AuthPanel />
       <ScrollArea className="bg-background h-full w-full lg:w-2/3">
-        <div className="flex min-h-screen flex-col items-center justify-center px-8 py-12">
+        <div className="flex min-h-dvh flex-col items-center justify-center px-8 py-12">
           <LoginForm passwordResetAvailable={passwordResetAvailable} />
         </div>
       </ScrollArea>

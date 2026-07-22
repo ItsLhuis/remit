@@ -30,6 +30,8 @@ const PAGE_SIZE_OPTIONS = Array.from({ length: Math.ceil(MAX_PAGE_SIZE / 10) }, 
   Math.min((index + 1) * 10, MAX_PAGE_SIZE)
 )
 
+type PageItem = number | "ellipsis-start" | "ellipsis-end"
+
 type DataTablePaginationProps<TData> = {
   table: Table<TData>
   pageSizeOptions?: number[]
@@ -51,6 +53,13 @@ const DataTablePagination = <TData,>({
 
   const pageItems = getPageItems(currentPage, pageCount)
 
+  // Surfaces without row selection (the template grid) have no selected count to report, so the
+  // status line falls back to the page position.
+  const status =
+    table.options.enableRowSelection === false
+      ? t("common.table.page", { page: currentPage, total: pageCount })
+      : t("common.table.rowsSelectedOfTotal", { selected: selectedCount, total: totalCount })
+
   return (
     <div
       className={cn(
@@ -60,7 +69,7 @@ const DataTablePagination = <TData,>({
       {...props}
     >
       <Typography affects={["muted", "small"]} aria-live="polite" className="whitespace-nowrap">
-        {t("common.table.rowsSelectedOfTotal", { selected: selectedCount, total: totalCount })}
+        {status}
       </Typography>
       <Pagination className="mx-0 w-auto">
         <PaginationContent className="gap-1">
@@ -86,9 +95,9 @@ const DataTablePagination = <TData,>({
               <Icon name="ChevronLeft" />
             </IconButton>
           </PaginationItem>
-          {pageItems.map((item, index) =>
-            item === "ellipsis" ? (
-              <PaginationItem key={`ellipsis-${index}`}>
+          {pageItems.map((item) =>
+            typeof item === "string" ? (
+              <PaginationItem key={item}>
                 <PaginationEllipsis className="text-muted-foreground size-7" />
               </PaginationItem>
             ) : (
@@ -150,7 +159,7 @@ const DataTablePagination = <TData,>({
   )
 }
 
-function getPageItems(currentPage: number, pageCount: number): (number | "ellipsis")[] {
+function getPageItems(currentPage: number, pageCount: number): PageItem[] {
   const boundaryCount = 1
   const siblingCount = 1
   const totalSlots = boundaryCount * 2 + siblingCount * 2 + 3
@@ -162,16 +171,16 @@ function getPageItems(currentPage: number, pageCount: number): (number | "ellips
   const left = Math.max(currentPage - siblingCount, boundaryCount + 2)
   const right = Math.min(currentPage + siblingCount, pageCount - boundaryCount - 1)
 
-  const items: (number | "ellipsis")[] = []
+  const items: PageItem[] = []
 
   for (let page = 1; page <= boundaryCount; page++) items.push(page)
 
-  if (left > boundaryCount + 2) items.push("ellipsis")
+  if (left > boundaryCount + 2) items.push("ellipsis-start")
   else for (let page = boundaryCount + 1; page < left; page++) items.push(page)
 
   for (let page = left; page <= right; page++) items.push(page)
 
-  if (right < pageCount - boundaryCount - 1) items.push("ellipsis")
+  if (right < pageCount - boundaryCount - 1) items.push("ellipsis-end")
   else for (let page = right + 1; page <= pageCount - boundaryCount; page++) items.push(page)
 
   for (let page = pageCount - boundaryCount + 1; page <= pageCount; page++) items.push(page)

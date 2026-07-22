@@ -10,7 +10,7 @@ const AuthPanel = () => {
   const { t } = useTranslation()
 
   return (
-    <div className="relative hidden h-screen w-1/3 flex-col overflow-hidden lg:flex">
+    <div className="relative hidden h-dvh w-1/3 flex-col overflow-hidden lg:flex">
       <Image
         src="/login.jpg"
         alt=""

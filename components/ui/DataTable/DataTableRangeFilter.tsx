@@ -79,7 +79,7 @@ const DataTableRangeFilter = <TData, TValue>({
                 className="mx-0.5 data-[orientation=vertical]:h-4"
               />
               <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                {`${centsToMajor(min) || "…"} – ${centsToMajor(max) || "…"}`}
+                {`${centsToMajor(min) || "..."} – ${centsToMajor(max) || "..."}`}
               </Badge>
             </Fragment>
           ) : null}

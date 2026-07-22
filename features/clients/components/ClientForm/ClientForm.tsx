@@ -79,7 +79,7 @@ const ClientForm = (props: ClientFormProps) => {
       notes: "",
       website: ""
     }
-  }, [props])
+  }, [props.mode, props.client, props.defaultCurrency])
 
   const form = useForm<ClientFormInputValues, unknown, ClientFormValues>({
     resolver: zodResolver(clientFormSchema),

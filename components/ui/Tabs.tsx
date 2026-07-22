@@ -71,4 +71,4 @@ const TabsContent = ({ className, ...props }: ComponentProps<typeof TabsPrimitiv
   />
 )
 
-export { Tabs, TabsContent, TabsList, tabsListVariants, TabsTrigger }
+export { Tabs, TabsContent, TabsList, TabsTrigger }
