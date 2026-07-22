@@ -15,6 +15,9 @@ export const templates = pgTable(
     blocks: jsonb("blocks")
       .notNull()
       .default(sql`'[]'::jsonb`),
+    pageSettings: jsonb("page_settings")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     isDefault: boolean("is_default").notNull().default(false),
     isSystem: boolean("is_system").notNull().default(false),
     ...softDelete,

@@ -393,16 +393,17 @@ Block-based PDF and email templates.
 
 ### `templates`
 
-| Column      | Type    | Null | Default             | Notes                                                      |
-| ----------- | ------- | ---- | ------------------- | ---------------------------------------------------------- |
-| id          | uuid    | no   | `gen_random_uuid()` | PK                                                         |
-| type        | enum    | no   |                     | See enum reference                                         |
-| name        | text    | no   |                     |                                                            |
-| description | text    | yes  |                     |                                                            |
-| subject     | text    | yes  |                     | Email subject for `email_*` types; null for document types |
-| blocks      | jsonb   | no   | `'[]'::jsonb`       | Block-based content                                        |
-| is_default  | boolean | no   | `false`             | At most one default per type                               |
-| is_system   | boolean | no   | `false`             | True for built-in templates the user cannot delete         |
+| Column        | Type    | Null | Default             | Notes                                                      |
+| ------------- | ------- | ---- | ------------------- | ---------------------------------------------------------- |
+| id            | uuid    | no   | `gen_random_uuid()` | PK                                                         |
+| type          | enum    | no   |                     | See enum reference                                         |
+| name          | text    | no   |                     |                                                            |
+| description   | text    | yes  |                     |                                                            |
+| subject       | text    | yes  |                     | Email subject for `email_*` types; null for document types |
+| blocks        | jsonb   | no   | `'[]'::jsonb`       | Block-based content; shape and invariants in ADR-0024      |
+| page_settings | jsonb   | no   | `'{}'::jsonb`       | Margins, default font family, base font size (ADR-0024)    |
+| is_default    | boolean | no   | `false`             | At most one default per type                               |
+| is_system     | boolean | no   | `false`             | True for built-in templates the user cannot delete         |
 
 Standard `timestamps` and `softDelete`.
 
@@ -415,6 +416,64 @@ Indexes:
 Template enum types include: `invoice`, `proposal`, `contract`, `credit_note`, plus email
 counterparts `email_invoice_send`, `email_proposal_send`, `email_contract_send`,
 `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated`. See enum reference.
+
+The `blocks` jsonb holds the block array whose full shape and invariants live in ADR-0024. Each
+block is `{ id, type, content, layout, hidden, locked, name?, rotation?, constraints?, style? }`,
+and the write-path union is six types: `text | image | table | shape | frame | group`. Content per
+type: `text` `{ html }`; `image` `{ source, uploadId, alt }`; `table` `{ source, columns, rows }`;
+`shape` `{ variant: "rectangle" | "ellipse" | "line" }` (a vector leaf whose appearance comes from
+`style`); `frame` `{ clip, children }` where children are **absolutely positioned** blocks (the full
+union, bounded to two container levels — `FRAME_MAX_DEPTH = 2` — by a depth walk on the write path);
+`group` `{ children }`. Top-level array order is the **z-order** (a later block paints on top);
+overlap is legal.
+
+A `group` is the second container type and differs from a `frame` deliberately: it carries **no
+`style` and no `clip`**, and it never authors an independent size — its `layout` rectangle is always
+re-derived as the bounding union of its children, so a child can never overflow it and clipping
+would be meaningless. It exists only to bind an existing selection together; the add-block palette
+never offers one (`AddableBlockType` excludes it), and it is created solely by grouping a selection.
+Resizing a group scales its members through the shared set-scale primitive. Both container types
+count toward `FRAME_MAX_DEPTH`.
+
+`rotation` is an optional **sibling of `layout`** (never a `layout` field): degrees in `[0, 360)`,
+clockwise in the page's y-down space, non-integer allowed, about the rect's own center. Absent is
+the canonical spelling of "not rotated" — a rotation of exactly 0 is stripped on write, absent stays
+absent through normalization, and readers apply `?? 0`; the stored-read schema rejects out-of-range
+values. The stored geometry stays rect + rotation, nothing else. A `group` **never carries the
+field** (its schema shape omits it): rotating a grouped selection rotates each child about the
+shared center, and the group's `layout` re-derives as the union of its children's **rotated AABBs**.
+The renderer emits exactly `transform:rotate(<n>deg)` for nonzero rotation (the sanitizer whitelists
+that form and nothing else — never `matrix(...)`); a rotation-free document renders byte-identically
+to one produced before the field existed.
+
+`name` is an optional author-supplied label on any block, used by the layers panel and the rename
+action. Absent means the panel falls back to the block type's own label, so a document that never
+renamed a block stores nothing.
+
+`constraints` is optional on any block and is `{ horizontal, vertical }`, each one of
+`start | end | center | stretch | scale`. It is read only when the block is a **frame child** and
+the frame is resized, which reflows the child per its constraints. Group and multi-selection resize
+scale members proportionally and ignore constraints by design.
+
+A block's `x`/`y` accept negative values at the schema level (the coordinate bound is symmetric).
+This is required so that a **container child** can sit partially outside its frame, which then clips
+or shows the overflow. The floor-at-0 that applies to a **top-level** block is enforced one layer up
+by `validateLayout` (`services/canvasLayout.ts`), which knows the template type and page margins the
+schema cannot see; every interactive path clamps a top-level block into the page bounds before it
+commits, so that check is a backstop against malformed data rather than a normal-path outcome. Block
+`width`/`height` carry no grid-multiple constraint — proportional set scaling cannot preserve both
+member proportions and grid-multiple sizes, so grid alignment is the editor's default snap behavior,
+not a storage invariant. Table column widths stay grid-aligned (they are never set-scaled).
+
+The following are content-schema semantics worth noting at the storage layer, and **all are
+content-schema concerns only — no database migration, and the jsonb column shape is unchanged**: the
+block taxonomy moved from `text | image | divider | spacer | table | box` to
+`text | image | table | shape | frame | group` (a stored `box` reads back as a `frame` with its flex
+children laid out absolute, a `divider` as a `line` shape, a `spacer` is dropped); and a `text`
+block's stored `height` is authored on both axes but the editor raises it to a content-height floor,
+still persisted as a concrete whole-cell value, so the stored rectangle shape is identical. The read
+path (`storedBlockSchema`) stays tolerant of every prior stored generation, including the retired
+`box`/`divider`/`spacer` shapes.
 
 ---
 

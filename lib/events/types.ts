@@ -113,4 +113,17 @@ export type EventMap = {
     from: string
     to: string
   }
+  "template.created": {
+    templateId: string
+    userId: string
+  }
+  "template.updated": {
+    templateId: string
+    userId: string
+    changedFields: string[]
+  }
+  "template.deleted": {
+    templateId: string
+    userId: string
+  }
 }

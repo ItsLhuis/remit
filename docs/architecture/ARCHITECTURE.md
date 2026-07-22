@@ -288,6 +288,16 @@ erDiagram
         string number
         bigint totalCents
     }
+    Template {
+        uuid id PK
+        string type
+        string name
+        string subject
+        jsonb blocks
+        boolean isDefault
+        boolean isSystem
+        timestamp deletedAt
+    }
     AuditLog {
         uuid id PK
         string event
@@ -317,6 +327,10 @@ erDiagram
     TimeEntry }o--o| Invoice : "invoiced in"
     Expense }o--o| Invoice : "invoiced in"
     Task ||--o{ TimeEntry : has
+    Invoice }o--o| Template : "rendered with"
+    Proposal }o--o| Template : "rendered with"
+    Contract }o--o| Template : "rendered with"
+    RecurringInvoice }o--o| Template : "rendered with"
 ```
 
 ### Entity lifecycle states
@@ -1034,13 +1048,21 @@ in `forms.md`.
 
 There is no global client-side state library. State lives in the closest reasonable place:
 
-| State kind                   | Location                             |
-| ---------------------------- | ------------------------------------ |
-| Server data                  | RSC / Next.js route cache            |
-| Form state                   | react-hook-form                      |
-| Dialog and UI state          | `useState` in the owning component   |
-| Cross-component coordination | React context, scoped to the feature |
-| URL-derived state            | `useSearchParams` / `usePathname`    |
+| State kind                   | Location                                   |
+| ---------------------------- | ------------------------------------------ |
+| Server data                  | RSC / Next.js route cache                  |
+| Form state                   | react-hook-form                            |
+| Dialog and UI state          | `useState` in the owning component         |
+| Cross-component coordination | React context, scoped to the feature       |
+| URL-derived state            | `useSearchParams` / `usePathname`          |
+| Ephemeral gesture state      | Refs in a feature-scoped interaction store |
+
+Ephemeral gesture state is the shape a continuous direct-manipulation surface needs: the template
+editor's `useEditorInteraction` keeps in-flight geometry in refs, publishes it through a
+subscription, and writes each frame's transforms imperatively to registered DOM nodes, committing to
+the document store exactly once at `pointerup` as one undo entry — a per-frame document commit would
+be the defect, not the design. See [ADR-0024](adr/0024-template-editor-canvas.md) for the canvas
+engine.
 
 ### Design system
 
@@ -1566,6 +1588,7 @@ the standard template: **Context**, **Decision**, **Consequences**, **Alternativ
 | [0021](adr/0021-encryption-key-rotation.md)      | Encryption key rotation                                                     | Accepted |
 | [0022](adr/0022-pdf-rendering-engine.md)         | Headless-browser PDF rendering (Puppeteer/Playwright)                       | Accepted |
 | [0023](adr/0023-job-scheduling-bullmq-redis.md)  | Background jobs and scheduling via BullMQ + Redis                           | Accepted |
+| [0024](adr/0024-template-editor-canvas.md)       | Template editor — free collision-aware page-clamped canvas                  | Accepted |
 
 ---
 

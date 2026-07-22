@@ -1,0 +1,150 @@
+"use client"
+
+import { useState, useTransition } from "react"
+
+import { useRouter } from "next/navigation"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm, useWatch } from "react-hook-form"
+
+import { useTranslation } from "@/lib/i18n"
+
+import {
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  FormTextField,
+  Icon,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  Spinner,
+  toast
+} from "@/components/ui"
+
+import { TEMPLATE_TYPE_LABEL_KEYS } from "../labels"
+import { createTemplate } from "../mutations"
+import { createTemplateSchema, TEMPLATE_TYPES, type CreateTemplateValues } from "../schemas"
+
+type TemplateFormSheetProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+const TemplateFormSheet = ({ open, onOpenChange }: TemplateFormSheetProps) => {
+  const { t } = useTranslation()
+
+  const router = useRouter()
+
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isSaving, startSaving] = useTransition()
+
+  const form = useForm<CreateTemplateValues>({
+    resolver: zodResolver(createTemplateSchema),
+    mode: "onChange",
+    defaultValues: { name: "", type: "invoice", subject: "" }
+  })
+
+  const { isValid } = form.formState
+
+  const selectedType = useWatch({ control: form.control, name: "type" })
+
+  const showSubject = selectedType.startsWith("email_")
+
+  const onSubmit = (values: CreateTemplateValues) => {
+    if (!isValid) return
+
+    setServerError(null)
+
+    startSaving(async () => {
+      const result = await createTemplate(values)
+
+      if ("error" in result) {
+        setServerError(result.error)
+
+        return
+      }
+
+      toast.success(t("templates.actions.create"))
+      onOpenChange(false)
+      router.push(`/templates/${result.data.template.id}`)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full gap-0 sm:max-w-lg">
+        <SheetHeader className="border-border border-b">
+          <SheetTitle>{t("templates.create.title")}</SheetTitle>
+          <SheetDescription>{t("templates.create.description")}</SheetDescription>
+        </SheetHeader>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          noValidate
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="flex flex-col gap-4 p-4">
+            <FormTextField
+              control={form.control}
+              name="name"
+              label={t("templates.fields.name")}
+              placeholder={t("templates.fields.namePlaceholder")}
+              disabled={isSaving}
+            />
+            <Controller
+              name="type"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>{t("templates.fields.type")}</FieldLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={isSaving}>
+                    <SelectTrigger id={field.name} aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder={t("templates.fields.typePlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TEMPLATE_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {t(TEMPLATE_TYPE_LABEL_KEYS[type])}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            {showSubject ? (
+              <FormTextField
+                control={form.control}
+                name="subject"
+                label={t("templates.fields.subject")}
+                placeholder={t("templates.fields.subjectPlaceholder")}
+                disabled={isSaving}
+              />
+            ) : null}
+            {serverError ? <FieldError>{serverError}</FieldError> : null}
+          </div>
+          <SheetFooter className="border-border border-t">
+            <Button type="submit" disabled={isSaving || !isValid}>
+              {isSaving && <Spinner />}
+              <Icon name="Plus" aria-hidden="true" />
+              {t("templates.actions.create")}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+export { TemplateFormSheet }

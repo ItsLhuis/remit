@@ -1,0 +1,1 @@
+ALTER TABLE "templates" ADD COLUMN "page_settings" jsonb DEFAULT '{}'::jsonb NOT NULL;

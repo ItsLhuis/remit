@@ -76,6 +76,18 @@ function getUploadConfig(type: string): UploadConfig | null {
         uploadFailedError: t("settings.business.uploadUrlFailed"),
         objectKey: ({ ext }) => `logos/${randomUUID()}.${ext}`
       }
+    case "template-image":
+      return {
+        schema: buildImageUploadSchema({
+          filenameRequired: t("templates.validation.imageFilenameRequired"),
+          contentTypeRequired: t("templates.validation.imageContentTypeRequired"),
+          sizeInvalid: t("templates.validation.imageSizeInvalid"),
+          tooLarge: t("templates.validation.imageTooLarge")
+        }),
+        invalidTypeError: t("templates.validation.imageInvalidFileType"),
+        uploadFailedError: t("templates.validation.imageUploadUrlFailed"),
+        objectKey: ({ ext }) => `templates/${randomUUID()}.${ext}`
+      }
     default:
       return null
   }
