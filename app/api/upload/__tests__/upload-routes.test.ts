@@ -60,7 +60,7 @@ describe("avatar upload route", () => {
   })
 
   test("returns a presigned upload URL for an allowed avatar file", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", {
@@ -87,7 +87,7 @@ describe("avatar upload route", () => {
       "http://minio:9000/remit/avatars/user-1/photo.png?X-Amz-Signature=signed"
     )
 
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", {
@@ -106,7 +106,7 @@ describe("avatar upload route", () => {
   })
 
   test("rejects unsupported avatar file types without calling storage", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", {
@@ -126,7 +126,7 @@ describe("avatar upload route", () => {
   test("returns unauthorized when the request has no session", async () => {
     mocks.getSession.mockResolvedValueOnce(null)
 
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", {
@@ -143,7 +143,7 @@ describe("avatar upload route", () => {
   })
 
   test("returns bad request when the body is missing required fields", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", { filename: "photo.png" }),
@@ -159,7 +159,7 @@ describe("avatar upload route", () => {
   test("returns server error when storage presigning fails", async () => {
     mocks.getSignedUrl.mockRejectedValueOnce(new Error("S3 unreachable"))
 
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/avatar", {
@@ -186,7 +186,7 @@ describe("business logo upload route", () => {
   })
 
   test("returns a presigned upload URL for an allowed logo file", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/business-logo", {
@@ -207,7 +207,7 @@ describe("business logo upload route", () => {
   })
 
   test("rejects unsupported logo file types without calling storage", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/business-logo", {
@@ -227,7 +227,7 @@ describe("business logo upload route", () => {
   test("returns unauthorized when the request has no session", async () => {
     mocks.getSession.mockResolvedValueOnce(null)
 
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/business-logo", {
@@ -245,7 +245,7 @@ describe("business logo upload route", () => {
   })
 
   test("rejects a logo file that exceeds the size limit without calling storage", async () => {
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/business-logo", {
@@ -263,7 +263,7 @@ describe("business logo upload route", () => {
   test("returns server error when storage presigning fails", async () => {
     mocks.getSignedUrl.mockRejectedValueOnce(new Error("S3 unreachable"))
 
-    const { POST } = await import("./[type]/route")
+    const { POST } = await import("../[type]/route")
 
     const response = await POST(
       createRequest("https://remit.test/api/upload/business-logo", {

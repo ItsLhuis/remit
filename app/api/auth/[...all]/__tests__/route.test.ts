@@ -78,8 +78,8 @@ function createRequest(path: string, body?: Record<string, unknown>): NextReques
   })
 }
 
-async function importRoute(): Promise<typeof import("./route")> {
-  return await import("./route")
+async function importRoute(): Promise<typeof import("../route")> {
+  return await import("../route")
 }
 
 async function postToAuthRoute(path: string, body?: Record<string, unknown>): Promise<Response> {

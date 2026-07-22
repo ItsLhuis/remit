@@ -24,7 +24,7 @@ beforeEach(() => {
 test("returns ok and disables caching when the database is reachable", async () => {
   mocks.checkDatabaseConnectivity.mockResolvedValueOnce({ ok: true })
 
-  const { GET } = await import("./route")
+  const { GET } = await import("../route")
 
   const response = await GET()
   const body = (await response.json()) as { ok: boolean; version: string }
@@ -44,7 +44,7 @@ test("returns degraded and logs when the database is unreachable", async () => {
     error
   })
 
-  const { GET } = await import("./route")
+  const { GET } = await import("../route")
 
   const response = await GET()
   const body = (await response.json()) as { ok: boolean; reason: string }

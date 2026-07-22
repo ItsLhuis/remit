@@ -3,7 +3,7 @@ import { expect, test } from "vitest"
 import pkg from "@/package.json"
 
 test("returns ok when the integration database is reachable", async () => {
-  const { GET } = await import("./route")
+  const { GET } = await import("../route")
 
   const response = await GET()
   const body = (await response.json()) as { ok: boolean; version: string }
