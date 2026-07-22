@@ -42,6 +42,8 @@ type PaymentSettingsWriteContext = {
   userAgent: string | null
 }
 
+type PaymentSettingsWriteGate = { context: PaymentSettingsWriteContext } | { error: string }
+
 type PersistedPaymentSettings = {
   id: string
   paymentIban: string | null
@@ -71,15 +73,17 @@ const paymentSettingsReturnColumns = {
 } as const
 
 export async function savePaymentSettings(input: unknown): Promise<SavePaymentSettingsResult> {
+  const gate = await requirePaymentSettingsWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = paymentSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: PaymentSettingsWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requirePaymentSettingsWrite()
-
     const existing = await getPersistedPaymentSettings()
     const writePlan = buildPaymentSettingsWritePlan(parsed.data, existing)
 
@@ -98,22 +102,24 @@ export async function savePaymentSettings(input: unknown): Promise<SavePaymentSe
 
     return { data: { settings: toPaymentSettingsFormData(savedSettings) } }
   } catch (error) {
-    return handlePaymentSettingsError(error, "savePaymentSettings", context?.userId ?? null)
+    return handlePaymentSettingsError(error, "savePaymentSettings", context.userId)
   }
 }
 
 export async function testStripeConnection(
   input: unknown = {}
 ): Promise<TestStripeConnectionResult> {
+  const gate = await requirePaymentSettingsWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = testStripeConnectionSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: PaymentSettingsWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requirePaymentSettingsWrite()
-
     const existing = await getPersistedPaymentSettings()
 
     if (!existing?.stripePublishableKey || !existing.stripeSecretKey) {
@@ -153,7 +159,7 @@ export async function testStripeConnection(
       logger.error(
         {
           action: "testStripeConnection",
-          userId: context?.userId ?? null,
+          userId: context.userId,
           code: error.code,
           stripeErrorType: error.stripeErrorType
         },
@@ -163,25 +169,27 @@ export async function testStripeConnection(
       return { error: getStripeConnectionErrorMessage(error.code) }
     }
 
-    return handlePaymentSettingsError(error, "testStripeConnection", context?.userId ?? null)
+    return handlePaymentSettingsError(error, "testStripeConnection", context.userId)
   }
 }
 
-async function requirePaymentSettingsWrite(): Promise<PaymentSettingsWriteContext> {
+async function requirePaymentSettingsWrite(): Promise<PaymentSettingsWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedPaymentSettingsError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (role !== "owner") throw new ExpectedPaymentSettingsError(t("errors.forbidden"))
+  if (role !== "owner") return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

@@ -39,6 +39,8 @@ type TaxRatesWriteContext = {
   userAgent: string | null
 }
 
+type TaxRatesWriteGate = { context: TaxRatesWriteContext } | { error: string }
+
 type TaxRateAuditEvent =
   | "settings.taxRates.created"
   | "settings.taxRates.updated"
@@ -55,15 +57,17 @@ const taxRateReturnColumns = {
 } as const
 
 export async function createTaxRate(input: unknown): Promise<TaxRateWriteResult> {
+  const gate = await requireTaxRatesWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = createTaxRateSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaxRatesWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaxRatesWrite()
-
     const [createdTaxRate] = await database
       .insert(taxRates)
       .values({
@@ -82,20 +86,22 @@ export async function createTaxRate(input: unknown): Promise<TaxRateWriteResult>
 
     return { data: { taxRate: toTaxRateListItem(createdTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "createTaxRate", context?.userId ?? null)
+    return handleTaxRateActionError(error, "createTaxRate", context.userId)
   }
 }
 
 export async function updateTaxRate(input: unknown): Promise<TaxRateWriteResult> {
+  const gate = await requireTaxRatesWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateTaxRateSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaxRatesWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaxRatesWrite()
-
     const [updatedTaxRate] = await database
       .update(taxRates)
       .set({
@@ -115,20 +121,22 @@ export async function updateTaxRate(input: unknown): Promise<TaxRateWriteResult>
 
     return { data: { taxRate: toTaxRateListItem(updatedTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "updateTaxRate", context?.userId ?? null)
+    return handleTaxRateActionError(error, "updateTaxRate", context.userId)
   }
 }
 
 export async function setDefaultTaxRate(input: unknown): Promise<TaxRateWriteResult> {
+  const gate = await requireTaxRatesWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = taxRateIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaxRatesWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaxRatesWrite()
-
     const defaultTaxRate = await database.transaction(async (transaction) => {
       await transaction
         .update(taxRates)
@@ -154,20 +162,22 @@ export async function setDefaultTaxRate(input: unknown): Promise<TaxRateWriteRes
 
     return { data: { taxRate: toTaxRateListItem(defaultTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "setDefaultTaxRate", context?.userId ?? null)
+    return handleTaxRateActionError(error, "setDefaultTaxRate", context.userId)
   }
 }
 
 export async function deleteTaxRate(input: unknown): Promise<DeleteTaxRateResult> {
+  const gate = await requireTaxRatesWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = taxRateIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaxRatesWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaxRatesWrite()
-
     const [deletedTaxRate] = await database
       .update(taxRates)
       .set({ deletedAt: new Date(), isDefault: false })
@@ -184,25 +194,27 @@ export async function deleteTaxRate(input: unknown): Promise<DeleteTaxRateResult
 
     return { data: { id: deletedTaxRate.id } }
   } catch (error) {
-    return handleTaxRateActionError(error, "deleteTaxRate", context?.userId ?? null)
+    return handleTaxRateActionError(error, "deleteTaxRate", context.userId)
   }
 }
 
-async function requireTaxRatesWrite(): Promise<TaxRatesWriteContext> {
+async function requireTaxRatesWrite(): Promise<TaxRatesWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedTaxRateError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (role !== "owner") throw new ExpectedTaxRateError(t("errors.forbidden"))
+  if (role !== "owner") return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

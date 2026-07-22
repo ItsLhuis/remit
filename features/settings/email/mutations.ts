@@ -37,6 +37,8 @@ type EmailSettingsWriteContext = {
   userAgent: string | null
 }
 
+type EmailSettingsWriteGate = { context: EmailSettingsWriteContext } | { error: string }
+
 type PersistedEmailSettings = {
   id: string
   businessName: string | null
@@ -89,15 +91,17 @@ const emailDeliveryErrorCodes = [
 type EmailDeliveryErrorCode = (typeof emailDeliveryErrorCodes)[number]
 
 export async function saveEmailSettings(input: unknown): Promise<SaveEmailSettingsResult> {
+  const gate = await requireEmailSettingsWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = emailSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: EmailSettingsWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireEmailSettingsWrite()
-
     const existing = await getPersistedEmailSettings()
     const writePlan = buildEmailSettingsWritePlan(parsed.data, existing)
     const savedSettings = await upsertEmailSettings(writePlan.values, existing)
@@ -111,20 +115,22 @@ export async function saveEmailSettings(input: unknown): Promise<SaveEmailSettin
 
     return { data: { settings: toEmailSettingsFormData(savedSettings) } }
   } catch (error) {
-    return handleEmailSettingsError(error, "saveEmailSettings", context?.userId ?? null)
+    return handleEmailSettingsError(error, "saveEmailSettings", context.userId)
   }
 }
 
 export async function sendEmailSettingsTest(input: unknown): Promise<SendEmailSettingsTestResult> {
+  const gate = await requireEmailSettingsWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = testEmailSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: EmailSettingsWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireEmailSettingsWrite()
-
     const existing = await getPersistedEmailSettings()
 
     if (!existing?.emailProvider) {
@@ -162,7 +168,7 @@ export async function sendEmailSettingsTest(input: unknown): Promise<SendEmailSe
       logger.error(
         {
           action: "sendEmailSettingsTest",
-          userId: context?.userId ?? null,
+          userId: context.userId,
           code: deliveryCode,
           err: error
         },
@@ -172,26 +178,28 @@ export async function sendEmailSettingsTest(input: unknown): Promise<SendEmailSe
       return { error: getEmailDeliveryErrorMessage(deliveryCode) }
     }
 
-    return handleEmailSettingsError(error, "sendEmailSettingsTest", context?.userId ?? null)
+    return handleEmailSettingsError(error, "sendEmailSettingsTest", context.userId)
   }
 }
 
-async function requireEmailSettingsWrite(): Promise<EmailSettingsWriteContext> {
+async function requireEmailSettingsWrite(): Promise<EmailSettingsWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedEmailSettingsError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (role !== "owner") throw new ExpectedEmailSettingsError(t("errors.forbidden"))
+  if (role !== "owner") return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    userEmail: session.user.email,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      userEmail: session.user.email,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

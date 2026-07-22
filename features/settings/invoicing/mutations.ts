@@ -34,6 +34,8 @@ type InvoicingSettingsWriteContext = {
   userAgent: string | null
 }
 
+type InvoicingSettingsWriteGate = { context: InvoicingSettingsWriteContext } | { error: string }
+
 type PersistedInvoicingSettings = {
   id: string
   invoicePrefix: string
@@ -60,15 +62,17 @@ const invoicingSettingsReturnColumns = {
 } as const
 
 export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoicingSettingsResult> {
+  const gate = await requireInvoicingSettingsWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = invoicingSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: InvoicingSettingsWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireInvoicingSettingsWrite()
-
     const existing = await getPersistedInvoicingSettings()
 
     if (existing && parsed.data.nextInvoiceNumber < existing.nextInvoiceNumber) {
@@ -90,25 +94,27 @@ export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoici
 
     return { data: { settings: toInvoicingSettingsFormData(savedSettings) } }
   } catch (error) {
-    return handleInvoicingSettingsError(error, "saveInvoicingSettings", context?.userId ?? null)
+    return handleInvoicingSettingsError(error, "saveInvoicingSettings", context.userId)
   }
 }
 
-async function requireInvoicingSettingsWrite(): Promise<InvoicingSettingsWriteContext> {
+async function requireInvoicingSettingsWrite(): Promise<InvoicingSettingsWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedInvoicingSettingsError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (role !== "owner") throw new ExpectedInvoicingSettingsError(t("errors.forbidden"))
+  if (role !== "owner") return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

@@ -55,6 +55,8 @@ type LeadWriteContext = {
   userAgent: string | null
 }
 
+type LeadWriteGate = { context: LeadWriteContext } | { error: string }
+
 type LeadAuditEvent =
   | "lead.created"
   | "lead.updated"
@@ -76,15 +78,17 @@ const auditFields = [
 ] as const satisfies readonly LeadAuditField[]
 
 export async function createLead(input: unknown): Promise<LeadMutationResult> {
+  const gate = await requireLeadWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = createLeadSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: LeadWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireLeadWrite()
-
     const [createdLead] = await database
       .insert(leads)
       .values({ ...toLeadProfileValues(parsed.data), status: parsed.data.status })
@@ -104,20 +108,22 @@ export async function createLead(input: unknown): Promise<LeadMutationResult> {
 
     return { data: { lead: toLeadFormData(createdLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "createLead", context?.userId ?? null)
+    return handleLeadActionError(error, "createLead", context.userId)
   }
 }
 
 export async function updateLead(input: unknown): Promise<LeadMutationResult> {
+  const gate = await requireLeadWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateLeadSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: LeadWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireLeadWrite()
-
     const existingLead = await database.query.leads.findFirst({
       where: and(eq(leads.id, parsed.data.id), isNull(leads.deletedAt))
     })
@@ -142,20 +148,22 @@ export async function updateLead(input: unknown): Promise<LeadMutationResult> {
 
     return { data: { lead: toLeadFormData(updatedLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "updateLead", context?.userId ?? null, parsed.data.id)
+    return handleLeadActionError(error, "updateLead", context.userId, parsed.data.id)
   }
 }
 
 export async function updateLeadStatus(input: unknown): Promise<LeadMutationResult> {
+  const gate = await requireLeadWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateLeadStatusSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: LeadWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireLeadWrite()
-
     const existingLead = await database.query.leads.findFirst({
       where: and(eq(leads.id, parsed.data.id), isNull(leads.deletedAt))
     })
@@ -192,20 +200,22 @@ export async function updateLeadStatus(input: unknown): Promise<LeadMutationResu
 
     return { data: { lead: toLeadFormData(updatedLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "updateLeadStatus", context?.userId ?? null, parsed.data.id)
+    return handleLeadActionError(error, "updateLeadStatus", context.userId, parsed.data.id)
   }
 }
 
 export async function convertLeadToClient(input: unknown): Promise<ConvertLeadResult> {
+  const gate = await requireLeadWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = convertLeadSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: LeadWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireLeadWrite()
-
     const existingLead = await database.query.leads.findFirst({
       where: and(eq(leads.id, parsed.data.id), isNull(leads.deletedAt))
     })
@@ -253,25 +263,22 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
 
     return { data: { clientId } }
   } catch (error) {
-    return handleLeadActionError(
-      error,
-      "convertLeadToClient",
-      context?.userId ?? null,
-      parsed.data.id
-    )
+    return handleLeadActionError(error, "convertLeadToClient", context.userId, parsed.data.id)
   }
 }
 
 export async function softDeleteLead(input: unknown): Promise<DeleteLeadResult> {
+  const gate = await requireLeadDelete()
+
+  if ("error" in gate) return gate
+
   const parsed = leadIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: LeadWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireLeadDelete()
-
     const [deletedLead] = await database
       .update(leads)
       .set({ deletedAt: new Date() })
@@ -288,43 +295,49 @@ export async function softDeleteLead(input: unknown): Promise<DeleteLeadResult> 
 
     return { data: { id: deletedLead.id } }
   } catch (error) {
-    return handleLeadActionError(error, "softDeleteLead", context?.userId ?? null, parsed.data.id)
+    return handleLeadActionError(error, "softDeleteLead", context.userId, parsed.data.id)
   }
 }
 
-async function requireLeadWrite(): Promise<LeadWriteContext> {
-  const context = await getLeadActionContext()
+async function requireLeadWrite(): Promise<LeadWriteGate> {
+  const gate = await getLeadActionContext()
 
-  if (context.role !== "owner" && context.role !== "assistant") {
-    throw new ExpectedLeadError(t("errors.forbidden"))
+  if ("error" in gate) return gate
+
+  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
+    return { error: t("errors.forbidden") }
   }
 
-  return context
+  return gate
 }
 
-async function requireLeadDelete(): Promise<LeadWriteContext> {
-  const context = await getLeadActionContext()
+async function requireLeadDelete(): Promise<LeadWriteGate> {
+  const gate = await getLeadActionContext()
 
-  if (context.role !== "owner") throw new ExpectedLeadError(t("errors.forbidden"))
+  if ("error" in gate) return gate
 
-  return context
+  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
+
+  return gate
 }
 
-async function getLeadActionContext(): Promise<LeadWriteContext> {
+async function getLeadActionContext(): Promise<LeadWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedLeadError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (!isRole(role)) throw new ExpectedLeadError(t("errors.forbidden"))
+  if (!isRole(role)) return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

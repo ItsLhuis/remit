@@ -45,6 +45,8 @@ type TaskWriteContext = {
   userAgent: string | null
 }
 
+type TaskWriteGate = { context: TaskWriteContext } | { error: string }
+
 type TaskAuditEvent = "task.created" | "task.updated" | "task.deleted" | "task.status_changed"
 
 type TaskWriteValues = {
@@ -66,15 +68,17 @@ const AUDIT_FIELDS = [
 ] as const
 
 export async function createTask(input: unknown): Promise<TaskMutationResult> {
+  const gate = await requireTaskWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = createTaskSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaskWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaskWrite()
-
     const project = await database.query.projects.findFirst({
       where: and(eq(projects.id, parsed.data.projectId), isNull(projects.deletedAt)),
       columns: { id: true }
@@ -112,20 +116,22 @@ export async function createTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(createdTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "createTask", context?.userId ?? null)
+    return handleTaskActionError(error, "createTask", context.userId)
   }
 }
 
 export async function updateTask(input: unknown): Promise<TaskMutationResult> {
+  const gate = await requireTaskWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateTaskSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaskWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaskWrite()
-
     const existing = await database.query.tasks.findFirst({
       where: and(eq(tasks.id, parsed.data.id), isNull(tasks.deletedAt))
     })
@@ -168,20 +174,22 @@ export async function updateTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(updatedTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "updateTask", context?.userId ?? null, parsed.data.id)
+    return handleTaskActionError(error, "updateTask", context.userId, parsed.data.id)
   }
 }
 
 export async function updateTaskStatus(input: unknown): Promise<TaskMutationResult> {
+  const gate = await requireTaskWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateTaskStatusSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaskWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaskWrite()
-
     const existing = await database.query.tasks.findFirst({
       where: and(eq(tasks.id, parsed.data.id), isNull(tasks.deletedAt))
     })
@@ -223,20 +231,22 @@ export async function updateTaskStatus(input: unknown): Promise<TaskMutationResu
 
     return await loadTaskResult(updatedTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "updateTaskStatus", context?.userId ?? null, parsed.data.id)
+    return handleTaskActionError(error, "updateTaskStatus", context.userId, parsed.data.id)
   }
 }
 
 export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
+  const gate = await requireTaskWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = reorderTaskSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaskWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaskWrite()
-
     const existing = await database.query.tasks.findFirst({
       where: and(eq(tasks.id, parsed.data.id), isNull(tasks.deletedAt))
     })
@@ -287,20 +297,22 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(existing.id)
   } catch (error) {
-    return handleTaskActionError(error, "reorderTask", context?.userId ?? null, parsed.data.id)
+    return handleTaskActionError(error, "reorderTask", context.userId, parsed.data.id)
   }
 }
 
 export async function softDeleteTask(input: unknown): Promise<DeleteTaskResult> {
+  const gate = await requireTaskDelete()
+
+  if ("error" in gate) return gate
+
   const parsed = taskIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: TaskWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireTaskDelete()
-
     const [deletedTask] = await database
       .update(tasks)
       .set({ deletedAt: new Date() })
@@ -323,7 +335,7 @@ export async function softDeleteTask(input: unknown): Promise<DeleteTaskResult> 
 
     return { data: { id: deletedTask.id } }
   } catch (error) {
-    return handleTaskActionError(error, "softDeleteTask", context?.userId ?? null, parsed.data.id)
+    return handleTaskActionError(error, "softDeleteTask", context.userId, parsed.data.id)
   }
 }
 
@@ -347,39 +359,45 @@ async function loadTaskResult(taskId: string): Promise<TaskMutationResult> {
   return { data: { task } }
 }
 
-async function requireTaskWrite(): Promise<TaskWriteContext> {
-  const context = await getTaskActionContext()
+async function requireTaskWrite(): Promise<TaskWriteGate> {
+  const gate = await getTaskActionContext()
 
-  if (context.role !== "owner" && context.role !== "assistant") {
-    throw new ExpectedTaskError(t("errors.forbidden"))
+  if ("error" in gate) return gate
+
+  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
+    return { error: t("errors.forbidden") }
   }
 
-  return context
+  return gate
 }
 
-async function requireTaskDelete(): Promise<TaskWriteContext> {
-  const context = await getTaskActionContext()
+async function requireTaskDelete(): Promise<TaskWriteGate> {
+  const gate = await getTaskActionContext()
 
-  if (context.role !== "owner") throw new ExpectedTaskError(t("errors.forbidden"))
+  if ("error" in gate) return gate
 
-  return context
+  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
+
+  return gate
 }
 
-async function getTaskActionContext(): Promise<TaskWriteContext> {
+async function getTaskActionContext(): Promise<TaskWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedTaskError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (!isRole(role)) throw new ExpectedTaskError(t("errors.forbidden"))
+  if (!isRole(role)) return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

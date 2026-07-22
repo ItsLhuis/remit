@@ -33,17 +33,19 @@ import {
 export async function saveBusinessProfileSettings(
   input: unknown
 ): Promise<{ data: { settings: BusinessProfileSettingsValues } } | { error: string }> {
+  const gate = await requireBusinessSettingsWrite("saveBusinessProfileSettings")
+
+  if ("error" in gate) return gate
+
   const parsed = businessProfileSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   try {
-    const context = await requireBusinessSettingsWrite("saveBusinessProfileSettings")
-
     await upsertSettings(toBusinessProfileWrite(parsed.data))
 
     await mirrorBusinessOrganization({
-      headers: context.headers,
+      headers: gate.context.headers,
       data: { name: parsed.data.businessName }
     })
   } catch (error) {
@@ -60,12 +62,15 @@ export async function saveBusinessProfileSettings(
 export async function saveRegionalDefaultsSettings(
   input: unknown
 ): Promise<{ data: { settings: RegionalDefaultsSettingsValues } } | { error: string }> {
+  const gate = await requireBusinessSettingsWrite("saveRegionalDefaultsSettings")
+
+  if ("error" in gate) return gate
+
   const parsed = regionalDefaultsSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   try {
-    await requireBusinessSettingsWrite("saveRegionalDefaultsSettings")
     await upsertSettings(parsed.data)
   } catch (error) {
     return handleSettingsWriteError(error, "saveRegionalDefaultsSettings")
@@ -79,12 +84,15 @@ export async function saveRegionalDefaultsSettings(
 export async function saveTaxDetailsSettings(
   input: unknown
 ): Promise<{ data: { settings: TaxDetailsSettingsValues } } | { error: string }> {
+  const gate = await requireBusinessSettingsWrite("saveTaxDetailsSettings")
+
+  if ("error" in gate) return gate
+
   const parsed = taxDetailsSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   try {
-    await requireBusinessSettingsWrite("saveTaxDetailsSettings")
     await upsertSettings(toTaxDetailsWrite(parsed.data))
   } catch (error) {
     return handleSettingsWriteError(error, "saveTaxDetailsSettings")
@@ -98,12 +106,15 @@ export async function saveTaxDetailsSettings(
 export async function saveBusinessAddressSettings(
   input: unknown
 ): Promise<{ data: { settings: BusinessAddressSettingsValues } } | { error: string }> {
+  const gate = await requireBusinessSettingsWrite("saveBusinessAddressSettings")
+
+  if ("error" in gate) return gate
+
   const parsed = businessAddressSettingsSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   try {
-    await requireBusinessSettingsWrite("saveBusinessAddressSettings")
     await upsertSettings(toBusinessAddressWrite(parsed.data))
   } catch (error) {
     return handleSettingsWriteError(error, "saveBusinessAddressSettings")
@@ -117,10 +128,6 @@ export async function saveBusinessAddressSettings(
 export async function confirmBusinessLogoUpload(
   input: unknown
 ): Promise<{ data: { storageKey: string } } | { error: string }> {
-  const parsed = confirmBusinessLogoUploadSchema.safeParse(input)
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
   const requestHeaders = await headers()
   const session = await auth.api.getSession({
     headers: requestHeaders,
@@ -132,6 +139,10 @@ export async function confirmBusinessLogoUpload(
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
   if (role !== "owner") return { error: t("errors.forbidden") }
+
+  const parsed = confirmBusinessLogoUploadSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   let existingSettingsId: string | null = null
   let oldLogoUploadId: string | null = null
@@ -387,19 +398,21 @@ type BusinessSettingsWriteContext = {
   userId: string
 }
 
-async function requireBusinessSettingsWrite(action: string): Promise<BusinessSettingsWriteContext> {
+type BusinessSettingsWriteGate = { context: BusinessSettingsWriteContext } | { error: string }
+
+async function requireBusinessSettingsWrite(action: string): Promise<BusinessSettingsWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedSettingsWriteError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (role !== "owner") throw new ExpectedSettingsWriteError(t("errors.forbidden"))
+  if (role !== "owner") return { error: t("errors.forbidden") }
 
   void action
 
-  return { headers: requestHeaders, userId: session.user.id }
+  return { context: { headers: requestHeaders, userId: session.user.id } }
 }
 
 async function upsertSettings(values: typeof settings.$inferInsert): Promise<void> {

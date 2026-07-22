@@ -41,6 +41,8 @@ type ClientWriteContext = {
   userAgent: string | null
 }
 
+type ClientWriteGate = { context: ClientWriteContext } | { error: string }
+
 type ClientAuditEvent = "client.created" | "client.updated" | "client.deleted"
 
 type ClientAuditField =
@@ -97,15 +99,17 @@ const auditFields = [
 ] as const satisfies readonly ClientAuditField[]
 
 export async function createClient(input: unknown): Promise<ClientMutationResult> {
+  const gate = await requireClientWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = createClientSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ClientWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireClientWrite()
-
     const [createdClient] = await database
       .insert(clients)
       .values(toClientWriteValues(parsed.data))
@@ -122,20 +126,22 @@ export async function createClient(input: unknown): Promise<ClientMutationResult
 
     return { data: { client: toClientFormData(createdClient) } }
   } catch (error) {
-    return handleClientActionError(error, "createClient", context?.userId ?? null)
+    return handleClientActionError(error, "createClient", context.userId)
   }
 }
 
 export async function updateClient(input: unknown): Promise<ClientMutationResult> {
+  const gate = await requireClientWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateClientSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ClientWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireClientWrite()
-
     const existingClient = await database.query.clients.findFirst({
       where: and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt))
     })
@@ -164,20 +170,22 @@ export async function updateClient(input: unknown): Promise<ClientMutationResult
 
     return { data: { client: toClientFormData(updatedClient) } }
   } catch (error) {
-    return handleClientActionError(error, "updateClient", context?.userId ?? null, parsed.data.id)
+    return handleClientActionError(error, "updateClient", context.userId, parsed.data.id)
   }
 }
 
 export async function softDeleteClient(input: unknown): Promise<DeleteClientResult> {
+  const gate = await requireClientDelete()
+
+  if ("error" in gate) return gate
+
   const parsed = clientIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ClientWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireClientDelete()
-
     const [deletedClient] = await database
       .update(clients)
       .set({ deletedAt: new Date() })
@@ -194,48 +202,49 @@ export async function softDeleteClient(input: unknown): Promise<DeleteClientResu
 
     return { data: { id: deletedClient.id } }
   } catch (error) {
-    return handleClientActionError(
-      error,
-      "softDeleteClient",
-      context?.userId ?? null,
-      parsed.data.id
-    )
+    return handleClientActionError(error, "softDeleteClient", context.userId, parsed.data.id)
   }
 }
 
-async function requireClientWrite(): Promise<ClientWriteContext> {
-  const context = await getClientActionContext()
+async function requireClientWrite(): Promise<ClientWriteGate> {
+  const gate = await getClientActionContext()
 
-  if (context.role !== "owner" && context.role !== "assistant") {
-    throw new ExpectedClientError(t("errors.forbidden"))
+  if ("error" in gate) return gate
+
+  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
+    return { error: t("errors.forbidden") }
   }
 
-  return context
+  return gate
 }
 
-async function requireClientDelete(): Promise<ClientWriteContext> {
-  const context = await getClientActionContext()
+async function requireClientDelete(): Promise<ClientWriteGate> {
+  const gate = await getClientActionContext()
 
-  if (context.role !== "owner") throw new ExpectedClientError(t("errors.forbidden"))
+  if ("error" in gate) return gate
 
-  return context
+  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
+
+  return gate
 }
 
-async function getClientActionContext(): Promise<ClientWriteContext> {
+async function getClientActionContext(): Promise<ClientWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedClientError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (!isRole(role)) throw new ExpectedClientError(t("errors.forbidden"))
+  if (!isRole(role)) return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

@@ -51,6 +51,8 @@ type ProjectWriteContext = {
   userAgent: string | null
 }
 
+type ProjectWriteGate = { context: ProjectWriteContext } | { error: string }
+
 type ProjectAuditEvent =
   | "project.created"
   | "project.updated"
@@ -80,15 +82,17 @@ const AUDIT_FIELDS = [
 const projectsPath = "/projects"
 
 export async function createProject(input: unknown): Promise<ProjectMutationResult> {
+  const gate = await requireProjectWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = createProjectSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ProjectWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireProjectWrite()
-
     const client = await getClient({ id: parsed.data.clientId })
 
     if (!client) throw new ExpectedProjectError(t("projects.errors.clientNotFound"))
@@ -113,20 +117,22 @@ export async function createProject(input: unknown): Promise<ProjectMutationResu
 
     return await loadProjectResult(createdProject.id)
   } catch (error) {
-    return handleProjectActionError(error, "createProject", context?.userId ?? null)
+    return handleProjectActionError(error, "createProject", context.userId)
   }
 }
 
 export async function updateProject(input: unknown): Promise<ProjectMutationResult> {
+  const gate = await requireProjectWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateProjectSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ProjectWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireProjectWrite()
-
     const existingProject = await database.query.projects.findFirst({
       where: and(eq(projects.id, parsed.data.id), isNull(projects.deletedAt))
     })
@@ -162,20 +168,22 @@ export async function updateProject(input: unknown): Promise<ProjectMutationResu
 
     return await loadProjectResult(updatedProject.id)
   } catch (error) {
-    return handleProjectActionError(error, "updateProject", context?.userId ?? null, parsed.data.id)
+    return handleProjectActionError(error, "updateProject", context.userId, parsed.data.id)
   }
 }
 
 export async function updateProjectStatus(input: unknown): Promise<ProjectMutationResult> {
+  const gate = await requireProjectWrite()
+
+  if ("error" in gate) return gate
+
   const parsed = updateProjectStatusSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ProjectWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireProjectWrite()
-
     const existingProject = await database.query.projects.findFirst({
       where: and(eq(projects.id, parsed.data.id), isNull(projects.deletedAt))
     })
@@ -210,25 +218,22 @@ export async function updateProjectStatus(input: unknown): Promise<ProjectMutati
 
     return await loadProjectResult(updatedProject.id)
   } catch (error) {
-    return handleProjectActionError(
-      error,
-      "updateProjectStatus",
-      context?.userId ?? null,
-      parsed.data.id
-    )
+    return handleProjectActionError(error, "updateProjectStatus", context.userId, parsed.data.id)
   }
 }
 
 export async function softDeleteProject(input: unknown): Promise<DeleteProjectResult> {
+  const gate = await requireProjectDelete()
+
+  if ("error" in gate) return gate
+
   const parsed = projectIdSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  let context: ProjectWriteContext | null = null
+  const { context } = gate
 
   try {
-    context = await requireProjectDelete()
-
     const [deletedProject] = await database
       .update(projects)
       .set({ deletedAt: new Date() })
@@ -246,12 +251,7 @@ export async function softDeleteProject(input: unknown): Promise<DeleteProjectRe
 
     return { data: { id: deletedProject.id } }
   } catch (error) {
-    return handleProjectActionError(
-      error,
-      "softDeleteProject",
-      context?.userId ?? null,
-      parsed.data.id
-    )
+    return handleProjectActionError(error, "softDeleteProject", context.userId, parsed.data.id)
   }
 }
 
@@ -263,39 +263,45 @@ async function loadProjectResult(projectId: string): Promise<ProjectMutationResu
   return { data: { project } }
 }
 
-async function requireProjectWrite(): Promise<ProjectWriteContext> {
-  const context = await getProjectActionContext()
+async function requireProjectWrite(): Promise<ProjectWriteGate> {
+  const gate = await getProjectActionContext()
 
-  if (context.role !== "owner" && context.role !== "assistant") {
-    throw new ExpectedProjectError(t("errors.forbidden"))
+  if ("error" in gate) return gate
+
+  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
+    return { error: t("errors.forbidden") }
   }
 
-  return context
+  return gate
 }
 
-async function requireProjectDelete(): Promise<ProjectWriteContext> {
-  const context = await getProjectActionContext()
+async function requireProjectDelete(): Promise<ProjectWriteGate> {
+  const gate = await getProjectActionContext()
 
-  if (context.role !== "owner") throw new ExpectedProjectError(t("errors.forbidden"))
+  if ("error" in gate) return gate
 
-  return context
+  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
+
+  return gate
 }
 
-async function getProjectActionContext(): Promise<ProjectWriteContext> {
+async function getProjectActionContext(): Promise<ProjectWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })
 
-  if (!session) throw new ExpectedProjectError(t("errors.unauthorized"))
+  if (!session) return { error: t("errors.unauthorized") }
 
   const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-  if (!isRole(role)) throw new ExpectedProjectError(t("errors.forbidden"))
+  if (!isRole(role)) return { error: t("errors.forbidden") }
 
   return {
-    userId: session.user.id,
-    role,
-    ipAddress: getIpAddress(requestHeaders),
-    userAgent: requestHeaders.get("user-agent")
+    context: {
+      userId: session.user.id,
+      role,
+      ipAddress: getIpAddress(requestHeaders),
+      userAgent: requestHeaders.get("user-agent")
+    }
   }
 }
 

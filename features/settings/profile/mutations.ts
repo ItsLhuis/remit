@@ -20,20 +20,22 @@ import { uploads } from "@/database/schema"
 
 import { changeEmailSchema, confirmAvatarUploadSchema } from "./schemas"
 
-// auth is enforced by auth.api.changeEmail() below, which requires an authenticated Better Auth
-// session and throws UNAUTHORIZED otherwise. The gate is a member-expression API call, not a named
-// function, so serverAuthFunctionNames cannot match it; single instance, no config class.
-// react-doctor-disable-next-line server-auth-actions
 export async function changeEmailAddress(
   input: unknown
 ): Promise<{ data: { pendingVerification: true } } | { error: string }> {
+  const requestHeaders = await headers()
+
+  const session = await auth.api.getSession({ headers: requestHeaders })
+
+  if (!session) return { error: t("settings.profile.errors.unauthorized") }
+
   const parsed = changeEmailSchema.safeParse(input)
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   try {
     await auth.api.changeEmail({
-      headers: await headers(),
+      headers: requestHeaders,
       body: {
         newEmail: parsed.data.email,
         callbackURL: new URL("/settings/profile", env.BETTER_AUTH_URL).toString()
@@ -54,10 +56,6 @@ export async function changeEmailAddress(
 export async function confirmAvatarUpload(
   input: unknown
 ): Promise<{ data: { storageKey: string } } | { error: string }> {
-  const parsed = confirmAvatarUploadSchema.safeParse(input)
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
   const requestHeaders = await headers()
 
   const session = await auth.api.getSession({
@@ -66,6 +64,10 @@ export async function confirmAvatarUpload(
   })
 
   if (!session) return { error: t("settings.profile.errors.unauthorized") }
+
+  const parsed = confirmAvatarUploadSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const oldKey = session.user.image
 
