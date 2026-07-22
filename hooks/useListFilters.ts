@@ -7,7 +7,8 @@ import { debounce, parseAsInteger, parseAsString, parseAsStringLiteral, useQuery
 export function useListFilters<TStatus extends string>(
   statusValues: readonly TStatus[],
   defaultStatus: TStatus,
-  startTransition: TransitionStartFunction
+  startTransition: TransitionStartFunction,
+  statusKey = "status"
 ) {
   const sharedOptions = { shallow: false as const, startTransition }
 
@@ -22,7 +23,7 @@ export function useListFilters<TStatus extends string>(
   )
 
   const [status, setStatusValue] = useQueryState(
-    "status",
+    statusKey,
     parseAsStringLiteral(statusValues).withDefault(defaultStatus).withOptions(sharedOptions)
   )
 

@@ -11,9 +11,11 @@ export function exportTableToCsv<TData>(
 ): void {
   const { filename = "export", excludeColumns = [] } = options
 
+  const excludedColumnIds = new Set(excludeColumns)
+
   const columns = table
     .getVisibleLeafColumns()
-    .filter((column) => column.accessorFn !== undefined && !excludeColumns.includes(column.id))
+    .filter((column) => column.accessorFn !== undefined && !excludedColumnIds.has(column.id))
 
   const headers = columns.map((column) => column.columnDef.meta?.label ?? column.id)
 

@@ -38,8 +38,8 @@ Imports follow this group order, each group its own paragraph separated by a bla
 2. React (`react`), after the directive.
 3. Next core (`next/cache`, `next/headers`, `next/navigation`, `next/server`) — each its own
    paragraph.
-4. Node builtins (`node:crypto`, `node:path`, `fs`, …) as one paragraph, separated from external npm
-   packages.
+4. Node builtins (`node:crypto`, `node:path`, `fs`, ...) as one paragraph, separated from external
+   npm packages.
 5. External npm packages, **one paragraph per package origin** — the scope for `@scope/x`, the bare
    package name otherwise. Same-origin imports stay together (`@aws-sdk/client-s3` +
    `@aws-sdk/s3-request-presigner`); different origins are separated by a blank line. The form triad

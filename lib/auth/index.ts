@@ -8,6 +8,8 @@ import {
 } from "better-auth/plugins"
 import { defaultAc, ownerAc } from "better-auth/plugins/organization/access"
 
+import { escapeHtml } from "@/lib/utils"
+
 import { env } from "@/lib/config/env"
 
 import { database } from "@/database"
@@ -138,15 +140,6 @@ async function sendAuthLinkEmail({ to, subject, intro, cta, url }: AuthLinkEmail
       "<p>If you did not request this, you can ignore this email.</p>"
     ].join("\n")
   })
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
 }
 
 export type Session = typeof auth.$Infer.Session

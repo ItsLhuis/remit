@@ -2,7 +2,17 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-import { DEFAULT_PAGE_SIZE, isSafeHttpUrl, MAX_PAGE_SIZE } from "@/lib/utils"
+import {
+  isSafeHttpUrl,
+  readArrayParam,
+  readDateAt,
+  readIntParam,
+  readNumberAt,
+  readSortParam,
+  readStringParam,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE
+} from "@/lib/utils"
 
 const CLIENT_NAME_MAX_LENGTH = 160
 const CLIENT_EMAIL_MAX_LENGTH = 320
@@ -139,72 +149,6 @@ export function parseClientListQuery(input: unknown): ClientListQuery {
     joinedTo: readDateAt(joined, 1),
     page: readIntParam(input, "page", 1),
     perPage: readIntParam(input, "perPage", DEFAULT_PAGE_SIZE),
-    sort: readSortParam(input)
+    sort: readSortParam(input, [{ id: "name", desc: false }])
   })
-}
-
-function readStringParam(input: unknown, key: string): string {
-  if (input instanceof URLSearchParams) return input.get(key) ?? ""
-
-  if (typeof input !== "object" || input === null) return ""
-
-  const value = (input as Record<string, unknown>)[key]
-
-  if (Array.isArray(value)) {
-    const first = value[0]
-
-    return typeof first === "string" ? first : ""
-  }
-
-  return typeof value === "string" ? value : ""
-}
-
-function readArrayParam(input: unknown, key: string): string[] {
-  const raw = readStringParam(input, key)
-
-  if (!raw) return []
-
-  return raw.split(",").flatMap((value) => {
-    const trimmed = value.trim()
-
-    return trimmed ? [trimmed] : []
-  })
-}
-
-function readIntParam(input: unknown, key: string, fallback: number): number {
-  const parsed = Number.parseInt(readStringParam(input, key), 10)
-
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-}
-
-function readNumberAt(values: string[], index: number): number | null {
-  const raw = values[index]
-
-  if (raw === undefined || raw === "") return null
-
-  const parsed = Number.parseInt(raw, 10)
-
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function readDateAt(values: string[], index: number): Date | null {
-  const raw = values[index]
-
-  if (raw === undefined || raw === "") return null
-
-  const parsed = Number.parseInt(raw, 10)
-
-  return Number.isFinite(parsed) ? new Date(parsed) : null
-}
-
-function readSortParam(input: unknown): unknown {
-  const raw = readStringParam(input, "sort")
-
-  if (!raw) return [{ id: "name", desc: false }]
-
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return [{ id: "name", desc: false }]
-  }
 }
