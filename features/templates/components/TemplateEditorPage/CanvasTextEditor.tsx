@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 
 import { useTranslation } from "@/lib/i18n"
 
+import { announce } from "../../engine"
 import { BLOCK_LABEL_KEYS, MERGE_VARIABLE_LABEL_KEYS } from "../../labels"
 import { TEXT_HTML_MAX_LENGTH, type Block, type TemplateType } from "../../schemas"
 import {
@@ -14,7 +15,6 @@ import {
   type Point
 } from "../../services"
 
-import { announce } from "./engine/announcer"
 import { MergeVariableAutocomplete } from "./MergeVariableAutocomplete"
 
 type CaretPositionFromPoint = (x: number, y: number) => { offsetNode: Node; offset: number } | null

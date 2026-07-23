@@ -66,9 +66,9 @@ export function blocksInMarquee(
     candidates.flatMap((entry) => ancestorChainOf(index, entry.block.id).slice(1))
   )
 
-  return candidates
-    .filter((entry) => !ancestorsOfCandidates.has(entry.block.id))
-    .map((entry) => entry.block.id)
+  return candidates.flatMap((entry) =>
+    ancestorsOfCandidates.has(entry.block.id) ? [] : [entry.block.id]
+  )
 }
 
 // Hidden never hits at any depth: a visible child of a hidden container is not painted, so the

@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react"
 
 import { describe, expect, test } from "vitest"
 
-import { resolveResizeUpdate } from "../../components/TemplateEditorPage/engine/gestures"
+import { resolveResizeUpdate } from "../../engine"
 import { type Block } from "../../schemas"
 import {
   addBlock,

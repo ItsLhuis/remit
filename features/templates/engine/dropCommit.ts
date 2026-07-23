@@ -1,4 +1,4 @@
-import { blocksInMarquee, rectFromPoints, type Point, type Rect } from "../../../services"
+import { blocksInMarquee, rectFromPoints, type Point, type Rect } from "../services"
 
 import { contentPointAt, setGestureOverlay, type UseCanvasEngineOptions } from "./frameTick"
 import { reparentTargetAt, resolveMarqueeSelection, type MoveUpdate } from "./gestures"

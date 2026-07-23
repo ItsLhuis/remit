@@ -9,7 +9,7 @@ import {
   type Point,
   type Rect,
   type ResizeSetMember
-} from "../../../../services"
+} from "../../services"
 import {
   classifyPress,
   collectResizeSet,

@@ -14,13 +14,15 @@ export type ReparentResult = { blocks: Block[] }
 // its Alt bypass) is already applied upstream by the gesture math before the drop. An id absent
 // from `droppedRects` keeps its committed absolute position. Returns null when the move is
 // impossible, would place a frame child at a negative local coordinate, or is a global no-op.
-export function reparentBlock(
-  blocks: readonly Block[],
-  draggedIds: readonly string[],
-  targetFrameId: string | null,
-  bounds: ContentBounds,
+export function reparentBlock(input: {
+  blocks: readonly Block[]
+  draggedIds: readonly string[]
+  targetFrameId: string | null
+  bounds: ContentBounds
   droppedRects?: ReadonlyMap<string, Rect>
-): ReparentResult | null {
+}): ReparentResult | null {
+  const { blocks, draggedIds, targetFrameId, bounds, droppedRects } = input
+
   if (draggedIds.length === 0) return null
 
   if (targetFrameId !== null && draggedIds.includes(targetFrameId)) return null
@@ -128,16 +130,16 @@ function containsId(block: Block, id: string): boolean {
 }
 
 function removeByIds(blocks: readonly Block[], ids: ReadonlySet<string>): Block[] {
-  return blocks
-    .filter((block) => !ids.has(block.id))
-    .map((block) =>
-      block.type === "frame" || block.type === "group"
-        ? ({
-            ...block,
-            content: { ...block.content, children: removeByIds(block.content.children, ids) }
-          } as Block)
-        : block
-    )
+  return blocks.flatMap((block) => {
+    if (ids.has(block.id)) return []
+
+    if (block.type !== "frame" && block.type !== "group") return block
+
+    return {
+      ...block,
+      content: { ...block.content, children: removeByIds(block.content.children, ids) }
+    } as Block
+  })
 }
 
 function insertAllInto(

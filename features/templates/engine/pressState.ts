@@ -7,7 +7,7 @@ import {
   type Rect,
   type ResizeSetMember,
   type RotationMember
-} from "../../../services"
+} from "../services"
 
 import {
   GESTURE_ACTIVATION_DISTANCE,

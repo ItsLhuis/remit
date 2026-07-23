@@ -261,7 +261,13 @@ export function useTemplateEditor(
     if (ids.length === 0) return false
     if (ids.some((id) => findBlock(blocks, id)?.block.locked)) return false
 
-    const result = reparentBlockInTree(blocks, ids, targetFrameId, bounds, droppedRects)
+    const result = reparentBlockInTree({
+      blocks,
+      draggedIds: ids,
+      targetFrameId,
+      bounds,
+      droppedRects
+    })
 
     if (!result) return false
 

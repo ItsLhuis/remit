@@ -33,7 +33,7 @@ const TemplatesGrid = ({
     return (
       <div className={GRID_CLASS_NAME}>
         {Array.from({ length: skeletonCards }).map((_, index) => (
-          <Skeleton key={`skeleton-${index}`} className="h-[19.5rem] rounded-xl" />
+          <Skeleton key={`skeleton-${index}`} className="h-78 rounded-xl" />
         ))}
       </div>
     )

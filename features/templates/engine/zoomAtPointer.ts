@@ -1,4 +1,4 @@
-import { type Point } from "../../../services"
+import { type Point } from "../services"
 
 // Ctrl/Cmd+wheel zoom-at-pointer: the pointer's offset from the scroll container's own edge is a
 // fixed screen-space distance the zoom itself never moves, so re-deriving the scroll offset that

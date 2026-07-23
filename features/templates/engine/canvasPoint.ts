@@ -1,4 +1,4 @@
-import { type Point } from "../../../services"
+import { type Point } from "../services"
 
 // The single viewport -> canvas conversion. The page element's bounding rect
 // already includes the CSS zoom scale, so dividing by zoom yields logical page pixels. Every

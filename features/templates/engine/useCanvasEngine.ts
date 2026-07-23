@@ -16,7 +16,7 @@ import {
   type HandleDirection,
   type Point,
   type Rect
-} from "../../../services"
+} from "../services"
 
 import { resetGestureProgressThrottle } from "./announcer"
 import { commitMarquee, commitMoveDrop } from "./dropCommit"
@@ -77,9 +77,13 @@ export type CanvasEngine = {
 export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
   const optionsRef = useRef(options)
 
+  // Refreshed every render, deliberately without a dependency array. Callers build `options` fresh
+  // each render so the engine can read current editor state through this ref while staying built
+  // once; a `[options]` dependency would be a comparison that can never hold, claiming a
+  // reactivity this hook does not have while running exactly as often as no array at all.
   useEffect(() => {
     optionsRef.current = options
-  }, [options])
+  })
 
   const pressRef = useRef<PressState | null>(null)
   const frameRef = useRef<number | null>(null)

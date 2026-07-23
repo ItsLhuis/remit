@@ -170,7 +170,12 @@ export {
   type ResolveHandleResizeInput
 } from "./resizeMath"
 
-export { sanitizeTemplateHtml, toPlainText } from "./sanitizeHtml"
+export {
+  sanitizeTemplateHtml,
+  toPlainText,
+  unwrapSanitizedHtml,
+  type SanitizedHtml
+} from "./sanitizeHtml"
 
 export {
   cursorForHandle,

@@ -109,11 +109,27 @@ const DOCUMENT_OPTIONS: sanitize.IOptions = {
   disallowedTagsMode: "discard"
 }
 
+declare const sanitizedHtmlBrand: unique symbol
+
+// HTML that has been through sanitizeTemplateHtml. The brand cannot be produced outside this module,
+// so holding a SanitizedHtml is proof the sanitizer ran. It stays assignable to string, so every
+// existing consumer is unaffected; only the reverse is blocked, which is the point. A DOM sink takes
+// the raw string back through unwrapSanitizedHtml, leaving the trust boundary as one explicit,
+// greppable call at the sink rather than a comment asserting the sanitizer ran somewhere upstream.
+export type SanitizedHtml = string & { readonly [sanitizedHtmlBrand]: true }
+
 export function sanitizeTemplateHtml(
   html: string,
   options: SanitizeTemplateHtmlOptions = {}
-): string {
-  return sanitize(html, options.profile === "document" ? DOCUMENT_OPTIONS : AUTHORED_OPTIONS)
+): SanitizedHtml {
+  return sanitize(
+    html,
+    options.profile === "document" ? DOCUMENT_OPTIONS : AUTHORED_OPTIONS
+  ) as SanitizedHtml
+}
+
+export function unwrapSanitizedHtml(html: SanitizedHtml): string {
+  return html
 }
 
 // Plain-text extraction for the text render format. sanitize-html strips the markup but

@@ -55,64 +55,66 @@ export function moveGuides(input: {
 }): GuideLine[] {
   const { moving, movingIds, index, margins } = input
 
-  return [...index.values()]
-    .filter((entry) => entry.parentId === null && !movingIds.has(entry.block.id))
-    .flatMap((entry) => {
-      const rect = entry.pageRect
+  return [...index.values()].flatMap((entry) => {
+    if (entry.parentId !== null || movingIds.has(entry.block.id)) return []
 
-      const verticalOverlap = moving.y < rect.y + rect.height && rect.y < moving.y + moving.height
-      const horizontalOverlap = moving.x < rect.x + rect.width && rect.x < moving.x + moving.width
+    const rect = entry.pageRect
 
-      const candidates = [
+    const verticalOverlap = moving.y < rect.y + rect.height && rect.y < moving.y + moving.height
+    const horizontalOverlap = moving.x < rect.x + rect.width && rect.x < moving.x + moving.width
+
+    const candidates = [
+      {
+        key: `${entry.block.id}-right`,
+        orientation: "vertical" as const,
+        edge: rect.x + rect.width,
+        approach: moving.x,
+        eligible: verticalOverlap,
+        offset: margins.left
+      },
+      {
+        key: `${entry.block.id}-left`,
+        orientation: "vertical" as const,
+        edge: rect.x,
+        approach: moving.x + moving.width,
+        eligible: verticalOverlap,
+        offset: margins.left
+      },
+      {
+        key: `${entry.block.id}-bottom`,
+        orientation: "horizontal" as const,
+        edge: rect.y + rect.height,
+        approach: moving.y,
+        eligible: horizontalOverlap,
+        offset: margins.top
+      },
+      {
+        key: `${entry.block.id}-top`,
+        orientation: "horizontal" as const,
+        edge: rect.y,
+        approach: moving.y + moving.height,
+        eligible: horizontalOverlap,
+        offset: margins.top
+      }
+    ]
+
+    return candidates.flatMap<GuideLine>((candidate) => {
+      const isWithinThreshold =
+        candidate.eligible &&
+        Math.abs(candidate.edge - candidate.approach) <= NEIGHBOUR_GUIDE_THRESHOLD
+
+      if (!isWithinThreshold) return []
+
+      return [
         {
-          key: `${entry.block.id}-right`,
-          orientation: "vertical" as const,
-          edge: rect.x + rect.width,
-          approach: moving.x,
-          eligible: verticalOverlap,
-          offset: margins.left
-        },
-        {
-          key: `${entry.block.id}-left`,
-          orientation: "vertical" as const,
-          edge: rect.x,
-          approach: moving.x + moving.width,
-          eligible: verticalOverlap,
-          offset: margins.left
-        },
-        {
-          key: `${entry.block.id}-bottom`,
-          orientation: "horizontal" as const,
-          edge: rect.y + rect.height,
-          approach: moving.y,
-          eligible: horizontalOverlap,
-          offset: margins.top
-        },
-        {
-          key: `${entry.block.id}-top`,
-          orientation: "horizontal" as const,
-          edge: rect.y,
-          approach: moving.y + moving.height,
-          eligible: horizontalOverlap,
-          offset: margins.top
+          key: candidate.key,
+          orientation: candidate.orientation,
+          at: candidate.offset + candidate.edge,
+          emphasis: candidate.edge === candidate.approach ? "reached" : "near"
         }
       ]
-
-      return candidates
-        .filter(
-          (candidate) =>
-            candidate.eligible &&
-            Math.abs(candidate.edge - candidate.approach) <= NEIGHBOUR_GUIDE_THRESHOLD
-        )
-        .map(
-          (candidate): GuideLine => ({
-            key: candidate.key,
-            orientation: candidate.orientation,
-            at: candidate.offset + candidate.edge,
-            emphasis: candidate.edge === candidate.approach ? "reached" : "near"
-          })
-        )
     })
+  })
 }
 
 // Base angle of each handle measured clockwise from north at rotation 0; cursorForHandle rotates

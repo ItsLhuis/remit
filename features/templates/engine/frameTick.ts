@@ -1,10 +1,6 @@
 import { type RefObject } from "react"
 
-import {
-  type EditorInteraction,
-  type InteractionOverlay,
-  type TemplateEditorState
-} from "../../../hooks"
+import { type EditorInteraction, type InteractionOverlay, type TemplateEditorState } from "../hooks"
 import {
   blocksInMarquee,
   moveGuides,
@@ -13,7 +9,7 @@ import {
   unionRects,
   type Point,
   type Rect
-} from "../../../services"
+} from "../services"
 
 import { toContentPoint } from "./canvasPoint"
 import {

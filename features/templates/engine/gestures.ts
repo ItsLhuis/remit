@@ -1,4 +1,4 @@
-import { MIN_BLOCK_HEIGHT, MIN_BLOCK_WIDTH } from "../../../schemas"
+import { MIN_BLOCK_HEIGHT, MIN_BLOCK_WIDTH } from "../schemas"
 import {
   ancestorChainOf,
   anchorResizedRect,
@@ -30,7 +30,7 @@ import {
   type ResizeSetMember,
   type RotatedMember,
   type RotationMember
-} from "../../../services"
+} from "../services"
 
 // Gesture classification and per-gesture update math for the pointer engine.
 // Pure logic over the normalized block index: useCanvasEngine owns the DOM and lifecycle; this
@@ -554,9 +554,9 @@ function clampMoveDelta(input: {
 }): Point {
   const { baseRects, delta, bounds, parentRects, rotations } = input
 
-  const topLevelRects = [...baseRects]
-    .filter(([id]) => !parentRects?.has(id))
-    .map(([id, rect]) => rotatedAabb(rect, rotations?.get(id) ?? 0))
+  const topLevelRects = [...baseRects].flatMap(([id, rect]) =>
+    parentRects?.has(id) ? [] : [rotatedAabb(rect, rotations?.get(id) ?? 0)]
+  )
   const union = unionRects(topLevelRects)
 
   if (!union) return { x: 0, y: 0 }

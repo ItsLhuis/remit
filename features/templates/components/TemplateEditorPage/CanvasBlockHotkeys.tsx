@@ -6,11 +6,10 @@ import { useHotkeys, type UseHotkeyDefinition } from "@tanstack/react-hotkeys"
 
 import { useTranslation } from "@/lib/i18n"
 
+import { announce } from "../../engine"
 import { type EditorInteraction } from "../../hooks"
 import { BLOCK_LABEL_KEYS } from "../../labels"
 import { GRID_SIZE, type Block } from "../../schemas"
-
-import { announce } from "./engine/announcer"
 
 // Keyboard-gesture bindings for one canvas block, scoped to its focusable surface:
 // arrows nudge one grid cell, Shift+arrows nudge ten whole pixels, Mod+arrows resize

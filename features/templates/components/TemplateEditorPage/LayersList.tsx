@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils"
 
 import { Button, Icon } from "@/components/ui"
 
+import { announce } from "../../engine"
 import { type EditorInteraction, type TemplateEditorState } from "../../hooks"
 import { BLOCK_LABEL_KEYS } from "../../labels"
 import { type Block } from "../../schemas"
 
-import { announce } from "./engine/announcer"
-import { LayerRow, PAGE_GROUP, parseIntoDropId, type LayerRowData } from "./LayerRow"
+import { PAGE_GROUP, parseIntoDropId } from "./layerDropId"
+import { LayerRow, type LayerRowData } from "./LayerRow"
 
 type LayersListProps = {
   editor: TemplateEditorState

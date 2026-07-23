@@ -39,6 +39,11 @@ const MergeVariableAutocomplete = ({
 }: MergeVariableAutocompleteProps) => {
   const { t } = useTranslation()
 
+  // Guarded here rather than resting on the caller: CanvasTextEditor only mounts this while inline
+  // editing is active, but owning the availability check keeps the component SSR-safe on its own.
+  // On the client `document` is always defined, so this never changes what renders.
+  if (typeof document === "undefined") return null
+
   return createPortal(
     <div
       ref={containerRef}
@@ -69,9 +74,6 @@ const MergeVariableAutocomplete = ({
         </CommandList>
       </Command>
     </div>,
-    // Only ever mounts from CanvasTextEditor, which renders solely while inline editing is active -
-    // client-only state that is null on the server, so this never renders during SSR.
-    // react-doctor-disable-next-line no-unguarded-browser-global-in-render-or-hook-init
     document.body
   )
 }

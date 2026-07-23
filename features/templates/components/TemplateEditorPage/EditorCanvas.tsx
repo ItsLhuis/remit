@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 
 import { useHotkey, useKeyHold } from "@tanstack/react-hotkeys"
 
@@ -11,29 +11,24 @@ import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuTrigger, Typography } from "@/components/ui"
 
 import {
+  LiveOverlay,
+  LiveRegion,
+  useCanvasAnnouncers,
+  useCanvasContextMenu,
+  useCanvasEngine,
+  useWheelZoomAnchor
+} from "../../engine"
+import {
   useCanvasBlockHandlers,
   useSnapBypass,
   type EditorInteraction,
   type TemplateEditorState
 } from "../../hooks"
-import { BLOCK_LABEL_KEYS } from "../../labels"
 import { GRID_SIZE, type TemplateType } from "../../schemas"
-import {
-  getPageHeight,
-  getPageWidth,
-  hitTestBlocks,
-  type Point,
-  type TemplateRenderData
-} from "../../services"
+import { getPageHeight, getPageWidth, type TemplateRenderData } from "../../services"
 
 import { CanvasBlock, CANVAS_INSTRUCTIONS_ID } from "./CanvasBlock"
 import { CanvasContextMenu } from "./CanvasContextMenu"
-import { announce, shouldAnnounceGestureProgress } from "./engine/announcer"
-import { toContentPoint } from "./engine/canvasPoint"
-import { LiveOverlay } from "./engine/LiveOverlay"
-import { LiveRegion } from "./engine/LiveRegion"
-import { useCanvasEngine } from "./engine/useCanvasEngine"
-import { nextZoomForWheelDelta, resolveZoomAtPointerScroll } from "./engine/zoomAtPointer"
 
 export type CanvasTool = "select" | "pan"
 
@@ -57,10 +52,10 @@ const PAGE_GRID_STYLE = {
   backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`
 }
 
-// The single canvas host: the pointer engine's handlers, the wheel-zoom anchor effect, the
-// commit-render transform teardown, the live overlay and the context menu all close over the same
-// scroll/page refs and gesture state, so splitting it only threads those refs through props.
-// react-doctor-disable-next-line no-giant-component
+// The canvas host: it renders the page surface and owns the two DOM refs everything else hangs off.
+// The self-contained mechanisms that used to live inline here - gesture narration, the context
+// menu's hit resolution, the wheel-zoom anchor - are hooks that own their own state and take only
+// the refs for the elements this component renders.
 const EditorCanvas = ({
   editor,
   interaction,
@@ -78,8 +73,6 @@ const EditorCanvas = ({
   const scrollRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
 
-  const [contextPoint, setContextPoint] = useState<Point | null>(null)
-
   // Alt held during a drag bypasses grid snapping; the engine reads this getter live per frame.
   const isSnapBypassed = useSnapBypass()
 
@@ -94,17 +87,11 @@ const EditorCanvas = ({
 
   const pageHeight = getPageHeight(blocks, type, editor.pageSettings)
 
-  const nameFor = (ids: readonly string[]): string => {
-    const first = ids[0] === undefined ? undefined : editor.blockIndex.get(ids[0])
-
-    return first ? t(BLOCK_LABEL_KEYS[first.block.type]) : ""
-  }
+  const announcers = useCanvasAnnouncers(editor)
 
   // useCanvasEngine takes a fresh options object every render on purpose: it mirrors it into a ref
   // and builds the engine once with an empty dep array, so the pointer handlers stay referentially
   // stable while still reading current editor state. Memoizing only moves the churn one level up.
-  // react-doctor-disable-next-line no-effect-with-fresh-deps
-  // react-doctor-disable-next-line exhaustive-deps
   const engine = useCanvasEngine({
     editor,
     interaction,
@@ -114,52 +101,7 @@ const EditorCanvas = ({
     spaceHeld: isSpaceHeld,
     disabled: disabled === true,
     isSnapBypassed,
-    onGestureStart: (ids) => announce(t("templates.editor.gesture.start", { name: nameFor(ids) })),
-    onGestureEnd: (ids, position: Point) =>
-      announce(
-        t("templates.editor.gesture.end", {
-          name: nameFor(ids),
-          position: `${position.x}, ${position.y}`
-        })
-      ),
-    onGestureCancel: (ids) =>
-      announce(t("templates.editor.gesture.cancel", { name: nameFor(ids) })),
-    onEnterTextEdit: (id) =>
-      announce(t("templates.editor.textEdit.enter", { name: nameFor([id]) })),
-    onMarqueeSelect: (ids) =>
-      announce(t("templates.editor.selection.marquee", { count: ids.length })),
-    onMoveProgress: (ids, position) => {
-      if (!shouldAnnounceGestureProgress()) return
-
-      announce(
-        t("templates.editor.gesture.move", {
-          name: nameFor(ids),
-          position: `${position.x}, ${position.y}`
-        })
-      )
-    },
-    onResizeProgress: (ids, size) => {
-      if (!shouldAnnounceGestureProgress()) return
-
-      announce(
-        t("templates.editor.gesture.resize", {
-          name: nameFor(ids),
-          width: size.width,
-          height: size.height
-        })
-      )
-    },
-    onRotateProgress: (ids, degrees) => {
-      if (!shouldAnnounceGestureProgress()) return
-
-      announce(t("templates.editor.gesture.rotate", { name: nameFor(ids), degrees }))
-    },
-    onMarqueeProgress: (count) => {
-      if (!shouldAnnounceGestureProgress()) return
-
-      announce(t("templates.editor.selection.marquee", { count }))
-    },
-    onMarqueeCancel: () => announce(t("templates.editor.selection.marqueeCancel"))
+    ...announcers
   })
 
   // The flicker-killing teardown ordering: the pointerup commit renders the new
@@ -180,51 +122,7 @@ const EditorCanvas = ({
     { target: scrollRef, enabled: interaction.editingTextId === null }
   )
 
-  // The native "contextmenu" listener below reads through this ref (refreshed every render, no
-  // dependency array) so the listener itself attaches exactly once. Imperative, not a JSX
-  // onContextMenu prop: right-click's "select what's under the cursor" is canvas-surface behavior,
-  // not a widget interaction, and jsx-a11y's static-interactive-element check only inspects JSX
-  // attributes, never DOM listeners attached this way.
-  const contextMenuStateRef = useRef({ editor, interaction, disabled })
-
-  useEffect(() => {
-    contextMenuStateRef.current = { editor, interaction, disabled }
-  })
-
-  // Resolves "the selection under the cursor" before the context menu opens: a hit keeps the
-  // current selection when it's already a member (preserving a multi-selection right-click), else
-  // becomes the sole selection; no hit clears it, opening the page-level menu.
-  useEffect(() => {
-    const scroll = scrollRef.current
-
-    if (!scroll) return
-
-    const handleContextMenu = (event: MouseEvent) => {
-      const state = contextMenuStateRef.current
-      const page = pageRef.current
-
-      if (state.disabled || !page) return
-
-      const point = toContentPoint(
-        event,
-        page,
-        state.editor.zoom,
-        state.editor.pageSettings.margins
-      )
-
-      setContextPoint(point)
-
-      const topHit = hitTestBlocks(state.editor.blockIndex, point)[0] ?? null
-
-      if (topHit !== null && state.interaction.selection.has(topHit)) return
-
-      state.interaction.select(topHit)
-    }
-
-    scroll.addEventListener("contextmenu", handleContextMenu)
-
-    return () => scroll.removeEventListener("contextmenu", handleContextMenu)
-  }, [])
+  const contextPoint = useCanvasContextMenu({ scrollRef, pageRef, editor, interaction, disabled })
 
   // The latest setZoom lives in a ref so the fit effect depends only on its real trigger
   // (fitCounter) without closing over a stale editor state object.
@@ -249,76 +147,7 @@ const EditorCanvas = ({
     setZoomRef.current(available / pageWidth)
   }, [fitCounter, pageWidth])
 
-  // Ctrl/Cmd+wheel zoom-at-pointer: the wheel handler stashes the pointer/scroll anchor (read
-  // through a ref refreshed every render, same pattern as contextMenuStateRef) and requests the new
-  // zoom; editor.setZoom clamps internally, so a layout effect keyed to the zoom that actually took
-  // effect resolves the matching scroll offset once the new scale has painted, before the browser
-  // shows a frame at the wrong scroll position.
-  const zoomWheelStateRef = useRef({ zoom: editor.zoom, setZoom: editor.setZoom })
-
-  useEffect(() => {
-    zoomWheelStateRef.current = { zoom: editor.zoom, setZoom: editor.setZoom }
-  })
-
-  const pendingZoomAnchorRef = useRef<{
-    pointer: Point
-    containerOrigin: Point
-    scroll: Point
-    previousZoom: number
-  } | null>(null)
-
-  useEffect(() => {
-    const scroll = scrollRef.current
-
-    if (!scroll) return
-
-    const handleWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return
-
-      event.preventDefault()
-
-      const state = zoomWheelStateRef.current
-      const containerRect = scroll.getBoundingClientRect()
-
-      const anchor = {
-        pointer: { x: event.clientX, y: event.clientY },
-        containerOrigin: { x: containerRect.left, y: containerRect.top },
-        scroll: { x: scroll.scrollLeft, y: scroll.scrollTop },
-        previousZoom: state.zoom
-      }
-
-      pendingZoomAnchorRef.current = anchor
-
-      state.setZoom(nextZoomForWheelDelta(state.zoom, event.deltaY))
-
-      // A wheel tick at the zoom clamp is a no-op state set: React bails the render entirely, so
-      // the layout effect below never runs to consume/clear this anchor. Left stale, the next
-      // unrelated zoom change (toolbar, hotkey, fit) would misapply it. One rAF is enough for a
-      // real zoom change's layout effect to have already claimed it; if it's still this same
-      // anchor after that frame, this tick clamped to a no-op and the anchor must be dropped.
-      requestAnimationFrame(() => {
-        if (pendingZoomAnchorRef.current === anchor) pendingZoomAnchorRef.current = null
-      })
-    }
-
-    scroll.addEventListener("wheel", handleWheel, { passive: false })
-
-    return () => scroll.removeEventListener("wheel", handleWheel)
-  }, [])
-
-  useLayoutEffect(() => {
-    const anchor = pendingZoomAnchorRef.current
-    const scroll = scrollRef.current
-
-    pendingZoomAnchorRef.current = null
-
-    if (!anchor || !scroll || editor.zoom === anchor.previousZoom) return
-
-    const next = resolveZoomAtPointerScroll({ ...anchor, nextZoom: editor.zoom })
-
-    scroll.scrollLeft = next.x
-    scroll.scrollTop = next.y
-  }, [editor.zoom])
+  useWheelZoomAnchor({ scrollRef, zoom: editor.zoom, setZoom: editor.setZoom })
 
   return (
     <ContextMenu>

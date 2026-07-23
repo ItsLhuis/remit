@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { type ActiveGesture } from "../components/TemplateEditorPage/engine/gestures"
-import { rectsEqual } from "../components/TemplateEditorPage/engine/pressState"
+import { rectsEqual, type ActiveGesture } from "../engine"
 import { type GuideLine, type Point, type Rect } from "../services"
 
 import { type TemplateEditorState } from "./useTemplateEditor"

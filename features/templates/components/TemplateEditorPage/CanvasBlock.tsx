@@ -23,7 +23,9 @@ import { type Block, type TemplateType } from "../../schemas"
 import {
   contentMinHeight,
   renderBlockContent,
+  unwrapSanitizedHtml,
   type Point,
+  type SanitizedHtml,
   type TemplateRenderData
 } from "../../services"
 
@@ -57,7 +59,7 @@ const NESTED_MARGINS = { top: 0, left: 0 }
 type CanvasBlockContentProps = {
   block: Block
   type: TemplateType
-  html: string
+  html: SanitizedHtml
   isEditingText: boolean
   caretPoint: Point | null
   onCommitText: (html: string) => void
@@ -105,14 +107,14 @@ const CanvasBlockContent = ({
   }
 
   return (
-    // `html` is renderBlockContent's output, which runs every block through the sanitize-html-backed
-    // sanitizeTemplateHtml service immediately before returning - the sanitizer sits one call away.
-    // react-doctor-disable-next-line dangerous-html-sink
+    // The unwrap is the trust boundary made visible: `html` is typed SanitizedHtml, which only
+    // sanitizeTemplateHtml can produce, so the compiler — not a comment — guarantees the sanitizer
+    // ran before anything reaches this sink.
     <div
       ref={contentRef}
       aria-hidden="true"
       className="pointer-events-none h-full w-full"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: unwrapSanitizedHtml(html) }}
     />
   )
 }

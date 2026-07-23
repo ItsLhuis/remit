@@ -60,16 +60,16 @@ export function spliceById(
 }
 
 export function removeById(blocks: readonly Block[], id: string): Block[] {
-  return blocks
-    .filter((block) => block.id !== id)
-    .map((block) =>
-      block.type === "frame" || block.type === "group"
-        ? ({
-            ...block,
-            content: { ...block.content, children: removeById(block.content.children, id) }
-          } as Block)
-        : block
-    )
+  return blocks.flatMap((block) => {
+    if (block.id === id) return []
+
+    if (block.type !== "frame" && block.type !== "group") return block
+
+    return {
+      ...block,
+      content: { ...block.content, children: removeById(block.content.children, id) }
+    } as Block
+  })
 }
 
 export type SiblingStep = "forward" | "backward"

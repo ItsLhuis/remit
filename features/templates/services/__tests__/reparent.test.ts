@@ -45,13 +45,13 @@ describe("reparentBlock", () => {
   test("moves a top-level block into a frame, converting page coords to frame-local", () => {
     const blocks = [frameBlock("f", 80, 80, []), textBlock("t", 120, 120)]
 
-    const result = reparentBlock(
-      blocks,
-      ["t"],
-      "f",
-      bounds,
-      new Map([["t", { x: 120, y: 120, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([["t", { x: 120, y: 120, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -69,13 +69,13 @@ describe("reparentBlock", () => {
   test("appends the moved block on top of the frame's existing children", () => {
     const blocks = [frameBlock("f", 0, 0, [textBlock("a", 0, 0)]), textBlock("b", 16, 16)]
 
-    const result = reparentBlock(
-      blocks,
-      ["b"],
-      "f",
-      bounds,
-      new Map([["b", { x: 16, y: 16, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["b"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([["b", { x: 16, y: 16, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -89,13 +89,13 @@ describe("reparentBlock", () => {
   test("accepts a frame-local drop exactly at the frame's origin", () => {
     const blocks = [frameBlock("f", 200, 200, []), textBlock("t", 0, 0)]
 
-    const result = reparentBlock(
-      blocks,
-      ["t"],
-      "f",
-      bounds,
-      new Map([["t", { x: 200, y: 200, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([["t", { x: 200, y: 200, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -109,13 +109,13 @@ describe("reparentBlock", () => {
   test("refuses a reparent into a frame when the drop would require a negative local coordinate", () => {
     const blocks = [frameBlock("f", 200, 200, []), textBlock("t", 100, 100)]
 
-    const result = reparentBlock(
-      blocks,
-      ["t"],
-      "f",
-      bounds,
-      new Map([["t", { x: 100, y: 100, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([["t", { x: 100, y: 100, width: 240, height: 32 }]])
+    })
 
     expect(result).toBeNull()
   })
@@ -127,16 +127,16 @@ describe("reparentBlock", () => {
       textBlock("b", 100, 100)
     ]
 
-    const result = reparentBlock(
-      blocks,
-      ["a", "b"],
-      "f",
-      bounds,
-      new Map([
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["a", "b"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([
         ["a", { x: 250, y: 250, width: 240, height: 32 }],
         ["b", { x: 100, y: 100, width: 240, height: 32 }]
       ])
-    )
+    })
 
     expect(result).toBeNull()
   })
@@ -144,7 +144,12 @@ describe("reparentBlock", () => {
   test("moves a frame child back to the page, converting to page coordinates", () => {
     const blocks = [frameBlock("f", 80, 80, [textBlock("t", 40, 40)])]
 
-    const result = reparentBlock(blocks, ["t"], null, bounds)
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: null,
+      bounds: bounds
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -164,7 +169,12 @@ describe("reparentBlock", () => {
   test("refuses to drop a frame into its own descendant", () => {
     const blocks = [frameBlock("outer", 0, 0, [frameBlock("inner", 0, 0, [])])]
 
-    const result = reparentBlock(blocks, ["outer"], "inner", bounds)
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["outer"],
+      targetFrameId: "inner",
+      bounds: bounds
+    })
 
     expect(result).toBeNull()
   })
@@ -173,13 +183,13 @@ describe("reparentBlock", () => {
     const nested = frameBlock("b", 0, 0, [frameBlock("d", 0, 0, [])])
     const blocks = [frameBlock("a", 0, 0, []), nested]
 
-    const result = reparentBlock(
-      blocks,
-      ["b"],
-      "a",
-      bounds,
-      new Map([["b", { x: 0, y: 0, width: 480, height: 240 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["b"],
+      targetFrameId: "a",
+      bounds: bounds,
+      droppedRects: new Map([["b", { x: 0, y: 0, width: 480, height: 240 }]])
+    })
 
     expect(result).toBeNull()
   })
@@ -187,27 +197,31 @@ describe("reparentBlock", () => {
   test("is a no-op when a top-level block is dropped on the page", () => {
     const blocks = [textBlock("t", 40, 40)]
 
-    expect(reparentBlock(blocks, ["t"], null, bounds)).toBeNull()
+    expect(
+      reparentBlock({ blocks: blocks, draggedIds: ["t"], targetFrameId: null, bounds: bounds })
+    ).toBeNull()
   })
 
   test("returns null for an unknown dragged id", () => {
     const blocks = [frameBlock("f", 0, 0, [])]
 
     expect(
-      reparentBlock(
-        blocks,
-        ["missing"],
-        "f",
-        bounds,
-        new Map([["missing", { x: 0, y: 0, width: 240, height: 32 }]])
-      )
+      reparentBlock({
+        blocks: blocks,
+        draggedIds: ["missing"],
+        targetFrameId: "f",
+        bounds: bounds,
+        droppedRects: new Map([["missing", { x: 0, y: 0, width: 240, height: 32 }]])
+      })
     ).toBeNull()
   })
 
   test("returns null for an empty dragged id list", () => {
     const blocks = [frameBlock("f", 0, 0, [])]
 
-    expect(reparentBlock(blocks, [], "f", bounds)).toBeNull()
+    expect(
+      reparentBlock({ blocks: blocks, draggedIds: [], targetFrameId: "f", bounds: bounds })
+    ).toBeNull()
   })
 
   // Dropping a frame child out to the page must clamp into the page content bounds,
@@ -217,13 +231,13 @@ describe("reparentBlock", () => {
     const blocks = [frameBlock("f", 80, 80, [textBlock("t", 0, 0)])]
     const tightBounds: ContentBounds = { width: 800, height: 800 }
 
-    const result = reparentBlock(
-      blocks,
-      ["t"],
-      null,
-      tightBounds,
-      new Map([["t", { x: 5000, y: 5000, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: null,
+      bounds: tightBounds,
+      droppedRects: new Map([["t", { x: 5000, y: 5000, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -237,13 +251,13 @@ describe("reparentBlock", () => {
   test("does not re-quantize an off-grid drop position", () => {
     const blocks = [frameBlock("f", 80, 80, []), textBlock("t", 0, 0)]
 
-    const result = reparentBlock(
-      blocks,
-      ["t"],
-      "f",
-      bounds,
-      new Map([["t", { x: 125, y: 133, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["t"],
+      targetFrameId: "f",
+      bounds: bounds,
+      droppedRects: new Map([["t", { x: 125, y: 133, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -257,7 +271,12 @@ describe("reparentBlock", () => {
   test("moves several top-level blocks into the same frame in the given order", () => {
     const blocks = [frameBlock("f", 0, 0, []), textBlock("a", 40, 40), textBlock("b", 60, 60)]
 
-    const result = reparentBlock(blocks, ["a", "b"], "f", bounds)
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["a", "b"],
+      targetFrameId: "f",
+      bounds: bounds
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -276,7 +295,12 @@ describe("reparentBlock", () => {
       frameBlock("f2", 200, 200, [textBlock("b", 5, 5)])
     ]
 
-    const result = reparentBlock(blocks, ["a", "b"], null, bounds)
+    const result = reparentBlock({
+      blocks: blocks,
+      draggedIds: ["a", "b"],
+      targetFrameId: null,
+      bounds: bounds
+    })
 
     if (!result) throw new Error("expected a reparent result")
 
@@ -290,7 +314,14 @@ describe("reparentBlock", () => {
   test("refuses the whole move when any dragged id is unknown", () => {
     const blocks = [frameBlock("f", 0, 0, []), textBlock("a", 0, 0)]
 
-    expect(reparentBlock(blocks, ["a", "missing"], "f", bounds)).toBeNull()
+    expect(
+      reparentBlock({
+        blocks: blocks,
+        draggedIds: ["a", "missing"],
+        targetFrameId: "f",
+        bounds: bounds
+      })
+    ).toBeNull()
   })
 
   test("refuses when the target is a descendant of one of several dragged blocks", () => {
@@ -299,13 +330,22 @@ describe("reparentBlock", () => {
       textBlock("a", 0, 0)
     ]
 
-    expect(reparentBlock(blocks, ["a", "outer"], "inner", bounds)).toBeNull()
+    expect(
+      reparentBlock({
+        blocks: blocks,
+        draggedIds: ["a", "outer"],
+        targetFrameId: "inner",
+        bounds: bounds
+      })
+    ).toBeNull()
   })
 
   test("is a no-op when every dragged block is already at the target", () => {
     const blocks = [frameBlock("f", 0, 0, [textBlock("a", 0, 0), textBlock("b", 10, 10)])]
 
-    expect(reparentBlock(blocks, ["a", "b"], "f", bounds)).toBeNull()
+    expect(
+      reparentBlock({ blocks: blocks, draggedIds: ["a", "b"], targetFrameId: "f", bounds: bounds })
+    ).toBeNull()
   })
 
   // A group is a purely logical container, so a frame nested inside a top-level group counts
@@ -317,13 +357,13 @@ describe("reparentBlock", () => {
     const group = groupBlock("group", 0, 0, [innerFrame])
     const dropped = frameBlock("dropped", 0, 0, [])
 
-    const result = reparentBlock(
-      [group, dropped],
-      ["dropped"],
-      "inner",
-      bounds,
-      new Map([["dropped", { x: 0, y: 0, width: 480, height: 240 }]])
-    )
+    const result = reparentBlock({
+      blocks: [group, dropped],
+      draggedIds: ["dropped"],
+      targetFrameId: "inner",
+      bounds: bounds,
+      droppedRects: new Map([["dropped", { x: 0, y: 0, width: 480, height: 240 }]])
+    })
 
     expect(result).toBeNull()
   })
@@ -333,13 +373,13 @@ describe("reparentBlock", () => {
     const group = groupBlock("group", 0, 0, [innerFrame])
     const dropped = textBlock("dropped", 0, 0)
 
-    const result = reparentBlock(
-      [group, dropped],
-      ["dropped"],
-      "inner",
-      bounds,
-      new Map([["dropped", { x: 0, y: 0, width: 240, height: 32 }]])
-    )
+    const result = reparentBlock({
+      blocks: [group, dropped],
+      draggedIds: ["dropped"],
+      targetFrameId: "inner",
+      bounds: bounds,
+      droppedRects: new Map([["dropped", { x: 0, y: 0, width: 240, height: 32 }]])
+    })
 
     if (!result) throw new Error("expected a reparent result")
 

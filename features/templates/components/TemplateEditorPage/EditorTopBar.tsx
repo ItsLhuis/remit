@@ -23,17 +23,22 @@ import {
 
 import { type TemplateEditorData } from "../../types"
 
+// The chrome's boolean facts, grouped by the concern each one belongs to. Passed as objects rather
+// than as a flat row of same-typed flags so neighbouring booleans cannot be transposed at the call
+// site without the compiler noticing.
+export type EditorHistoryState = { canUndo: boolean; canRedo: boolean }
+
+export type EditorSaveState = { isDirty: boolean; isSaving: boolean }
+
+export type EditorViewState = { isPreview: boolean; isFullscreen: boolean; gridVisible: boolean }
+
 type EditorTopBarProps = {
   template: TemplateEditorData
   name: string
   zoom: number
-  canUndo: boolean
-  canRedo: boolean
-  isDirty: boolean
-  isSaving: boolean
-  isPreview: boolean
-  isFullscreen: boolean
-  gridVisible: boolean
+  history: EditorHistoryState
+  save: EditorSaveState
+  view: EditorViewState
   onZoomIn: () => void
   onZoomOut: () => void
   onZoomFit: () => void
@@ -47,20 +52,13 @@ type EditorTopBarProps = {
   onSave: () => void
 }
 
-// Editor chrome props are orthogonal editor-state facts (sharing, dirtiness, preview, fullscreen,
-// grid) driven by one hook; bundling them into option objects removes no state.
-// react-doctor-disable-next-line no-many-boolean-props
 const EditorTopBar = ({
   template,
   name,
   zoom,
-  canUndo,
-  canRedo,
-  isDirty,
-  isSaving,
-  isPreview,
-  isFullscreen,
-  gridVisible,
+  history,
+  save,
+  view,
   onZoomIn,
   onZoomOut,
   onZoomFit,
@@ -119,11 +117,13 @@ const EditorTopBar = ({
           variant="ghost"
           size="icon-sm"
           aria-label={
-            isFullscreen ? t("templates.editor.exitFullscreen") : t("templates.editor.fullscreen")
+            view.isFullscreen
+              ? t("templates.editor.exitFullscreen")
+              : t("templates.editor.fullscreen")
           }
           onClick={onToggleFullscreen}
         >
-          <Icon name={isFullscreen ? "Minimize2" : "Maximize2"} aria-hidden="true" />
+          <Icon name={view.isFullscreen ? "Minimize2" : "Maximize2"} aria-hidden="true" />
         </Button>
       </div>
       <div className="flex min-w-0 items-center gap-2">
@@ -145,7 +145,7 @@ const EditorTopBar = ({
           <Badge variant="secondary">{t("templates.badges.default")}</Badge>
         ) : null}
         {template.isSystem ? <Badge variant="outline">{t("templates.badges.system")}</Badge> : null}
-        {isDirty ? (
+        {save.isDirty ? (
           <Typography affects={["muted", "tiny"]}>{t("templates.editor.unsaved")}</Typography>
         ) : null}
       </div>
@@ -153,7 +153,7 @@ const EditorTopBar = ({
         <Toggle
           size="sm"
           variant="outline"
-          pressed={gridVisible}
+          pressed={view.gridVisible}
           onPressedChange={onGridVisibleChange}
           aria-label={t("templates.editor.showGrid")}
         >
@@ -165,7 +165,7 @@ const EditorTopBar = ({
               type="button"
               variant="ghost"
               size="icon-sm"
-              disabled={!canUndo}
+              disabled={!history.canUndo}
               aria-label={t("templates.editor.undo")}
               onClick={onUndo}
             >
@@ -180,7 +180,7 @@ const EditorTopBar = ({
               type="button"
               variant="ghost"
               size="icon-sm"
-              disabled={!canRedo}
+              disabled={!history.canRedo}
               aria-label={t("templates.editor.redo")}
               onClick={onRedo}
             >
@@ -203,7 +203,7 @@ const EditorTopBar = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled={isSaving} onSelect={onSetDefault}>
+              <DropdownMenuItem disabled={save.isSaving} onSelect={onSetDefault}>
                 <Icon name="Star" aria-hidden="true" />
                 {t("templates.actions.setDefault")}
               </DropdownMenuItem>
@@ -213,15 +213,15 @@ const EditorTopBar = ({
         <Toggle
           size="sm"
           variant="outline"
-          pressed={isPreview}
+          pressed={view.isPreview}
           onPressedChange={onTogglePreview}
           aria-label={t("templates.editor.previewTab")}
         >
           <Icon name="Eye" aria-hidden="true" />
           {t("templates.editor.previewTab")}
         </Toggle>
-        <Button type="button" size="sm" disabled={isSaving || !isDirty} onClick={onSave}>
-          {isSaving && <Spinner />}
+        <Button type="button" size="sm" disabled={save.isSaving || !save.isDirty} onClick={onSave}>
+          {save.isSaving && <Spinner />}
           {t("templates.editor.save")}
         </Button>
       </div>

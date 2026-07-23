@@ -17,22 +17,7 @@ import { Button, Icon, Input } from "@/components/ui"
 import { BLOCK_ICON_NAMES, BLOCK_LABEL_KEYS } from "../../labels"
 import { type Block } from "../../schemas"
 
-export const PAGE_GROUP = "__page__"
-
-const INTO_PREFIX = "into:"
-
-// The drop-id encoding LayerRow registers with dnd-kit and LayersList decodes; it belongs with the
-// row that owns the contract, and a module split for two one-line functions costs more than the
-// Fast Refresh reload it saves.
-// react-doctor-disable-next-line only-export-components
-export function intoDropId(frameId: string): string {
-  return `${INTO_PREFIX}${frameId}`
-}
-
-// react-doctor-disable-next-line only-export-components
-export function parseIntoDropId(dropId: string): string | null {
-  return dropId.startsWith(INTO_PREFIX) ? dropId.slice(INTO_PREFIX.length) : null
-}
+import { intoDropId } from "./layerDropId"
 
 export type LayerRowData = { block: Block; parentId: string | null; depth: number }
 

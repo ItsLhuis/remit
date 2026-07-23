@@ -17,10 +17,11 @@ import {
   authoredText,
   createRenderContext,
   formatMergeValue,
+  mergeValue,
   type RenderContext,
   type RenderFormat
 } from "./renderContext"
-import { sanitizeTemplateHtml, toPlainText } from "./sanitizeHtml"
+import { sanitizeTemplateHtml, toPlainText, type SanitizedHtml } from "./sanitizeHtml"
 import { blockStyleToCss, pageStyleToCss, rotationToCss } from "./styleCss"
 
 // Pure block -> HTML/text renderer. The same function powers the in-app live preview and the
@@ -110,7 +111,7 @@ export function renderBlockContent(
   block: Block,
   input: RenderBlockInput,
   options: RenderContentOptions = {}
-): string {
+): SanitizedHtml {
   const context = createRenderContext(input.renderData, input.type, "html", input.assets ?? {})
 
   // The shape's fill div already carries its style plus height:100%; the wrapper skips it here too.
@@ -270,8 +271,7 @@ function frameHtml(
   const childHtml =
     (options.includeChildren ?? true)
       ? block.content.children
-          .filter((child) => !child.hidden)
-          .map((child) => childBlockHtml(child, context))
+          .map((child) => (child.hidden ? "" : childBlockHtml(child, context)))
           .join("")
       : ""
 
@@ -289,8 +289,7 @@ function groupHtml(
   const childHtml =
     (options.includeChildren ?? true)
       ? block.content.children
-          .filter((child) => !child.hidden)
-          .map((child) => childBlockHtml(child, context))
+          .map((child) => (child.hidden ? "" : childBlockHtml(child, context)))
           .join("")
       : ""
 
@@ -332,8 +331,9 @@ function renderBlockAsText(block: Block, context: RenderContext): string {
     case "frame":
     case "group":
       return block.content.children
-        .filter((child) => !child.hidden)
         .flatMap((child) => {
+          if (child.hidden) return []
+
           const text = renderBlockAsText(child, context)
 
           return text ? [text] : []
@@ -365,11 +365,5 @@ function tableText(
 function substitute(source: string, context: RenderContext): string {
   const pattern = new RegExp(MERGE_TOKEN_SOURCE, "g")
 
-  return source.replace(pattern, (_match, path: string) => {
-    if (!context.allowed.has(path)) return ""
-
-    const value = formatMergeValue(context.data.values[path])
-
-    return context.format === "html" ? escapeHtml(value) : value
-  })
+  return source.replace(pattern, (_match, path: string) => mergeValue(context, path))
 }

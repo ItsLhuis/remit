@@ -15,11 +15,10 @@ import {
   Icon
 } from "@/components/ui"
 
+import { announce } from "../../engine"
 import { type EditorInteraction, type TemplateEditorState } from "../../hooks"
 import { BLOCK_ICON_NAMES, BLOCK_LABEL_KEYS } from "../../labels"
 import { hitTestBlocks, type Point } from "../../services"
-
-import { announce } from "./engine/announcer"
 
 // The one canvas context menu (replacing the old per-block CanvasBlockMenu): it opens for whatever
 // EditorCanvas resolved as "the selection under the cursor" at right-click time, or for the page

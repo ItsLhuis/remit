@@ -4,15 +4,13 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useHotkey } from "@tanstack/react-hotkeys"
-
 import { useTranslation } from "@/lib/i18n"
 
 import { resolveStorageUrl } from "@/lib/storage"
 
 import { toast } from "@/components/ui"
 
-import { useEditorInteraction, useTemplateEditor } from "../../hooks"
+import { useEditorHotkeys, useEditorInteraction, useTemplateEditor } from "../../hooks"
 import { setDefaultTemplate, updateTemplate } from "../../mutations"
 import { buildSampleRenderData, getTemplateCategory } from "../../services"
 import { type TemplateEditorData } from "../../types"
@@ -22,7 +20,6 @@ import { EditorFloatingToolbar } from "./EditorFloatingToolbar"
 import { EditorLeftPanel } from "./EditorLeftPanel"
 import { EditorStatusBar } from "./EditorStatusBar"
 import { EditorTopBar } from "./EditorTopBar"
-import { announce } from "./engine/announcer"
 import { PropertyPanel } from "./PropertyPanel"
 import { RenameBlockDialog } from "./RenameBlockDialog"
 import { RenameTemplateDialog } from "./RenameTemplateDialog"
@@ -34,22 +31,30 @@ type TemplateEditorPageProps = {
 
 // The editor shell: it owns the document hook, the interaction store and the pane composition, and
 // every piece of chrome it renders reads that one state.
-// react-doctor-disable-next-line no-giant-component
 const TemplateEditorPage = ({ template }: TemplateEditorPageProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
 
-  // Locally-editable optimistic copies seeded from the server prop (rename dialog / page-settings
+  // Locally-editable optimistic copies of the server values (rename dialog / page-settings
   // subject), re-synced through savedDetails after a successful save plus router.refresh().
-  // react-doctor-disable-next-line no-derived-useState
   const [name, setName] = useState(template.name)
-  // react-doctor-disable-next-line no-derived-useState
   const [subject, setSubject] = useState(template.subject)
   const [savedDetails, setSavedDetails] = useState({
     name: template.name,
     subject: template.subject
   })
+  const [seededTemplateId, setSeededTemplateId] = useState(template.id)
+
+  // These copies belong to one template, so the reseed keys on the id rather than on prop identity:
+  // handleSetDefault calls router.refresh(), and reseeding on identity would silently discard an
+  // unsaved rename. Keyed this way it fires only when the shell is handed a different template.
+  if (seededTemplateId !== template.id) {
+    setSeededTemplateId(template.id)
+    setName(template.name)
+    setSubject(template.subject)
+    setSavedDetails({ name: template.name, subject: template.subject })
+  }
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [renameBlockId, setRenameBlockId] = useState<string | null>(null)
   const [isPreview, setIsPreview] = useState(false)
@@ -139,133 +144,11 @@ const TemplateEditorPage = ({ template }: TemplateEditorPageProps) => {
 
   const requestFit = () => setFitCounter((counter) => counter + 1)
 
-  useHotkey("Mod+Z", (event) => {
-    event.preventDefault()
-    editor.undo()
-  })
-
-  useHotkey("Mod+Shift+Z", (event) => {
-    event.preventDefault()
-    editor.redo()
-  })
-
-  useHotkey("Mod+S", (event) => {
-    event.preventDefault()
-    handleSave()
-  })
-
-  useHotkey("Mod+D", (event) => {
-    const count = editor.selectedIds.filter(
-      (id) => editor.blockIndex.get(id)?.parentId === null
-    ).length
-
-    if (count === 0) return
-
-    event.preventDefault()
-    editor.duplicateSelection()
-    announce(t("templates.editor.duplicated", { count }))
-  })
-
-  useHotkey(
-    "Mod+C",
-    (event) => {
-      if (editor.selectedIds.length === 0) return
-
-      event.preventDefault()
-      editor.copySelection()
-    },
-    { ignoreInputs: true }
-  )
-
-  useHotkey(
-    "Mod+V",
-    (event) => {
-      if (!editor.hasClipboard()) return
-
-      event.preventDefault()
-      editor.pasteClipboard()
-      announce(t("templates.editor.pasted"))
-    },
-    { ignoreInputs: true }
-  )
-
-  useHotkey("Mod+P", (event) => {
-    event.preventDefault()
-    setIsPreview((current) => !current)
-  })
-
-  useHotkey("Mod+Shift+H", (event) => {
-    if (editor.selectedIds.length === 0) return
-
-    event.preventDefault()
-    editor.toggleHiddenSelection()
-  })
-
-  useHotkey("Mod+Shift+L", (event) => {
-    if (editor.selectedIds.length === 0) return
-
-    event.preventDefault()
-    editor.toggleLockedSelection()
-  })
-
-  const canWrapSelection = editor.selectedIds.every((id) => {
-    const entry = editor.blockIndex.get(id)
-
-    return entry?.parentId === null && entry.block.locked !== true
-  })
-
-  useHotkey("Mod+G", (event) => {
-    if (editor.selectedIds.length === 0 || !canWrapSelection) return
-
-    const count = editor.selectedIds.length
-
-    event.preventDefault()
-
-    const groupId = editor.groupSelection()
-
-    announce(t("templates.editor.groupCreated", { count }))
-    interaction.focusNode(groupId)
-  })
-
-  useHotkey("Mod+Shift+G", (event) => {
-    if (editor.selectedBlock?.type !== "group" || editor.selectedBlock.locked) return
-
-    const count = editor.selectedBlock.content.children.length
-
-    event.preventDefault()
-
-    const freedIds = editor.ungroup(editor.selectedBlock.id)
-
-    announce(t("templates.editor.ungroupedBlocks", { count }))
-    interaction.focusNode(freedIds?.[0] ?? null)
-  })
-
-  useHotkey("Mod+Shift+W", (event) => {
-    if (editor.selectedIds.length === 0 || !canWrapSelection) return
-
-    const count = editor.selectedIds.length
-
-    event.preventDefault()
-
-    const frameId = editor.wrapInFrame()
-
-    announce(t("templates.editor.frameCreated", { count }))
-    interaction.focusNode(frameId)
-  })
-
-  useHotkey("Mod+=", (event) => {
-    event.preventDefault()
-    editor.zoomIn()
-  })
-
-  useHotkey("Mod+-", (event) => {
-    event.preventDefault()
-    editor.zoomOut()
-  })
-
-  useHotkey("Mod+0", (event) => {
-    event.preventDefault()
-    editor.setZoom(1)
+  useEditorHotkeys({
+    editor,
+    interaction,
+    onSave: handleSave,
+    onTogglePreview: () => setIsPreview((current) => !current)
   })
 
   useEffect(() => {
@@ -282,13 +165,9 @@ const TemplateEditorPage = ({ template }: TemplateEditorPageProps) => {
         template={template}
         name={name}
         zoom={editor.zoom}
-        canUndo={editor.canUndo}
-        canRedo={editor.canRedo}
-        isDirty={isDirty}
-        isSaving={isSaving}
-        isPreview={isPreview}
-        isFullscreen={isFullscreen}
-        gridVisible={gridVisible}
+        history={{ canUndo: editor.canUndo, canRedo: editor.canRedo }}
+        save={{ isDirty, isSaving }}
+        view={{ isPreview, isFullscreen, gridVisible }}
         onZoomIn={editor.zoomIn}
         onZoomOut={editor.zoomOut}
         onZoomFit={requestFit}

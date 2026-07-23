@@ -6,8 +6,8 @@ import { useTranslation } from "@/lib/i18n"
 
 import { cn } from "@/lib/utils"
 
-import { type EditorInteraction, type InteractionOverlay } from "../../../hooks"
-import { BLOCK_CAPABILITIES, type BlockResizableAxes } from "../../../schemas"
+import { type EditorInteraction, type InteractionOverlay } from "../hooks"
+import { BLOCK_CAPABILITIES, type BlockResizableAxes } from "../schemas"
 import {
   cursorForHandle,
   handlePositions,
@@ -19,7 +19,7 @@ import {
   type HandleDirection,
   type Point,
   type Rect
-} from "../../../services"
+} from "../services"
 
 import { ROTATE_CURSOR } from "./pressState"
 

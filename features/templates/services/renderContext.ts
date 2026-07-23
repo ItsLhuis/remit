@@ -2,7 +2,7 @@ import { escapeHtml } from "@/lib/utils"
 
 import { type TemplateType } from "../schemas"
 
-import { getMergeVariables, type MergeVariableId, type TemplateRenderData } from "./mergeVariables"
+import { getMergeVariables, type TemplateRenderData } from "./mergeVariables"
 import { getTemplateCategory, type TemplateCategory } from "./templateCategories"
 
 // Shared resolution context for the renderer. Every scalar resolves through mergeValue - the
@@ -34,7 +34,9 @@ export function createRenderContext(
   }
 }
 
-export function mergeValue(context: RenderContext, id: MergeVariableId | undefined): string {
+// Takes any candidate identifier, not a pre-narrowed one: the allowed-set check below is itself the
+// gate that turns an arbitrary authored token into a permitted variable.
+export function mergeValue(context: RenderContext, id: string | undefined): string {
   if (!id || !context.allowed.has(id)) return ""
 
   const value = formatMergeValue(context.data.values[id])
