@@ -31,13 +31,9 @@ const config = {
       },
       {
         // filter().map() chains that build JSX over bounded lists (recharts payload items, the
-        // country list, at most dozens of blocks). The single-pass flatMap/reduce rewrite the rule
-        // wants inlines the JSX into an array literal and obscures the markup.
-        files: [
-          "components/ui/Chart.tsx",
-          "components/ui/CountrySelect.tsx",
-          "features/templates/**"
-        ],
+        // country list). The single-pass flatMap/reduce rewrite the rule wants inlines the JSX into
+        // an array literal and obscures the markup.
+        files: ["components/ui/Chart.tsx", "components/ui/CountrySelect.tsx"],
         rules: ["react-doctor/js-combine-iterations"]
       },
       {
@@ -52,9 +48,12 @@ const config = {
         rules: ["react-doctor/prefer-dynamic-import"]
       },
       {
-        // Instance-local MinIO asset previews; there is no `images.remotePatterns` config and
-        // next/image optimization does not apply to self-hosted uploads. Justified at both call
-        // sites, where the adjacent line is already owned by `@next/next/no-img-element`.
+        // next/image cannot serve these: `images.remotePatterns` is resolved at BUILD time, but the
+        // MinIO/S3 endpoint of a self-hosted Remit is a per-instance RUNTIME env var, so the hosts
+        // cannot be enumerated when the image is built. A `hostname: "**"` pattern would "work"
+        // only by disabling the SSRF protection remotePatterns exists for, and would route
+        // instance-local assets through the optimizer for no gain. The adjacent line at both call
+        // sites is already owned by `@next/next/no-img-element` for the same reason.
         files: [
           "features/templates/components/TemplateEditorPage/ImageBlockField.tsx",
           "features/templates/components/TemplateEditorPage/PropertyPanel/BlockContentSection.tsx"

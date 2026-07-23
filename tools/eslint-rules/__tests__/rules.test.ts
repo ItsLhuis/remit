@@ -102,3 +102,122 @@ ruleTester.run("validate-before-io", validateBeforeIo, {
     }
   ]
 })
+
+const noHookInComponents = rules["no-hook-in-components"]
+
+ruleTester.run("no-hook-in-components", noHookInComponents, {
+  valid: [
+    {
+      name: "a component under components/ is what the folder is for",
+      filename: "features/leads/components/LeadCard.tsx",
+      code: "export const LeadCard = () => null"
+    },
+    {
+      name: "a module-private contract under components/ exports no hook",
+      filename: "features/templates/components/TemplateEditorPage/layerDropId.ts",
+      code: "export function encodeLayerDropId(id) {\n  return `layer:${id}`\n}"
+    },
+    {
+      name: "a hook declared in hooks/ is outside the rule's scope",
+      filename: "features/templates/hooks/useEditorHotkeys.ts",
+      code: "export function useEditorHotkeys() {}"
+    },
+    {
+      name: "a test helper under components/ is exempt",
+      filename: "features/templates/components/__tests__/canvasHarness.tsx",
+      code: "export function useHarness() {}"
+    },
+    {
+      name: "an unexported hook-shaped local is not a public hook",
+      filename: "features/leads/components/LeadCard.tsx",
+      code: "function useLocal() {}\n\nexport const LeadCard = () => null"
+    },
+    {
+      name: "a lowercase `use` prefix is an ordinary function",
+      filename: "features/leads/components/LeadCard.tsx",
+      code: "export function useraName() {}"
+    },
+    {
+      name: "a re-export names a function this file cannot see",
+      filename: "features/leads/components/index.ts",
+      code: 'export { useSomething } from "./elsewhere"'
+    }
+  ],
+  invalid: [
+    {
+      name: "a hook declared with `function` under components/ belongs in hooks/",
+      filename: "features/templates/components/TemplateEditorPage/useEditorHotkeys.ts",
+      code: "export function useEditorHotkeys() {}",
+      errors: [{ messageId: "hookInComponents", data: { name: "useEditorHotkeys" } }]
+    },
+    {
+      name: "a hook assigned to a const under components/ belongs in hooks/",
+      filename: "features/leads/components/useLeadFilters.ts",
+      code: "export const useLeadFilters = () => ({})",
+      errors: [{ messageId: "hookInComponents", data: { name: "useLeadFilters" } }]
+    },
+    {
+      name: "a hook exported through a bottom export block belongs in hooks/",
+      filename: "features/leads/components/LeadCard.tsx",
+      code: "function useLeadCard() {}\n\nexport { useLeadCard }",
+      errors: [{ messageId: "hookInComponents", data: { name: "useLeadCard" } }]
+    }
+  ]
+})
+
+const hookFileExportsItsHook = rules["hook-file-exports-its-hook"]
+
+ruleTester.run("hook-file-exports-its-hook", hookFileExportsItsHook, {
+  valid: [
+    {
+      name: "a use* file exporting its hook as a function declaration",
+      filename: "features/templates/hooks/useEditorHotkeys.ts",
+      code: "export function useEditorHotkeys() {}"
+    },
+    {
+      name: "a use* file exporting its hook through a bottom export block",
+      filename: "hooks/useIsMobile.ts",
+      code: "function useIsMobile() {}\n\nexport { useIsMobile }"
+    },
+    {
+      name: "a non-use basename is a private helper co-located with its consumer",
+      filename: "features/templates/hooks/selectionActions.ts",
+      code: "export function createSelectionActions() {}"
+    },
+    {
+      name: "the barrel is not a hook file",
+      filename: "features/templates/hooks/index.ts",
+      code: 'export * from "./useEditorHotkeys"'
+    },
+    {
+      name: "a hook test is exempt",
+      filename: "features/templates/hooks/__tests__/useEditorHotkeys.test.ts",
+      code: "test('it', () => {})"
+    },
+    {
+      name: "a file outside hooks/ is outside the rule's scope",
+      filename: "features/templates/services/useless.ts",
+      code: "export const value = 1"
+    }
+  ],
+  invalid: [
+    {
+      name: "a use* file exporting a differently named hook",
+      filename: "features/templates/hooks/useEditorHotkeys.ts",
+      code: "export function useEditorShortcuts() {}",
+      errors: [{ messageId: "missingHook", data: { basename: "useEditorHotkeys" } }]
+    },
+    {
+      name: "a use* file exporting no function at all",
+      filename: "features/templates/hooks/useSnapBypass.ts",
+      code: "export const SNAP_BYPASS_KEY = 'Alt'",
+      errors: [{ messageId: "missingHook", data: { basename: "useSnapBypass" } }]
+    },
+    {
+      name: "a use* file that declares its hook but never exports it",
+      filename: "hooks/useIsMobile.ts",
+      code: "function useIsMobile() {}\n\nexport const value = 1",
+      errors: [{ messageId: "missingHook", data: { basename: "useIsMobile" } }]
+    }
+  ]
+})

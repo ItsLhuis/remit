@@ -487,9 +487,11 @@ features/<feature>/
   ├── hooks/               Feature-scoped hooks.
   ├── services/            Pure business logic. No framework or IO imports.
   │   └── __tests__/       Vitest unit tests. Co-located with what they test.
+  ├── engine/              Cohesive runtime spanning services/hooks/components. templates/ only.
   ├── queries.ts           Read operations via Drizzle. Server-only.
   ├── mutations.ts         Write operations (server actions). Server-only.
   ├── schemas.ts           Zod schemas + inferred types.
+  ├── labels.ts            Domain values → translation keys, icon names, badge variants.
   ├── types.ts             Public types not derivable from schemas.
   ├── events.ts            Event handler registration for this feature.
   └── index.ts             Public barrel. Only what other features may consume.

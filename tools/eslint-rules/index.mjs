@@ -321,10 +321,151 @@ function buildValidateBeforeIoFix(sourceCode, blockBody, safeParseCall, ioNode) 
   }
 }
 
+// A hook is a `use` followed by an uppercase letter, matching the React convention. `user.ts` and
+// `useful.ts` are ordinary modules and neither rule below touches them.
+const HOOK_NAME_PATTERN = /^use[A-Z]/
+
+function toPosixPath(filename) {
+  return filename.replaceAll("\\", "/")
+}
+
+function isFunctionInitializer(node) {
+  return (
+    Boolean(node) && (node.type === "ArrowFunctionExpression" || node.type === "FunctionExpression")
+  )
+}
+
+// Every name this file both declares as a function and exports, mapped to the node worth reporting.
+// Declaration and export are resolved within the one file: a re-export carrying a `source` names a
+// function this file cannot see, so it is skipped rather than guessed at.
+function collectExportedFunctionNames(program) {
+  const declaredFunctions = new Map()
+
+  for (const node of program.body) {
+    const declaration = node.type === "ExportNamedDeclaration" ? node.declaration : node
+
+    if (!declaration) continue
+
+    if (declaration.type === "FunctionDeclaration" && declaration.id) {
+      declaredFunctions.set(declaration.id.name, declaration.id)
+    }
+
+    if (declaration.type === "VariableDeclaration") {
+      for (const declarator of declaration.declarations) {
+        if (declarator.id.type !== "Identifier") continue
+        if (!isFunctionInitializer(declarator.init)) continue
+
+        declaredFunctions.set(declarator.id.name, declarator.id)
+      }
+    }
+  }
+
+  const exported = new Map()
+
+  for (const node of program.body) {
+    if (node.type !== "ExportNamedDeclaration") continue
+
+    if (node.declaration) {
+      if (node.declaration.type === "FunctionDeclaration" && node.declaration.id) {
+        exported.set(node.declaration.id.name, node.declaration.id)
+      }
+
+      if (node.declaration.type === "VariableDeclaration") {
+        for (const declarator of node.declaration.declarations) {
+          if (declarator.id.type !== "Identifier") continue
+          if (!isFunctionInitializer(declarator.init)) continue
+
+          exported.set(declarator.id.name, declarator.id)
+        }
+      }
+
+      continue
+    }
+
+    if (node.source) continue
+
+    for (const specifier of node.specifiers) {
+      if (specifier.type !== "ExportSpecifier") continue
+      if (specifier.local.type !== "Identifier") continue
+
+      const declaredAt = declaredFunctions.get(specifier.local.name)
+
+      if (declaredAt) exported.set(specifier.local.name, specifier)
+    }
+  }
+
+  return exported
+}
+
+const noHookInComponents = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "A React hook is not declared under `features/<feature>/components/`"
+    },
+    messages: {
+      hookInComponents:
+        "Hook `{{name}}` is declared under components/. Hooks belong in `features/<feature>/hooks/` (see hooks.md)."
+    },
+    schema: []
+  },
+  create(context) {
+    const filename = toPosixPath(context.filename ?? context.getFilename())
+
+    if (!/(^|\/)features\/[^/]+\/components\//.test(filename)) return {}
+    if (/(^|\/)__tests__\//.test(filename)) return {}
+
+    return {
+      "Program:exit"(program) {
+        for (const [name, node] of collectExportedFunctionNames(program)) {
+          if (!HOOK_NAME_PATTERN.test(name)) continue
+
+          context.report({ node, messageId: "hookInComponents", data: { name } })
+        }
+      }
+    }
+  }
+}
+
+const hookFileExportsItsHook = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "A `hooks/` file named `use*` exports the hook its filename advertises"
+    },
+    messages: {
+      missingHook:
+        "`{{basename}}` is presented as a hook but exports no function named `{{basename}}`. Rename the file after the helper it holds, or export the hook (see hooks.md)."
+    },
+    schema: []
+  },
+  create(context) {
+    const filename = toPosixPath(context.filename ?? context.getFilename())
+
+    if (!/(^|\/)hooks\//.test(filename)) return {}
+    if (/(^|\/)__tests__\//.test(filename)) return {}
+
+    const basename = filename.slice(filename.lastIndexOf("/") + 1).replace(/\.(ts|tsx)$/, "")
+
+    if (basename === "index") return {}
+    if (!HOOK_NAME_PATTERN.test(basename)) return {}
+
+    return {
+      "Program:exit"(program) {
+        if (collectExportedFunctionNames(program).has(basename)) return
+
+        context.report({ node: program, messageId: "missingHook", data: { basename } })
+      }
+    }
+  }
+}
+
 const plugin = {
   rules: {
     "helper-placement": helperPlacement,
+    "hook-file-exports-its-hook": hookFileExportsItsHook,
     "no-blank-lines-in-jsx-return": noBlankLinesInJsxReturn,
+    "no-hook-in-components": noHookInComponents,
     "validate-before-io": validateBeforeIo
   }
 }

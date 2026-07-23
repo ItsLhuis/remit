@@ -180,12 +180,13 @@ an independent way to author a group's or a selection's size.
 ### Canvas engine
 
 On-canvas move, resize, rotate, marquee, and pan run on a bespoke pointer-event engine —
-`useCanvasEngine` over the `engine/` modules: `gestures` classifies a press, `pressState` holds
-intent, threshold, and pointer capture, `canvasPoint` converts screen↔content coordinates through
-the current zoom, `frameTick` batches per-frame math and DOM writes into one `requestAnimationFrame`
-callback, `dropCommit` resolves reparent and marquee commits, and `announcer` / `LiveRegion` carry
-throttled `aria-live` announcements. `@dnd-kit/react` is retained only for the Layers tree, where
-its sortable and droppable model still fits, and never touches the canvas.
+`useCanvasEngine` over the `features/templates/engine/` modules: `gestures` classifies a press,
+`pressState` holds intent, threshold, and pointer capture, `canvasPoint` converts screen↔content
+coordinates through the current zoom, `frameTick` batches per-frame math and DOM writes into one
+`requestAnimationFrame` callback, `dropCommit` resolves reparent and marquee commits, and
+`announcer` / `LiveRegion` carry throttled `aria-live` announcements. `@dnd-kit/react` is retained
+only for the Layers tree, where its sortable and droppable model still fits, and never touches the
+canvas.
 
 Every gesture is classified once at `pointerdown` — after a hit-test in content space — and tracked
 through `setPointerCapture`, so a drag that leaves the page or the window keeps tracking and always

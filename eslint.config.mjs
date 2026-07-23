@@ -401,6 +401,24 @@ const eslintConfig = defineConfig([
       "remit/validate-before-io": "error"
     }
   },
+  {
+    files: ["features/**/components/**/*.{ts,tsx}"],
+    plugins: {
+      remit: remitRules
+    },
+    rules: {
+      "remit/no-hook-in-components": "error"
+    }
+  },
+  {
+    files: ["hooks/**/*.{ts,tsx}", "features/**/hooks/**/*.{ts,tsx}"],
+    plugins: {
+      remit: remitRules
+    },
+    rules: {
+      "remit/hook-file-exports-its-hook": "error"
+    }
+  },
   globalIgnores([
     ".next/**",
     ".cache/**",

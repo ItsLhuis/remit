@@ -7,6 +7,51 @@ paths:
 
 # Component Rules
 
+## What belongs in `components/`
+
+A file belongs in `features/<feature>/components/` when it is one of exactly two things:
+
+1. A **React component**.
+2. A **module-private contract**: consumed only by the sibling components in that same folder,
+   carrying no reusable domain logic and no React state. `TemplateEditorPage/layerDropId.ts` is the
+   canonical one - the dnd-kit id vocabulary that `LayerRow` registers and `LayersList` decodes.
+
+Everything else already has a home:
+
+| The file is…                                | Home                           |
+| ------------------------------------------- | ------------------------------ |
+| a hook (`use*`, calls React hooks)          | `features/<feature>/hooks/`    |
+| pure domain logic, no React and no IO       | `features/<feature>/services/` |
+| a domain value → label / icon / variant map | `features/<feature>/labels.ts` |
+| the canvas editor's pointer runtime         | `features/templates/engine/`   |
+
+A file's extension follows its content - JSX makes it `.tsx` - and never its folder. Classify by
+kind, never by extension: `TemplatesListPage/columns.ts` exports `getTemplateColumns(t)`, a config
+function that happens to render no JSX, and `ClientsListPage/columns.tsx` is the same kind of file
+whose cells do. Both are correctly co-located; neither is a component.
+
+```ts
+// Good - features/leads/labels.ts: a domain value map at the feature root
+export const leadStatusPresentation: Record<LeadStatus, StatusPresentation> = {
+  new: { variant: "secondary", icon: "Sparkles" }
+}
+
+// Bad - features/leads/components/leadStatusPresentation.ts: same file under components/,
+// where the next feature cannot tell whether the root or components/ is the rule
+```
+
+```ts
+// Good - features/templates/hooks/useEditorHotkeys.ts: a hook lives in hooks/
+export function useEditorHotkeys(options: EditorHotkeysOptions): void {}
+
+// Bad - features/templates/components/TemplateEditorPage/useEditorHotkeys.ts: a hook under
+// components/, invisible to anyone reading hooks/index.ts
+```
+
+This is lint-enforced from both sides: `remit/no-hook-in-components` fails an exported `use*`
+function under `features/**/components/**`, and `remit/hook-file-exports-its-hook` fails a `hooks/`
+file named `use*` that does not export the hook it advertises.
+
 ## Component files
 
 - Component filenames are PascalCase: `Button.tsx`, `SecuritySettingsPage.tsx`.

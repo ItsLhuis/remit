@@ -46,9 +46,17 @@ object normalization belong in `lib/utils/`.
 Each feature lives under `features/<feature>/` and is a closed module. One-line responsibility per
 file:
 
-- `components/` - React UI for this feature; exported via a barrel `index.ts`.
+- `components/` - React UI for this feature; exported via a barrel `index.ts`. Admits components and
+  module-private contracts only (see `components.md`).
 - `hooks/` - Feature-scoped hooks (see `hooks.md`).
 - `services/` - Pure business logic; no framework or IO imports.
+- `engine/` - The canvas editor's pointer runtime: its gesture machinery, the React hooks that drive
+  it, its module-level stores, and the overlay components it owns. It exists because that runtime is
+  one cohesive unit ([ADR 0024](../../docs/architecture/adr/0024-template-editor-canvas.md)) that
+  splits across `services/`, `hooks/`, and `components/` without belonging to any of them. It is not
+  a general-purpose kind: `features/templates/` is the only feature that has one, and another
+  feature should not copy it without an equally strong reason.
+- `labels.ts` - Maps domain values to translation keys, icon names, and badge variants.
 - `queries.ts` - Read operations via Drizzle; server-only.
 - `mutations.ts` - Write operations (server actions); server-only.
 - `schemas.ts` - Zod schemas and their inferred types.
