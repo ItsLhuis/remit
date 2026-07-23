@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { organizations } from "./organizations"
 
@@ -97,7 +97,10 @@ export const twoFactors = pgTable(
     backupCodes: text("backup_codes").notNull(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" })
+      .references(() => users.id, { onDelete: "cascade" }),
+    verified: boolean("verified").default(true),
+    failedVerificationCount: integer("failed_verification_count").default(0),
+    lockedUntil: timestamp("locked_until", authTimestamp)
   },
   (table) => [
     index("two_factors_user_id_idx").on(table.userId),
