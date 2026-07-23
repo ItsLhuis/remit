@@ -329,6 +329,10 @@ function getClientListWhereClause(
   return and(...conditions)
 }
 
+// These three branches are the SQL restatement of `getClientHealth` in services/clientHealth.ts and
+// must keep matching it: the service decides the badge a row displays, this decides which rows the
+// health filter returns, and a divergence shows up as a client filtered into a bucket its own badge
+// contradicts. Filtering cannot call the service because the predicate has to run in the database.
 function getClientHealthCondition(
   healths: ClientHealthValue[],
   outstandingExpr: SQL<number>,
@@ -361,6 +365,12 @@ function getClientHealthCondition(
   return parts.length > 0 ? or(...parts) : undefined
 }
 
+// Invoice totals, payment totals and invoice counts are three separate pre-aggregated subqueries
+// joined onto `clients`, rather than one query joining invoices and payments together. Joining them
+// directly fans out one invoice row per payment, which multiplies `sum(invoices.total_cents)` by
+// the number of payments and silently inflates every outstanding balance on the page. The
+// `greatest(..., 0)` wrapper at each call site mirrors the clamp in
+// `services/calculateOutstandingBalance.ts` so SQL and the pure service agree on an overpaid client.
 function getClientInvoiceTotalsSubquery() {
   return database
     .select({

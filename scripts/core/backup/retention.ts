@@ -12,6 +12,13 @@ export type BackupRetentionPolicy = {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// Grandfather-father-son retention over three consecutive age windows rather than three
+// independent filters. The daily window covers `daily` days back from now, the weekly window the
+// `weekly * 7` days before that, and the monthly window everything older; within each window one
+// archive per calendar day, ISO week, or calendar month is kept, newest first. `kept` is shared
+// across all three passes so an archive already retained by an earlier tier does not also consume
+// a slot in a later one. Everything not in `kept` is returned for deletion, so a change that
+// narrows a window here deletes backups — the callers treat this list as authoritative.
 export function computeRetentionDeletions(
   existing: BackupRetentionArchive[],
   policy: BackupRetentionPolicy,
@@ -107,6 +114,10 @@ function calendarMonthKey(date: Date): string {
   return date.toISOString().slice(0, 7)
 }
 
+// ISO-8601 week number: shift the date to the Thursday of its own week (Sunday counted as day 7),
+// because the ISO year is the year that Thursday falls in, then count weeks from 1 January of that
+// year. Without the Thursday shift, the days either side of New Year land in the wrong week-year
+// and two archives from one week would be grouped separately.
 function isoWeekKey(date: Date): string {
   const value = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   const day = value.getUTCDay() || 7

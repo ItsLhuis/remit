@@ -89,6 +89,8 @@ export function buildS3ClientConfig(
       credentials.forcePathStyle ??
       (destination === "r2" || destination === "b2" || Boolean(endpoint)),
     region: resolveBackupRegion(destination, credentials),
+    // "WHEN_REQUIRED" rather than the SDK's default: newer AWS SDK releases attach CRC32 checksum
+    // headers to every request, which the non-AWS S3-compatible destinations here (R2, B2) reject.
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED"
   }
@@ -117,6 +119,9 @@ function resolveBackupRegion(
   destination: Exclude<BackupDestination, "local">,
   credentials: Pick<CompleteBackupCredentials, "endpoint" | "region">
 ): string {
+  // R2 has no regions and requires the literal region "auto". When no endpoint was given the
+  // `region` field is carrying the Cloudflare account identifier instead (see
+  // `resolveBackupEndpoint`), so it must not be passed through as a region as well.
   if (destination === "r2" && !credentials.endpoint?.trim()) {
     return "auto"
   }

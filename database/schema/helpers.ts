@@ -25,6 +25,12 @@ export type EncryptedColumn = {
 
 const encryptedColumnRegistry = new Map<string, EncryptedColumn>()
 
+// Wrapping `build` is the only hook Drizzle offers that runs once the column knows which table it
+// belongs to, which is what makes the registry below complete and self-maintaining: declaring a
+// column with this helper is all it takes for the key-rotation script to find it. That is a real
+// contract, not an optimisation — `scripts/core/keyRotation/runRotation.ts` re-encrypts exactly
+// what `getEncryptedColumns` returns, so a column encrypted by any other means is silently left
+// on the old key during a rotation.
 export function encryptedColumn(name: string) {
   const builder = customType<{ data: string; driverData: string }>({
     dataType() {
@@ -37,6 +43,8 @@ export function encryptedColumn(name: string) {
       try {
         return decryptString(value, encryptionKey)
       } catch {
+        // The underlying error is dropped rather than chained: it carries ciphertext and cipher
+        // details that must not reach a log or a response.
         throw new Error(`Failed to decrypt encrypted column "${name}".`)
       }
     }

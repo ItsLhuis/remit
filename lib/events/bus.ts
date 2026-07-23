@@ -20,5 +20,8 @@ export async function emit<E extends keyof EventMap>(
 ): Promise<void> {
   const handlers = (registry.get(event) ?? []) as Handler<E>[]
 
+  // Nothing is caught here on purpose, so a throwing handler rejects the emitting action's write
+  // path. `.agents/rules/events.md` therefore requires every handler to catch and log its own
+  // failures; the bus does not paper over one that does not.
   await Promise.all(handlers.map((handler) => Promise.resolve(handler(payload))))
 }

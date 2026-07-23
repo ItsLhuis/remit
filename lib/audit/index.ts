@@ -39,6 +39,10 @@ export async function writeAudit(
       userAgent: options.userAgent ?? null
     })
   } catch (error) {
+    // Swallowed deliberately: audit writes sit inside auth flows, and a failing insert must not
+    // block a login, a password change or a rate-limit rejection from completing. The trade is
+    // explicit — a lost audit entry is preferred over a denial of service on the flow it records,
+    // and the logger line is the only remaining trace when that happens.
     logger.error({ action: "writeAudit", event, err: error }, "Audit log insert failed")
   }
 }

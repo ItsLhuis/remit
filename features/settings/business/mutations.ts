@@ -211,6 +211,10 @@ export async function confirmBusinessLogoUpload(
     return { error: t("settings.business.errors.logoUpdateFailed") }
   }
 
+  // Deleting the previous logo happens only after the whole write succeeded, and outside the try
+  // above, so a failed update leaves the old file in place for `restoreBusinessLogoUpload` to point
+  // back at. `deleteOldLogoFiles` then swallows its own failures: an orphaned object in storage is
+  // an acceptable outcome, reporting a failed save after the settings row already changed is not.
   if (oldLogoPath) {
     await deleteOldLogoFiles(session.user.id, oldLogoPath)
   }
@@ -447,6 +451,10 @@ type MirrorBusinessOrganizationInput = {
   }
 }
 
+// Business name and logo live on the settings row, but Better Auth keeps its own copy on the
+// organization, so the two are mirrored here. Remit runs exactly one organization per instance,
+// which is why taking the first is correct rather than a shortcut, and why a missing organization
+// is a no-op instead of a failure.
 async function mirrorBusinessOrganization({
   headers,
   data

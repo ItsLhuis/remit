@@ -126,6 +126,8 @@ export async function testStripeConnection(
       return { error: t("settings.payment.errors.stripeNotConfigured") }
     }
 
+    // Imported dynamically so the Stripe SDK is only loaded when someone actually runs a
+    // connection test, rather than on every request that touches this module.
     const { testStripeConnection: testConnection } = await import("./stripe")
 
     await testConnection(existing.stripeSecretKey)
@@ -210,6 +212,11 @@ async function getPersistedPaymentSettings(): Promise<PersistedPaymentSettings |
   )
 }
 
+// The three secrets (IBAN, Stripe secret key, webhook secret) are written only when the submission
+// carries a non-empty value, so a blank field means "keep what is stored" rather than "clear it".
+// That is the write half of the contract `toPaymentSettingsFormData` in queries.ts sets up by
+// never sending a stored secret to the client — treating blank as a clear would wipe every secret
+// on the first save of the form.
 function buildPaymentSettingsWritePlan(
   values: PaymentSettingsValues,
   existing: PersistedPaymentSettings | null

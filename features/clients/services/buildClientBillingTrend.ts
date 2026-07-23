@@ -34,6 +34,9 @@ export function buildClientBillingTrend(
   let month = now.getUTCMonth()
 
   for (let index = 0; index < months; index += 1) {
+    // `month + 1` is allowed to reach 12: Date.UTC rolls it into January of the next year, which
+    // is exactly the half-open bucket end wanted. The backwards step below cannot lean on the same
+    // rollover because it must also carry the year, so it decrements explicitly.
     const start = Date.UTC(year, month, 1)
     const end = Date.UTC(year, month + 1, 1)
 

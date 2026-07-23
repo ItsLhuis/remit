@@ -58,6 +58,10 @@ export async function getPublicPaymentBlock(): Promise<PublicPaymentBlock> {
   return toPublicPaymentBlock(row ?? null)
 }
 
+// The three encrypted secrets are deliberately returned as empty strings with a companion
+// `*Configured` boolean rather than their real values: this read model reaches a client form, and
+// `security.md` forbids an encrypted field ever leaving the server. The form uses the boolean to
+// show that a secret is set, and treats a blank submission as "leave unchanged".
 export function toPaymentSettingsFormData(row: PaymentSettingsRow | null): PaymentSettingsFormData {
   return {
     paymentBankName: row?.paymentBankName ?? "",

@@ -25,6 +25,10 @@ export const proposalOtps = pgTable(
     index("proposal_otps_active_idx")
       .on(table.proposalId)
       .where(sql`${table.usedAt} IS NULL AND ${table.invalidatedAt} IS NULL`),
+    // The attempt ceiling is a database constraint, not only application logic, so a verification
+    // path that forgets to check it fails the write instead of allowing unlimited guesses against
+    // a short code. `codeHash` holds a hash for the same reason the ceiling is low: the plaintext
+    // code is emailed and never stored, so a database copy yields no usable codes.
     check("chk_proposal_otps_attempts", sql`${table.attempts} >= 0 AND ${table.attempts} <= 5`),
     check(
       "chk_proposal_otps_used_invalidated",

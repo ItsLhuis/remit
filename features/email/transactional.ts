@@ -282,6 +282,9 @@ function formatAddress(name: string, address: string): string {
   return `"${sanitizeHeader(name).replace(/"/g, '\\"')}" <${sanitizeHeader(address)}>`
 }
 
+// Stripping CR and LF is header-injection defence, not cosmetics: the from name and address come
+// from operator-editable settings, and a newline inside a header value lets the rest of the string
+// be interpreted as additional headers (a Bcc, a forged Reply-To) by the receiving MTA.
 function sanitizeHeader(value: string): string {
   return value.replace(/[\r\n]/g, " ").trim()
 }

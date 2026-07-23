@@ -94,6 +94,9 @@ const SidebarProvider = ({
       }
 
       const name = cookieName ?? SIDEBAR_COOKIE_NAME
+      // A cookie so the server can render the sidebar in its last state and avoid a collapse flash
+      // on first paint. This is presentation state only; the "no routing state in cookies" rule in
+      // `security.md` is about auth and onboarding, which `proxy.ts` derives from the database.
       document.cookie = `${name}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open, cookieName]

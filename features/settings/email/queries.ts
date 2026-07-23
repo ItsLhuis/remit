@@ -42,6 +42,10 @@ export async function getEmailSettings(): Promise<EmailSettingsFormData> {
   return toEmailSettingsFormData(row ?? null)
 }
 
+// `smtpPass` and `resendApiKey` are returned as empty strings with a companion `*Configured`
+// boolean rather than their stored values: this read model reaches a client form, and `security.md`
+// forbids an encrypted field leaving the server. `buildEmailSettingsWritePlan` in mutations.ts
+// completes the contract by treating a blank submission as "keep the stored secret".
 export function toEmailSettingsFormData(row: EmailSettingsRow | null): EmailSettingsFormData {
   return {
     emailProvider: row?.emailProvider ?? "smtp",

@@ -21,6 +21,9 @@ export function getSortingStateParser(columnIds?: Set<string>) {
 
         if (!result.success) return null
 
+        // Sort ids arrive from the URL and end up naming an order-by column, so an id outside the
+        // caller's known column set invalidates the whole parse rather than being dropped: a
+        // partially honoured sort would silently reorder a table by something the user never chose.
         if (columnIds && result.data.some((item) => !columnIds.has(item.id))) return null
 
         return result.data

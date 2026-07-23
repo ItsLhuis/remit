@@ -123,6 +123,9 @@ async function ensureOwnerMembership({
     }
   })
 
+  // Setup is reachable by any signed-in user whose instance is not finished, so a non-owner
+  // reaching an organization that already exists is refused rather than promoted. `auth.md` bars
+  // repairing or creating a membership here: only Better Auth's organization APIs grant roles.
   if (activeMemberRole.role !== "owner") {
     throw new Error("Setup user is not the organization owner")
   }

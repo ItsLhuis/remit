@@ -132,7 +132,9 @@ test.describe("template editor - frame continuity", () => {
 
     expect(Math.abs(endBox.x - startBox.x)).toBeGreaterThan(1)
 
-    // The plan's performance item asks for recorded evidence, not just a pass/fail.
+    // Recorded as an annotation, not just asserted: a frame-timing failure is only diagnosable
+    // with the measured numbers, and a pass/fail alone gives a future run nothing to compare
+    // against when the thresholds below start being approached.
     testInfo.annotations.push({
       type: "frame-trace",
       description: `frames=${intervals.length} worst=${worst.toFixed(1)}ms@${intervals.indexOf(worst)} long=${intervals.filter((interval) => interval > LONG_FRAME_MS).length}`

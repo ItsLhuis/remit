@@ -101,6 +101,8 @@ export async function createProject(input: unknown): Promise<ProjectMutationResu
 
     const [createdProject] = await database
       .insert(projects)
+      // Currency is taken from the client rather than the submitted form: a project's money must
+      // be denominated in the currency its client is billed in, so it is never user-editable here.
       .values({ ...writeValues, currency: client.currency, status: parsed.data.status })
       .returning({ id: projects.id })
 

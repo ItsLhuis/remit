@@ -26,6 +26,10 @@ import {
 
 import { sendTransactionalEmail } from "@/features/email/server"
 
+// Accountant and assistant deliberately share one role with no organization, member, invitation or
+// team permissions: Remit runs one organization per instance, so only the owner may ever change
+// membership or invite anyone. Feature-level authorization is done by `requireRole` in session.ts,
+// not by these Better Auth permissions.
 const limitedOrganizationRole = defaultAc.newRole({
   organization: [],
   member: [],
@@ -40,6 +44,8 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   advanced: {
     database: {
+      // Better Auth's own id generator produces short random strings; the auth tables in
+      // database/schema are `uuid` columns, so ids must be generated as UUIDs here to be storable.
       generateId: () => randomUUID()
     }
   },
@@ -104,6 +110,9 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
+    // With the cookie cache on, a session read can be up to five minutes stale, which matters for
+    // anything reacting to a just-changed session (TOTP enrolment, role change, revocation).
+    // `getSession` in session.ts takes `disableCookieCache` for exactly those call sites.
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60

@@ -13,6 +13,13 @@ import { rateLimitInstance } from "@/lib/rateLimit"
 import { database } from "@/database"
 import { settings, users } from "@/database/schema"
 
+// The onboarding and authentication state machine below derives every routing decision from the
+// database and the active session, and from nothing else. Storing routing state in a cookie is a
+// violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Routing state rule"
+// (ADR-0001), however tempting it is as a way to avoid the per-request reads here. The guard order
+// is the state machine itself: user existence, then session, then setup completion, then a forced
+// password change; each stage may only be reached once the earlier ones are satisfied.
+
 export function buildContentSecurityPolicy(): string {
   const storageOrigin = (() => {
     try {
@@ -142,6 +149,9 @@ export async function proxy(request: NextRequest) {
     .limit(1)
     .then((rows) => rows[0] ?? null)
 
+  // "Setup complete" is exactly these two facts, and the setup wizard in `features/setup` must
+  // keep writing both: a business name on the settings row and an enrolled TOTP factor. Adding a
+  // step to the wizard without extending this predicate lets a user escape it by navigating away.
   const setupComplete = !!(userSettings?.businessName && session.user.twoFactorEnabled)
 
   if (!setupComplete) {

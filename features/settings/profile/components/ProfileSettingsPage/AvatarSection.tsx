@@ -48,6 +48,8 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
 
     if (!file) return
 
+    // Clearing the input before the upload runs is what lets the same file be picked again after a
+    // failure; a file input fires no change event when its value is unchanged.
     event.target.value = ""
 
     startTransition(async () => {

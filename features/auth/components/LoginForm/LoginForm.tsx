@@ -70,9 +70,15 @@ const LoginForm = ({ passwordResetAvailable }: LoginFormProps) => {
       return
     }
 
+    // Always "/setup", never the dashboard: `proxy.ts` owns where a signed-in user belongs and
+    // forwards on to "/" once setup is complete. Sending an authenticated user straight to "/"
+    // here would duplicate that decision on the client, where it can drift.
     router.push("/setup")
   }
 
+  // The result is intentionally neither read nor surfaced: reporting whether the address was found
+  // would turn this form into an account-enumeration oracle. The user always sees the same
+  // confirmation regardless of whether an email was actually sent.
   const requestPasswordReset = async () => {
     await authClient.requestPasswordReset({
       email: form.getValues("email"),

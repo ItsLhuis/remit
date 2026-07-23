@@ -114,6 +114,8 @@ function buildLocalDestinationAdapter(rootDirectory: string): BackupDestinationA
     async put(key, body) {
       const destinationPath = resolveLocalKeyPath(rootDir, key)
       await mkdir(path.dirname(destinationPath), { recursive: true })
+      // "wx" fails when the path already exists rather than truncating it, so a key collision can
+      // never overwrite an existing archive with a partial or unrelated one.
       await pipeline(body, createWriteStream(destinationPath, { flags: "wx" }))
 
       return { key }
@@ -166,6 +168,9 @@ async function listLocalBackupObjects(
   return nested.flat().sort((left, right) => left.key.localeCompare(right.key))
 }
 
+// The containment check is where a backup key stops being untrusted: keys reach the local adapter
+// from stored settings and from listings, and this is the only thing keeping `delete` and `put`
+// from reaching outside the configured backup directory.
 function resolveLocalKeyPath(rootDir: string, key: string): string {
   const resolved = path.resolve(rootDir, key)
   const relative = path.relative(rootDir, resolved)

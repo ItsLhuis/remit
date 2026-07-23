@@ -113,6 +113,9 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     )
     .join("\n")
 
+  // The injected CSS is built only from the developer-authored `ChartConfig` — theme keys and
+  // colour literals written in the call site — never from data fetched or entered by a user.
+  // Passing runtime data through here would be a stylesheet-injection hole.
   return <style dangerouslySetInnerHTML={{ __html: css }} />
 }
 

@@ -6,6 +6,10 @@ export type ProjectStatusTransition =
   | { allowed: true; nextStatus: ProjectStatus }
   | { allowed: false; reason: ProjectTransitionReason }
 
+// `on_hold` is the only reversible state: a paused project is expected to resume, whereas
+// `completed` and `cancelled` are terminal because downstream records (invoices, time entries)
+// are settled against a finished project. Resuming abandoned work is a new project, not a
+// reopened one.
 const ALLOWED_TRANSITIONS: Record<ProjectStatus, readonly ProjectStatus[]> = {
   active: ["on_hold", "completed", "cancelled"],
   on_hold: ["active", "completed", "cancelled"],

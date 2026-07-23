@@ -226,6 +226,9 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
       throw new ExpectedLeadError(t("leads.errors.alreadyConverted"))
     }
 
+    // Goes through the `createClient` action rather than inserting into `clients` directly, so a
+    // converted lead produces exactly the same validation, audit entry and `client.created` event
+    // as a hand-created client. Inlining the insert here would silently skip all three.
     const clientResult = await createClient({
       name: parsed.data.name,
       email: existingLead.email,

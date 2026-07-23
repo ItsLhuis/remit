@@ -6,6 +6,10 @@ export type TaskStatusTransition =
   | { allowed: true; nextStatus: TaskStatus }
   | { allowed: false; reason: TaskTransitionReason }
 
+// Unlike leads and projects, the task board is deliberately fully connected — every status reaches
+// every other, and there is no terminal state. A board column must stay draggable in both
+// directions, so reopening a done or cancelled task is a normal operation rather than a violation.
+// This map is kept explicit anyway so the guard stays a real check if a status ever gains a rule.
 const ALLOWED_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: TASK_STATUS_VALUES.filter((status) => status !== "backlog"),
   todo: TASK_STATUS_VALUES.filter((status) => status !== "todo"),

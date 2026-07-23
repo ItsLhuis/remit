@@ -33,6 +33,9 @@ const optionalDateSchema = z
   .refine((value) => value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value), {
     message: i18n.t("tasks.validation.dateInvalid")
   })
+  // The explicit `T00:00:00.000Z` pins a date-only input to UTC midnight. Handing the bare
+  // "YYYY-MM-DD" to `new Date` would be read in the server's local zone, so a due date west of UTC
+  // would persist the previous day (see `money-and-dates.md`: dates are stored in UTC).
   .transform((value) => (value === "" ? null : new Date(`${value}T00:00:00.000Z`)))
 
 const optionalDescriptionSchema = z

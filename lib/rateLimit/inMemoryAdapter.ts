@@ -5,6 +5,11 @@ type Entry = {
   resetAt: number
 }
 
+// Process-local and never swept: counters live only in this process's heap and expired entries are
+// overwritten on next use rather than evicted on a timer. Both are acceptable because Remit is
+// structurally single-instance (see AGENTS.md) and the key space is bounded by the callers' own
+// keys. A deployment that ever runs more than one app process needs a shared adapter instead —
+// this one would give each process its own independent allowance.
 export function createInMemoryAdapter(): RateLimitAdapter {
   const store = new Map<string, Entry>()
 

@@ -1,3 +1,9 @@
+// Board order uses sparse integer positions rather than a dense 0..n index so that dragging one
+// card normally writes one row instead of renumbering the column. New tasks land a whole step past
+// the last one, and an insertion between two cards takes the midpoint of the gap. `POSITION_STEP`
+// therefore buys roughly ten successive insertions into the same gap before the midpoint collides
+// with a neighbour; `getPositionBetween` returns null at that point and `planTaskReorder` falls
+// back to repacking the whole column, which is the only path that rewrites every row.
 export const POSITION_STEP = 1000
 
 export type TaskPositionUpdate = { id: string; position: number }

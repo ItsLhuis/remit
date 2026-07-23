@@ -2,6 +2,10 @@ const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const
 
 const COMPACT_CURRENCY_THRESHOLD = 10_000
 
+// Intl formatters are cached by option signature rather than constructed per call: building one is
+// orders of magnitude more expensive than formatting with it, and these run per row across list
+// and dashboard renders. Any new formatter must contribute every option that varies to its cache
+// key, or it will silently hand back a formatter configured for a different locale or currency.
 const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>()
 
 const numberFormatters = new Map<string, Intl.NumberFormat>()
@@ -102,6 +106,9 @@ export function formatCompactCurrency(cents: number, currency: string, locale?: 
   }).format(value)
 }
 
+// Takes a value already expressed in percent (20 means 20%) and returns a bare localized number
+// with no percent sign — `style: "percent"` would divide by 100 and append the symbol. The sign
+// belongs to the caller's translated string, so that ICU controls its placement per locale.
 export function formatPercentage(value: number, locale?: string): string {
   return getNumberFormatter(`percentage|${locale ?? ""}`, locale, {
     minimumFractionDigits: 0,

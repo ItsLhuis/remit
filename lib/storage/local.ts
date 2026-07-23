@@ -69,6 +69,8 @@ async function collectLocalStorageObjects(
     if (!entry.isFile()) continue
 
     const stats = await stat(absolutePath)
+    // Storage keys are always "/"-separated regardless of host platform, so that a key written on
+    // Windows still resolves against the same object in S3/MinIO and in a backup archive.
     const key = path.relative(rootDir, absolutePath).split(path.sep).join("/")
 
     files.push({ absolutePath, key, size: stats.size })

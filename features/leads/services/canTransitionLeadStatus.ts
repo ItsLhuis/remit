@@ -6,6 +6,11 @@ export type LeadStatusTransition =
   | { allowed: true; nextStatus: LeadStatus }
   | { allowed: false; reason: LeadTransitionReason }
 
+// A lead may only step one stage forward or one stage back, never skip ahead: a "qualified" lead
+// must have been contacted, and a proposal must have been sent before it can be won or lost, so
+// the pipeline stage always reflects work that actually happened. `won` and `lost` are terminal
+// because a decided lead is an outcome, not a stage to reopen — a revived prospect is a new lead.
+// Widening a row here silently weakens that guarantee everywhere the pipeline is reported on.
 const ALLOWED_TRANSITIONS: Record<LeadStatus, readonly LeadStatus[]> = {
   new: ["contacted"],
   contacted: ["new", "qualified"],

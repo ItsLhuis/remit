@@ -12,6 +12,11 @@ function decodeHexComponent(value: string, expectedByteLength: number, label: st
   return Buffer.from(value, "hex")
 }
 
+// The `iv:ciphertext:authTag` hex envelope is the on-disk format of every encrypted column, so it
+// is a storage contract rather than an implementation detail: changing the separator, the encoding
+// or the component order makes every already-stored value unreadable, including by the rotation
+// path in `scripts/core/keyRotation/`. A fresh random IV per call is mandatory — GCM loses all
+// confidentiality guarantees if an IV is ever reused under the same key.
 export function encryptString(plaintext: string, key: Uint8Array): string {
   const iv = randomBytes(IV_BYTE_LENGTH)
   const cipher = createCipheriv(ALGORITHM, key, iv)
@@ -31,6 +36,8 @@ export function decryptString(payload: string, key: Uint8Array): string {
   const [ivHex, ciphertextHex, authTagHex] = parts
 
   const iv = decodeHexComponent(ivHex, IV_BYTE_LENGTH, "IV")
+  // Ciphertext has no fixed length, so it passes its own: that still rejects an odd number of hex
+  // characters (`length / 2 * 2` no longer equals `length`) on top of the charset check.
   const ciphertext = decodeHexComponent(ciphertextHex, ciphertextHex.length / 2, "ciphertext")
   const authTag = decodeHexComponent(authTagHex, AUTH_TAG_BYTE_LENGTH, "auth tag")
   const decipher = createDecipheriv(ALGORITHM, key, iv)

@@ -38,6 +38,8 @@ export async function requireSession(requestHeaders?: RequestHeaders, options?: 
   return session
 }
 
+// Denies with `notFound()` rather than a 403 so an unauthorized role cannot use the response to
+// learn that a route exists at all.
 export async function requireRole(required: Role | Role[]) {
   const requestHeaders = await headers()
   const session = await requireSession(requestHeaders)
@@ -58,6 +60,11 @@ type GetCurrentRoleInput = {
   userId: string
 }
 
+// The fallback path may only *select* an already-existing membership and make it the active
+// organization; it must never create or repair one. `.agents/rules/auth.md` makes that a hard rule:
+// Better Auth owns membership state, and silently minting a membership here would hand a role to a
+// user the organization APIs never granted one to. Returning null for a user with no membership is
+// the correct outcome, and `requireRole` turns it into a 404.
 export async function getCurrentRole({
   headers,
   userId
@@ -94,6 +101,9 @@ function isRole(value: string | null | undefined): value is Role {
   return value === "owner" || value === "accountant" || value === "assistant"
 }
 
+// Better Auth signals "session has no active organization" only through this message string, so a
+// Better Auth upgrade that rewords it turns the recoverable case above into a thrown error rather
+// than a silent misbehaviour. Any other error is rethrown on purpose.
 function isNoActiveOrganizationError(error: unknown): boolean {
   return error instanceof Error && error.message === "No active organization"
 }

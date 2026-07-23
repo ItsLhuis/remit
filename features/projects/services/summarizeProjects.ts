@@ -68,6 +68,8 @@ function buildAcquisitionTrend(rows: ProjectSummaryRow[], now: Date): ProjectAcq
     for (const row of rows) {
       const createdAt = row.createdAt.getTime()
 
+      // `totalProjects` is cumulative to the end of the bucket, not the bucket's own count, so the
+      // trend line shows the portfolio growing rather than repeating `newProjects`.
       if (createdAt < end) totalProjects += 1
       if (createdAt >= start && createdAt < end) newProjects += 1
     }

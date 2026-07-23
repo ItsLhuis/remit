@@ -104,6 +104,8 @@ function buildAcquisitionTrend(
     for (const row of rows) {
       const createdAt = row.createdAt.getTime()
 
+      // `totalClients` is cumulative to the end of the bucket, not the bucket's own count, so the
+      // trend line shows the client base growing rather than repeating `newClients`.
       if (createdAt < end) totalClients += 1
       if (createdAt >= start && createdAt < end) newClients += 1
     }

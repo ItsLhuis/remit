@@ -69,6 +69,9 @@ export function evaluateEmailHealth(input: EmailHealthInput): "attention" | "hea
   return "attention"
 }
 
+// Identical in shape to `evaluateEmailHealth` but returns "optional" where that one returns
+// "notSetup": an instance with no email provider cannot send an invoice or a password reset, while
+// one with no Stripe keys is simply not taking card payments. The two must not be merged.
 export function evaluateStripeHealth(
   input: StripeHealthInput
 ): "attention" | "healthy" | "optional" {
@@ -135,6 +138,9 @@ export function evaluateDiskUsage(input: DiskUsageInput): DiskUsageResult {
   }
 }
 
+// "ahead" means the database carries migrations this build does not know about, which is what a
+// rollback to an older image looks like — the schema has moved on without the code. It is reported
+// separately from "pending" because the remedy is the opposite one: redeploy, not migrate.
 export function evaluateMigrationDrift(
   input: MigrationDriftInput
 ): "healthy" | "pending" | "ahead" {

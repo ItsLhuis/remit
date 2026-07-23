@@ -8,6 +8,9 @@ const encryptionKeySchema = z
   .refine((value) => /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length % 4 === 0, {
     message: "Must be a base64-encoded 32-byte key"
   })
+  // The round-trip comparison is the point of the second refine: `Buffer.from` accepts malformed
+  // base64 by silently discarding the bad trailing characters, so a mistyped key can still decode
+  // to 32 bytes and boot a server that can no longer read anything encrypted with the real key.
   .refine((value) => {
     const key = Buffer.from(value, "base64")
 
@@ -23,6 +26,11 @@ const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
     return trimmed.length > 0 ? trimmed : undefined
   }, schema.optional())
 
+// Every field without `optionalEnvString` is boot-fatal: the process exits below rather than
+// starting degraded, because a missing database URL, auth secret, encryption key or object-store
+// credential makes the instance unable to serve or to decrypt its own data, and failing at boot is
+// far cheaper than failing per request. `SENTRY_DSN` and `REMIT_METRICS_TOKEN` are the only
+// optional ones, since their features simply stay off when unset.
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
   BETTER_AUTH_SECRET: z.string().min(1),
@@ -46,6 +54,11 @@ const schema = z.object({
   REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1))
 })
 
+// The placeholders below exist so `next build` can run in an image build with no real secrets
+// available. They are gated on both an explicit opt-in and the build lifecycle event so they can
+// never be reached by a running server: the placeholder encryption key is all zero bytes, and an
+// instance booting with it would write data nobody can recover. Nothing here may be relaxed into a
+// runtime fallback.
 const isBuildEnvValidationSkipped =
   process.env.REMIT_BUILD_ENV_VALIDATION === "skip" && process.env.npm_lifecycle_event === "build"
 

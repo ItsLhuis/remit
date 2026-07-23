@@ -9,6 +9,10 @@ export const projects = pgTable(
   "projects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Cascades on purpose, unlike `invoices.clientId` which is `set null`: a project has no
+    // meaning without the client it was worked for, whereas an invoice is a financial record that
+    // must survive the client being deleted. Every table referencing a client resolves that same
+    // question — owned working record, or record that must outlive its subject.
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),

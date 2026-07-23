@@ -29,6 +29,8 @@ export const invoices = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    // Invoices and proposals reference each other, so this one reference needs an explicit
+    // `AnyPgColumn` return type to break the circular type inference between the two modules.
     proposalId: uuid("proposal_id").references((): AnyPgColumn => proposals.id, {
       onDelete: "set null"
     }),
@@ -72,6 +74,10 @@ export const invoices = pgTable(
     index("invoices_status_idx").on(table.status),
     index("invoices_due_date_idx").on(table.dueDate),
     uniqueIndex("invoices_public_token_idx").on(table.publicToken),
+    // Every parent reference above is `set null` so an invoice outlives the records it was raised
+    // from, and this check is what stops that from erasing the invoice's last anchor. It also has a
+    // side effect worth knowing: because a SET NULL that would violate a check aborts the delete,
+    // an invoice's sole remaining parent cannot be hard-deleted at all while the invoice exists.
     check(
       "chk_invoices_parent",
       sql`${table.projectId} IS NOT NULL OR ${table.clientId} IS NOT NULL`

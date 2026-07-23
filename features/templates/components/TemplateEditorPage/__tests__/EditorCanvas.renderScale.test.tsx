@@ -13,8 +13,8 @@ import { CanvasBlock } from "../CanvasBlock"
 
 import { clientPointFor, flushFrames, Harness, setupCanvasTest, surfaceFor } from "./canvasHarness"
 
-// Proves technique 7 (section 11) at the scale the plan calls for: 30+ blocks on the page, one or a
-// few of them participating in a gesture. `CanvasBlock` is `memo`-wrapped with no custom comparator,
+// Asserts render containment at realistic scale: 30+ blocks on the page with one or a few of them
+// participating in a gesture. `CanvasBlock` is `memo`-wrapped with no custom comparator,
 // so React resolves it to a SimpleMemoComponent fiber whose `.type` is read from the wrapper's
 // `.type` property once, at that fiber's creation - patching the property after a block has already
 // mounted is invisible to later updates of that same fiber. The tracker below is therefore installed

@@ -220,10 +220,9 @@ async function insertDemoRows(
   const existingSettings = await database.query.settings.findFirst()
 
   if (existingSettings) {
-    // --reseed clears domain data but preserves operator's business profile,
-    // only filling fields still empty. Matches spec ("populate one business
-    // profile if not already present") and avoids reverting profile edits made
-    // after the first seed.
+    // --reseed clears domain data but preserves the operator's business profile,
+    // only filling fields that are still empty, so profile edits made after the
+    // first seed are never reverted.
     const update = buildSettingsUpdate(existingSettings, plan)
 
     if (update) {

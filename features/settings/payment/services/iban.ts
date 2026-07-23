@@ -7,6 +7,10 @@ export function isValidIban(value: string): boolean {
 
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false
 
+  // ISO 13616 mod-97 check: move the country code and check digits to the end, replace each letter
+  // with its position + 9 (A = 10 … Z = 35), and read the result as one decimal integer, which is
+  // valid exactly when it is congruent to 1 mod 97. The number is far too large for a JS number,
+  // so the remainder is accumulated digit by digit instead of being computed in one step.
   const rearranged = `${iban.slice(4)}${iban.slice(0, 4)}`
   let remainder = 0
 

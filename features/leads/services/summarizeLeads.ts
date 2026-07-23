@@ -70,6 +70,8 @@ function buildAcquisitionTrend(rows: LeadSummaryRow[], now: Date): LeadAcquisiti
     for (const row of rows) {
       const createdAt = row.createdAt.getTime()
 
+      // `totalLeads` is cumulative to the end of the bucket, not the bucket's own count, so the
+      // trend line shows the pipeline growing rather than repeating `newLeads`.
       if (createdAt < end) totalLeads += 1
       if (createdAt >= start && createdAt < end) newLeads += 1
     }

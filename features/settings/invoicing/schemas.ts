@@ -46,6 +46,10 @@ const invoicingSettingsBaseSchema = z.object({
   defaultInvoiceFooter: optionalDocumentTextSchema
 })
 
+// The counter may only ever move forward. Lowering it would hand out a number that has already
+// been issued, which both collides with the unique constraint on `invoices.number` and breaks the
+// gapless-sequence expectation that makes an invoice series auditable. The floor is a parameter
+// because it comes from the numbers already issued, so the schema is built per request.
 export const createInvoicingSettingsSchema = (minimumNextInvoiceNumber: number) =>
   invoicingSettingsBaseSchema.superRefine((values, context) => {
     if (values.nextInvoiceNumber >= minimumNextInvoiceNumber) return

@@ -38,6 +38,12 @@ export const metadata: Metadata = {
   description: t("app.metadata.description")
 }
 
+// A blocking inline script, deliberately placed before anything renders: the appearance
+// preferences live in localStorage, which the server cannot read, so without this the first paint
+// would use the defaults and then visibly jump once `AppearanceProvider` mounts. It must stay
+// inline and synchronous to run before paint, which is why `proxy.ts` keeps `'unsafe-inline'` in
+// the script-src directive, and why `<html>` carries `suppressHydrationWarning` — this script has
+// already changed the attributes React is about to hydrate against.
 const APPEARANCE_SCRIPT = `(function(){try{
   var d=document.documentElement;
   var f=localStorage.getItem('font-size')||'default';

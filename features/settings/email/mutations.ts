@@ -240,6 +240,9 @@ function buildEmailSettingsWritePlan(
   const secretFieldsChanged: string[] = []
 
   if (values.emailProvider === "smtp") {
+    // Falls back to the stored secret so the guard below rejects only a provider that has never
+    // had a password, not a resubmission of the form with the password field left blank — the form
+    // never receives the stored value to resubmit (see `toEmailSettingsFormData` in queries.ts).
     const smtpPass = values.smtpPass.trim() || existing?.smtpPass
 
     if (!smtpPass) {

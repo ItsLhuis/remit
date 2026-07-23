@@ -83,6 +83,9 @@ const clientReturnColumns = {
   updatedAt: clients.updatedAt
 } as const
 
+// Every writable client field except `notes`, which is excluded because it is the one encrypted
+// column on the table (see `security.md`): no encrypted field takes part in audit diffing, so this
+// list must not be "completed" from the client schema.
 const auditFields = [
   "name",
   "email",

@@ -19,6 +19,10 @@ const s3 = new S3Client({
   forcePathStyle: true
 })
 
+// A second client on the browser-reachable URL, not a duplicate to be collapsed into `s3` above:
+// a presigned URL's signature covers its host, so one signed against the internal MINIO_ENDPOINT
+// is rejected when the browser replays it against the public origin. Server-side calls use `s3`;
+// anything handed to a client must be signed with this one.
 export const s3UploadPresigner = new S3Client({
   endpoint: env.MINIO_PUBLIC_URL,
   region: "us-east-1",
@@ -45,6 +49,10 @@ export async function ensureBucket(): Promise<void> {
 
     await s3.send(new CreateBucketCommand({ Bucket: MINIO_BUCKET }))
 
+    // Anonymous `s3:GetObject` on the whole bucket: every stored object is readable by anyone who
+    // knows its key, so keys are the only thing standing between an upload and the public. Nothing
+    // secret may be stored here under a guessable key, and access control for uploads has to be
+    // enforced by key unguessability rather than by this bucket.
     await s3.send(
       new PutBucketPolicyCommand({
         Bucket: MINIO_BUCKET,

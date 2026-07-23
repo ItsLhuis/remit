@@ -58,7 +58,7 @@ const PhoneInput = ({
 
   return (
     <RPNInput.default
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- react-phone-number-input types its ref against its own internal input element, which no exported type here is assignable to
       ref={ref as any}
       data-slot="phone-input"
       className={cn("flex w-full", className)}

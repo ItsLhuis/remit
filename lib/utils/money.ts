@@ -6,6 +6,10 @@ export function isValidAmount(value: string): boolean {
   return normalized === "" || AMOUNT_PATTERN.test(normalized)
 }
 
+// Parses digit-by-digit rather than multiplying the parsed float by 100: `Number("8.20") * 100`
+// is 819.9999999999999, so the obvious one-liner silently loses a cent on some inputs. The
+// right-padded slice turns "2" into 20 cents and "20" into 20 cents, which the pattern's 1-2
+// fraction digits are the only cases to cover.
 export function parseAmountToCents(value: string): number | null {
   const normalized = value.trim()
 

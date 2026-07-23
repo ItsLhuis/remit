@@ -123,6 +123,11 @@ export async function POST(
     return NextResponse.json({ error: config.invalidTypeError }, { status: 400 })
   }
 
+  // The key is built entirely server-side from a random UUID and an extension looked up in
+  // `ALLOWED_MIME_TYPES`; the client's own filename is validated but never used to name the object.
+  // That matters twice over: it keeps a caller from writing outside its prefix or overwriting
+  // another object by path, and the bucket grants anonymous reads (see `lib/storage/s3.ts`), so an
+  // unguessable key is the only thing keeping one instance's uploads from being enumerable.
   const objectKey = config.objectKey({ userId: session.user.id, ext: extension })
 
   const command = new PutObjectCommand({

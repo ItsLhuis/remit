@@ -74,6 +74,9 @@ export async function verifyArchivePayload(
 
   const authTag = await readAuthTag(options.archivePath, stats.size)
   const decrypt = decryptStream(options.encryptionKey, options.header.iv, authTag)
+  // Reads only the ciphertext body: the plaintext header occupies the first `ARCHIVE_HEADER_LENGTH`
+  // bytes and the GCM auth tag the last `AUTH_TAG_LENGTH`, and neither may be fed to the decipher.
+  // `end` is inclusive in createReadStream, hence the extra -1.
   const source = createReadStream(options.archivePath, {
     end: stats.size - AUTH_TAG_LENGTH - 1,
     start: ARCHIVE_HEADER_LENGTH

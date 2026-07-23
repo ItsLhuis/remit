@@ -115,8 +115,8 @@ export async function uploadArchive(
   archivePath: string,
   objectKey: string
 ): Promise<void> {
-  // Single PutObject caps the archive at the S3 5 GiB per-request limit; multipart
-  // upload for larger instances is deferred.
+  // A single PutObject, which caps an archive at the S3 5 GiB per-request limit. An instance
+  // whose backup exceeds that needs a multipart upload here.
   const archiveStats = await stat(archivePath)
 
   try {

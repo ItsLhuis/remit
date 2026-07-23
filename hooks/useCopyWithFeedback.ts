@@ -23,7 +23,11 @@ export function useCopyWithFeedback(delay = 2000) {
         setCopied(true)
 
         timeoutRef.current = setTimeout(() => setCopied(false), delay)
-      } catch {}
+      } catch {
+        // Ignored: the Clipboard API rejects when permission is denied or the page is not in a
+        // secure context. Leaving `copied` false is the correct outcome — no success feedback is
+        // shown for a copy that did not happen, and there is no user action that would fix it.
+      }
     },
     [delay]
   )

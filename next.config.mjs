@@ -25,6 +25,9 @@ const nextConfig = {
   images: {
     qualities: [70, 75, 90],
     ...(storagePattern ? { remotePatterns: [storagePattern] } : {}),
+    // Development only, and it must stay that way: the local MinIO in docker-compose.dev.yml is
+    // reached over a private address, which the image optimizer refuses by default because
+    // fetching private-network URLs on a server's behalf is an SSRF primitive.
     ...(isDev ? { dangerouslyAllowLocalIP: true } : {})
   }
 }

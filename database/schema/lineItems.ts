@@ -20,17 +20,10 @@ import { proposals } from "./proposals"
 import { taxRates } from "./taxRates"
 import { timeEntries } from "./timeEntries"
 
-/**
- * Snapshot fields on line items:
- * - taxPercentageSnapshot
- * - unitPriceCents
- * - discountPercentage
- * - discountAmountCents
- *
- * These values are captured at line-item creation time and preserved as-is, even
- * if referenced entities (for example, a `tax_rates` row) are modified later.
- * This protects invoice immutability after issuance.
- */
+// The snapshot fields (taxPercentageSnapshot, unitPriceCents, discountPercentage,
+// discountAmountCents) are captured at line-item creation time and preserved as-is, even if the
+// entities they were read from (a `tax_rates` row, for example) are modified later. This protects
+// invoice immutability after issuance.
 export const lineItems = pgTable(
   "line_items",
   {

@@ -268,6 +268,9 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
     const updates = planTaskReorder(siblings, existing.id, parsed.data.toIndex)
 
     if (updates.length > 0) {
+      // One statement with a CASE rather than a loop of updates: `planTaskReorder` may return a
+      // full repack of the column, and applying those row by row would leave the board in states
+      // where two tasks briefly share a position or only half the column has been renumbered.
       await database
         .update(tasks)
         .set({
