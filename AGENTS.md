@@ -141,6 +141,7 @@ Detailed shared project rules live canonically in `.agents/rules/`:
 - [.agents/rules/architecture.md](.agents/rules/architecture.md)
 - [.agents/rules/auth.md](.agents/rules/auth.md)
 - [.agents/rules/code-style.md](.agents/rules/code-style.md)
+- [.agents/rules/comments.md](.agents/rules/comments.md)
 - [.agents/rules/components.md](.agents/rules/components.md)
 - [.agents/rules/database.md](.agents/rules/database.md)
 - [.agents/rules/errors.md](.agents/rules/errors.md)
