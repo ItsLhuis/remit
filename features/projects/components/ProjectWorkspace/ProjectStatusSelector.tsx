@@ -16,11 +16,11 @@ import {
   toast
 } from "@/components/ui"
 
+import { projectStatusPresentation } from "../../labels"
 import { updateProjectStatus } from "../../mutations"
 import { type ProjectStatus } from "../../schemas"
 import { getNextProjectStatuses } from "../../services"
 import { ProjectStatusBadge } from "../ProjectStatusBadge"
-import { projectStatusPresentation } from "../projectStatusPresentation"
 
 type ProjectStatusSelectorProps = {
   projectId: string

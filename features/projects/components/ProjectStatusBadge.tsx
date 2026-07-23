@@ -4,9 +4,8 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Badge, Icon } from "@/components/ui"
 
+import { projectStatusPresentation } from "../labels"
 import { type ProjectStatus } from "../schemas"
-
-import { projectStatusPresentation } from "./projectStatusPresentation"
 
 type ProjectStatusBadgeProps = {
   status: ProjectStatus

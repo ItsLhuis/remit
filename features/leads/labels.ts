@@ -1,4 +1,4 @@
-import { type LeadStatus } from "../schemas"
+import { type LeadStatus } from "./schemas"
 
 type StatusPresentation = {
   variant: "secondary" | "info" | "warning" | "default" | "success" | "error"

@@ -1,4 +1,4 @@
-import { type TaskStatus } from "../schemas"
+import { type TaskStatus } from "./schemas"
 
 type StatusPresentation = {
   variant: "secondary" | "info" | "warning" | "success" | "error"

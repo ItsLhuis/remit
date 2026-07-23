@@ -13,9 +13,9 @@ import {
   IconButton
 } from "@/components/ui"
 
+import { taskStatusPresentation } from "../../labels"
 import { type TaskStatus } from "../../schemas"
 import { getNextTaskStatuses } from "../../services"
-import { taskStatusPresentation } from "../taskStatusPresentation"
 
 type TaskStatusMenuProps = {
   status: TaskStatus

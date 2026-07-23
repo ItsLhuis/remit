@@ -4,9 +4,8 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Badge, Icon } from "@/components/ui"
 
+import { leadStatusPresentation } from "../labels"
 import { type LeadStatus } from "../schemas"
-
-import { leadStatusPresentation } from "./leadStatusPresentation"
 
 type LeadStatusBadgeProps = {
   status: LeadStatus

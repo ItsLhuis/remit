@@ -26,11 +26,11 @@ import {
   toast
 } from "@/components/ui"
 
+import { leadStatusPresentation } from "../../labels"
 import { updateLeadStatus } from "../../mutations"
 import { type LeadStatus } from "../../schemas"
 import { getNextLeadStatuses } from "../../services"
 import { LeadStatusBadge } from "../LeadStatusBadge"
-import { leadStatusPresentation } from "../leadStatusPresentation"
 
 type LeadStatusSelectorProps = {
   leadId: string

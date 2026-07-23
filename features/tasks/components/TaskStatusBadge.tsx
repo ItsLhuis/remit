@@ -4,9 +4,8 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Badge, Icon } from "@/components/ui"
 
+import { taskStatusPresentation } from "../labels"
 import { type TaskStatus } from "../schemas"
-
-import { taskStatusPresentation } from "./taskStatusPresentation"
 
 type TaskStatusBadgeProps = {
   status: TaskStatus

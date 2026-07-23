@@ -23,11 +23,11 @@ import {
   Typography
 } from "@/components/ui"
 
+import { taskStatusPresentation } from "../../labels"
 import { type TaskStatus } from "../../schemas"
 import { getNextTaskStatuses } from "../../services"
 import { type TaskItem } from "../../types"
 import { TaskPriorityBadge } from "../TaskPriorityBadge"
-import { taskStatusPresentation } from "../taskStatusPresentation"
 
 type TaskCardProps = {
   task: TaskItem

@@ -1,4 +1,4 @@
-import { type ProjectStatus } from "../schemas"
+import { type ProjectStatus } from "./schemas"
 
 type StatusPresentation = {
   variant: "secondary" | "info" | "warning" | "default" | "success" | "error"
