@@ -21,8 +21,9 @@ pnpm services:up        # Start local development Docker services
 pnpm services:down      # Stop local development Docker services
 pnpm services:logs      # Follow local development service logs
 pnpm services:restart   # Restart local development Docker services
-pnpm lint               # ESLint check
-pnpm lint:fix           # ESLint auto-fix
+pnpm lint               # Lint check (oxlint cycle pass + ESLint)
+pnpm lint:cycles        # Import cycle check only (oxlint)
+pnpm lint:fix           # Lint auto-fix (oxlint cycle pass + ESLint --fix)
 pnpm format             # Prettier
 pnpm format:check       # Prettier check
 pnpm typecheck          # TypeScript check (no emit)
@@ -87,6 +88,11 @@ Server actions in `features/<feature>/mutations.ts` are the canonical write path
 public anonymous token routes, webhooks, health/metrics, and future explicitly justified public API
 surfaces only. Business logic belongs in pure named functions under `features/<feature>/services/`
 with no framework, Drizzle, React, or IO imports.
+
+Linting is split across two tools and `pnpm lint` runs both. `import/no-cycle` runs in oxlint
+(`.oxlintrc.json`) because in ESLint it cost ~315s of a ~375s run; every other rule stays in ESLint.
+The oxlint config enables that one rule only — do not add rules there without deciding deliberately
+which tool owns them.
 
 The ESLint config (`eslint.config.mjs`) is the mechanical floor for `.agents/rules/`: import order,
 type-import style, feature boundaries, service purity, accessibility, and hardcoded-string bans are

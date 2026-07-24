@@ -299,7 +299,10 @@ const eslintConfig = defineConfig([
       import: importPlugin
     },
     rules: {
-      "import/no-cycle": ["error", { ignoreExternal: true }],
+      // import/no-cycle is NOT here: it costs ~315s of a ~375s ESLint run because it walks the
+      // whole module graph per file. The identical check runs in oxlint (.oxlintrc.json) in ~1s
+      // with the same options (ignoreExternal, ignoreTypes matching this plugin's type-import
+      // behavior). `pnpm lint` runs both; do not re-add it here.
       "import/no-default-export": "error",
       "import/no-duplicates": "error"
     }
