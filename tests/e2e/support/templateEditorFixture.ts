@@ -2,12 +2,12 @@ import { type Page } from "@playwright/test"
 
 export async function createTemplateAndOpenEditor(page: Page, name: string): Promise<void> {
   await page.goto("/templates")
-  await page.getByRole("button", { name: "New template" }).click()
+  await page.getByRole("button", { name: "Create template" }).click()
 
   const dialog = page.getByRole("dialog")
 
   await dialog.getByLabel("Name").fill(name)
-  await dialog.getByRole("button", { name: "New template" }).click()
+  await dialog.getByRole("button", { name: "Create template" }).click()
 
   await page.waitForURL(/\/templates\/[^/]+$/)
 }

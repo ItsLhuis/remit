@@ -32,7 +32,9 @@ import {
   normalizeBlocks,
   normalizePageSettings,
   renderTemplate,
-  BUSINESS_LOGO_ASSET_KEY
+  summarizeTemplates,
+  BUSINESS_LOGO_ASSET_KEY,
+  type TemplatesSummary
 } from "./services"
 import {
   type TemplateDefaults,
@@ -45,14 +47,32 @@ import {
 export async function getTemplatesPageData(input: unknown): Promise<TemplateListPageData> {
   const query = parseTemplateListQuery(input)
 
-  const [list, defaults] = await Promise.all([listTemplates(query), getTemplateDefaults()])
+  const [list, summary, defaults] = await Promise.all([
+    listTemplates(query),
+    getTemplatesSummary(),
+    getTemplateDefaults()
+  ])
 
   return {
     templates: list.rows,
     rowCount: list.rowCount,
+    summary,
     query,
     defaults
   }
+}
+
+export async function getTemplatesSummary(): Promise<TemplatesSummary> {
+  const rows = await database
+    .select({
+      type: templates.type,
+      isSystem: templates.isSystem,
+      isDefault: templates.isDefault
+    })
+    .from(templates)
+    .where(isNull(templates.deletedAt))
+
+  return summarizeTemplates(rows)
 }
 
 export async function listTemplates(

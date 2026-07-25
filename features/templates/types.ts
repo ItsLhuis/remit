@@ -4,6 +4,7 @@ import {
   type TemplatePageSettings,
   type TemplateType
 } from "./schemas"
+import { type TemplatesSummary } from "./services"
 
 // The renderer's real HTML for the template at its real output size, computed on the server so the
 // listing can show the document itself instead of an approximation. Null when the template has no
@@ -32,6 +33,7 @@ export type TemplateDefaults = {
 export type TemplateListPageData = {
   templates: TemplateListItem[]
   rowCount: number
+  summary: TemplatesSummary
   query: TemplateListQuery
   defaults: TemplateDefaults
 }

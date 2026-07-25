@@ -16,6 +16,7 @@ import {
   FieldLabel,
   FormTextField,
   Icon,
+  ScrollArea,
   Select,
   SelectContent,
   SelectItem,
@@ -24,7 +25,6 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   Spinner,
@@ -74,7 +74,7 @@ const TemplateFormSheet = ({ open, onOpenChange }: TemplateFormSheetProps) => {
         return
       }
 
-      toast.success(t("templates.actions.create"))
+      toast.success(t("templates.form.created"))
       onOpenChange(false)
       router.push(`/templates/${result.data.template.id}`)
       router.refresh()
@@ -83,64 +83,76 @@ const TemplateFormSheet = ({ open, onOpenChange }: TemplateFormSheetProps) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 sm:max-w-lg">
+      <SheetContent className="w-full gap-0 sm:max-w-xl">
         <SheetHeader className="border-border border-b">
-          <SheetTitle>{t("templates.create.title")}</SheetTitle>
-          <SheetDescription>{t("templates.create.description")}</SheetDescription>
+          <SheetTitle>{t("templates.form.createTitle")}</SheetTitle>
+          <SheetDescription>{t("templates.form.createDescription")}</SheetDescription>
         </SheetHeader>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           noValidate
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="flex flex-col gap-4 p-4">
-            <FormTextField
-              control={form.control}
-              name="name"
-              label={t("templates.fields.name")}
-              placeholder={t("templates.fields.namePlaceholder")}
-              disabled={isSaving}
-            />
-            <Controller
-              name="type"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>{t("templates.fields.type")}</FieldLabel>
-                  <Select value={field.value} onValueChange={field.onChange} disabled={isSaving}>
-                    <SelectTrigger id={field.name} aria-invalid={fieldState.invalid}>
-                      <SelectValue placeholder={t("templates.fields.typePlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TEMPLATE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {t(TEMPLATE_TYPE_LABEL_KEYS[type])}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            {showSubject ? (
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="flex flex-col gap-6 p-4">
               <FormTextField
                 control={form.control}
-                name="subject"
-                label={t("templates.fields.subject")}
-                placeholder={t("templates.fields.subjectPlaceholder")}
+                name="name"
+                label={t("templates.fields.name")}
+                placeholder={t("templates.fields.namePlaceholder")}
                 disabled={isSaving}
               />
-            ) : null}
+              <Controller
+                name="type"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>{t("templates.fields.type")}</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isSaving}>
+                      <SelectTrigger id={field.name} aria-invalid={fieldState.invalid}>
+                        <SelectValue placeholder={t("templates.fields.typePlaceholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TEMPLATE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {t(TEMPLATE_TYPE_LABEL_KEYS[type])}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              {showSubject ? (
+                <FormTextField
+                  control={form.control}
+                  name="subject"
+                  label={t("templates.fields.subject")}
+                  placeholder={t("templates.fields.subjectPlaceholder")}
+                  disabled={isSaving}
+                />
+              ) : null}
+            </div>
+          </ScrollArea>
+          <div className="bg-muted/50 flex flex-col gap-3 border-t p-4">
             {serverError ? <FieldError>{serverError}</FieldError> : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSaving}
+              >
+                {t("common.actions.cancel")}
+              </Button>
+              <Button type="submit" disabled={isSaving || !isValid}>
+                {isSaving && <Spinner />}
+                <Icon name="Save" aria-hidden="true" />
+                {t("templates.form.saveCreate")}
+              </Button>
+            </div>
           </div>
-          <SheetFooter className="border-border border-t">
-            <Button type="submit" disabled={isSaving || !isValid}>
-              {isSaving && <Spinner />}
-              <Icon name="Plus" aria-hidden="true" />
-              {t("templates.actions.create")}
-            </Button>
-          </SheetFooter>
         </form>
       </SheetContent>
     </Sheet>

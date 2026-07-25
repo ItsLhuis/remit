@@ -188,6 +188,12 @@ export {
 
 export { intersectPropertyGroups, sharedValue, type SharedFieldValue } from "./sharedValue"
 
+export {
+  summarizeTemplates,
+  type TemplateSummaryRow,
+  type TemplatesSummary
+} from "./summarizeTemplates"
+
 export { blockStyleToCss, pageStyleToCss, TEMPLATE_FONT_STACKS } from "./styleCss"
 
 export {

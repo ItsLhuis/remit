@@ -22,6 +22,22 @@ export const TEMPLATE_TYPE_LABEL_KEYS = {
   email_recurring_generated: "templates.types.email_recurring_generated"
 } as const satisfies Record<TemplateType, string>
 
+// The type badge carries no colour of its own - a template type is a classification, not a state,
+// and the design system reserves semantic tints for state. The icon is what distinguishes one type
+// from another, so every type needs a distinct one.
+export const TEMPLATE_TYPE_ICON_NAMES = {
+  invoice: "ReceiptText",
+  proposal: "FileText",
+  contract: "FileSignature",
+  credit_note: "FileMinus",
+  email_invoice_send: "Mail",
+  email_proposal_send: "Mails",
+  email_contract_send: "MailOpen",
+  email_payment_receipt: "MailCheck",
+  email_overdue_reminder: "MailWarning",
+  email_recurring_generated: "MailPlus"
+} as const satisfies Record<TemplateType, IconProps["name"]>
+
 export const BLOCK_LABEL_KEYS = {
   text: "templates.blocks.text",
   image: "templates.blocks.image",

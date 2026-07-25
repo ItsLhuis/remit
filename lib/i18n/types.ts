@@ -1051,16 +1051,34 @@ export type Translations = {
     title: string
     description: string
     list: {
-      gridTitle: string
+      tableTitle: string
       count: string
+      actions: string
+      updatedColumn: string
       noMatchTitle: string
       noMatchDescription: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      customDelta: string
+      documents: string
+      documentsHint: string
+      emails: string
+      emailsHint: string
+      otherEmails: string
+      defaults: string
+      defaultsValue: string
+      defaultsHint: string
+      defaultsMissingHint: string
+      defaultsCovered: string
+      defaultsMissing: string
+      breakdownEmpty: string
     }
     filters: {
       title: string
       search: string
       searchPlaceholder: string
-      sort: string
       origin: string
       reset: string
     }
@@ -1069,16 +1087,9 @@ export type Translations = {
       custom: string
       system: string
     }
-    sort: {
-      type: string
-      name: string
-      updated: string
-    }
-    card: {
-      updated: string
-      noPreview: string
-      previewTitle: string
-      actionsLabel: string
+    preview: {
+      frameTitle: string
+      empty: string
     }
     types: {
       invoice: string
@@ -1095,6 +1106,7 @@ export type Translations = {
     actions: {
       create: string
       edit: string
+      preview: string
       duplicate: string
       delete: string
       setDefault: string
@@ -1108,9 +1120,11 @@ export type Translations = {
       title: string
       description: string
     }
-    create: {
-      title: string
-      description: string
+    form: {
+      createTitle: string
+      createDescription: string
+      saveCreate: string
+      created: string
     }
     delete: {
       description: string
@@ -1184,7 +1198,6 @@ export type Translations = {
       undo: string
       redo: string
       renameTemplate: string
-      moreActions: string
       toolSelect: string
       toolPan: string
       insertMenu: string

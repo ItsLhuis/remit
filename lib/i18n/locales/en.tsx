@@ -1088,16 +1088,35 @@ export const english: Language = {
       title: "Templates",
       description: "Reusable content for your documents and emails",
       list: {
-        gridTitle: "All templates",
+        tableTitle: "All templates",
         count: "{count, plural, one {# template} other {# templates}}",
+        actions: "Actions",
+        updatedColumn: "Updated",
         noMatchTitle: "No templates match",
         noMatchDescription: "Adjust the search or filters to see more templates"
+      },
+      summary: {
+        total: "Templates",
+        totalHint: "Across every document and email type",
+        customDelta: "{count, plural, one {# custom template} other {# custom templates}}",
+        documents: "Documents",
+        documentsHint: "Invoices, proposals, contracts and credit notes",
+        emails: "Emails",
+        emailsHint: "Messages sent alongside your documents",
+        otherEmails: "Other",
+        defaults: "Defaults set",
+        defaultsValue: "{covered}/{total}",
+        defaultsHint: "Every type has a default template",
+        defaultsMissingHint:
+          "{count, plural, one {# type falls back to the built-in layout} other {# types fall back to the built-in layout}}",
+        defaultsCovered: "Set",
+        defaultsMissing: "Missing",
+        breakdownEmpty: "No templates yet"
       },
       filters: {
         title: "Filters",
         search: "Search templates",
         searchPlaceholder: "Search by name or subject",
-        sort: "Sort templates",
         origin: "Source",
         reset: "Reset"
       },
@@ -1106,16 +1125,9 @@ export const english: Language = {
         custom: "Custom",
         system: "System"
       },
-      sort: {
-        type: "Type",
-        name: "Name",
-        updated: "Recently updated"
-      },
-      card: {
-        updated: "Updated {date}",
-        noPreview: "No content yet",
-        previewTitle: "{name} preview",
-        actionsLabel: "Actions for {name}"
+      preview: {
+        frameTitle: "{name} preview",
+        empty: "No content yet"
       },
       types: {
         invoice: "Invoice",
@@ -1130,8 +1142,9 @@ export const english: Language = {
         email_recurring_generated: "Email — recurring invoice"
       },
       actions: {
-        create: "New template",
+        create: "Create template",
         edit: "Edit",
+        preview: "Preview",
         duplicate: "Duplicate",
         delete: "Delete",
         setDefault: "Set as default",
@@ -1145,9 +1158,11 @@ export const english: Language = {
         title: "No templates yet",
         description: "Create your first template to reuse content across documents and emails"
       },
-      create: {
-        title: "New template",
-        description: "Choose a type and give your template a name"
+      form: {
+        createTitle: "Create template",
+        createDescription: "Choose a type and give your template a name.",
+        saveCreate: "Create template",
+        created: "Template created"
       },
       delete: {
         description: "Delete {name}? This cannot be undone."
@@ -1223,7 +1238,6 @@ export const english: Language = {
         undo: "Undo",
         redo: "Redo",
         renameTemplate: "Rename template",
-        moreActions: "More actions",
         toolSelect: "Select tool",
         toolPan: "Pan tool",
         insertMenu: "Insert block",

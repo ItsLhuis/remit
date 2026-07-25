@@ -1,6 +1,7 @@
 export * from "./useCanvasBlockHandlers"
 export * from "./useEditorHotkeys"
 export * from "./useEditorInteraction"
+export * from "./useMeasuredWidth"
 export * from "./useSnapBypass"
 export * from "./useTemplateEditor"
 export * from "./useTemplateListState"

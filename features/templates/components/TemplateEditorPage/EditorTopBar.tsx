@@ -7,10 +7,6 @@ import { useTranslation } from "@/lib/i18n"
 import {
   Badge,
   Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Icon,
   Separator,
   Spinner,
@@ -142,9 +138,17 @@ const EditorTopBar = ({
           </Button>
         )}
         {template.isDefault ? (
-          <Badge variant="secondary">{t("templates.badges.default")}</Badge>
+          <Badge>
+            <Icon name="Star" aria-hidden="true" />
+            {t("templates.badges.default")}
+          </Badge>
         ) : null}
-        {template.isSystem ? <Badge variant="outline">{t("templates.badges.system")}</Badge> : null}
+        {template.isSystem ? (
+          <Badge variant="outline">
+            <Icon name="Lock" aria-hidden="true" />
+            {t("templates.badges.system")}
+          </Badge>
+        ) : null}
         {save.isDirty ? (
           <Typography affects={["muted", "tiny"]}>{t("templates.editor.unsaved")}</Typography>
         ) : null}
@@ -191,24 +195,16 @@ const EditorTopBar = ({
         </Tooltip>
         <Separator orientation="vertical" />
         {template.isDefault ? null : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("templates.editor.moreActions")}
-              >
-                <Icon name="EllipsisVertical" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled={save.isSaving} onSelect={onSetDefault}>
-                <Icon name="Star" aria-hidden="true" />
-                {t("templates.actions.setDefault")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={save.isSaving}
+            onClick={onSetDefault}
+          >
+            <Icon name="Star" aria-hidden="true" />
+            {t("templates.actions.setDefault")}
+          </Button>
         )}
         <Toggle
           size="sm"
