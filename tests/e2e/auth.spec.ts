@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test"
 
+import { E2E_OWNER_PASSWORD } from "./support/ownerCredentials"
+
 test.describe.configure({ mode: "serial" })
 
 test.describe("canonical auth flow", () => {
   const ownerEmail = `owner-${Date.now()}@test.example`
-  const ownerPassword = "TestPassword123!"
+  const ownerPassword = E2E_OWNER_PASSWORD
 
   test("registers, completes business setup, and reaches the TOTP QR scan step", async ({
     page

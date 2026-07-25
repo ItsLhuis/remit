@@ -30,6 +30,10 @@ env:
   MINIO_PUBLIC_URL: http://localhost:9000/remit
   PLAYWRIGHT_BASE_URL: http://localhost:3000
   PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+  # Host-side connection used by the Playwright process itself (owner provisioning and session
+  # issuing run in Node, not in the browser). The app container gets its own DATABASE_URL from
+  # docker-compose.yml against the internal `database` hostname; this one never reaches it.
+  DATABASE_URL: postgresql://remit_e2e:remit_e2e@localhost:5432/remit_e2e
 
 jobs:
   e2e:
@@ -59,7 +63,7 @@ jobs:
         run: docker compose build app
 
       - name: Start stack
-        run: docker compose up -d
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
       - name: Wait for stack health
         run: |

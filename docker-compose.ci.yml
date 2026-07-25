@@ -1,0 +1,9 @@
+# CI-only override for the E2E workflow. Playwright runs on the runner host, outside the compose
+# network, and provisions the owner account through the app's own Better Auth context, so it needs a
+# direct PostgreSQL connection. docker-compose.yml deliberately keeps 5432 unexposed because
+# exposing it in production is a security risk - this override exists solely for an ephemeral CI
+# runner and must never be composed into a deployment.
+services:
+  database:
+    ports:
+      - "5432:5432"
