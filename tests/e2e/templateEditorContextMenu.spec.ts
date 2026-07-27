@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test"
 
 import { addOwnerSessionCookie } from "./support/ownerSession"
-import { addRectangleBlock, createTemplateAndOpenEditor } from "./support/templateEditorFixture"
+import {
+  addRectangleBlock,
+  createTemplateAndOpenEditor,
+  openCanvasContextMenu
+} from "./support/templateEditorFixture"
 
 test.describe("template editor - canvas context menu", () => {
   test.beforeEach(async ({ context, baseURL }) => {
@@ -24,20 +28,17 @@ test.describe("template editor - canvas context menu", () => {
 
     if (!sourceBox) throw new Error("Shape block did not render a bounding box")
 
-    await block.click({ button: "right" })
-
-    const menu = page.getByRole("menu")
-
-    await expect(menu).toBeVisible()
+    const menu = await openCanvasContextMenu(page, block)
 
     const copyItem = menu.getByRole("menuitem", { name: "Copy" }).filter({ hasNotText: "style" })
 
     await expect(copyItem).toBeEnabled()
 
     await copyItem.click()
-    await block.click({ button: "right" })
 
-    const pasteItem = page
+    const pasteMenu = await openCanvasContextMenu(page, block)
+
+    const pasteItem = pasteMenu
       .getByRole("menuitem", { name: "Paste" })
       .filter({ hasNotText: "here" })
       .filter({ hasNotText: "style" })
@@ -85,11 +86,13 @@ test.describe("template editor - canvas context menu", () => {
 
     if (!targetBoxBefore) throw new Error("Target block did not render a bounding box")
 
-    await blocks.nth(0).click({ button: "right" })
-    await page.getByRole("menuitem", { name: "Copy style" }).click()
+    const copyStyleMenu = await openCanvasContextMenu(page, blocks.nth(0))
 
-    await blocks.nth(1).click({ button: "right" })
-    await page.getByRole("menuitem", { name: "Paste style" }).click()
+    await copyStyleMenu.getByRole("menuitem", { name: "Copy style" }).click()
+
+    const pasteStyleMenu = await openCanvasContextMenu(page, blocks.nth(1))
+
+    await pasteStyleMenu.getByRole("menuitem", { name: "Paste style" }).click()
 
     // The target now shows the pasted style in its own property panel...
     await blocks.nth(1).click()

@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test"
 
 import { addOwnerSessionCookie } from "./support/ownerSession"
-import { addRectangleBlock, createTemplateAndOpenEditor } from "./support/templateEditorFixture"
+import {
+  addRectangleBlock,
+  createTemplateAndOpenEditor,
+  openCanvasContextMenu
+} from "./support/templateEditorFixture"
 
 test.describe("template editor - group and ungroup", () => {
   test.beforeEach(async ({ context, baseURL }) => {
@@ -119,11 +123,8 @@ test.describe("template editor - group and ungroup", () => {
     await expect(blocks.nth(0)).toHaveAttribute("aria-pressed", "true")
     await expect(blocks.nth(1)).toHaveAttribute("aria-pressed", "true")
 
-    await blocks.nth(0).click({ button: "right" })
+    const menu = await openCanvasContextMenu(page, blocks.nth(0))
 
-    const menu = page.getByRole("menu")
-
-    await expect(menu).toBeVisible()
     await menu.getByRole("menuitem", { name: "Group selection" }).click()
 
     await expect(groups).toHaveCount(1)
