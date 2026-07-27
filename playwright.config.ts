@@ -14,7 +14,13 @@ export default defineConfig({
   outputDir: "tests/e2e/results",
   reporter: process.env.CI ? ciReporter : undefined,
   use: {
-    baseURL
+    baseURL,
+    // Radix portals (menus, dialogs, popovers) animate in and out, and an animating element never
+    // satisfies Playwright's stability check. A click that finally lands mid-animation on an item
+    // that unmounts itself - every context menu item - detaches the node inside the action, which
+    // Playwright retries against a menu that has already closed. Reduced motion collapses those
+    // animations through the `prefers-reduced-motion` block in `app/globals.css`.
+    contextOptions: { reducedMotion: "reduce" }
   },
   // The projects are a dependency chain, not a parallel set: `auth` is the only spec that may run
   // against an instance with no owner yet (it registers one), `provision` finishes that owner's

@@ -232,8 +232,24 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Collapsed to a near-zero duration rather than `animation: none`, because Radix's Presence keeps
+     an exiting portal (dialog, popover, context menu) mounted until its `animationend` fires; with
+     the animation removed outright that event never arrives for a node that still has an animation
+     name. `.animate-shake` is the one exception - it is a decorative attention cue with no Presence
+     attached, so it is dropped entirely.
+     Transitions are deliberately left alone: overriding `transition-duration` universally shifts the
+     geometry the template editor canvas commits at the end of a pointer drag, so the two cannot be
+     collapsed together. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
   .animate-shake {
-    animation: none;
+    animation: none !important;
   }
 }
 
