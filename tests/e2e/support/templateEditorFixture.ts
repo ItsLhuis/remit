@@ -2,7 +2,10 @@ import { type Page } from "@playwright/test"
 
 export async function createTemplateAndOpenEditor(page: Page, name: string): Promise<void> {
   await page.goto("/templates")
-  await page.getByRole("button", { name: "Create template" }).click()
+  // TemplatesListPage renders the same "Create template" action twice: once in the page <header>
+  // and once inside the DataTable's empty state, which the table cell holds while the instance has
+  // no templates. Scoping to the header keeps this unambiguous whether the table is empty or not.
+  await page.locator("header").getByRole("button", { name: "Create template" }).click()
 
   const dialog = page.getByRole("dialog")
 
