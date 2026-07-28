@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm"
 import {
-  type AnyPgColumn,
   bigint,
   check,
   date,
@@ -29,11 +28,7 @@ export const invoices = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
-    // Invoices and proposals reference each other, so this one reference needs an explicit
-    // `AnyPgColumn` return type to break the circular type inference between the two modules.
-    proposalId: uuid("proposal_id").references((): AnyPgColumn => proposals.id, {
-      onDelete: "set null"
-    }),
+    proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     recurringInvoiceId: uuid("recurring_invoice_id").references(() => recurringInvoices.id, {
       onDelete: "set null"
     }),

@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm"
 import {
-  type AnyPgColumn,
   bigint,
   check,
   date,
@@ -15,10 +14,8 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
-import { contracts } from "./contracts"
 import { discountType, proposalStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { invoices } from "./invoices"
 import { projects } from "./projects"
 import { templates } from "./templates"
 
@@ -53,18 +50,6 @@ export const proposals = pgTable(
     respondedAt: timestamp("responded_at", { withTimezone: true, mode: "date" }),
     respondedIp: text("responded_ip"),
     rejectionReason: text("rejection_reason"),
-    convertedToInvoiceId: uuid("converted_to_invoice_id").references(
-      (): AnyPgColumn => invoices.id,
-      {
-        onDelete: "set null"
-      }
-    ),
-    convertedToContractId: uuid("converted_to_contract_id").references(
-      (): AnyPgColumn => contracts.id,
-      {
-        onDelete: "set null"
-      }
-    ),
     ...softDelete,
     ...timestamps
   },

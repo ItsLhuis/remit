@@ -101,17 +101,17 @@ timestamps helper** here — better-auth manages its own timestamp shape.
 
 ### `sessions`
 
-| Column                 | Type        | Null | Default            | Notes                                                                            |
-| ---------------------- | ----------- | ---- | ------------------ | -------------------------------------------------------------------------------- |
-| id                     | text        | no   |                    | PK (better-auth-managed)                                                         |
-| user_id                | uuid        | no   |                    | FK → `users.id` (cascade)                                                        |
-| token                  | text        | no   |                    | Unique                                                                           |
-| expires_at             | timestamptz | no   |                    |                                                                                  |
-| ip_address             | text        | yes  |                    |                                                                                  |
-| user_agent             | text        | yes  |                    |                                                                                  |
-| active_organization_id | uuid        | yes  |                    | FK → `organizations.id` (set null). Added by the Better Auth organization plugin |
-| created_at             | timestamptz | no   | `now()`            |                                                                                  |
-| updated_at             | timestamptz | no   | `now()` (autobump) |                                                                                  |
+| Column                 | Type        | Null | Default            | Notes                                                                                                                                                           |
+| ---------------------- | ----------- | ---- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                     | text        | no   |                    | PK (better-auth-managed)                                                                                                                                        |
+| user_id                | uuid        | no   |                    | FK → `users.id` (cascade)                                                                                                                                       |
+| token                  | text        | no   |                    | Unique                                                                                                                                                          |
+| expires_at             | timestamptz | no   |                    |                                                                                                                                                                 |
+| ip_address             | text        | yes  |                    |                                                                                                                                                                 |
+| user_agent             | text        | yes  |                    |                                                                                                                                                                 |
+| active_organization_id | uuid        | yes  |                    | Added by the Better Auth organization plugin. **No FK** — the plugin declares this field with no `references`, and the installed version is the schema contract |
+| created_at             | timestamptz | no   | `now()`            |                                                                                                                                                                 |
+| updated_at             | timestamptz | no   | `now()` (autobump) |                                                                                                                                                                 |
 
 Index: `sessions_user_id_idx` on `user_id`.
 
@@ -723,36 +723,39 @@ Indexes: `expenses_project_id_idx`, `expenses_client_id_idx`, `expenses_spent_at
 
 ### `proposals`
 
-| Column                      | Type          | Null | Default             | Notes                                     |
-| --------------------------- | ------------- | ---- | ------------------- | ----------------------------------------- |
-| id                          | uuid          | no   | `gen_random_uuid()` | PK                                        |
-| project_id                  | uuid          | no   |                     | FK → `projects.id` (cascade)              |
-| template_id                 | uuid          | yes  |                     | FK → `templates.id` (set null)            |
-| number                      | text          | no   |                     | Unique. E.g. `PROP-0001`                  |
-| status                      | enum          | no   | `'draft'`           | See enum reference                        |
-| currency                    | varchar(3)    | no   | `'EUR'`             |                                           |
-| discount_type               | enum          | yes  |                     | `percentage \| fixed`                     |
-| discount_percentage         | numeric(5, 2) | yes  |                     | Set when `discount_type = 'percentage'`   |
-| discount_amount_cents       | bigint        | yes  |                     | Set when `discount_type = 'fixed'`        |
-| subtotal_cents              | bigint        | no   | `0`                 | ≥ 0                                       |
-| discount_amount_total_cents | bigint        | no   | `0`                 | Computed total discount in cents; ≥ 0     |
-| tax_amount_cents            | bigint        | no   | `0`                 | ≥ 0                                       |
-| total_cents                 | bigint        | no   | `0`                 | ≥ 0                                       |
-| valid_until                 | date          | yes  |                     | Used to compute `expired` status          |
-| notes                       | text          | yes  |                     |                                           |
-| public_token                | text          | no   |                     | Unique. Anonymous access via `/p/[token]` |
-| first_viewed_at             | timestamptz   | yes  |                     |                                           |
-| last_viewed_at              | timestamptz   | yes  |                     |                                           |
-| view_count                  | integer       | no   | `0`                 | ≥ 0                                       |
-| issued_at                   | timestamptz   | yes  |                     | Set when transitioning to `sent`          |
-| locked_at                   | timestamptz   | yes  |                     | Set when accepted; immutable thereafter   |
-| responded_at                | timestamptz   | yes  |                     | Set on accept or reject                   |
-| responded_ip                | text          | yes  |                     |                                           |
-| rejection_reason            | text          | yes  |                     |                                           |
-| converted_to_invoice_id     | uuid          | yes  |                     | FK → `invoices.id` (set null)             |
-| converted_to_contract_id    | uuid          | yes  |                     | FK → `contracts.id` (set null)            |
+| Column                      | Type          | Null | Default             | Notes                                                                                                                                                                                                    |
+| --------------------------- | ------------- | ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                          | uuid          | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                       |
+| project_id                  | uuid          | no   |                     | FK → `projects.id` (cascade)                                                                                                                                                                             |
+| template_id                 | uuid          | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                           |
+| number                      | text          | no   |                     | Unique. E.g. `PROP-0001`                                                                                                                                                                                 |
+| status                      | enum          | no   | `'draft'`           | See enum reference                                                                                                                                                                                       |
+| currency                    | varchar(3)    | no   | `'EUR'`             |                                                                                                                                                                                                          |
+| discount_type               | enum          | yes  |                     | `percentage \| fixed`                                                                                                                                                                                    |
+| discount_percentage         | numeric(5, 2) | yes  |                     | Set when `discount_type = 'percentage'`                                                                                                                                                                  |
+| discount_amount_cents       | bigint        | yes  |                     | Set when `discount_type = 'fixed'`                                                                                                                                                                       |
+| subtotal_cents              | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| discount_amount_total_cents | bigint        | no   | `0`                 | Computed total discount in cents; ≥ 0                                                                                                                                                                    |
+| tax_amount_cents            | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| total_cents                 | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| valid_until                 | date          | yes  |                     | Used to compute `expired` status                                                                                                                                                                         |
+| notes                       | text          | yes  |                     |                                                                                                                                                                                                          |
+| public_token                | text          | no   |                     | Unique. Anonymous access via `/p/[token]`. Minted with a CSPRNG at draft creation so the column can stay `NOT NULL`; never surfaced to any read model, URL, log, or audit entry until `issued_at` is set |
+| first_viewed_at             | timestamptz   | yes  |                     |                                                                                                                                                                                                          |
+| last_viewed_at              | timestamptz   | yes  |                     |                                                                                                                                                                                                          |
+| view_count                  | integer       | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| issued_at                   | timestamptz   | yes  |                     | Set when transitioning to `sent`                                                                                                                                                                         |
+| locked_at                   | timestamptz   | yes  |                     | Set when accepted; immutable thereafter                                                                                                                                                                  |
+| responded_at                | timestamptz   | yes  |                     | Set on accept or reject                                                                                                                                                                                  |
+| responded_ip                | text          | yes  |                     |                                                                                                                                                                                                          |
+| rejection_reason            | text          | yes  |                     |                                                                                                                                                                                                          |
 
 Standard `timestamps` and `softDelete`.
+
+Conversion to an invoice or a contract is recorded on the produced document, not here:
+`invoices.proposal_id` and `contracts.proposal_id` are the single source of truth for "this came
+from that proposal". A mirrored `converted_to_*_id` column on `proposals` would store the same fact
+twice, with nothing keeping the two sides in agreement.
 
 Constraints:
 

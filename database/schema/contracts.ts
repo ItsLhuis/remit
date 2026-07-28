@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm"
 import {
-  type AnyPgColumn,
   check,
   date,
   index,
@@ -25,9 +24,7 @@ export const contracts = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
-    proposalId: uuid("proposal_id").references((): AnyPgColumn => proposals.id, {
-      onDelete: "set null"
-    }),
+    proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
     number: text("number").notNull().unique(),
     title: text("title").notNull(),

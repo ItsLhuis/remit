@@ -29,6 +29,25 @@ export const clientsRelations = relations(clients, ({ many }) => ({
   projects: many(projects)
 }))
 
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  project: one(projects, {
+    fields: [contracts.projectId],
+    references: [projects.id]
+  }),
+  client: one(clients, {
+    fields: [contracts.clientId],
+    references: [clients.id]
+  }),
+  proposal: one(proposals, {
+    fields: [contracts.proposalId],
+    references: [proposals.id]
+  }),
+  template: one(templates, {
+    fields: [contracts.templateId],
+    references: [templates.id]
+  })
+}))
+
 export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
   template: one(templates, {
     fields: [emailLogs.templateId],
@@ -100,17 +119,10 @@ export const proposalsRelations = relations(proposals, ({ one, many }) => ({
     fields: [proposals.templateId],
     references: [templates.id]
   }),
-  convertedToInvoice: one(invoices, {
-    fields: [proposals.convertedToInvoiceId],
-    references: [invoices.id]
-  }),
-  convertedToContract: one(contracts, {
-    fields: [proposals.convertedToContractId],
-    references: [contracts.id]
-  }),
   lineItems: many(lineItems),
   proposalOtps: many(proposalOtps),
-  invoices: many(invoices)
+  invoices: many(invoices),
+  contracts: many(contracts)
 }))
 
 export const taxRatesRelations = relations(taxRates, ({ many }) => ({

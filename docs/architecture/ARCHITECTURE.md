@@ -213,6 +213,7 @@ erDiagram
     Contract {
         uuid id PK
         uuid projectId FK
+        uuid proposalId FK
         string status
         string publicToken
         timestamp deletedAt
@@ -220,6 +221,7 @@ erDiagram
     Invoice {
         uuid id PK
         uuid projectId FK
+        uuid proposalId FK
         string number
         string status
         bigint subtotalCents
@@ -321,6 +323,8 @@ erDiagram
     Project ||--o{ TimeEntry : has
     Project ||--o{ Expense : has
     Proposal ||--o{ LineItem : has
+    Proposal ||--o{ Invoice : "converts to"
+    Proposal ||--o{ Contract : "converts to"
     Invoice ||--o{ LineItem : has
     Invoice ||--o{ Payment : has
     Invoice ||--o{ CreditNote : has
@@ -388,6 +392,9 @@ active ──► completed (end condition met: count or date)
   historical version; the original is preserved.
 - An invoice number, once assigned, is permanent and never reused. The sequence is per-prefix and
   configurable in settings.
+- A conversion link is stored once, on the produced document: `invoices.proposalId` and
+  `contracts.proposalId`. The proposal carries no mirrored pointer back, so the two sides can never
+  disagree.
 - `audit_logs` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
   application level.
 - Money values are always `bigint` integers representing the smallest currency unit (cents for

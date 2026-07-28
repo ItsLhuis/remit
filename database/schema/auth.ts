@@ -1,8 +1,6 @@
 import { sql } from "drizzle-orm"
 import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
-import { organizations } from "./organizations"
-
 const authTimestamp = {
   withTimezone: true,
   mode: "date"
@@ -38,9 +36,11 @@ export const sessions = pgTable(
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
-    activeOrganizationId: uuid("active_organization_id").references(() => organizations.id, {
-      onDelete: "set null"
-    }),
+    // Better Auth's organization plugin declares this as a plain optional string with no
+    // `references` (unlike members.userId and invitations.inviterId, which do declare one), and the
+    // installed version is the schema contract for these tables. Adding a foreign key here would
+    // also make organizations.ts and this file import each other.
+    activeOrganizationId: uuid("active_organization_id"),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" })
