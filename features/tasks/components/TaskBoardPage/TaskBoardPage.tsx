@@ -177,70 +177,68 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-col gap-4 p-4 md:p-6">
+    <div className="flex h-full min-h-0 w-full flex-col gap-6 p-4 md:p-8">
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" />
+        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+          <Link href={`/projects/${data.projectId}`}>
+            <Icon name="ArrowLeft" aria-hidden="true" />
+            {t("tasks.board.backToProject")}
+          </Link>
+        </Button>
+      </div>
+      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <Icon
+              name="ListTodo"
+              className="text-muted-foreground size-6 shrink-0"
+              aria-hidden="true"
+            />
+            <Typography variant="h2">{data.projectName}</Typography>
+          </div>
+          <Typography variant="p" affects={["muted", "removePMargin"]}>
+            {t("tasks.board.count", { count: data.tasks.length })}
+          </Typography>
+        </div>
         <div className="flex items-center gap-2">
-          <SidebarTrigger className="md:hidden" />
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link href={`/projects/${data.projectId}`}>
-              <Icon name="ArrowLeft" aria-hidden="true" />
-              {t("tasks.board.backToProject")}
-            </Link>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={view}
+            onValueChange={(value) => {
+              if (isTaskView(value)) setView(value)
+            }}
+            aria-label={t("tasks.view.label")}
+          >
+            <ToggleGroupItem value="kanban">
+              <Icon name="Columns3" aria-hidden="true" />
+              {t("tasks.view.kanban")}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="table">
+              <Icon name="Table" aria-hidden="true" />
+              {t("tasks.view.table")}
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Icon name="Plus" aria-hidden="true" />
+            {t("tasks.board.createButton")}
           </Button>
         </div>
-        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <Icon
-                name="ListTodo"
-                className="text-muted-foreground size-6 shrink-0"
-                aria-hidden="true"
-              />
-              <Typography variant="h2">{data.projectName}</Typography>
-            </div>
-            <Typography variant="p" affects={["muted", "removePMargin"]}>
-              {t("tasks.board.count", { count: data.tasks.length })}
-            </Typography>
-          </div>
-          <div className="flex items-center gap-2">
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              value={view}
-              onValueChange={(value) => {
-                if (isTaskView(value)) setView(value)
-              }}
-              aria-label={t("tasks.view.label")}
-            >
-              <ToggleGroupItem value="kanban">
-                <Icon name="Columns3" aria-hidden="true" />
-                {t("tasks.view.kanban")}
-              </ToggleGroupItem>
-              <ToggleGroupItem value="table">
-                <Icon name="Table" aria-hidden="true" />
-                {t("tasks.view.table")}
-              </ToggleGroupItem>
-            </ToggleGroup>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Icon name="Plus" aria-hidden="true" />
-              {t("tasks.board.createButton")}
-            </Button>
-          </div>
-        </header>
-        {view === "kanban" && data.tasks.length > 0 ? (
-          <TaskBoardFilters
-            search={search}
-            onSearchChange={setSearch}
-            priorities={priorities}
-            onTogglePriority={togglePriority}
-            onClearPriorities={() => setPriorities([])}
-            hasActiveFilters={hasActiveFilters}
-            onClearAll={clearFilters}
-          />
-        ) : null}
-      </div>
-      <div className="min-h-0 flex-1 px-4 pb-4 md:px-6 md:pb-6">
+      </header>
+      {view === "kanban" && data.tasks.length > 0 ? (
+        <TaskBoardFilters
+          search={search}
+          onSearchChange={setSearch}
+          priorities={priorities}
+          onTogglePriority={togglePriority}
+          onClearPriorities={() => setPriorities([])}
+          hasActiveFilters={hasActiveFilters}
+          onClearAll={clearFilters}
+        />
+      ) : null}
+      <div className="min-h-0 flex-1">
         {data.tasks.length === 0 ? (
           <TaskBoardEmpty onCreate={() => setCreateOpen(true)} />
         ) : view === "table" ? (

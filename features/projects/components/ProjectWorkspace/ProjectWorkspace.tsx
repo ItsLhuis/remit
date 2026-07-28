@@ -122,30 +122,40 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
                 {t("projects.detail.since", { date: formatDay(project.createdAt, locale) })}
               </Typography>
             </div>
-            <div className="flex items-center gap-2 px-4 pb-4">
-              <Button size="sm" className="flex-1" onClick={() => setEditOpen(true)}>
-                <Icon name="Pencil" aria-hidden="true" />
-                {t("projects.actions.edit")}
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/projects/${project.id}/tasks`}>
-                  <Icon name="ListTodo" aria-hidden="true" />
-                  {t("tasks.board.title")}
-                </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <IconButton variant="outline" size="icon-sm" label={t("projects.list.actions")}>
-                    <Icon name="EllipsisVertical" />
-                  </IconButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
-                    <Icon name="Trash2" aria-hidden="true" />
-                    {t("projects.actions.delete")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-col gap-2 px-4 pb-4">
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="flex-1" onClick={() => setEditOpen(true)}>
+                  <Icon name="Pencil" aria-hidden="true" />
+                  {t("projects.actions.edit")}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <IconButton variant="outline" size="icon-sm" label={t("projects.list.actions")}>
+                      <Icon name="EllipsisVertical" />
+                    </IconButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
+                      <Icon name="Trash2" aria-hidden="true" />
+                      {t("projects.actions.delete")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/projects/${project.id}/tasks`}>
+                    <Icon name="ListTodo" aria-hidden="true" />
+                    {t("tasks.board.title")}
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/projects/${project.id}/proposals`}>
+                    <Icon name="FileText" aria-hidden="true" />
+                    {t("proposals.list.title")}
+                  </Link>
+                </Button>
+              </div>
             </div>
             <Separator />
             <div className="flex flex-col gap-4 p-4">
