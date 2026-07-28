@@ -41,7 +41,7 @@
     "services:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "services:restart": "docker compose -f docker-compose.dev.yml restart",
     "lint": "pnpm lint:cycles && eslint . --cache --cache-location node_modules/.cache/eslint/",
-    "lint:cycles": "oxlint features components hooks lib providers",
+    "lint:cycles": "oxlint",
     "lint:fix": "pnpm lint:cycles && eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
