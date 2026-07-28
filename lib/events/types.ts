@@ -113,6 +113,27 @@ export type EventMap = {
     from: string
     to: string
   }
+  "proposal.created": {
+    proposalId: string
+    projectId: string
+    userId: string
+  }
+  "proposal.updated": {
+    proposalId: string
+    projectId: string
+    userId: string
+    changedFields: string[]
+  }
+  "proposal.sent": {
+    proposalId: string
+    projectId: string
+    userId: string
+  }
+  "proposal.deleted": {
+    proposalId: string
+    projectId: string
+    userId: string
+  }
   "template.created": {
     templateId: string
     userId: string
