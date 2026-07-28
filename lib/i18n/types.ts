@@ -1046,6 +1046,206 @@ export type Translations = {
       updateFailed: string
     }
   }
+  proposals: {
+    metadata: {
+      list: string
+      detail: string
+      create: string
+      edit: string
+    }
+    list: {
+      title: string
+      description: string
+      backToProject: string
+      createButton: string
+      count: string
+      searchPlaceholder: string
+      searchLabel: string
+      statusFilter: string
+      clearFilters: string
+    }
+    overview: {
+      title: string
+      description: string
+      tableTitle: string
+      totalHint: string
+      projectColumn: string
+      clientColumn: string
+      openProject: string
+      browseProjects: string
+      searchPlaceholder: string
+      searchLabel: string
+      filters: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    status: {
+      draft: string
+      sent: string
+      accepted: string
+      rejected: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      draft: string
+      draftHint: string
+      awaiting: string
+      awaitingHint: string
+      accepted: string
+      acceptedMultiCurrency: string
+      acceptedValue: string
+    }
+    table: {
+      numberColumn: string
+      statusColumn: string
+      validUntilColumn: string
+      totalColumn: string
+      createdColumn: string
+      actions: string
+      noValidUntil: string
+    }
+    fields: {
+      number: string
+      status: string
+      template: string
+      currency: string
+      validUntil: string
+      notes: string
+      discountType: string
+      discountPercentage: string
+      discountAmount: string
+    }
+    lineItems: {
+      title: string
+      addButton: string
+      removeButton: string
+      moveUp: string
+      moveDown: string
+      descriptionColumn: string
+      quantityColumn: string
+      unitColumn: string
+      unitPriceColumn: string
+      discountColumn: string
+      taxColumn: string
+      totalColumn: string
+      actionsColumn: string
+      rowLabel: string
+      empty: string
+      noTaxRate: string
+    }
+    placeholders: {
+      description: string
+      unit: string
+      amount: string
+      quantity: string
+      notes: string
+      percentage: string
+      search: string
+    }
+    discount: {
+      none: string
+      percentage: string
+      fixed: string
+    }
+    totals: {
+      subtotal: string
+      discount: string
+      tax: string
+      total: string
+    }
+    template: {
+      none: string
+    }
+    form: {
+      backToList: string
+      backToProposal: string
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      detailsSection: string
+      detailsDescription: string
+      lineItemsSection: string
+      lineItemsDescription: string
+      notesSection: string
+      notesDescription: string
+    }
+    detail: {
+      backToList: string
+      issuedAt: string
+      notIssued: string
+      viewsLabel: string
+      viewCount: string
+      lockedTitle: string
+      lockedDescription: string
+      notesTitle: string
+      summaryTitle: string
+      publicLinkTitle: string
+      publicLinkDescription: string
+      publicLinkHidden: string
+      copyLink: string
+      linkCopied: string
+    }
+    send: {
+      title: string
+      description: string
+      confirm: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+    }
+    empty: {
+      title: string
+      description: string
+    }
+    actions: {
+      create: string
+      edit: string
+      send: string
+      delete: string
+      view: string
+      rowActions: string
+    }
+    notifications: {
+      created: string
+      updated: string
+      sent: string
+      deleted: string
+    }
+    validation: {
+      descriptionRequired: string
+      descriptionTooLong: string
+      quantityInvalid: string
+      amountInvalid: string
+      amountRequired: string
+      percentageInvalid: string
+      dateInvalid: string
+      idInvalid: string
+      projectRequired: string
+      lineItemsRequired: string
+      notesTooLong: string
+      unitTooLong: string
+      currencyInvalid: string
+      taxRateInvalid: string
+      discountAmountRequired: string
+      discountPercentageRequired: string
+    }
+    errors: {
+      notFound: string
+      projectNotFound: string
+      notDraft: string
+      invalidTransition: string
+      updateFailed: string
+      sendFailed: string
+    }
+  }
   templates: {
     metadataTitle: string
     title: string

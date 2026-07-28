@@ -1,45 +1,32 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { formatPercentage } from "@/lib/utils"
-
 import {
-  Badge,
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  DataTable,
+  DataTableViewOptions,
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  FieldError,
   Icon,
-  IconButton,
-  Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  toast,
-  Typography
+  Typography,
+  toast
 } from "@/components/ui"
+
+import { useDataTable, type ColumnDef } from "@/hooks"
 
 import { deleteTaxRate, setDefaultTaxRate } from "../../mutations"
 import { type TaxRateListItem } from "../../schemas"
 
+import { getTaxRateColumns } from "./columns"
 import { DeleteTaxRateDialog } from "./DeleteTaxRateDialog"
 import { TaxRateFormDialog, type TaxRateFormState } from "./TaxRateFormDialog"
 
@@ -67,12 +54,6 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
     | null
   >(null)
 
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [pendingAction, setPendingAction] = useState<{
-    kind: "default" | "delete"
-    id: string
-  } | null>(null)
-
   const [isDefaultPending, startDefaultTransition] = useTransition()
   const [isDeletePending, startDeleteTransition] = useTransition()
 
@@ -85,6 +66,54 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
 
   const formState = activeDialog?.kind === "form" ? activeDialog.state : null
   const deleteTarget = activeDialog?.kind === "delete" ? activeDialog.taxRate : null
+
+  const isBusy = isDefaultPending || isDeletePending
+
+  const columns = useMemo<ColumnDef<TaxRateListItem>[]>(() => {
+    const onSetDefault = (taxRate: TaxRateListItem) => {
+      if (taxRate.isDefault || isBusy) return
+
+      startDefaultTransition(async () => {
+        const result = await setDefaultTaxRate({ id: taxRate.id })
+
+        if ("error" in result) {
+          toast.error(result.error)
+
+          return
+        }
+
+        setTaxRates((currentTaxRates) =>
+          sortTaxRates(
+            currentTaxRates.map((currentTaxRate) => ({
+              ...currentTaxRate,
+              isDefault: currentTaxRate.id === result.data.taxRate.id
+            }))
+          )
+        )
+
+        toast.success(t("settings.taxRates.defaultUpdated"))
+
+        router.refresh()
+      })
+    }
+
+    return getTaxRateColumns({
+      t,
+      isBusy,
+      onEdit: (taxRate) => setActiveDialog({ kind: "form", state: { mode: "edit", taxRate } }),
+      onSetDefault,
+      onDelete: (taxRate) => setActiveDialog({ kind: "delete", taxRate })
+    })
+  }, [t, isBusy, router])
+
+  const { table } = useDataTable({
+    data: sortedTaxRates,
+    columns,
+    getRowId: (taxRate) => taxRate.id,
+    enableRowSelection: false,
+    columnVisibilityStorageKey: "tax-rates:column-visibility",
+    initialState: { pagination: { pageIndex: 0, pageSize: 10 } }
+  })
 
   const onSaved = (taxRate: TaxRateListItem) => {
     setTaxRates((currentTaxRates) => {
@@ -101,183 +130,41 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
       return sortTaxRates([...currentTaxRates, taxRate])
     })
 
-    setActionError(null)
     setActiveDialog(null)
 
     router.refresh()
   }
 
-  const onSetDefault = (taxRate: TaxRateListItem) => {
-    if (taxRate.isDefault || isDefaultPending) return
-
-    setActionError(null)
-    setPendingAction({ kind: "default", id: taxRate.id })
-
-    startDefaultTransition(async () => {
-      try {
-        const result = await setDefaultTaxRate({ id: taxRate.id })
-
-        if ("error" in result) {
-          setActionError(result.error)
-
-          return
-        }
-
-        setTaxRates((currentTaxRates) =>
-          sortTaxRates(
-            currentTaxRates.map((currentTaxRate) => ({
-              ...currentTaxRate,
-              isDefault: currentTaxRate.id === result.data.taxRate.id
-            }))
-          )
-        )
-
-        router.refresh()
-
-        toast.success(t("settings.taxRates.defaultUpdated"))
-      } finally {
-        setPendingAction(null)
-      }
-    })
-  }
-
   const onDelete = () => {
     if (!deleteTarget || isDeletePending) return
 
-    setActionError(null)
-    setPendingAction({ kind: "delete", id: deleteTarget.id })
-
     startDeleteTransition(async () => {
-      try {
-        const result = await deleteTaxRate({ id: deleteTarget.id })
+      const result = await deleteTaxRate({ id: deleteTarget.id })
 
-        if ("error" in result) {
-          setActionError(result.error)
+      if ("error" in result) {
+        toast.error(result.error)
 
-          return
-        }
-
-        setTaxRates((currentTaxRates) =>
-          currentTaxRates.filter((taxRate) => taxRate.id !== result.data.id)
-        )
-        setActiveDialog(null)
-
-        router.refresh()
-
-        toast.success(t("settings.taxRates.deleted"))
-      } finally {
-        setPendingAction(null)
+        return
       }
+
+      setTaxRates((currentTaxRates) =>
+        currentTaxRates.filter((taxRate) => taxRate.id !== result.data.id)
+      )
+      setActiveDialog(null)
+
+      toast.success(t("settings.taxRates.deleted"))
+
+      router.refresh()
     })
   }
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{t("settings.taxRates.listTitle")}</CardTitle>
-        <CardDescription>
-          {defaultTaxRate
-            ? t("settings.taxRates.currentDefault", { name: defaultTaxRate.name })
-            : t("settings.taxRates.noDefault")}
-        </CardDescription>
-        <CardAction>
-          <Button
-            type="button"
-            onClick={() => setActiveDialog({ kind: "form", state: { mode: "create" } })}
-          >
-            <Icon name="Plus" />
-            {t("settings.taxRates.addRate")}
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {actionError && <FieldError>{actionError}</FieldError>}
-        {sortedTaxRates.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Typography affects="small">{t("settings.taxRates.tableName")}</Typography>
-                </TableHead>
-                <TableHead>
-                  <Typography affects="small">{t("settings.taxRates.tableRate")}</Typography>
-                </TableHead>
-                <TableHead>
-                  <Typography affects="small">{t("settings.taxRates.tableStatus")}</Typography>
-                </TableHead>
-                <TableHead className="text-right">
-                  <Typography affects="small">{t("settings.taxRates.tableActions")}</Typography>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedTaxRates.map((taxRate) => (
-                <TableRow key={taxRate.id}>
-                  <TableCell>
-                    <Typography affects="medium">{taxRate.name}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>
-                      {t("settings.taxRates.percentageValue", {
-                        percentage: formatPercentage(taxRate.percentage)
-                      })}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {taxRate.isDefault ? (
-                      <Badge variant="success">
-                        <Icon name="BadgeCheck" />
-                        {t("settings.taxRates.defaultBadge")}
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">{t("settings.taxRates.notDefaultBadge")}</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <IconButton
-                        label={t("settings.taxRates.editRate")}
-                        size="icon-sm"
-                        onClick={() =>
-                          setActiveDialog({ kind: "form", state: { mode: "edit", taxRate } })
-                        }
-                        disabled={isDefaultPending || isDeletePending}
-                      >
-                        <Icon name="Pencil" />
-                      </IconButton>
-                      <IconButton
-                        label={t("settings.taxRates.makeDefault")}
-                        size="icon-sm"
-                        onClick={() => onSetDefault(taxRate)}
-                        disabled={taxRate.isDefault || isDefaultPending || isDeletePending}
-                      >
-                        {pendingAction?.kind === "default" && pendingAction.id === taxRate.id ? (
-                          <Spinner />
-                        ) : (
-                          <Icon name="BadgeCheck" />
-                        )}
-                      </IconButton>
-                      <IconButton
-                        label={t("settings.taxRates.deleteRate")}
-                        size="icon-sm"
-                        variant="destructive"
-                        onClick={() => setActiveDialog({ kind: "delete", taxRate })}
-                        disabled={isDefaultPending || isDeletePending}
-                      >
-                        {pendingAction?.kind === "delete" && pendingAction.id === taxRate.id ? (
-                          <Spinner />
-                        ) : (
-                          <Icon name="Trash2" />
-                        )}
-                      </IconButton>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <Empty>
+    <Fragment>
+      <DataTable
+        table={table}
+        caption={t("settings.taxRates.listTitle")}
+        empty={
+          <Empty className="border-0 py-12">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Icon name="Percent" />
@@ -290,13 +177,37 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
                 type="button"
                 onClick={() => setActiveDialog({ kind: "form", state: { mode: "create" } })}
               >
-                <Icon name="Plus" />
+                <Icon name="Plus" aria-hidden="true" />
                 {t("settings.taxRates.addRate")}
               </Button>
             </EmptyContent>
           </Empty>
-        )}
-      </CardContent>
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-0.5">
+            <Typography affects={["small", "medium"]}>
+              {t("settings.taxRates.listTitle")}
+            </Typography>
+            <Typography affects={["muted", "tiny"]}>
+              {defaultTaxRate
+                ? t("settings.taxRates.currentDefault", { name: defaultTaxRate.name })
+                : t("settings.taxRates.noDefault")}
+            </Typography>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <DataTableViewOptions table={table} />
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setActiveDialog({ kind: "form", state: { mode: "create" } })}
+            >
+              <Icon name="Plus" aria-hidden="true" />
+              {t("settings.taxRates.addRate")}
+            </Button>
+          </div>
+        </div>
+      </DataTable>
       <TaxRateFormDialog
         formState={formState}
         onOpenChange={(open) => {
@@ -312,7 +223,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
         }}
         onConfirm={onDelete}
       />
-    </Card>
+    </Fragment>
   )
 }
 

@@ -1083,6 +1083,210 @@ export const english: Language = {
         updateFailed: "Failed to update task"
       }
     },
+    proposals: {
+      metadata: {
+        list: "Proposals",
+        detail: "Proposal",
+        create: "New proposal",
+        edit: "Edit proposal"
+      },
+      list: {
+        title: "Proposals",
+        description: "Quotes and scopes of work for this project",
+        backToProject: "Back to project",
+        createButton: "New proposal",
+        count: "{count, plural, one {# proposal} other {# proposals}}",
+        searchPlaceholder: "Search by number",
+        searchLabel: "Search proposals",
+        statusFilter: "Status",
+        clearFilters: "Clear filters"
+      },
+      overview: {
+        title: "Proposals",
+        description: "Every proposal across your projects, soonest to expire first",
+        tableTitle: "All proposals",
+        totalHint: "Across all projects",
+        projectColumn: "Project",
+        clientColumn: "Client",
+        openProject: "Open project",
+        browseProjects: "Browse projects",
+        searchPlaceholder: "Search by number, project, or client",
+        searchLabel: "Search proposals",
+        filters: "Filters",
+        emptyTitle: "No proposals yet",
+        emptyDescription: "Proposals are created from a project. Open a project to quote it.",
+        noMatchTitle: "No proposals match these filters",
+        noMatchDescription: "Clear the filters to see every proposal again."
+      },
+      status: {
+        draft: "Draft",
+        sent: "Sent",
+        accepted: "Accepted",
+        rejected: "Rejected"
+      },
+      summary: {
+        total: "Proposals",
+        totalHint: "On this project",
+        draft: "Drafts",
+        draftHint: "Not sent yet",
+        awaiting: "Awaiting response",
+        awaitingHint: "Sent, no reply yet",
+        accepted: "Accepted",
+        acceptedMultiCurrency: "across {count, plural, one {# currency} other {# currencies}}",
+        acceptedValue: "Accepted value"
+      },
+      table: {
+        numberColumn: "Number",
+        statusColumn: "Status",
+        validUntilColumn: "Valid until",
+        totalColumn: "Total",
+        createdColumn: "Created",
+        actions: "Actions",
+        noValidUntil: "No expiry"
+      },
+      fields: {
+        number: "Number",
+        status: "Status",
+        template: "Template",
+        currency: "Currency",
+        validUntil: "Valid until",
+        notes: "Notes",
+        discountType: "Proposal discount",
+        discountPercentage: "Discount percentage",
+        discountAmount: "Discount amount"
+      },
+      lineItems: {
+        title: "Line items",
+        addButton: "Add line item",
+        removeButton: "Remove line item",
+        moveUp: "Move line item up",
+        moveDown: "Move line item down",
+        descriptionColumn: "Description",
+        quantityColumn: "Qty",
+        unitColumn: "Unit",
+        unitPriceColumn: "Unit price",
+        discountColumn: "Discount",
+        taxColumn: "Tax",
+        totalColumn: "Total",
+        actionsColumn: "Actions",
+        rowLabel: "Line item {position}",
+        empty: "No line items yet. Add the first one to price this proposal.",
+        noTaxRate: "No tax"
+      },
+      placeholders: {
+        description: "Design and build the marketing site",
+        unit: "hour",
+        amount: "0.00",
+        quantity: "1",
+        notes: "Anything the client should know before accepting",
+        percentage: "0",
+        search: "Search proposals"
+      },
+      discount: {
+        none: "None",
+        percentage: "Percentage",
+        fixed: "Fixed amount"
+      },
+      totals: {
+        subtotal: "Subtotal",
+        discount: "Discount",
+        tax: "Tax",
+        total: "Total"
+      },
+      template: {
+        none: "No template"
+      },
+      form: {
+        backToList: "Back to proposals",
+        backToProposal: "Back to proposal",
+        createTitle: "New proposal",
+        createDescription: "Draft a proposal for this project.",
+        editTitle: "Edit proposal",
+        editDescription: "Update this draft before sending it.",
+        saveCreate: "Create proposal",
+        saveEdit: "Save changes",
+        detailsSection: "Details",
+        detailsDescription: "Numbering, currency, and validity are taken from your settings.",
+        lineItemsSection: "Line items",
+        lineItemsDescription: "Tax rates are captured on each line when you save.",
+        notesSection: "Notes",
+        notesDescription: "Shown to the client on the proposal."
+      },
+      detail: {
+        backToList: "Back to proposals",
+        issuedAt: "Sent",
+        notIssued: "Not sent yet",
+        viewsLabel: "Client views",
+        viewCount: "{count, plural, one {# view} other {# views}}",
+        lockedTitle: "This proposal is locked",
+        lockedDescription: "Only drafts can be edited. Sent proposals stay as the client saw them.",
+        notesTitle: "Notes",
+        summaryTitle: "Summary",
+        publicLinkTitle: "Client link",
+        publicLinkDescription: "Share this link with the client to let them review and respond.",
+        publicLinkHidden: "The client link is created when you send the proposal.",
+        copyLink: "Copy link",
+        linkCopied: "Link copied"
+      },
+      send: {
+        title: "Send proposal",
+        description:
+          "Sending locks the proposal, creates the client link, and queues the PDF. This cannot be undone.",
+        confirm: "Send proposal"
+      },
+      delete: {
+        title: "Delete proposal",
+        description: "This proposal will be removed from the project. You can restore it later.",
+        confirm: "Delete proposal"
+      },
+      empty: {
+        title: "No proposals yet",
+        description: "Create the first proposal to quote this project."
+      },
+      actions: {
+        create: "New proposal",
+        edit: "Edit",
+        send: "Send",
+        delete: "Delete",
+        view: "View",
+        rowActions: "Proposal actions"
+      },
+      notifications: {
+        created: "Proposal created",
+        updated: "Proposal updated",
+        sent: "Proposal sent",
+        deleted: "Proposal deleted"
+      },
+      validation: {
+        descriptionRequired: "Description is required.",
+        descriptionTooLong:
+          "Description must be {count, plural, one {# character} other {# characters}} or fewer.",
+        quantityInvalid: "Enter a quantity greater than zero, such as 1 or 2.50.",
+        amountInvalid: "Enter a valid amount such as 1500 or 1500.00.",
+        amountRequired: "Enter an amount.",
+        percentageInvalid: "Enter a percentage between 0 and 100.",
+        dateInvalid: "Enter a valid date.",
+        idInvalid: "Invalid proposal.",
+        projectRequired: "Select a project.",
+        lineItemsRequired: "Add at least one line item.",
+        notesTooLong:
+          "Notes must be {count, plural, one {# character} other {# characters}} or fewer.",
+        unitTooLong:
+          "Unit must be {count, plural, one {# character} other {# characters}} or fewer.",
+        currencyInvalid: "Select a currency.",
+        taxRateInvalid: "Select a valid tax rate.",
+        discountAmountRequired: "Enter a discount amount.",
+        discountPercentageRequired: "Enter a discount percentage."
+      },
+      errors: {
+        notFound: "Proposal not found",
+        projectNotFound: "Project not found",
+        notDraft: "Only draft proposals can be changed",
+        invalidTransition: "That status change is not allowed",
+        updateFailed: "Failed to update proposal",
+        sendFailed: "Failed to send proposal"
+      }
+    },
     templates: {
       metadataTitle: "Templates",
       title: "Templates",
