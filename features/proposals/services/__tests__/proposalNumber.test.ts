@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest"
 
-import { calculateProposalValidUntil, formatProposalNumber } from "../proposalNumber"
+import {
+  calculateProposalValidUntil,
+  formatProposalNumber,
+  isProposalExpired
+} from "../proposalNumber"
 
 describe("formatProposalNumber", () => {
   test("pads the counter to the configured width", () => {
@@ -35,5 +39,23 @@ describe("calculateProposalValidUntil", () => {
 
   test("returns null when the instance has no validity window configured", () => {
     expect(calculateProposalValidUntil(new Date("2026-07-27T00:00:00.000Z"), 0)).toBeNull()
+  })
+})
+
+describe("isProposalExpired", () => {
+  test("treats the validity date itself as still open", () => {
+    const validUntil = new Date("2026-07-29T00:00:00.000Z")
+
+    expect(isProposalExpired(validUntil, new Date("2026-07-29T23:59:59.000Z"))).toBe(false)
+  })
+
+  test("expires once the UTC date has moved past the validity date", () => {
+    const validUntil = new Date("2026-07-29T00:00:00.000Z")
+
+    expect(isProposalExpired(validUntil, new Date("2026-07-30T00:00:00.000Z"))).toBe(true)
+  })
+
+  test("never expires a proposal with no validity date", () => {
+    expect(isProposalExpired(null, new Date("2030-01-01T00:00:00.000Z"))).toBe(false)
   })
 })

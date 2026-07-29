@@ -28,3 +28,21 @@ export function calculateProposalValidUntil(issuedAt: Date, validityDays: number
 
   return validUntil
 }
+
+// The counterpart read of the window `calculateProposalValidUntil` opens, and deliberately
+// inclusive: `validUntil` is the last calendar day the client may still respond, so the proposal
+// expires only once the UTC date has moved past it. Both sides compare UTC date-only values, so an
+// instance in any zone agrees with the stored `date` column about which day it is.
+export function isProposalExpired(validUntil: Date | null, now: Date): boolean {
+  if (!validUntil) return false
+
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+
+  const lastDay = Date.UTC(
+    validUntil.getUTCFullYear(),
+    validUntil.getUTCMonth(),
+    validUntil.getUTCDate()
+  )
+
+  return today > lastDay
+}

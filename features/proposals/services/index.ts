@@ -1,4 +1,5 @@
 export * from "./calculateProposalTotal"
 export * from "./canTransitionProposalStatus"
 export * from "./proposalNumber"
+export * from "./proposalOtp"
 export * from "./summarizeProposals"
