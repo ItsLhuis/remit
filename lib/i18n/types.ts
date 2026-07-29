@@ -1237,6 +1237,78 @@ export type Translations = {
       discountAmountRequired: string
       discountPercentageRequired: string
     }
+    public: {
+      metadataTitle: string
+      fromLabel: string
+      preparedFor: string
+      unavailable: {
+        title: string
+        description: string
+      }
+      summary: {
+        title: string
+        issuedAt: string
+        validUntil: string
+        noValidUntil: string
+      }
+      respond: {
+        title: string
+        description: string
+        accept: string
+        reject: string
+        back: string
+        resend: string
+      }
+      identity: {
+        acceptTitle: string
+        acceptDescription: string
+        rejectTitle: string
+        rejectDescription: string
+        emailLabel: string
+        emailPlaceholder: string
+        reasonLabel: string
+        reasonPlaceholder: string
+        submit: string
+      }
+      code: {
+        title: string
+        description: string
+        label: string
+        submit: string
+      }
+      outcome: {
+        acceptedTitle: string
+        acceptedDescription: string
+        rejectedTitle: string
+        rejectedDescription: string
+        reasonLabel: string
+        respondedAt: string
+      }
+      email: {
+        subject: string
+        body: string
+      }
+      validation: {
+        action: string
+        tokenInvalid: string
+        emailInvalid: string
+        codeInvalid: string
+        reasonRequired: string
+        reasonTooLong: string
+      }
+      errors: {
+        unavailable: string
+        alreadyResponded: string
+        requestFailed: string
+        emailFailed: string
+        responseFailed: string
+        codeInvalid: string
+        codeExpired: string
+        codeConsumed: string
+        codeAttemptsExhausted: string
+        rateLimited: string
+      }
+    }
     errors: {
       notFound: string
       projectNotFound: string

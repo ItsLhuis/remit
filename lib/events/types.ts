@@ -134,6 +134,14 @@ export type EventMap = {
     projectId: string
     userId: string
   }
+  "proposal.accepted": {
+    proposalId: string
+    projectId: string
+  }
+  "proposal.rejected": {
+    proposalId: string
+    projectId: string
+  }
   "template.created": {
     templateId: string
     userId: string

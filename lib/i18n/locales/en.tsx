@@ -1278,6 +1278,85 @@ export const english: Language = {
         discountAmountRequired: "Enter a discount amount.",
         discountPercentageRequired: "Enter a discount percentage."
       },
+      public: {
+        metadataTitle: "Proposal",
+        fromLabel: "From",
+        preparedFor: "Prepared for {project}",
+        unavailable: {
+          title: "This proposal is not available",
+          description:
+            "The link may have expired, been withdrawn, or never existed. Ask the sender for a new one."
+        },
+        summary: {
+          title: "Summary",
+          issuedAt: "Sent",
+          validUntil: "Valid until",
+          noValidUntil: "No expiry"
+        },
+        respond: {
+          title: "Your response",
+          description: "Accept or decline this proposal. We will email you a code to confirm.",
+          accept: "Accept proposal",
+          reject: "Decline proposal",
+          back: "Back",
+          resend: "Send a new code"
+        },
+        identity: {
+          acceptTitle: "Confirm your email to accept",
+          acceptDescription:
+            "Enter the email address this proposal was sent to and we will send you a confirmation code.",
+          rejectTitle: "Confirm your email to decline",
+          rejectDescription:
+            "Tell us why you are declining and enter the email address this proposal was sent to.",
+          emailLabel: "Email address",
+          emailPlaceholder: "you@company.com",
+          reasonLabel: "Reason for declining",
+          reasonPlaceholder: "Let the sender know what changed",
+          submit: "Send code"
+        },
+        code: {
+          title: "Enter your code",
+          description:
+            "If that address is on file, a {length}-digit code is on its way. It expires in {minutes, plural, one {# minute} other {# minutes}}.",
+          label: "Confirmation code",
+          submit: "Confirm"
+        },
+        outcome: {
+          acceptedTitle: "Proposal accepted",
+          acceptedDescription:
+            "Thank you. The sender has been notified and this proposal is now locked.",
+          rejectedTitle: "Proposal declined",
+          rejectedDescription: "Thank you. The sender has been notified of your decision.",
+          reasonLabel: "Your reason",
+          respondedAt: "Responded {date}"
+        },
+        email: {
+          subject:
+            "Your code to {action, select, accept {accept} other {decline}} proposal {number}",
+          body: "Hi {name},\n\n{issuer} sent you proposal {number}. Use this code to confirm that you want to {action, select, accept {accept} other {decline}} it:\n\n{code}\n\nThe code expires in {minutes, plural, one {# minute} other {# minutes}} and can be used once. If you did not ask for it, ignore this email."
+        },
+        validation: {
+          action: "Choose whether to accept or decline.",
+          tokenInvalid: "Invalid link.",
+          emailInvalid: "Enter a valid email address.",
+          codeInvalid: "Enter the 6-digit code from your email.",
+          reasonRequired: "Tell the sender why you are declining.",
+          reasonTooLong:
+            "Reason must be {count, plural, one {# character} other {# characters}} or fewer."
+        },
+        errors: {
+          unavailable: "This proposal is not available",
+          alreadyResponded: "This proposal has already been responded to",
+          requestFailed: "Could not send a code right now",
+          emailFailed: "Could not send the email. Try again in a moment",
+          responseFailed: "Could not record your response",
+          codeInvalid: "That code is not correct",
+          codeExpired: "That code has expired. Request a new one",
+          codeConsumed: "That code has already been used. Request a new one",
+          codeAttemptsExhausted: "Too many incorrect attempts. Request a new code",
+          rateLimited: "Too many attempts. Try again later"
+        }
+      },
       errors: {
         notFound: "Proposal not found",
         projectNotFound: "Project not found",
