@@ -438,7 +438,7 @@ async function listProposalTemplates(): Promise<ProposalTemplateOption[]> {
   return rows
 }
 
-async function listProposalLineItems(proposalId: string): Promise<LineItemRow[]> {
+export async function listProposalLineItems(proposalId: string): Promise<LineItemRow[]> {
   return database
     .select()
     .from(lineItems)
@@ -480,7 +480,7 @@ function toProposalOverviewItem(
   }
 }
 
-function toProposalDetailLineItem(row: LineItemRow): ProposalDetailLineItem {
+export function toProposalDetailLineItem(row: LineItemRow): ProposalDetailLineItem {
   return {
     id: row.id,
     position: row.position,

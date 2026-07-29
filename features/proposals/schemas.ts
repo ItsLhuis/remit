@@ -18,7 +18,11 @@ import {
 const PROPOSAL_DESCRIPTION_MAX_LENGTH = 500
 const PROPOSAL_UNIT_MAX_LENGTH = 50
 const PROPOSAL_NOTES_MAX_LENGTH = 5000
+const PROPOSAL_REJECTION_REASON_MAX_LENGTH = 1000
+const PROPOSAL_TOKEN_MAX_LENGTH = 128
+const PROPOSAL_EMAIL_MAX_LENGTH = 320
 const QUANTITY_PATTERN = /^\d+(\.\d{1,2})?$/
+const OTP_CODE_PATTERN = /^\d{6}$/
 
 export const PROPOSAL_STATUS_VALUES = ["draft", "sent", "accepted", "rejected"] as const
 export type ProposalStatus = (typeof PROPOSAL_STATUS_VALUES)[number]
@@ -191,6 +195,92 @@ export const proposalIdSchema = z.object({
 })
 
 export type ProposalIdValues = z.infer<typeof proposalIdSchema>
+
+const PROPOSAL_ACTIONS = ["accept", "reject"] as const
+export type ProposalAction = (typeof PROPOSAL_ACTIONS)[number]
+
+const proposalActionSchema = z.enum(PROPOSAL_ACTIONS, i18n.t("proposals.public.validation.action"))
+
+// Bounded, not shaped: the stored token is always 43 base64url characters, but validating that here
+// would turn a malformed token into a distinguishable rejection. Anything within the bound falls
+// through to the same constant-time miss as a well-formed token that does not exist.
+const publicTokenSchema = z
+  .string()
+  .trim()
+  .min(1, i18n.t("proposals.public.validation.tokenInvalid"))
+  .max(PROPOSAL_TOKEN_MAX_LENGTH, i18n.t("proposals.public.validation.tokenInvalid"))
+
+const proposalRecipientEmailSchema = z
+  .email(i18n.t("proposals.public.validation.emailInvalid"))
+  .max(PROPOSAL_EMAIL_MAX_LENGTH, i18n.t("proposals.public.validation.emailInvalid"))
+
+const proposalOtpCodeSchema = z
+  .string()
+  .trim()
+  .regex(OTP_CODE_PATTERN, i18n.t("proposals.public.validation.codeInvalid"))
+
+const proposalRejectionReasonSchema = z
+  .string()
+  .trim()
+  .max(
+    PROPOSAL_REJECTION_REASON_MAX_LENGTH,
+    i18n.t("proposals.public.validation.reasonTooLong", {
+      count: PROPOSAL_REJECTION_REASON_MAX_LENGTH
+    })
+  )
+
+// `chk_proposals_response` does not demand a reason, but a decline with no explanation is worthless
+// to the freelancer reading it later, so the requirement is enforced at the boundary instead.
+function refineRejectionReason(
+  values: { action: ProposalAction; rejectionReason: string },
+  context: z.RefinementCtx
+): void {
+  if (values.action === "reject" && values.rejectionReason.length === 0) {
+    context.addIssue({
+      code: "custom",
+      path: ["rejectionReason"],
+      message: i18n.t("proposals.public.validation.reasonRequired")
+    })
+  }
+}
+
+export const publicProposalTokenSchema = z.object({
+  token: publicTokenSchema
+})
+
+export const proposalOtpRequestSchema = z.object({
+  action: proposalActionSchema,
+  email: proposalRecipientEmailSchema
+})
+
+export type ProposalOtpRequestValues = z.infer<typeof proposalOtpRequestSchema>
+
+export const proposalOtpVerifySchema = z
+  .object({
+    action: proposalActionSchema,
+    email: proposalRecipientEmailSchema,
+    code: proposalOtpCodeSchema,
+    rejectionReason: proposalRejectionReasonSchema
+  })
+  .superRefine(refineRejectionReason)
+
+export type ProposalOtpVerifyValues = z.infer<typeof proposalOtpVerifySchema>
+
+export const proposalResponseIdentitySchema = z
+  .object({
+    action: proposalActionSchema,
+    email: proposalRecipientEmailSchema,
+    rejectionReason: proposalRejectionReasonSchema
+  })
+  .superRefine(refineRejectionReason)
+
+export type ProposalResponseIdentityValues = z.infer<typeof proposalResponseIdentitySchema>
+
+export const proposalResponseCodeSchema = z.object({
+  code: proposalOtpCodeSchema
+})
+
+export type ProposalResponseCodeValues = z.infer<typeof proposalResponseCodeSchema>
 
 export const proposalListParamsSchema = z.object({
   projectId: z.uuid(i18n.t("proposals.validation.projectRequired"))

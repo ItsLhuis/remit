@@ -15,3 +15,11 @@ export function emitProposalSent(payload: EventMap["proposal.sent"]): Promise<vo
 export function emitProposalDeleted(payload: EventMap["proposal.deleted"]): Promise<void> {
   return emit("proposal.deleted", payload)
 }
+
+export function emitProposalAccepted(payload: EventMap["proposal.accepted"]): Promise<void> {
+  return emit("proposal.accepted", payload)
+}
+
+export function emitProposalRejected(payload: EventMap["proposal.rejected"]): Promise<void> {
+  return emit("proposal.rejected", payload)
+}

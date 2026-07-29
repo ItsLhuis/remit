@@ -396,7 +396,16 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["features/**/mutations.ts", "features/**/queries.ts", "app/**/route.ts"],
+    // `public*.ts` covers the anonymous read/write modules a `/{letter}/[token]` surface owns
+    // (`features/proposals/publicQueries.ts`, `publicResponse.ts`). They are not named
+    // `queries.ts`/`mutations.ts` because they answer to a different contract, but they take
+    // untrusted input from a public route and must clear the same guard.
+    files: [
+      "features/**/mutations.ts",
+      "features/**/queries.ts",
+      "features/**/public*.ts",
+      "app/**/route.ts"
+    ],
     plugins: {
       remit: remitRules
     },

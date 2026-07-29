@@ -117,6 +117,52 @@ export type ProposalDetail = {
   defaults: ProposalDefaults
 }
 
+export type PublicProposalIssuer = {
+  name: string
+  email: string | null
+}
+
+// The anonymous read model. Every field here is shown to whoever holds the link, so it carries no
+// `publicToken`, no internal ids beyond the ones the response endpoints already take from the URL,
+// and no client email — the address is the one secret the OTP flow checks against, and echoing it
+// back would let a link-holder learn who to impersonate. See `getPublicProposal` in queries.ts.
+export type PublicProposal = {
+  number: string
+  status: ProposalStatus
+  currency: string
+  subtotalCents: number
+  discountAmountTotalCents: number
+  taxAmountCents: number
+  totalCents: number
+  validUntil: Date | null
+  notes: string
+  issuedAt: Date
+  respondedAt: Date | null
+  rejectionReason: string
+  projectName: string
+  issuer: PublicProposalIssuer
+  locale: string
+  timeZone: string
+  canRespond: boolean
+  lineItems: ProposalDetailLineItem[]
+}
+
+// Feature-internal: the OTP flow needs the client's address to decide who may respond, and the
+// proposal id to write the response against. Neither may reach a client graph, so this type stays
+// out of `index.ts` exactly as `getProposalResponseTarget` stays out of `server.ts`.
+export type ProposalResponseTarget = {
+  id: string
+  projectId: string
+  number: string
+  status: ProposalStatus
+  currency: string
+  totalCents: number
+  recipientEmail: string
+  recipientName: string
+  issuerName: string
+  locale: string
+}
+
 export type ProposalFormData = ProposalFormInputValues & {
   id: string
   number: string

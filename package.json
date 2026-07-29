@@ -107,6 +107,7 @@
     "@next/env": "16.2.6",
     "@tanstack/react-hotkeys": "^0.9.1",
     "@tanstack/react-table": "^8.21.3",
+    "bcryptjs": "^3.0.3",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
