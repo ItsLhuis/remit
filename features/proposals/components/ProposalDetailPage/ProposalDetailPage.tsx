@@ -24,10 +24,10 @@ import { sendProposal, softDeleteProposal } from "../../mutations"
 import { isProposalEditable } from "../../services"
 import { type ProposalDetail } from "../../types"
 import { DeleteProposalDialog } from "../DeleteProposalDialog"
+import { ProposalLineItemsTable } from "../ProposalLineItemsTable"
 import { ProposalStatusBadge } from "../ProposalStatusBadge"
 import { SendProposalDialog } from "../SendProposalDialog"
 
-import { ProposalLineItemsTable } from "./ProposalLineItemsTable"
 import { ProposalPublicLinkCard } from "./ProposalPublicLinkCard"
 import { ProposalSummaryCard } from "./ProposalSummaryCard"
 

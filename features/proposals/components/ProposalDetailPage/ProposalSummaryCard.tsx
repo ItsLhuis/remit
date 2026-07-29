@@ -7,8 +7,7 @@ import { formatCurrency, formatDate, formatDay } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle, Separator, Typography } from "@/components/ui"
 
 import { type ProposalDetail } from "../../types"
-
-import { ProposalDetailRow } from "./ProposalDetailRow"
+import { ProposalDetailRow } from "../ProposalDetailRow"
 
 type ProposalSummaryCardProps = {
   proposal: ProposalDetail

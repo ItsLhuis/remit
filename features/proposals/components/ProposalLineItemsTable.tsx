@@ -14,7 +14,7 @@ import {
   TableRow
 } from "@/components/ui"
 
-import { type ProposalDetailLineItem } from "../../types"
+import { type ProposalDetailLineItem } from "../types"
 
 type ProposalLineItemsTableProps = {
   lineItems: ProposalDetailLineItem[]
