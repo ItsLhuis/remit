@@ -142,6 +142,29 @@ export type EventMap = {
     proposalId: string
     projectId: string
   }
+  "contract.created": {
+    contractId: string
+    projectId: string | null
+    clientId: string | null
+    userId: string
+  }
+  "contract.updated": {
+    contractId: string
+    userId: string
+    changedFields: string[]
+  }
+  "contract.sent": {
+    contractId: string
+    userId: string
+  }
+  "contract.terminated": {
+    contractId: string
+    userId: string
+  }
+  "contract.deleted": {
+    contractId: string
+    userId: string
+  }
   "template.created": {
     templateId: string
     userId: string

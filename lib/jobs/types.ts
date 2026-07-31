@@ -4,6 +4,9 @@ export type JobMap = {
   "proposal.pdf.render": {
     proposalId: string
   }
+  "contract.pdf.render": {
+    contractId: string
+  }
 }
 
 export type JobName = keyof JobMap
