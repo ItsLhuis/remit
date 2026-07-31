@@ -43,8 +43,13 @@ describe("TotpForm", () => {
     vi.clearAllMocks()
   })
 
-  afterEach(() => {
+  // input-otp's syncTimeouts schedules callbacks at 0ms, 10ms, and 50ms that it never clears on
+  // unmount. Without draining them here they fire after the test environment is torn down and
+  // React's setState throws "window is not defined" as an unhandled error.
+  afterEach(async () => {
     cleanup()
+
+    await new Promise((resolve) => setTimeout(resolve, 60))
   })
 
   test("shows a validation error when the authenticator code is incomplete", async () => {
