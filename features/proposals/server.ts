@@ -13,6 +13,7 @@ export { getPublicProposal } from "./publicQueries"
 export { requestProposalOtp, verifyProposalOtp } from "./publicResponse"
 
 export {
+  getAcceptedProposalForContract,
   getProposalDefaults,
   getProposalDetail,
   getProposalEditorData,

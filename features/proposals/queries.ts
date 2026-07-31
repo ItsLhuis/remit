@@ -17,7 +17,17 @@ import {
 import { formatCentsForInput } from "@/lib/utils"
 
 import { database } from "@/database"
-import { clients, lineItems, projects, proposals, taxRates, templates } from "@/database/schema"
+import {
+  clients,
+  contracts,
+  lineItems,
+  projects,
+  proposals,
+  taxRates,
+  templates
+} from "@/database/schema"
+
+import { blocksSchema } from "@/features/templates"
 
 import {
   parseProposalListQuery,
@@ -30,6 +40,7 @@ import {
 } from "./schemas"
 import { summarizeProposals, type ProposalsSummaryResult } from "./services"
 import {
+  type AcceptedProposalForContract,
   type ProposalDefaults,
   type ProposalDetail,
   type ProposalDetailLineItem,
@@ -305,6 +316,61 @@ export async function getProposalForEdit(input: unknown): Promise<ProposalFormDa
       discountAmount: formatCentsForInput(row.discountAmountCents),
       taxRateId: row.taxRateId ?? ""
     }))
+  }
+}
+
+// The read model the contract-conversion path needs, kept here because it reads proposal tables.
+// Proposals carry no `blocks` column of their own, so the snapshot offered to the new contract is
+// the proposal's template blocks resolved by join; a proposal with no template yields an empty
+// snapshot and the conversion falls back to the contract template (features/contracts/services
+// /contractBlocks.ts). Returns null for anything not convertible, so the caller never has to
+// re-derive convertibility.
+export async function getAcceptedProposalForContract(
+  input: unknown
+): Promise<AcceptedProposalForContract | null> {
+  const parsed = proposalIdSchema.safeParse(input)
+
+  if (!parsed.success) return null
+
+  const proposal = await database.query.proposals.findFirst({
+    where: and(
+      eq(proposals.id, parsed.data.id),
+      eq(proposals.status, "accepted"),
+      isNull(proposals.deletedAt)
+    ),
+    columns: { id: true, projectId: true, templateId: true, number: true }
+  })
+
+  if (!proposal) return null
+
+  const [project, template, existingContract] = await Promise.all([
+    database.query.projects.findFirst({
+      where: eq(projects.id, proposal.projectId),
+      columns: { name: true }
+    }),
+    proposal.templateId
+      ? database.query.templates.findFirst({
+          where: eq(templates.id, proposal.templateId),
+          columns: { blocks: true }
+        })
+      : Promise.resolve(undefined),
+    database
+      .select({ id: contracts.id })
+      .from(contracts)
+      .where(and(eq(contracts.proposalId, proposal.id), isNull(contracts.deletedAt)))
+      .limit(1)
+  ])
+
+  if (existingContract.length > 0) return null
+
+  const blocks = blocksSchema.safeParse(template?.blocks ?? [])
+
+  return {
+    id: proposal.id,
+    projectId: proposal.projectId,
+    templateId: proposal.templateId,
+    blocks: blocks.success ? blocks.data : [],
+    title: project ? `${proposal.number} - ${project.name}` : proposal.number
   }
 }
 

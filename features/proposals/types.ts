@@ -1,3 +1,5 @@
+import { type Blocks } from "@/features/templates"
+
 import { type ProposalFormInputValues, type ProposalStatus } from "./schemas"
 import { type ProposalsSummaryResult } from "./services"
 
@@ -175,4 +177,14 @@ export type ProposalEditorData = {
   defaults: ProposalDefaults
   taxRates: ProposalTaxRateOption[]
   templates: ProposalTemplateOption[]
+}
+
+// `title` is a suggested contract title derived from the proposal number and its project name, not
+// a stored proposal field; the conversion form may replace it.
+export type AcceptedProposalForContract = {
+  id: string
+  projectId: string
+  templateId: string | null
+  blocks: Blocks
+  title: string
 }
