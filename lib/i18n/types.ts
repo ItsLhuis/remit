@@ -403,6 +403,7 @@ export type Translations = {
       clients: string
       projects: string
       proposals: string
+      contracts: string
       invoices: string
       settings: string
       navigation: string
@@ -1316,6 +1317,162 @@ export type Translations = {
       invalidTransition: string
       updateFailed: string
       sendFailed: string
+    }
+  }
+  contracts: {
+    metadata: {
+      list: string
+      detail: string
+      create: string
+      edit: string
+    }
+    title: string
+    subtitle: string
+    actions: {
+      create: string
+      createFromProposal: string
+      edit: string
+      send: string
+      terminate: string
+      delete: string
+      view: string
+      rowActions: string
+    }
+    fields: {
+      number: string
+      title: string
+      status: string
+      parent: string
+      project: string
+      client: string
+      template: string
+      effectiveFrom: string
+      effectiveUntil: string
+      issuedAt: string
+      terminatedAt: string
+      terminationReason: string
+    }
+    status: {
+      draft: string
+      sent: string
+      signed: string
+      expired: string
+      terminated: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      draft: string
+      draftHint: string
+      sent: string
+      sentHint: string
+      signed: string
+      signedHint: string
+    }
+    table: {
+      numberColumn: string
+      titleColumn: string
+      parentColumn: string
+      statusColumn: string
+      effectiveColumn: string
+      createdColumn: string
+      actions: string
+      noParent: string
+      noEffectiveRange: string
+    }
+    filters: {
+      count: string
+      searchPlaceholder: string
+      searchLabel: string
+      statusFilter: string
+      allStatuses: string
+      clearFilters: string
+    }
+    empty: {
+      title: string
+      description: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    form: {
+      backToList: string
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      detailsSection: string
+      detailsDescription: string
+      parentSection: string
+      parentDescription: string
+      contentSection: string
+      contentDescription: string
+      noProject: string
+      noClient: string
+      noTemplate: string
+      blockCount: string
+      blocksEmpty: string
+    }
+    detail: {
+      backToList: string
+      issuedAt: string
+      notIssued: string
+      effectiveWindow: string
+      openParent: string
+      lockedTitle: string
+      lockedDescription: string
+      contentTitle: string
+      summaryTitle: string
+      terminationTitle: string
+    }
+    dialogs: {
+      send: {
+        title: string
+        description: string
+        confirm: string
+      }
+      terminate: {
+        title: string
+        description: string
+        confirm: string
+        reasonLabel: string
+        reasonPlaceholder: string
+      }
+      delete: {
+        title: string
+        description: string
+        confirm: string
+      }
+    }
+    notifications: {
+      created: string
+      updated: string
+      sent: string
+      terminated: string
+      deleted: string
+    }
+    validation: {
+      idInvalid: string
+      proposalIdInvalid: string
+      titleRequired: string
+      parentRequired: string
+      effectiveRangeInvalid: string
+      terminationReasonRequired: string
+      blocksRequired: string
+    }
+    errors: {
+      notFound: string
+      notDraft: string
+      invalidTransition: string
+      parentNotFound: string
+      proposalNotConvertible: string
+      proposalAlreadyConverted: string
+      createFailed: string
+      updateFailed: string
+      sendFailed: string
+      terminateFailed: string
+      deleteFailed: string
     }
   }
   templates: {

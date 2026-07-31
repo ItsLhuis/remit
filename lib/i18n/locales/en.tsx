@@ -422,6 +422,7 @@ export const english: Language = {
         clients: "Clients",
         projects: "Projects",
         proposals: "Proposals",
+        contracts: "Contracts",
         invoices: "Invoices",
         settings: "Settings",
         navigation: "Navigation",
@@ -1364,6 +1365,163 @@ export const english: Language = {
         invalidTransition: "That status change is not allowed",
         updateFailed: "Failed to update proposal",
         sendFailed: "Failed to send proposal"
+      }
+    },
+    contracts: {
+      metadata: {
+        list: "Contracts",
+        detail: "Contract",
+        create: "New contract",
+        edit: "Edit contract"
+      },
+      title: "Contracts",
+      subtitle: "Agreements you have drafted, issued, and signed",
+      actions: {
+        create: "New contract",
+        createFromProposal: "Create contract",
+        edit: "Edit",
+        send: "Send",
+        terminate: "Terminate",
+        delete: "Delete",
+        view: "View",
+        rowActions: "Contract actions"
+      },
+      fields: {
+        number: "Number",
+        title: "Title",
+        status: "Status",
+        parent: "Belongs to",
+        project: "Project",
+        client: "Client",
+        template: "Template",
+        effectiveFrom: "Effective from",
+        effectiveUntil: "Effective until",
+        issuedAt: "Issued",
+        terminatedAt: "Terminated",
+        terminationReason: "Reason"
+      },
+      status: {
+        draft: "Draft",
+        sent: "Sent",
+        signed: "Signed",
+        expired: "Expired",
+        terminated: "Terminated"
+      },
+      summary: {
+        total: "Total",
+        totalHint: "All contracts",
+        draft: "Draft",
+        draftHint: "Not issued yet",
+        sent: "Awaiting signature",
+        sentHint: "Sent and still open",
+        signed: "Signed",
+        signedHint: "Executed by both sides"
+      },
+      table: {
+        numberColumn: "Number",
+        titleColumn: "Title",
+        parentColumn: "Belongs to",
+        statusColumn: "Status",
+        effectiveColumn: "Effective",
+        createdColumn: "Created",
+        actions: "Actions",
+        noParent: "No parent",
+        noEffectiveRange: "No dates set"
+      },
+      filters: {
+        count: "{count, plural, one {# contract} other {# contracts}}",
+        searchPlaceholder: "Search contracts",
+        searchLabel: "Search contracts",
+        statusFilter: "Status",
+        allStatuses: "All statuses",
+        clearFilters: "Clear filters"
+      },
+      empty: {
+        title: "No contracts yet",
+        description: "Draft a contract for a client or a project to get started",
+        noMatchTitle: "No contracts match",
+        noMatchDescription: "Try a different search or clear the filters"
+      },
+      form: {
+        backToList: "Back to contracts",
+        createTitle: "New contract",
+        createDescription: "Draft an agreement for a client or a project",
+        editTitle: "Edit contract",
+        editDescription: "Only draft contracts can be changed",
+        saveCreate: "Create contract",
+        saveEdit: "Save changes",
+        detailsSection: "Details",
+        detailsDescription: "Title and effective window",
+        parentSection: "Belongs to",
+        parentDescription: "Pick a project or a client this contract covers",
+        contentSection: "Content",
+        contentDescription: "The document sent to the counterparty",
+        noProject: "No project",
+        noClient: "No client",
+        noTemplate: "No template",
+        blockCount: "{count, plural, one {# block} other {# blocks}}",
+        blocksEmpty: "No content yet. Pick a template to seed this contract"
+      },
+      detail: {
+        backToList: "Back to contracts",
+        issuedAt: "Issued",
+        notIssued: "Not issued yet",
+        effectiveWindow: "Effective window",
+        openParent: "Open",
+        lockedTitle: "This contract is locked",
+        lockedDescription: "A contract can only be changed while it is a draft",
+        contentTitle: "Content",
+        summaryTitle: "Summary",
+        terminationTitle: "Termination"
+      },
+      dialogs: {
+        send: {
+          title: "Send this contract?",
+          description:
+            "The contract is issued and can no longer be edited. A PDF is generated for the counterparty.",
+          confirm: "Send contract"
+        },
+        terminate: {
+          title: "Terminate this contract?",
+          description: "The contract stays on record with the reason you give below.",
+          confirm: "Terminate contract",
+          reasonLabel: "Reason",
+          reasonPlaceholder: "Why is this contract ending?"
+        },
+        delete: {
+          title: "Delete this contract?",
+          description: "The contract is removed from your lists. This cannot be undone.",
+          confirm: "Delete contract"
+        }
+      },
+      notifications: {
+        created: "Contract created",
+        updated: "Contract updated",
+        sent: "Contract sent",
+        terminated: "Contract terminated",
+        deleted: "Contract deleted"
+      },
+      validation: {
+        idInvalid: "Invalid contract",
+        proposalIdInvalid: "Invalid proposal",
+        titleRequired: "Title is required",
+        parentRequired: "Pick a project or a client for this contract",
+        effectiveRangeInvalid: "The end date must be on or after the start date",
+        terminationReasonRequired: "A termination reason is required",
+        blocksRequired: "Add content before sending this contract"
+      },
+      errors: {
+        notFound: "Contract not found",
+        notDraft: "Only draft contracts can be changed",
+        invalidTransition: "That status change is not allowed",
+        parentNotFound: "The selected project or client was not found",
+        proposalNotConvertible: "That proposal cannot be turned into a contract",
+        proposalAlreadyConverted: "That proposal already has a contract",
+        createFailed: "Failed to create contract",
+        updateFailed: "Failed to update contract",
+        sendFailed: "Failed to send contract",
+        terminateFailed: "Failed to terminate contract",
+        deleteFailed: "Failed to delete contract"
       }
     },
     templates: {
