@@ -48,9 +48,11 @@ export const settings = pgTable(
     defaultNotesProposal: text("default_notes_proposal"),
     invoicePrefix: text("invoice_prefix").notNull().default("INV-"),
     proposalPrefix: text("proposal_prefix").notNull().default("PROP-"),
+    contractPrefix: text("contract_prefix").notNull().default("CTR-"),
     creditNotePrefix: text("credit_note_prefix").notNull().default("CN-"),
     nextInvoiceNumber: integer("next_invoice_number").notNull().default(1),
     nextProposalNumber: integer("next_proposal_number").notNull().default(1),
+    nextContractNumber: integer("next_contract_number").notNull().default(1),
     nextCreditNoteNumber: integer("next_credit_note_number").notNull().default(1),
     numberPaddingWidth: integer("number_padding_width").notNull().default(4),
 
@@ -121,6 +123,7 @@ export const settings = pgTable(
     ),
     check("chk_settings_next_invoice_number", sql`${table.nextInvoiceNumber} >= 1`),
     check("chk_settings_next_proposal_number", sql`${table.nextProposalNumber} >= 1`),
+    check("chk_settings_next_contract_number", sql`${table.nextContractNumber} >= 1`),
     check("chk_settings_next_credit_note_number", sql`${table.nextCreditNoteNumber} >= 1`),
     check(
       "chk_settings_number_padding_width",

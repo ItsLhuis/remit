@@ -47,6 +47,14 @@ export const contracts = pgTable(
     index("contracts_proposal_id_idx").on(table.proposalId),
     index("contracts_status_idx").on(table.status),
     uniqueIndex("contracts_public_token_idx").on(table.publicToken),
+    // One live contract per proposal. The reverse link `proposals.converted_to_contract_id` was
+    // dropped in migration 0009, so this index is what makes "a proposal converts once" structural:
+    // two concurrent conversions of the same proposal cannot both commit, the loser's transaction
+    // rolls back, and the contract number it claimed is never consumed. Partial so that soft-deleted
+    // contracts free their proposal for a fresh conversion.
+    uniqueIndex("contracts_proposal_id_unique_idx")
+      .on(table.proposalId)
+      .where(sql`${table.proposalId} IS NOT NULL AND ${table.deletedAt} IS NULL`),
     check(
       "chk_contracts_parent",
       sql`${table.projectId} IS NOT NULL OR ${table.clientId} IS NOT NULL`
