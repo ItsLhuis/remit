@@ -332,7 +332,7 @@ function getContractWhereClause(query: ContractListQuery): SQL | undefined {
 // written by a restore or a script can reach a read path unparseable, and a whole page failing to
 // render is a worse outcome than a contract that shows no content and is logged for the operator.
 // `sourceId` is the contract or the template the snapshot came from, whichever this read is mapping.
-function toContractBlocks(value: unknown, sourceId: string): Blocks {
+export function toContractBlocks(value: unknown, sourceId: string): Blocks {
   const parsed = blocksSchema.safeParse(value)
 
   if (parsed.success) return parsed.data
