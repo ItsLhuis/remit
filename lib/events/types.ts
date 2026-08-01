@@ -157,6 +157,12 @@ export type EventMap = {
     contractId: string
     userId: string
   }
+  // No `userId`: signing happens anonymously through `/c/[token]`, so the actor is the signature
+  // row itself rather than a logged-in user.
+  "contract.signed": {
+    contractId: string
+    signatureId: string
+  }
   "contract.terminated": {
     contractId: string
     userId: string

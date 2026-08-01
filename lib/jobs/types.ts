@@ -7,6 +7,13 @@ export type JobMap = {
   "contract.pdf.render": {
     contractId: string
   }
+  // Distinct from `contract.pdf.render`: this one renders the executed document with the signature
+  // record embedded, and carries the signature row the worker writes `signed_pdf_upload_id` back to
+  // once the PDF is stored (ADR-0022).
+  "contract.signed_pdf.render": {
+    contractId: string
+    signatureId: string
+  }
 }
 
 export type JobName = keyof JobMap
