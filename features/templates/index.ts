@@ -36,7 +36,10 @@ export {
 export {
   buildSampleRenderData,
   getMergeVariables,
+  getPageHeight,
+  getPageWidth,
   getTemplateCategory,
+  normalizePageSettings,
   renderTemplate,
   MERGE_VARIABLES,
   TEMPLATE_CATEGORIES,

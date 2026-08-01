@@ -8,6 +8,11 @@ export {
   type TemplateMutationResult
 } from "./mutations"
 
-export { getTemplateForEdit, getTemplatesPageData, toTemplateEditorData } from "./queries"
+export {
+  getTemplateForEdit,
+  getTemplatesPageData,
+  resolveTemplateAssets,
+  toTemplateEditorData
+} from "./queries"
 
 export { emitTemplateCreated, emitTemplateDeleted, emitTemplateUpdated } from "./events"

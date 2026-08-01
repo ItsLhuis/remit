@@ -121,7 +121,7 @@ export async function getTemplateForEdit(input: unknown): Promise<TemplateEditor
 // Maps each referenced upload id to its storage path so image blocks (frame children included, to
 // any depth) resolve to servable URLs at preview/render time; the block itself never stores a URL.
 // The business logo resolves from settings.businessLogoUploadId under its reserved assets key.
-async function resolveTemplateAssets(blocks: Block[]): Promise<Record<string, string>> {
+export async function resolveTemplateAssets(blocks: Block[]): Promise<Record<string, string>> {
   const uploadIds = flattenBlocks(blocks)
     .map((block) => (block.type === "image" ? block.content.uploadId : null))
     .filter((uploadId): uploadId is string => uploadId !== null)
