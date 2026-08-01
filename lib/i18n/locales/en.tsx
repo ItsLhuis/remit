@@ -1501,6 +1501,62 @@ export const english: Language = {
         terminated: "Contract terminated",
         deleted: "Contract deleted"
       },
+      public: {
+        metadataTitle: "Contract",
+        fromLabel: "Sent by",
+        preparedFor: "Prepared for {client}",
+        unavailable: {
+          title: "This contract is not available",
+          description:
+            "The link may have expired, been withdrawn, or already been used. Contact the sender for a new one"
+        },
+        document: {
+          title: "The agreement",
+          frameTitle: "Contract {number}",
+          empty: "This contract has no content to display"
+        },
+        summary: {
+          title: "Details",
+          issuedAt: "Sent",
+          effectiveFrom: "Starts",
+          effectiveUntil: "Ends",
+          none: "—"
+        },
+        sign: {
+          title: "Sign this contract",
+          description:
+            "Read the agreement above, then type your full name and email to sign it electronically",
+          nameLabel: "Full name",
+          namePlaceholder: "Your full legal name",
+          emailLabel: "Email address",
+          emailPlaceholder: "you@example.com",
+          consentLabel: "I agree to the statement above",
+          submit: "Sign contract"
+        },
+        consent: {
+          text: "I, the person named above, agree to be bound by contract {number} issued by {issuer}, and I consent to signing it electronically. My name, email address, IP address, and browser details are recorded as part of this signature"
+        },
+        signed: {
+          title: "Contract signed",
+          description:
+            "Your signature has been recorded. The sender has been notified and will share a signed copy",
+          signedAt: "Signed on {date}"
+        },
+        validation: {
+          tokenInvalid: "This contract is not available",
+          nameRequired: "Your full name is required",
+          nameTooLong: "Your name must be {count} characters or fewer",
+          emailInvalid: "Enter a valid email address",
+          consentRequired: "You must agree before signing"
+        },
+        errors: {
+          unavailable: "This contract is not available",
+          alreadySigned: "This contract can no longer be signed",
+          signFailed: "Failed to record your signature",
+          requestFailed: "Something went wrong. Try again",
+          rateLimited: "Too many attempts. Try again later"
+        }
+      },
       validation: {
         idInvalid: "Invalid contract",
         proposalIdInvalid: "Invalid proposal",

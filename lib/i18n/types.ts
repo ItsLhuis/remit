@@ -1452,6 +1452,59 @@ export type Translations = {
       terminated: string
       deleted: string
     }
+    public: {
+      metadataTitle: string
+      fromLabel: string
+      preparedFor: string
+      unavailable: {
+        title: string
+        description: string
+      }
+      document: {
+        title: string
+        frameTitle: string
+        empty: string
+      }
+      summary: {
+        title: string
+        issuedAt: string
+        effectiveFrom: string
+        effectiveUntil: string
+        none: string
+      }
+      sign: {
+        title: string
+        description: string
+        nameLabel: string
+        namePlaceholder: string
+        emailLabel: string
+        emailPlaceholder: string
+        consentLabel: string
+        submit: string
+      }
+      consent: {
+        text: string
+      }
+      signed: {
+        title: string
+        description: string
+        signedAt: string
+      }
+      validation: {
+        tokenInvalid: string
+        nameRequired: string
+        nameTooLong: string
+        emailInvalid: string
+        consentRequired: string
+      }
+      errors: {
+        unavailable: string
+        alreadySigned: string
+        signFailed: string
+        requestFailed: string
+        rateLimited: string
+      }
+    }
     validation: {
       idInvalid: string
       proposalIdInvalid: string
