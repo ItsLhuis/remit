@@ -12,6 +12,10 @@ const ciReporter: ReporterDescription[] = [
 export default defineConfig({
   testDir: "tests/e2e",
   outputDir: "tests/e2e/results",
+  // The web server is `next dev`, which compiles a route the first time a worker asks for it. With
+  // several workers hitting the editor at once, that first-hit compile lands inside the test body,
+  // so the default 30s budget expires on work that has nothing to do with the assertion.
+  timeout: 60_000,
   reporter: process.env.CI ? ciReporter : undefined,
   use: {
     baseURL,
@@ -41,8 +45,18 @@ export default defineConfig({
     },
     {
       name: "editor",
-      testMatch: /templateEditor.*\.spec\.ts$/,
+      testMatch: /templateEditor(?!FrameContinuity).*\.spec\.ts$/,
       dependencies: ["provision"],
+      use: { ...devices["Desktop Chrome"] }
+    },
+    // The frame-continuity spec measures requestAnimationFrame intervals, so a worker competing for
+    // the same CPU shows up as a dropped-frame burst that has nothing to do with the editor. It runs
+    // alone, after the parallel editor specs have finished.
+    {
+      name: "editor-perf",
+      testMatch: /templateEditorFrameContinuity\.spec\.ts$/,
+      dependencies: ["editor"],
+      workers: 1,
       use: { ...devices["Desktop Chrome"] }
     }
   ],
