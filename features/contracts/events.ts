@@ -12,6 +12,10 @@ export function emitContractSent(payload: EventMap["contract.sent"]): Promise<vo
   return emit("contract.sent", payload)
 }
 
+export function emitContractSigned(payload: EventMap["contract.signed"]): Promise<void> {
+  return emit("contract.signed", payload)
+}
+
 export function emitContractTerminated(payload: EventMap["contract.terminated"]): Promise<void> {
   return emit("contract.terminated", payload)
 }

@@ -13,6 +13,10 @@ import {
 
 import { blocksSchema } from "@/features/templates"
 
+const CONTRACT_TOKEN_MAX_LENGTH = 128
+const CONTRACT_SIGNER_NAME_MAX_LENGTH = 200
+const CONTRACT_SIGNER_EMAIL_MAX_LENGTH = 320
+
 export const CONTRACT_STATUS_VALUES = ["draft", "sent", "signed", "expired", "terminated"] as const
 
 export const contractStatusSchema = z.enum(CONTRACT_STATUS_VALUES)
@@ -167,6 +171,40 @@ export function parseContractListQuery(input: unknown): ContractListQuery {
     sort: readSortParam(input, [...CONTRACT_DEFAULT_SORT])
   })
 }
+
+// Bounded, not shaped: the stored token is always 43 base64url characters, but validating that here
+// would turn a malformed token into a distinguishable rejection. Anything within the bound falls
+// through to the same constant-time miss as a well-formed token that does not exist.
+const publicContractTokenValueSchema = z
+  .string()
+  .trim()
+  .min(1, i18n.t("contracts.public.validation.tokenInvalid"))
+  .max(CONTRACT_TOKEN_MAX_LENGTH, i18n.t("contracts.public.validation.tokenInvalid"))
+
+export const publicContractTokenSchema = z.object({ token: publicContractTokenValueSchema })
+
+// The e-signature capture body. `consentAccepted` is a checkbox rather than a typed confirmation
+// because the wording being agreed to is the server's, not the signer's: the exact `consent_text`
+// is derived server-side and snapshotted into `contract_signatures`, so the client never sends it
+// and cannot alter what the legal record says was shown.
+export const signContractSchema = z.object({
+  signerName: z
+    .string()
+    .trim()
+    .min(1, i18n.t("contracts.public.validation.nameRequired"))
+    .max(
+      CONTRACT_SIGNER_NAME_MAX_LENGTH,
+      i18n.t("contracts.public.validation.nameTooLong", { count: CONTRACT_SIGNER_NAME_MAX_LENGTH })
+    ),
+  signerEmail: z
+    .email(i18n.t("contracts.public.validation.emailInvalid"))
+    .max(CONTRACT_SIGNER_EMAIL_MAX_LENGTH, i18n.t("contracts.public.validation.emailInvalid")),
+  consentAccepted: z
+    .boolean()
+    .refine((value) => value, i18n.t("contracts.public.validation.consentRequired"))
+})
+
+export type SignContractValues = z.infer<typeof signContractSchema>
 
 export const contractParentSchema = z.object({
   projectId: z.uuid().nullable().catch(null),

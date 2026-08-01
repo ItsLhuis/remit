@@ -20,10 +20,19 @@ export {
   listContracts
 } from "./queries"
 
+export { getPublicContract } from "./publicQueries"
+
+export {
+  signPublicContract,
+  type PublicContractSignContext,
+  type SignPublicContractResult
+} from "./publicSigning"
+
 export {
   emitContractCreated,
   emitContractDeleted,
   emitContractSent,
+  emitContractSigned,
   emitContractTerminated,
   emitContractUpdated
 } from "./events"

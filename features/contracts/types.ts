@@ -76,6 +76,47 @@ export type ContractParentOptions = {
   templates: ContractTemplateOption[]
 }
 
+export type PublicContractIssuer = {
+  name: string
+  email: string | null
+}
+
+// The rendered document, pre-sized: the public page draws it in a sandboxed iframe, and the page
+// box is computed from the same blocks the HTML came from, so the frame is exactly the document.
+export type PublicContractDocument = {
+  html: string
+  width: number
+  height: number
+}
+
+// What an anonymous holder of `/c/[token]` is allowed to see. It carries no contract id, no token,
+// and no client email: the id is the signing route's business and the other two are credentials.
+export type PublicContract = {
+  number: string
+  title: string
+  status: ContractStatus
+  issuedAt: Date
+  effectiveFrom: Date | null
+  effectiveUntil: Date | null
+  clientName: string
+  document: PublicContractDocument | null
+  consentText: string
+  issuer: PublicContractIssuer
+  locale: string
+  timeZone: string
+}
+
+// The server-side counterpart of PublicContract, carrying the ids the read model must not leak.
+// Only publicSigning.ts reads it, so it is exported from neither index.ts nor server.ts.
+export type ContractSigningTarget = {
+  id: string
+  projectId: string | null
+  clientId: string | null
+  number: string
+  status: ContractStatus
+  consentText: string
+}
+
 export type ContractDetail = ContractFormData & {
   displayStatus: ContractDisplayStatus
   issuedAt: Date | null
