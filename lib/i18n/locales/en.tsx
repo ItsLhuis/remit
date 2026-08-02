@@ -1580,6 +1580,214 @@ export const english: Language = {
         deleteFailed: "Failed to delete contract"
       }
     },
+    invoices: {
+      metadata: {
+        list: "Invoices",
+        detail: "Invoice",
+        create: "New invoice",
+        edit: "Edit invoice"
+      },
+      list: {
+        title: "Invoices",
+        description: "Bill this project's work and track what is still owed",
+        backToProject: "Back to project",
+        createButton: "New invoice",
+        moreActions: "More",
+        count: "{count, plural, one {# invoice} other {# invoices}}",
+        clearFilters: "Clear filters"
+      },
+      status: {
+        draft: "Draft",
+        sent: "Sent",
+        paid: "Paid",
+        overdue: "Overdue",
+        partially_paid: "Partially paid"
+      },
+      summary: {
+        total: "Invoices",
+        totalHint: "Every invoice raised for this project",
+        draft: "Drafts",
+        draftHint: "Not yet issued to the client",
+        overdue: "Overdue",
+        overdueHint: "Past the due date and unpaid",
+        outstanding: "Outstanding",
+        outstandingHint: "Issued and still unpaid",
+        outstandingMultiCurrency:
+          "Largest of {count, plural, one {# currency} other {# currencies}}"
+      },
+      table: {
+        numberColumn: "Number",
+        statusColumn: "Status",
+        issueDateColumn: "Issued",
+        dueDateColumn: "Due",
+        totalColumn: "Total",
+        notIssued: "Not issued",
+        noDueDate: "No due date"
+      },
+      fields: {
+        currency: "Currency",
+        template: "Template",
+        issueDate: "Issue date",
+        dueDate: "Due date",
+        notes: "Notes",
+        discountType: "Invoice discount",
+        discountPercentage: "Discount percentage",
+        discountAmount: "Discount amount"
+      },
+      lineItems: {
+        title: "Line items",
+        addButton: "Add line item",
+        removeButton: "Remove line item",
+        descriptionColumn: "Description",
+        quantityColumn: "Quantity",
+        unitColumn: "Unit",
+        unitPriceColumn: "Unit price",
+        discountColumn: "Line discount",
+        taxColumn: "Tax",
+        totalColumn: "Total",
+        rowLabel: "Line item {position}",
+        empty: "No line items yet",
+        noTaxRate: "No tax"
+      },
+      placeholders: {
+        description: "What are you billing for",
+        unit: "hour",
+        amount: "0.00",
+        quantity: "1",
+        notes: "Payment details, thanks, anything the client should read",
+        percentage: "0"
+      },
+      discount: {
+        none: "None",
+        percentage: "Percentage",
+        fixed: "Fixed amount"
+      },
+      totals: {
+        subtotal: "Subtotal",
+        discount: "Discount",
+        tax: "Tax",
+        total: "Total",
+        amountPaid: "Paid",
+        outstanding: "Outstanding"
+      },
+      template: {
+        none: "No template"
+      },
+      form: {
+        backToList: "Back to invoices",
+        backToInvoice: "Back to invoice",
+        createTitle: "New invoice",
+        createDescription: "Draft an invoice. Nothing is sent until you issue it",
+        editTitle: "Edit invoice",
+        editDescription: "Only a draft invoice can be edited",
+        saveCreate: "Create invoice",
+        saveEdit: "Save changes",
+        detailsSection: "Details",
+        detailsDescription: "Currency, template, dates and any invoice-wide discount",
+        lineItemsSection: "Line items",
+        lineItemsDescription: "What you are billing, priced and taxed per line",
+        notesSection: "Notes",
+        notesDescription: "Shown to the client on the invoice"
+      },
+      detail: {
+        backToList: "Back to invoices",
+        notIssued: "Not issued",
+        paidAt: "Paid",
+        notPaid: "Not paid",
+        viewsLabel: "Client views",
+        viewCount: "{count, plural, one {# view} other {# views}}",
+        lockedTitle: "This invoice is locked",
+        lockedDescription: "An issued invoice cannot be edited. Raise a credit note instead",
+        notesTitle: "Notes",
+        summaryTitle: "Summary",
+        publicLinkTitle: "Client link",
+        publicLinkDescription: "The address where your client can view and pay this invoice",
+        publicLinkHidden: "The link appears once the invoice is sent",
+        copyLink: "Copy link",
+        linkCopied: "Link copied"
+      },
+      send: {
+        title: "Send this invoice?",
+        description:
+          "The invoice is stamped with today's date, locked against edits, and a client link is opened",
+        confirm: "Send invoice"
+      },
+      markPaid: {
+        title: "Mark this invoice as paid?",
+        description: "This records the full {amount} as received",
+        confirm: "Mark as paid"
+      },
+      convert: {
+        title: "Invoice an accepted proposal",
+        description: "The proposal's line items, tax rates and totals are copied to a new draft",
+        proposalLabel: "Proposal",
+        proposalPlaceholder: "Choose a proposal",
+        proposalOption: "{number} — {total}",
+        confirm: "Create invoice",
+        empty: "No accepted proposal is waiting to be invoiced"
+      },
+      delete: {
+        title: "Delete this invoice?",
+        description: "The invoice is removed from your lists. Its number is never reused",
+        confirm: "Delete invoice"
+      },
+      empty: {
+        title: "No invoices yet",
+        description: "Bill this project's work by raising your first invoice"
+      },
+      actions: {
+        create: "New invoice",
+        edit: "Edit",
+        send: "Send",
+        markPaid: "Mark as paid",
+        delete: "Delete",
+        view: "View",
+        rowActions: "Invoice actions",
+        convertProposal: "From accepted proposal"
+      },
+      notifications: {
+        created: "Invoice created",
+        updated: "Invoice updated",
+        sent: "Invoice sent",
+        markedPaid: "Invoice marked as paid",
+        deleted: "Invoice deleted",
+        converted: "Invoice created from proposal"
+      },
+      validation: {
+        descriptionRequired: "Description is required",
+        descriptionTooLong: "Description must be {count} characters or fewer",
+        quantityInvalid: "Quantity must be a positive number",
+        amountInvalid: "Enter a valid amount",
+        amountRequired: "Amount is required",
+        percentageInvalid: "Enter a percentage between 0 and 100",
+        dateInvalid: "Enter a valid date",
+        dueDateBeforeIssueDate: "Due date cannot be before the issue date",
+        idInvalid: "Invoice not found",
+        proposalIdInvalid: "Proposal not found",
+        projectRequired: "Project is required",
+        lineItemsRequired: "Add at least one line item",
+        notesTooLong: "Notes must be {count} characters or fewer",
+        unitTooLong: "Unit must be {count} characters or fewer",
+        currencyInvalid: "Select a currency",
+        taxRateInvalid: "Select a valid tax rate",
+        discountAmountRequired: "Enter a discount amount",
+        discountPercentageRequired: "Enter a discount percentage"
+      },
+      errors: {
+        notFound: "Invoice not found",
+        projectNotFound: "Project not found",
+        notDraft: "Only a draft invoice can be edited",
+        invalidTransition: "This invoice cannot move to that status",
+        createFailed: "Failed to create invoice",
+        updateFailed: "Failed to update invoice",
+        sendFailed: "Failed to send invoice",
+        markPaidFailed: "Failed to mark the invoice as paid",
+        deleteFailed: "Failed to delete invoice",
+        proposalNotConvertible: "Only an accepted proposal can be invoiced",
+        proposalAlreadyConverted: "This proposal has already been invoiced",
+        proposalHasNoLineItems: "This proposal has no line items to invoice"
+      }
+    },
     templates: {
       metadataTitle: "Templates",
       title: "Templates",

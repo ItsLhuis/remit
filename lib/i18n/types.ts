@@ -1528,6 +1528,212 @@ export type Translations = {
       deleteFailed: string
     }
   }
+  invoices: {
+    metadata: {
+      list: string
+      detail: string
+      create: string
+      edit: string
+    }
+    list: {
+      title: string
+      description: string
+      backToProject: string
+      createButton: string
+      moreActions: string
+      count: string
+      clearFilters: string
+    }
+    status: {
+      draft: string
+      sent: string
+      paid: string
+      overdue: string
+      partially_paid: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      draft: string
+      draftHint: string
+      overdue: string
+      overdueHint: string
+      outstanding: string
+      outstandingHint: string
+      outstandingMultiCurrency: string
+    }
+    table: {
+      numberColumn: string
+      statusColumn: string
+      issueDateColumn: string
+      dueDateColumn: string
+      totalColumn: string
+      notIssued: string
+      noDueDate: string
+    }
+    fields: {
+      currency: string
+      template: string
+      issueDate: string
+      dueDate: string
+      notes: string
+      discountType: string
+      discountPercentage: string
+      discountAmount: string
+    }
+    lineItems: {
+      title: string
+      addButton: string
+      removeButton: string
+      descriptionColumn: string
+      quantityColumn: string
+      unitColumn: string
+      unitPriceColumn: string
+      discountColumn: string
+      taxColumn: string
+      totalColumn: string
+      rowLabel: string
+      empty: string
+      noTaxRate: string
+    }
+    placeholders: {
+      description: string
+      unit: string
+      amount: string
+      quantity: string
+      notes: string
+      percentage: string
+    }
+    discount: {
+      none: string
+      percentage: string
+      fixed: string
+    }
+    totals: {
+      subtotal: string
+      discount: string
+      tax: string
+      total: string
+      amountPaid: string
+      outstanding: string
+    }
+    template: {
+      none: string
+    }
+    form: {
+      backToList: string
+      backToInvoice: string
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      detailsSection: string
+      detailsDescription: string
+      lineItemsSection: string
+      lineItemsDescription: string
+      notesSection: string
+      notesDescription: string
+    }
+    detail: {
+      backToList: string
+      notIssued: string
+      paidAt: string
+      notPaid: string
+      viewsLabel: string
+      viewCount: string
+      lockedTitle: string
+      lockedDescription: string
+      notesTitle: string
+      summaryTitle: string
+      publicLinkTitle: string
+      publicLinkDescription: string
+      publicLinkHidden: string
+      copyLink: string
+      linkCopied: string
+    }
+    send: {
+      title: string
+      description: string
+      confirm: string
+    }
+    markPaid: {
+      title: string
+      description: string
+      confirm: string
+    }
+    convert: {
+      title: string
+      description: string
+      proposalLabel: string
+      proposalPlaceholder: string
+      proposalOption: string
+      confirm: string
+      empty: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+    }
+    empty: {
+      title: string
+      description: string
+    }
+    actions: {
+      create: string
+      edit: string
+      send: string
+      markPaid: string
+      delete: string
+      view: string
+      rowActions: string
+      convertProposal: string
+    }
+    notifications: {
+      created: string
+      updated: string
+      sent: string
+      markedPaid: string
+      deleted: string
+      converted: string
+    }
+    validation: {
+      descriptionRequired: string
+      descriptionTooLong: string
+      quantityInvalid: string
+      amountInvalid: string
+      amountRequired: string
+      percentageInvalid: string
+      dateInvalid: string
+      dueDateBeforeIssueDate: string
+      idInvalid: string
+      proposalIdInvalid: string
+      projectRequired: string
+      lineItemsRequired: string
+      notesTooLong: string
+      unitTooLong: string
+      currencyInvalid: string
+      taxRateInvalid: string
+      discountAmountRequired: string
+      discountPercentageRequired: string
+    }
+    errors: {
+      notFound: string
+      projectNotFound: string
+      notDraft: string
+      invalidTransition: string
+      createFailed: string
+      updateFailed: string
+      sendFailed: string
+      markPaidFailed: string
+      deleteFailed: string
+      proposalNotConvertible: string
+      proposalAlreadyConverted: string
+      proposalHasNoLineItems: string
+    }
+  }
   templates: {
     metadataTitle: string
     title: string
