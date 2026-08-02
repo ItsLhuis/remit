@@ -76,6 +76,12 @@ describe("deriveInvoiceStatusView", () => {
   test("never reports overdue for an invoice with no due date", () => {
     expect(deriveInvoiceStatusView(makeInvoice({ dueDate: null }), NOW)).toBe("sent")
   })
+
+  test("reports a draft carrying a payment as partially paid", () => {
+    const invoice = makeInvoice({ status: "draft", amountPaidCents: 40000 })
+
+    expect(deriveInvoiceStatusView(invoice, NOW)).toBe("partially_paid")
+  })
 })
 
 describe("isInvoiceOverdue", () => {
@@ -100,6 +106,10 @@ describe("isInvoicePartiallyPaid", () => {
 
   test("is true between zero and the total", () => {
     expect(isInvoicePartiallyPaid({ amountPaidCents: 1, totalCents: 100000 })).toBe(true)
+  })
+
+  test("is still true one cent below the total", () => {
+    expect(isInvoicePartiallyPaid({ amountPaidCents: 99999, totalCents: 100000 })).toBe(true)
   })
 })
 
