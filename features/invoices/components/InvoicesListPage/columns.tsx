@@ -4,7 +4,7 @@ import Link from "next/link"
 
 import { type TFunction } from "@/lib/i18n"
 
-import { formatCurrency, formatDay } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 
 import {
   DataTableColumnHeader,
@@ -23,6 +23,7 @@ import { type ColumnDef } from "@/hooks"
 import { INVOICE_VIEW_STATUS_VALUES } from "../../schemas"
 import { deriveInvoiceStatusView, isInvoiceEditable } from "../../services"
 import { type InvoiceListItem } from "../../types"
+import { getInvoiceDueDateColumn, getInvoiceIssueDateColumn } from "../invoiceColumns"
 import { InvoiceStatusBadge } from "../InvoiceStatusBadge"
 
 type InvoiceColumnsOptions = {
@@ -83,46 +84,8 @@ export function getInvoiceColumns({
       ),
       cell: ({ row }) => <InvoiceStatusBadge status={deriveInvoiceStatusView(row.original, now)} />
     },
-    {
-      id: "issueDate",
-      accessorFn: (invoice) => invoice.issueDate,
-      enableColumnFilter: true,
-      meta: {
-        label: t("invoices.table.issueDateColumn"),
-        variant: "date",
-        skeleton: <Skeleton className="h-3.5 w-24" />
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t("invoices.table.issueDateColumn")} />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {row.original.issueDate
-            ? formatDay(row.original.issueDate, locale)
-            : t("invoices.table.notIssued")}
-        </span>
-      )
-    },
-    {
-      id: "dueDate",
-      accessorFn: (invoice) => invoice.dueDate,
-      enableColumnFilter: true,
-      meta: {
-        label: t("invoices.table.dueDateColumn"),
-        variant: "date",
-        skeleton: <Skeleton className="h-3.5 w-24" />
-      },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t("invoices.table.dueDateColumn")} />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {row.original.dueDate
-            ? formatDay(row.original.dueDate, locale)
-            : t("invoices.table.noDueDate")}
-        </span>
-      )
-    },
+    getInvoiceIssueDateColumn<InvoiceListItem>(t, locale),
+    getInvoiceDueDateColumn<InvoiceListItem>(t, locale),
     {
       id: "total",
       accessorFn: (invoice) => invoice.totalCents,

@@ -155,6 +155,12 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
                     {t("proposals.list.title")}
                   </Link>
                 </Button>
+                <Button asChild variant="outline" size="sm" className="col-span-2">
+                  <Link href={`/projects/${project.id}/invoices`}>
+                    <Icon name="Receipt" aria-hidden="true" />
+                    {t("invoices.list.title")}
+                  </Link>
+                </Button>
               </div>
             </div>
             <Separator />
