@@ -2,7 +2,18 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-import { isValidAmount, parseAmountToCents } from "@/lib/utils"
+import {
+  isValidAmount,
+  parseAmountToCents,
+  readArrayParam,
+  readDateAt,
+  readIntParam,
+  readNumberAt,
+  readSortParam,
+  readStringParam,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE
+} from "@/lib/utils"
 
 const INVOICE_DESCRIPTION_MAX_LENGTH = 500
 const INVOICE_UNIT_MAX_LENGTH = 50
@@ -227,3 +238,68 @@ export const invoiceListParamsSchema = z.object({
 })
 
 export type InvoiceListParams = z.infer<typeof invoiceListParamsSchema>
+
+const INVOICE_OVERVIEW_SORT_FIELDS = [
+  "number",
+  "parent",
+  "issueDate",
+  "dueDate",
+  "total",
+  "outstanding"
+] as const
+
+export type InvoiceOverviewSortField = (typeof INVOICE_OVERVIEW_SORT_FIELDS)[number]
+
+const invoiceOverviewSortItemSchema = z.object({
+  id: z.enum(INVOICE_OVERVIEW_SORT_FIELDS),
+  desc: z.boolean()
+})
+
+// Soonest due first, because the instance-wide list exists to answer "what am I owed and what is
+// late". Postgres puts a null due date last under ASC, which parks the drafts that carry no deadline
+// below every invoice that does. `status` is deliberately absent from the sort fields above: it is
+// derived by services/invoiceStatusView.ts and the database has no column to order by.
+export const INVOICE_OVERVIEW_DEFAULT_SORT = [{ id: "dueDate", desc: false }] as const
+
+const invoiceOverviewQuerySchema = z.object({
+  search: z.string().trim().default(""),
+  statuses: z.array(z.enum(INVOICE_VIEW_STATUS_VALUES)).default([]),
+  clientIds: z.array(z.uuid()).default([]),
+  totalMin: z.number().int().nonnegative().nullable().default(null),
+  totalMax: z.number().int().nonnegative().nullable().default(null),
+  issueFrom: z.coerce.date().nullable().catch(null),
+  issueTo: z.coerce.date().nullable().catch(null),
+  dueFrom: z.coerce.date().nullable().catch(null),
+  dueTo: z.coerce.date().nullable().catch(null),
+  page: z.number().int().positive().catch(1),
+  perPage: z.number().int().positive().max(MAX_PAGE_SIZE).catch(DEFAULT_PAGE_SIZE),
+  sort: z.array(invoiceOverviewSortItemSchema).catch([...INVOICE_OVERVIEW_DEFAULT_SORT])
+})
+
+export type InvoiceOverviewQuery = z.infer<typeof invoiceOverviewQuerySchema>
+
+// The parameter names are the table's column ids, because `useDataTable` writes one URL parameter per
+// filterable column and names it after the column. Renaming a column id here without renaming it in
+// components/InvoicesOverviewPage/columns.tsx silently drops that filter on the server.
+export function parseInvoiceOverviewQuery(input: unknown): InvoiceOverviewQuery {
+  const total = readArrayParam(input, "total")
+  const issueDate = readArrayParam(input, "issueDate")
+  const dueDate = readArrayParam(input, "dueDate")
+
+  return invoiceOverviewQuerySchema.parse({
+    search: readStringParam(input, "search"),
+    statuses: readArrayParam(input, "status").filter((value): value is InvoiceViewStatus =>
+      (INVOICE_VIEW_STATUS_VALUES as readonly string[]).includes(value)
+    ),
+    clientIds: readArrayParam(input, "client").filter((value) => z.uuid().safeParse(value).success),
+    totalMin: readNumberAt(total, 0),
+    totalMax: readNumberAt(total, 1),
+    issueFrom: readDateAt(issueDate, 0),
+    issueTo: readDateAt(issueDate, 1),
+    dueFrom: readDateAt(dueDate, 0),
+    dueTo: readDateAt(dueDate, 1),
+    page: readIntParam(input, "page", 1),
+    perPage: readIntParam(input, "perPage", DEFAULT_PAGE_SIZE),
+    sort: readSortParam(input, [...INVOICE_OVERVIEW_DEFAULT_SORT])
+  })
+}

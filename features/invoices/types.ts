@@ -1,4 +1,4 @@
-import { type InvoiceFormInputValues, type InvoiceStatus } from "./schemas"
+import { type InvoiceFormInputValues, type InvoiceStatus, type InvoiceViewStatus } from "./schemas"
 import { type InvoicesSummaryResult } from "./services"
 
 export type InvoiceDefaults = {
@@ -44,6 +44,47 @@ export type InvoiceListPageData = {
   currency: string
   invoices: InvoiceListItem[]
   summary: InvoicesSummaryResult
+  defaults: InvoiceDefaults
+}
+
+// The instance-wide row. Unlike `InvoiceListItem` it carries `viewStatus` already derived rather than
+// the fields to derive it from: the overview's status filter runs in SQL, so the server must pick the
+// instant the rule is evaluated against, and the badge has to agree with the filter that selected the
+// row. `parentLabel` is the project name when the invoice has one and the client name otherwise —
+// `chk_invoices_parent` guarantees at least one of them exists.
+export type InvoiceOverviewItem = {
+  id: string
+  number: string
+  status: InvoiceStatus
+  viewStatus: InvoiceViewStatus
+  currency: string
+  totalCents: number
+  amountPaidCents: number
+  outstandingCents: number
+  issueDate: Date | null
+  dueDate: Date | null
+  paidAt: Date | null
+  createdAt: Date
+  parentLabel: string
+  projectId: string | null
+  clientId: string | null
+  clientName: string
+}
+
+export type InvoiceOverviewClientOption = {
+  id: string
+  name: string
+}
+
+export type InvoiceOverviewFilterOptions = {
+  clients: InvoiceOverviewClientOption[]
+}
+
+export type InvoiceOverviewPageData = {
+  invoices: InvoiceOverviewItem[]
+  rowCount: number
+  summary: InvoicesSummaryResult
+  filterOptions: InvoiceOverviewFilterOptions
   defaults: InvoiceDefaults
 }
 
