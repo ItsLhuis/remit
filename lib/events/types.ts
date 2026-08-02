@@ -171,6 +171,31 @@ export type EventMap = {
     contractId: string
     userId: string
   }
+  "invoice.created": {
+    invoiceId: string
+    projectId: string | null
+    clientId: string | null
+    userId: string
+  }
+  "invoice.updated": {
+    invoiceId: string
+    userId: string
+    changedFields: string[]
+  }
+  "invoice.sent": {
+    invoiceId: string
+    userId: string
+  }
+  // Emitted by the full-settlement path in Stage 16 and by payment aggregation from Stage 18 on;
+  // the payload deliberately carries no amount so both producers can emit the same event.
+  "invoice.paid": {
+    invoiceId: string
+    userId: string
+  }
+  "invoice.deleted": {
+    invoiceId: string
+    userId: string
+  }
   "template.created": {
     templateId: string
     userId: string

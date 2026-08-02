@@ -14,6 +14,9 @@ export type JobMap = {
     contractId: string
     signatureId: string
   }
+  "invoice.pdf.render": {
+    invoiceId: string
+  }
 }
 
 export type JobName = keyof JobMap
