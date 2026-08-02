@@ -7,10 +7,9 @@ import {
 
 import { getPageWidth } from "./canvasLayout"
 
-// The single style-emission path: every CSS declaration the renderer produces for author-tunable
-// presentation flows through these mappers, and the sanitizer's "document" profile whitelists the
-// result property-by-property (services/sanitizeHtml.ts). Add a property here and in the
-// whitelist together — never inline style strings in the renderer.
+// The single style-emission path: the sanitizer's "document" profile whitelists the result
+// property-by-property, so a property is added here and in sanitizeHtml.ts together. Never inline
+// a style string in the renderer.
 
 export const TEMPLATE_FONT_STACKS = {
   sans: "'DM Sans', system-ui, sans-serif",
@@ -18,11 +17,9 @@ export const TEMPLATE_FONT_STACKS = {
   mono: "'JetBrains Mono', 'Courier New', monospace"
 } as const satisfies Record<TemplateFontKey, string>
 
-// The single rotation-emission form: absent/zero rotation emits nothing at all (a rotation-free
-// document renders byte-identically to one produced before rotation existed), nonzero emits
-// exactly `transform:rotate(<n>deg)` — the sanitizer whitelists this form and nothing else, never
-// matrix(). CSS's default transform-origin (the element's center) matches the stored convention of
-// rotation about the rect's center.
+// Zero emits nothing at all, so a rotation-free document renders byte-identically to one produced
+// before rotation existed. Nonzero emits exactly `transform:rotate(<n>deg)`, the only form the
+// sanitizer whitelists. CSS's default transform-origin already matches the stored convention.
 export function rotationToCss(rotation: number | undefined): string {
   if (rotation === undefined || rotation === 0) return ""
 
@@ -60,8 +57,8 @@ export function blockStyleToCss(style: BlockStyle | undefined): string {
   return declarations.join(";")
 }
 
-// The page is a relatively positioned surface with an exact height (getPageHeight) so blocks can
-// sit at absolute rectangles; margins apply as block offsets, not page padding.
+// An exact height from getPageHeight, so blocks can sit at absolute rectangles; margins apply as
+// block offsets rather than page padding.
 export function pageStyleToCss(
   type: TemplateType,
   pageSettings: TemplatePageSettings,

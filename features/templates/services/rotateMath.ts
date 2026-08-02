@@ -14,12 +14,10 @@ import {
 } from "./geometry"
 import { selectionBounds } from "./selectionGeometry"
 
-// The rotate counterpart to moveMath.ts/resizeMath.ts: collects the member set a rotation operates
-// on, maps each member through a shared-center (gesture) or own-center (panel) rotation, and
-// resolves the next block tree. A group never rotates itself — a group target expands into its
-// children, each carrying the rotation individually, and normalizeGroups re-derives the group's box
-// from their rotated union on commit. The engine's live preview and the document-store commit both
-// run rotateSetBy, so the preview is the commit by construction.
+// The rotate counterpart to moveMath.ts and resizeMath.ts. A group never rotates itself: a group
+// target expands into its children, each carrying the rotation individually, and normalizeGroups
+// re-derives the box from their rotated union. The live preview and the commit both run
+// rotateSetBy, so the preview is the commit by construction.
 
 export type RotationMember = {
   id: string
@@ -38,17 +36,14 @@ export type RotatedMember = {
   rotation: number
 }
 
-// Rotation values commit quantized to a tenth of a degree: fine enough for any authoring intent,
-// coarse enough that a stored value can never serialize into scientific notation the renderer's
-// exact-form transform emission (and the sanitizer whitelist built from it) would not survive.
+// A tenth of a degree is coarse enough that a stored value can never serialize into scientific
+// notation, which the renderer's exact-form transform and the sanitizer whitelist would reject.
 export function quantizeDegrees(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-// The member set a rotation operates on: locked members are skipped (matching the resize member
-// filter), a group expands into its children (a group never carries rotation), and every other
-// target — a frame included — rotates as one unit with its children riding along. The shared
-// center is the selection bounds' center, which for a single block is its own center.
+// A group expands into its children, while every other target - a frame included - rotates as one
+// unit with its children riding along. Locked members are skipped, matching the resize filter.
 export function collectRotationMembers(
   index: BlockIndex,
   targets: readonly string[]
@@ -90,10 +85,8 @@ export function collectRotationMembers(
   return { members, center: { x: union.x + union.width / 2, y: union.y + union.height / 2 } }
 }
 
-// Rotates every member by the same delta about the shared center: each member's own rotation
-// accumulates the delta and its center orbits the shared one, so the arrangement turns rigidly.
-// Page-bound members' rotated AABBs then clamp back inside the bounds as one rigid translation, and
-// a frame child's footprint floors at its frame's origin — the same bound semantics a move applies.
+// Each member's rotation accumulates the delta and its center orbits the shared one, so the
+// arrangement turns rigidly. The bounds pass afterwards applies the same semantics a move does.
 export function rotateSetBy(
   members: readonly RotationMember[],
   center: Point,
@@ -123,8 +116,8 @@ export function rotateSetBy(
   return clampRotatedSet(rotated, bounds)
 }
 
-// Sets every member to the same absolute rotation about its own center: rects stay in place (bar
-// the bounds clamp), only the stored rotation changes — the property panel's write semantics.
+// The property panel's write semantics: rects stay in place bar the bounds clamp, and only the
+// stored rotation changes.
 export function rotateSetTo(
   members: readonly RotationMember[],
   degrees: number,
@@ -137,8 +130,7 @@ export function rotateSetTo(
   return clampRotatedSet(rotated, bounds)
 }
 
-// Rotate-gesture commit: applies a shared-center delta to the targets' member set and returns the
-// next block tree, or null when the rotation changes nothing (so no undo entry is pushed).
+// Null when the rotation changes nothing, so no empty undo entry is pushed.
 export function resolveRotatedBlocks(
   index: BlockIndex,
   bounds: ContentBounds,
@@ -152,8 +144,7 @@ export function resolveRotatedBlocks(
   return applyRotationSet(index, set.members, rotateSetBy(set.members, set.center, degrees, bounds))
 }
 
-// Panel commit: sets the targets' member set to one absolute rotation about each member's own
-// center. Null when every member already carries it.
+// Null when every member already carries that rotation.
 export function resolveBlocksRotationTo(
   index: BlockIndex,
   bounds: ContentBounds,
@@ -173,9 +164,8 @@ type PendingMember = {
   rotation: number
 }
 
-// The shared bounds pass: page-bound members (no enclosing frame — a member nested only in groups
-// is page-bound, like a move) clamp as one rigid translation of their rotated AABBs' union, then
-// each frame child floors its own footprint at its frame's origin.
+// Page-bound members clamp as one rigid translation of their AABBs' union, then each frame child
+// floors its own footprint at its frame's origin.
 function clampRotatedSet(
   rotated: readonly PendingMember[],
   bounds: ContentBounds
@@ -232,9 +222,8 @@ function applyRotationSet(
   return withRotations(updateRects(index, edits), rotations)
 }
 
-// Writes each member's next rotation onto its block in the rebuilt tree. A rotation of exactly 0
-// strips the field — absent stays the canonical spelling of "not rotated" — and a group is never
-// written to (it cannot carry the field).
+// A rotation of exactly 0 strips the field: absent stays the canonical spelling of "not rotated".
+// A group is never written to, since it cannot carry the field.
 function withRotations(blocks: readonly Block[], rotations: ReadonlyMap<string, number>): Block[] {
   return blocks.map((block) => {
     let next = block

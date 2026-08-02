@@ -12,13 +12,11 @@ type WheelZoomAnchorOptions = {
   setZoom: (zoom: number) => void
 }
 
-// Ctrl/Cmd+wheel zoom-at-pointer. The hook owns both anchor refs rather than taking them as
-// arguments: the wheel listener that stashes an anchor and the layout effect that consumes it are
-// two halves of one mechanism, and nothing outside needs to see the state between them. The host
-// keeps only the scroll element, because that is the DOM node it renders.
+// Ctrl/Cmd+wheel zoom-at-pointer. The hook owns both anchor refs because the wheel listener that
+// stashes an anchor and the layout effect that consumes it are two halves of one mechanism; the
+// host keeps only the scroll element, the DOM node it actually renders.
 export function useWheelZoomAnchor({ scrollRef, zoom, setZoom }: WheelZoomAnchorOptions): void {
-  // The wheel handler reads the latest zoom/setZoom through a ref refreshed every render, so the
-  // listener itself attaches exactly once.
+  // Read through a ref refreshed every render, so the listener attaches exactly once.
   const zoomWheelStateRef = useRef({ zoom, setZoom })
 
   useEffect(() => {
@@ -56,11 +54,10 @@ export function useWheelZoomAnchor({ scrollRef, zoom, setZoom }: WheelZoomAnchor
 
       state.setZoom(nextZoomForWheelDelta(state.zoom, event.deltaY))
 
-      // A wheel tick at the zoom clamp is a no-op state set: React bails the render entirely, so
-      // the layout effect below never runs to consume/clear this anchor. Left stale, the next
-      // unrelated zoom change (toolbar, hotkey, fit) would misapply it. One rAF is enough for a
-      // real zoom change's layout effect to have already claimed it; if it's still this same
-      // anchor after that frame, this tick clamped to a no-op and the anchor must be dropped.
+      // A tick at the zoom clamp is a no-op state set, so React bails the render and the layout
+      // effect never consumes this anchor - left stale, the next unrelated zoom change would
+      // misapply it. One rAF is enough for a real change to have claimed it, so an anchor still
+      // present after that frame belongs to a clamped tick and must be dropped.
       requestAnimationFrame(() => {
         if (pendingZoomAnchorRef.current === anchor) pendingZoomAnchorRef.current = null
       })
@@ -71,9 +68,8 @@ export function useWheelZoomAnchor({ scrollRef, zoom, setZoom }: WheelZoomAnchor
     return () => scroll.removeEventListener("wheel", handleWheel)
   }, [scrollRef])
 
-  // editor.setZoom clamps internally, so this is keyed to the zoom that actually took effect: it
-  // resolves the matching scroll offset once the new scale has painted, before the browser shows a
-  // frame at the wrong scroll position.
+  // Keyed to the zoom that actually took effect, since setZoom clamps internally, and resolves the
+  // scroll offset before the browser can show a frame at the wrong position.
   useLayoutEffect(() => {
     const anchor = pendingZoomAnchorRef.current
     const scroll = scrollRef.current

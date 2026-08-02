@@ -23,19 +23,18 @@ import {
 
 import { ROTATE_CURSOR } from "./pressState"
 
-// Screen-constant hit target per handle: never below 12px on screen. The
-// overlay lives outside the zoom-scaled wrapper, so this stays 12 physical pixels at every zoom.
+// The overlay lives outside the zoom-scaled wrapper, so this stays 12 physical pixels at any zoom.
 const HANDLE_SIZE = 12
 
-// The rotate zones sit just outside the corner handles: a screen-constant hit target centered this
-// many pixels outward from each corner along its diagonal, never covering the handle itself.
+// Centered this many pixels outward from each corner along its diagonal, so a rotate zone never
+// covers the handle itself.
 const ROTATE_ZONE_SIZE = 16
 const ROTATE_ZONE_OFFSET = 14
 
 const ROTATE_ZONE_CORNERS = ["nw", "ne", "se", "sw"] as const
 
-// Height-only/width-only capability keeps the midpoint-pair fallback; every
-// current type is "both", so all eight render today.
+// A height-only or width-only capability keeps the midpoint-pair fallback; every current type is
+// "both", so all eight render today.
 function handleDirectionsFor(axes: BlockResizableAxes): readonly HandleDirection[] {
   if (axes === "both") return ALL_HANDLE_DIRECTIONS
   if (axes === "width") return ["e", "w"]
@@ -45,13 +44,11 @@ function handleDirectionsFor(axes: BlockResizableAxes): readonly HandleDirection
 }
 
 type SelectionChrome = {
-  // A multi-selection shows a union box with no resize affordance (multi/group resize arrives
-  // with the shared resize primitive); a single selection keeps its eight-handle chrome.
+  // A multi-selection shows a union box with no resize affordance.
   isMultiSelection: boolean
   selectionRect: Rect | null
   handleAxes: BlockResizableAxes
-  // A sole selection's own rotation: its handles, cursors, and rotate zones follow the rotated
-  // corners. A multi-selection's chrome is the axis-aligned union at rotation 0.
+  // A multi-selection's chrome is the axis-aligned union at rotation 0.
   rotation: number
 }
 
@@ -85,8 +82,8 @@ function resolveSelectionChrome(
   }
 }
 
-// A rotate zone's screen position: the corner handle's screen point pushed outward along the line
-// from the selection's center through that corner, so the zones follow the rotated corners.
+// The corner handle pushed outward along the line from the selection's center, so the zones follow
+// the rotated corners.
 function rotateZonePosition(
   corner: Point,
   center: Point,
@@ -126,12 +123,10 @@ type LiveOverlayProps = {
   disabled?: boolean
 }
 
-// The only per-frame React surface: resize handles around the selection plus
-// the content-bounds outline and guide lines while a gesture is active. It subscribes to the
-// interaction store's overlay snapshot — during a gesture the live per-member rects arrive
-// through it each frame — while idle chrome derives from the committed block index. Rendered in
-// screen space (outside the zoom-scaled wrapper) so handles and hairlines stay crisp at every
-// zoom; every canvas coordinate is multiplied by zoom on the way out.
+// The only per-frame React surface. It subscribes to the interaction store's overlay snapshot,
+// through which live per-member rects arrive each frame, while idle chrome derives from the
+// committed block index. Rendered in screen space so handles and hairlines stay crisp at any zoom,
+// with every canvas coordinate multiplied by zoom on the way out.
 const LiveOverlay = ({
   interaction,
   blockIndex,
@@ -160,9 +155,8 @@ const LiveOverlay = ({
 
   const hoveredRect = hoveredRectFor(interaction, blockIndex, overlay)
 
-  // A group and a multi-selection resize through the same shared-box primitive as a single block
-  // (services/resizeMath.ts's scaleBlockSet), so the eight handles render on the union rect exactly
-  // like a single block's own rect; handleAxes already resolves to "both" for a multi-selection.
+  // Every selection kind resizes through the same scaleBlockSet primitive, so the eight handles
+  // render on the union rect exactly as they do on a single block's own rect.
   const positions = selectionRect ? handlePositions(selectionRect, rotation) : null
 
   const selectionCenter = selectionRect

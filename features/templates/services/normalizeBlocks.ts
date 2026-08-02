@@ -42,15 +42,13 @@ type StoredGeneration = "absolute" | "flow" | "legacy"
 
 // Normalizes stored rows of any generation into the free-canvas model with no user data loss:
 // - Absolute rows (layout carries x/y) pass through quantized and clamped.
-// - Constrained-flow rows ((row, column) layouts) stack their rows vertically at a running y;
-//   side-by-side rows keep their horizontal arrangement as x offsets (fixed widths honored, null
-//   widths share the content width equally); null heights take the type's natural default.
-// - Legacy freeform rows (frame) map near-directly — the frames effectively return.
+// - Constrained-flow rows ((row, column) layouts) stack vertically at a running y; side-by-side
+//   rows keep their arrangement as x offsets, null widths sharing the content width equally.
+// - Legacy freeform rows (frame) map near-directly.
 // - Original list rows (no frame, no layout) stack vertically in array order.
-// - heading rows become text rows: the string survives HTML-escaped, the level approximated as
-//   font-size/weight style; structured types map onto text as before, toggle-only types drop.
-// Each migrator clamps everything inside the content box; overlap the sources carried (legacy frames
-// could overlap) is preserved because overlap is legal in the layered model.
+// - heading rows become text rows, the level approximated as font-size/weight style.
+// Every migrator clamps inside the content box. Overlap the sources carried is preserved, since
+// overlap is legal in the layered model.
 export function normalizeBlocks(
   stored: StoredBlock[],
   type: TemplateType,
@@ -88,8 +86,7 @@ function migrateAbsoluteBlocks(stored: StoredBlock[], bounds: ContentBounds): Bl
 
     if (!content) return []
 
-    // A group's natural size never actually applies (normalizeGroups re-derives it from its
-    // children right after), so it falls back to the frame default alongside the other container.
+    // A group's natural size never applies - normalizeGroups re-derives it right after.
     const layout = clampRectToBounds(
       {
         x: quantizeToGrid(block.layout?.x ?? 0),
@@ -248,8 +245,8 @@ function toModernBase(stored: StoredBlock) {
     ...(stored.name ? { name: stored.name } : {}),
     ...(stored.constraints ? { constraints: stored.constraints } : {}),
     ...(stored.style ? { style: stored.style } : {}),
-    // A group never carries its own rotation (its box is always re-derived from its children's
-    // union), so a stored group's rotation is dropped rather than leaked onto the runtime block.
+    // A group never carries rotation, so a stored one is dropped rather than leaked onto the
+    // runtime block.
     ...(stored.rotation !== undefined && stored.type !== "group"
       ? { rotation: foldRotation(stored.rotation) }
       : {})
@@ -258,10 +255,8 @@ function toModernBase(stored: StoredBlock) {
 
 type ModernContent = { type: BlockType; content: Block["content"]; style?: BlockStyle }
 
-// Structured blocks carried presentation toggles the primitive model has no home for; only their
-// user-authored strings survive, mapped onto a text block. Toggle-only structured types
-// (business/client info, line items, totals, payment info, signature) and content-free spacers
-// return null and drop; a divider becomes a line shape.
+// Only the user-authored strings survive, mapped onto a text block: the primitive model has no home
+// for the presentation toggles. Toggle-only types and content-free spacers drop entirely.
 function toModernContent(stored: StoredBlock): (ModernContent & { type: Block["type"] }) | null {
   switch (stored.type) {
     case "heading":
@@ -278,16 +273,14 @@ function toModernContent(stored: StoredBlock): (ModernContent & { type: Block["t
         }
       }
     case "divider":
-      // A divider becomes a line shape: the thin rule survives as a filled bar, with any authored
-      // style kept over the default hairline fill.
+      // The thin rule survives as a filled bar, authored style kept over the hairline default.
       return {
         type: "shape",
         content: { variant: "line" },
         style: { backgroundColor: DIVIDER_LINE_COLOR, ...stored.style }
       }
     case "spacer":
-      // Spacers carry no authored content (size only); free positioning replaces whitespace, so
-      // they drop with no data lost.
+      // Spacers hold size only, and free positioning replaces whitespace, so nothing is lost.
       return null
     case "shape":
       return { type: "shape", content: stored.content }
@@ -328,8 +321,8 @@ function toModernContent(stored: StoredBlock): (ModernContent & { type: Block["t
   }
 }
 
-// A formatted text block is the heading: the string survives HTML-escaped (heading text was plain
-// text) and the level approximates as size/weight, underneath any explicitly authored style.
+// The string survives HTML-escaped, since heading text was plain, and the level approximates as
+// size/weight underneath any explicitly authored style.
 function headingToText(
   text: string,
   level: 1 | 2 | 3,
@@ -345,11 +338,9 @@ function headingToText(
 type StoredBoxContent = Extract<StoredBlock, { type: "box" }>["content"]
 type StoredFrameContent = Extract<StoredBlock, { type: "frame" }>["content"]
 
-// A frame or group child parses through the tolerant stored schema and maps by type: a
-// leaf/table/shape maps through toModernContent (keeping its absolute x/y), a nested box, frame, or
-// group recurses until the depth bound (past which a deeper container drops). Anything unparseable
-// drops rather than corrupting the parent. `depth` is the containing container's level, so a
-// container child is admitted only while there is room beneath FRAME_MAX_DEPTH.
+// Anything unparseable drops rather than corrupting the parent. `depth` is the containing
+// container's level, so a container child is admitted only while there is room beneath
+// FRAME_MAX_DEPTH.
 function normalizeStoredChild(candidate: unknown, depth: number): Block | null {
   const parsed = storedBlockSchema.safeParse(candidate)
 
@@ -422,8 +413,7 @@ function normalizeStoredContainerChild(
   }
 }
 
-// A frame child keeps its own absolute rectangle: quantized, floored at the block minimums, and left
-// unclamped by the frame (clip handles any overflow).
+// Left unclamped by the frame - clip handles any overflow.
 function childLayout(stored: StoredBlock, natural: Size): Block["layout"] {
   return {
     x: quantizeToGrid(stored.layout?.x ?? 0),
@@ -433,8 +423,7 @@ function childLayout(stored: StoredBlock, natural: Size): Block["layout"] {
   }
 }
 
-// Stored frame rows already carry absolute children; each child maps through normalizeStoredChild,
-// keeping its x/y. `clip` defaults false when a legacy row omits it.
+// `clip` defaults false when a legacy row omits it.
 function normalizeFrameContent(content: StoredFrameContent, depth: number): FrameContent {
   return {
     clip: content.clip ?? false,
@@ -450,10 +439,9 @@ function normalizeContainerChildren(children: readonly unknown[], depth: number)
   })
 }
 
-// A legacy box's flex arrangement converts to absolute children once: children lay out along the
-// box's prior direction at its gap (start-aligned; justify/align approximate to a leading stack),
-// giving each child a concrete x/y. Content and style are preserved; only the exact pixel offsets
-// are approximated, so no authored data is lost.
+// A one-time conversion of a legacy box's flex arrangement to absolute children, laying them out
+// along the box's prior direction at its gap. Only the exact pixel offsets are approximated;
+// content and style are preserved.
 function boxToFrameContent(content: StoredBoxContent, depth: number): FrameContent {
   const horizontal = content.direction === "row"
   const gap = quantizeToGrid(content.gap)

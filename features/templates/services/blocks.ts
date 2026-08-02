@@ -14,22 +14,20 @@ import { clampRectToBounds, findFreePosition, type ContentBounds, type Size } fr
 
 export type PropertyGroupKey = "spacing" | "appearance" | "typography"
 
-// The capability registry the property panel renders from: which collapsible style sections each
-// block type exposes. Adding a property group to a type is exactly one entry here.
+// Which collapsible style sections each block type exposes. Adding one is a single entry here.
 export const BLOCK_PROPERTY_GROUPS = {
   text: ["spacing", "appearance", "typography"],
   image: ["spacing", "appearance"],
   table: ["spacing", "appearance", "typography"],
   frame: ["spacing", "appearance"],
-  // A group has no style of its own: it exposes no style property groups.
+  // A group has no style of its own, so it exposes no property groups.
   group: [],
   shape: ["spacing", "appearance"]
 } as const satisfies Record<BlockType, readonly PropertyGroupKey[]>
 
 export type FrameChildType = (typeof FRAME_CHILD_TYPES)[number]
 
-// The "add empty block" palette excludes group: a group has no independently authored content and
-// can only be created by grouping an existing selection (useTemplateEditor's groupSelection).
+// Excludes group, which can only be created by grouping an existing selection.
 export function getBlockPalette(): readonly AddableBlockType[] {
   return BLOCK_TYPES.filter((type): type is AddableBlockType => type !== "group")
 }
@@ -40,9 +38,8 @@ export function getFrameChildPalette(depth: number): readonly FrameChildType[] {
     : FRAME_CHILD_TYPES.filter((type) => type !== "frame")
 }
 
-// The number of container levels a block spans: a leaf is 0, a frame or group holding only leaves
-// is 1, one holding another container is 2. Mirrors the schema's write-path depth bound
-// (FRAME_MAX_DEPTH).
+// A leaf is 0, a container of leaves is 1, one holding another container is 2. Mirrors the schema's
+// write-path FRAME_MAX_DEPTH bound.
 export function containerNestingDepth(block: Block): number {
   if (block.type !== "frame" && block.type !== "group") return 0
 
@@ -55,8 +52,7 @@ export function containerNestingDepth(block: Block): number {
   )
 }
 
-// Flattens a block tree to a flat list including every frame/group descendant, so read-path passes
-// that scan for image uploads or token sources reach children nested at any depth.
+// Includes every descendant, so read-path scans for uploads or token sources reach any depth.
 export function flattenBlocks(blocks: readonly Block[]): Block[] {
   return blocks.flatMap((block) =>
     block.type === "frame" || block.type === "group"
@@ -65,9 +61,8 @@ export function flattenBlocks(blocks: readonly Block[]): Block[] {
   )
 }
 
-// Every block spawns at the minimum size its content needs — never full width. Group is excluded:
-// it has no independently authored content, so it never spawns as a blank block. Exported for
-// normalizeBlocks.ts, whose stored-generation migrators fall back to these same defaults.
+// Every block spawns at the minimum size its content needs, never full width. Exported for
+// normalizeBlocks.ts, whose migrators fall back to these same defaults.
 export const NATURAL_HEIGHTS: Record<AddableBlockType, number> = {
   text: 32,
   image: 160,
@@ -134,8 +129,8 @@ export function createBlock(type: AddableBlockType, bounds: ContentBounds): Bloc
   } as Block
 }
 
-// A click-added frame child spawns at compact natural size at the frame content origin (0, 0); the
-// user then drags it into place, since frame children are absolutely positioned.
+// At the frame's content origin (0, 0), since frame children are absolutely positioned and the
+// user drags them into place.
 export function createFrameChild(type: FrameChildType): Block {
   const size = CHILD_NATURAL_SIZES[type]
 
@@ -154,8 +149,7 @@ export type BlockInsertion = {
   block: Block | null
 }
 
-// Drops the new block at the first free legal position: the content-box origin, or directly below
-// the lowest existing block.
+// The content-box origin, or directly below the lowest existing block.
 export function addBlock(
   blocks: readonly Block[],
   type: AddableBlockType,
@@ -171,9 +165,8 @@ export function addBlock(
   return { blocks: [...blocks, placed], block: placed }
 }
 
-// Inserts a shape at its chosen variant. The palette exposes each variant as its own entry, so the
-// created shape carries the picked variant rather than the `rectangle` default; placement reuses the
-// same first-free-position rule as every other insertion.
+// The palette exposes each variant separately, so the shape carries the picked one rather than the
+// `rectangle` default.
 export function addShape(
   blocks: readonly Block[],
   variant: ShapeVariant,
@@ -190,11 +183,9 @@ export function addShape(
   return { blocks: [...blocks, placed], block: placed }
 }
 
-// The clone lands one grid cell down-right of its source and on top of the z-order (appended last
-// among its siblings); overlap is legal in the layered model, so no sweep is needed. Tree-aware via
-// findBlock: a source nested inside a frame or group clones into that same parent's children rather
-// than being silently dropped, matching reparentBlock's precedent of leaving a nested child
-// unclamped to the page (only a top-level clone is clamped to `bounds`).
+// One grid cell down-right of its source and last among its siblings; overlap is legal, so no
+// sweep is needed. A nested source clones into its own parent rather than being dropped, and stays
+// unclamped by the page - only a top-level clone is clamped to `bounds`.
 export function duplicateBlock(
   blocks: readonly Block[],
   id: string,
@@ -222,8 +213,7 @@ export function duplicateBlock(
   return { blocks: insertBesideParent(blocks, lookup.parent.id, clone), block: clone }
 }
 
-// Splices a nested duplicate in beside its source, inside whatever frame or group holds that
-// source, at whatever depth that parent itself lives.
+// Beside its source, inside whatever container holds it, at whatever depth that parent lives.
 function insertBesideParent(blocks: readonly Block[], parentId: string, clone: Block): Block[] {
   return blocks.map((block) => {
     if (block.type !== "frame" && block.type !== "group") return block
@@ -245,9 +235,8 @@ function insertBesideParent(blocks: readonly Block[], parentId: string, clone: B
   })
 }
 
-// Re-id a cloned block and everything nested under it — table columns/rows and frame children to any
-// depth — so a duplicate shares no id with its source. Exported so the clipboard's paste path
-// reuses the exact same id-reassignment as duplicate instead of a second implementation.
+// Re-ids a clone and everything under it, so a duplicate shares no id with its source. Exported so
+// the clipboard's paste path reuses this rather than growing a second implementation.
 export function reassignIds(block: Block): Block {
   block.id = crypto.randomUUID()
 

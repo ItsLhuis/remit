@@ -2,17 +2,14 @@ import { z } from "zod"
 
 import { LINE_ITEM_FIELDS, type Block, type LineItemField, type TemplateType } from "../schemas"
 
-// Merge tokens are plain {{identifier.path}} references. The grammar allows only word characters and
-// dots, so no expression, filter, pipe, or function call can be parsed - substitution is a direct
-// dictionary lookup, never evaluation. Exported as a source string so each consumer builds its own
-// stateful RegExp (the global flag makes a shared instance unsafe to reuse).
+// The grammar allows only word characters and dots, so no expression, filter, or call can be
+// parsed: substitution is a dictionary lookup, never evaluation. Exported as a source string so each
+// consumer builds its own RegExp - the global flag makes a shared instance unsafe to reuse.
 export const MERGE_TOKEN_SOURCE = "\\{\\{\\s*([\\w.]+)\\s*\\}\\}"
 
-// Every identifier below is backed by a real database column (or a computed value derived from
-// them, called out inline). Encrypted client notes and portal tokens are deliberately excluded;
-// payment.iban is encrypted at rest and decrypted only by the server-side render-data builder.
-// Values arrive pre-formatted as strings (money/date formatting happens at that boundary, with the
-// instance locale and currency); the template stores tokens, never values.
+// Every identifier is backed by a real column or a computed value called out inline. Encrypted
+// client notes and portal tokens are deliberately excluded; payment.iban is decrypted only by the
+// server-side render-data builder. Values arrive pre-formatted, so the template stores tokens.
 
 const CLIENT_VARIABLES = [
   "client.name",
@@ -29,8 +26,7 @@ const CLIENT_VARIABLES = [
   "client.currency"
 ] as const
 
-// The business logo is not a scalar: the image block's "businessLogo" source resolves
-// settings.businessLogoUploadId through the assets map.
+// Not a scalar: the image block's "businessLogo" source resolves it through the assets map.
 const BUSINESS_VARIABLES = [
   "business.name",
   "business.email",
@@ -142,9 +138,8 @@ function toMergeVariableEnum(variables: readonly MergeVariableId[]) {
   return z.enum(variables as [MergeVariableId, ...MergeVariableId[]])
 }
 
-// One Zod enum per template type, built from the same whitelist above, so token validation at save
-// time (updateTemplate) is a safeParse against the real per-type grammar instead of ad-hoc Set
-// membership.
+// Built from the same whitelist above, so save-time validation is a safeParse against the real
+// per-type grammar rather than ad-hoc Set membership.
 const MERGE_VARIABLE_ENUMS: Record<TemplateType, ReturnType<typeof toMergeVariableEnum>> = {
   invoice: toMergeVariableEnum(MERGE_VARIABLES.invoice),
   proposal: toMergeVariableEnum(MERGE_VARIABLES.proposal),
@@ -158,14 +153,11 @@ const MERGE_VARIABLE_ENUMS: Record<TemplateType, ReturnType<typeof toMergeVariab
   email_recurring_generated: toMergeVariableEnum(MERGE_VARIABLES.email_recurring_generated)
 }
 
-// A line-item row as the render-data builder supplies it: every field pre-formatted, keyed by the
-// lineItem.* binding ids a collection-bound table's columns use. These are bindings only - never
+// Keyed by the lineItem.* binding ids a collection-bound table's columns use. Bindings only, never
 // scalar page tokens.
 export type LineItemRenderRow = Partial<Record<LineItemField, unknown>>
 
-// The typed render-data contract shared by the editor preview and later real-document callers.
-// Scalars in `values` keep the whitelist/escape substitution path; `lineItems` feeds
-// collection-bound table blocks.
+// `values` takes the whitelist/escape substitution path; `lineItems` feeds bound table blocks.
 export type TemplateRenderData = {
   values: Record<string, unknown>
   lineItems?: LineItemRenderRow[]
@@ -173,8 +165,8 @@ export type TemplateRenderData = {
 
 const SAMPLE_LINE_ITEM_COUNT = 3
 
-// Editor preview data: every whitelisted variable renders as its own bracketed name so the user sees
-// exactly where each token lands without real document data.
+// Every variable renders as its own bracketed name, so the user sees where each token lands
+// without real document data.
 export function buildSampleRenderData(type: TemplateType): TemplateRenderData {
   const values = Object.fromEntries(
     getMergeVariables(type).map((variable) => [variable, `[${variable}]`])
@@ -208,9 +200,7 @@ export function findUnknownTokens(blocks: readonly Block[], type: TemplateType):
   return extractMergeTokens(blocks).filter((token) => !schema.safeParse(token).success)
 }
 
-// The substitutable surfaces: text html, table headers, manual table cells, and the same surfaces
-// inside frame and group children. Collection bindings are enum ids, not tokens, so they never
-// appear here.
+// Collection bindings are enum ids rather than tokens, so they never appear here.
 function collectTokenSources(blocks: readonly Block[]): string[] {
   const sources: string[] = []
 

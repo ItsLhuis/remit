@@ -4,14 +4,11 @@ import { contentPointAt, setGestureOverlay, type UseCanvasEngineOptions } from "
 import { reparentTargetAt, resolveMarqueeSelection, type MoveUpdate } from "./gestures"
 import { type PointerSample, type PressState } from "./pressState"
 
-// The pointerup commit decisions that need only the engine options and the final press state —
-// no engine closures. useCanvasEngine owns the lifecycle (finishGesture, transform clearing,
-// announcements) around these calls.
+// The pointerup decisions that need only the engine options and the final press state, with no
+// engine closures. useCanvasEngine owns the lifecycle around these calls.
 
-// The marquee release decision: candidates come from the whole final rect (not a per-frame
-// approximation), Ctrl/Cmd catches nested children instead of top-level blocks, and Shift
-// toggles the catch against whatever was already selected rather than replacing it. Focuses
-// the first resulting block's surface so an immediate arrow-key nudge has something to move.
+// Candidates come from the whole final rect rather than a per-frame approximation. Focuses the
+// first resulting block, so an immediate arrow-key nudge has something to move.
 export function commitMarquee(
   opts: UseCanvasEngineOptions,
   press: Extract<PressState, { kind: "empty" }>,
@@ -35,11 +32,9 @@ export function commitMarquee(
   if (lead !== undefined) opts.interaction.getNode(lead)?.querySelector("button")?.focus()
 }
 
-// Drops (single- or multi-selection alike) check for a reparent target first: into the
-// topmost frame under the pointer, or out to the page when every dragged member leaves its
-// container. The reparent service quantizes and guards depth/self/negative-local-coordinate
-// for the whole set at once, refusing the entire batch rather than reparenting a subset; an
-// illegal reparent falls through to a plain move for every dragged member.
+// Every drop checks for a reparent target first. The reparent service guards the whole set at
+// once, refusing the entire batch rather than reparenting a subset, and an illegal reparent falls
+// through to a plain move for every dragged member.
 export function commitMoveDrop(
   opts: UseCanvasEngineOptions,
   press: Extract<PressState, { kind: "move" }>,

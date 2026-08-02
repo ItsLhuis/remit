@@ -7,9 +7,8 @@ export type BlockLookup = {
   parent: ContainerBlock | null
 }
 
-// Selection addresses top-level blocks and container (frame or group) children, nested to
-// FRAME_MAX_DEPTH, by one id; every lookup and replacement is nesting-aware and reports the
-// nearest container ancestor as the parent.
+// Selection addresses a block at any depth by one id, so every lookup and replacement here is
+// nesting-aware and reports the nearest container ancestor as the parent.
 export function findBlock(blocks: readonly Block[], id: string | null): BlockLookup | null {
   if (!id) return null
 
@@ -39,8 +38,7 @@ export function replaceById(blocks: readonly Block[], next: Block): Block[] {
   })
 }
 
-// Splices zero or more replacement blocks in place of one block, anywhere in the tree - the
-// ungroup primitive: a group's freed children replace it in situ, at whatever depth it lived.
+// The ungroup primitive: a group's freed children replace it in situ, at whatever depth it lived.
 export function spliceById(
   blocks: readonly Block[],
   id: string,
@@ -75,10 +73,8 @@ export function removeById(blocks: readonly Block[], id: string): Block[] {
 export type SiblingStep = "forward" | "backward"
 export type SiblingEdge = "front" | "back"
 
-// Z-order is sibling array order at whatever depth a block lives, not only the top level: this
-// moves one block within its own parent's children (the top-level array for a parentless block, a
-// frame's content.children otherwise). Null means the move is illegal or a no-op (unknown id,
-// already at the requested edge) so no meaningless undo entry is pushed.
+// Z-order is sibling array order at whatever depth a block lives, so this stays within one parent.
+// Null for an illegal or no-op move, so no meaningless undo entry is pushed.
 export function moveSiblingOrder(
   blocks: readonly Block[],
   id: string,
@@ -114,9 +110,8 @@ export function moveSiblingOrder(
   return applySiblingOrder(blocks, lookup.parent, next)
 }
 
-// The multi-member counterpart of moveSiblingOrder, front/back only: the whole selection moves to
-// the array edge as one unit, keeping its own members' relative order. Null when the selection is
-// empty, spans more than one parent, or resolves an unknown id.
+// Front/back only: the selection moves as one unit, keeping its members' relative order. Null for
+// a set that spans more than one parent.
 export function moveSiblingGroupToEdge(
   blocks: readonly Block[],
   ids: readonly string[],
@@ -178,8 +173,7 @@ function findInContainer(container: ContainerBlock, id: string): BlockLookup | n
   return null
 }
 
-// Writes a reordered sibling array back into the tree: the top-level array itself for a parentless
-// block, or the owning container's children otherwise.
+// The top-level array for a parentless block, the owning container's children otherwise.
 function applySiblingOrder(
   blocks: readonly Block[],
   parent: ContainerBlock | null,

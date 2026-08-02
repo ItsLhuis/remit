@@ -47,13 +47,12 @@ type CanvasBlockProps = CanvasBlockHandlers & {
   onRegisterNode: (id: string, element: HTMLElement | null) => void
 }
 
-// A frame's own content renders without its recursive child markup (includeChildren: false) — the
-// children below render as real interactive CanvasBlock nodes instead, so a nested block is never
-// both baked into its parent's HTML and mounted as its own component.
+// includeChildren: false, because the children below mount as real CanvasBlock nodes: a nested
+// block must never be both baked into its parent's HTML and mounted as its own component.
 const FRAME_CONTENT_OPTIONS = { includeChildren: false }
 
-// Frame children are positioned relative to the frame's own content box (blockIndex.ts), not the
-// page, so a nested CanvasBlock always renders at the page margins' zero point.
+// Frame children are positioned relative to the frame's content box, not the page, so a nested
+// CanvasBlock always renders at the page margins' zero point.
 const NESTED_MARGINS = { top: 0, left: 0 }
 
 type CanvasBlockContentProps = {
@@ -67,9 +66,7 @@ type CanvasBlockContentProps = {
   contentRef: RefObject<HTMLDivElement | null>
 }
 
-// The block's main surface: the inline text editor while editing, otherwise its rendered HTML, or
-// a placeholder for empty content. Split out of CanvasBlock so that surface's own branching stays
-// off the memoized block wrapper's render.
+// Split out of CanvasBlock so this branching stays off the memoized wrapper's render.
 const CanvasBlockContent = ({
   block,
   type,
@@ -107,9 +104,8 @@ const CanvasBlockContent = ({
   }
 
   return (
-    // The unwrap is the trust boundary made visible: `html` is typed SanitizedHtml, which only
-    // sanitizeTemplateHtml can produce, so the compiler — not a comment — guarantees the sanitizer
-    // ran before anything reaches this sink.
+    // The trust boundary made visible: `html` is SanitizedHtml, which only sanitizeTemplateHtml can
+    // produce, so the compiler guarantees the sanitizer ran before this sink.
     <div
       ref={contentRef}
       aria-hidden="true"
@@ -129,9 +125,7 @@ type CanvasBlockChildrenProps = CanvasBlockHandlers & {
   onRegisterNode: (id: string, element: HTMLElement | null) => void
 }
 
-// A frame or group's children, rendered as real interactive CanvasBlock nodes absolutely positioned
-// over the parent's surface. Split out of CanvasBlock so its container-vs-leaf branching stays off
-// the memoized block wrapper's render.
+// Split out of CanvasBlock so the container-vs-leaf branching stays off the memoized wrapper.
 const CanvasBlockChildren = ({ block, ...rest }: CanvasBlockChildrenProps) => {
   if (block.type !== "frame" && block.type !== "group") return null
   if (block.content.children.length === 0) return null
@@ -150,11 +144,10 @@ const CanvasBlockChildren = ({ block, ...rest }: CanvasBlockChildrenProps) => {
   )
 }
 
-// Memoized so nothing here re-renders during a pointer gesture: the engine moves the block by
-// writing an inline transform to the wrapper registered in the interaction store's node map, and
-// every prop (including the referentially stable handlers from useCanvasBlockHandlers) is
-// untouched until the commit. Locked and hidden blocks render no interactive surface — they are
-// excluded from canvas pointer selection and stay reachable from the Layers panel.
+// Memoized so nothing re-renders during a pointer gesture: the engine moves the block by writing an
+// inline transform to the registered wrapper node, leaving every prop untouched until the commit.
+// Locked and hidden blocks render no interactive surface, staying reachable only from the Layers
+// panel.
 const CanvasBlock = memo(function CanvasBlock({
   block,
   margins,
@@ -187,9 +180,8 @@ const CanvasBlock = memo(function CanvasBlock({
     [onRegisterNode, block.id]
   )
 
-  // The renderer reads only content, style, and type; keying on those keeps a block's HTML stable
-  // across selection and gesture renders, which never touch content. The compiler cannot prove the
-  // subset is sufficient, so this deliberate memo opts out of its dependency check.
+  // The renderer reads only content, style, and type, so keying on those keeps the HTML stable
+  // across selection and gesture renders. The compiler cannot prove the subset is sufficient.
   /* eslint-disable react-hooks/exhaustive-deps -- deliberate subset key (see comment above) */
   const html = useMemo(
     () =>
@@ -221,8 +213,8 @@ const CanvasBlock = memo(function CanvasBlock({
     onAscend
   }
 
-  // Committed rotation renders as the wrapper's transform (a group never carries one); the engine
-  // replaces it per frame during a gesture and restores it from the block index when clearing.
+  // The engine replaces this transform per frame during a gesture and restores it from the block
+  // index when clearing.
   const rotation = block.type === "group" ? 0 : (block.rotation ?? 0)
 
   const boxStyle: CSSProperties = {
@@ -237,11 +229,8 @@ const CanvasBlock = memo(function CanvasBlock({
 
   const interactive = !block.locked && !block.hidden
 
-  // Text is freely resizable on both axes, but its stored height is floored at the content it must
-  // contain so it never clips. Measure the content at the current width: when the box is shorter
-  // than the content, `scrollHeight` reports the overflowing content height (the floor) and the
-  // height is raised to it; when the box is already tall enough, `scrollHeight` equals the box
-  // height and the user's height is left untouched. The hook shrinks nothing.
+  // `scrollHeight` reports the overflowing content height when the box is too short and the box
+  // height when it is not, so raising to it floors the height without ever shrinking it.
   useLayoutEffect(() => {
     if (block.type !== "text") return
 
@@ -254,8 +243,7 @@ const CanvasBlock = memo(function CanvasBlock({
     if (block.layout.height < floor) onSyncMinHeight(block.id, floor)
   }, [block, html, onSyncMinHeight])
 
-  // Focus returns to the block's own selection surface the render after inline editing ends
-  // (blur/Escape/outside pointerdown all funnel through the same editingTextId transition) - the
+  // Every exit from inline editing funnels through the same editingTextId transition, and the
   // button has already remounted by the time this layout effect runs, so the ref is populated.
   useLayoutEffect(() => {
     if (wasEditingTextRef.current && !isEditingText) surfaceRef.current?.focus()
@@ -263,9 +251,8 @@ const CanvasBlock = memo(function CanvasBlock({
     wasEditingTextRef.current = isEditingText
   }, [isEditingText])
 
-  // The pointer engine owns pointer selection at pointerdown; this click handler exists for
-  // keyboard activation only (Enter/Space synthesize a click with detail 0), so a pointer
-  // shift-toggle is never overridden by the trailing click.
+  // The pointer engine already selected at pointerdown, so this handles keyboard activation only
+  // (Enter/Space synthesize a click with detail 0) and never overrides a pointer shift-toggle.
   const handleSurfaceClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (event.detail === 0) onSelect(block.id)
   }
@@ -302,10 +289,9 @@ const CanvasBlock = memo(function CanvasBlock({
           aria-describedby={CANVAS_INSTRUCTIONS_ID}
           disabled={disabled}
           className={cn(
-            // A nested child renders inside CanvasBlockChildren's pointer-events-none wrapper (so
-            // clicks on the container's own blank area pass through to the parent beneath); pointer
-            // events are inherited, so the child's own surface must opt back in explicitly or a
-            // nested block's surface would be unclickable under its parent's full-cover button.
+            // CanvasBlockChildren's wrapper is pointer-events-none so clicks on the container's
+            // blank area reach the parent beneath, and pointer events inherit, so a nested surface
+            // must opt back in or it is unclickable under its parent's full-cover button.
             "focus-visible:ring-ring/50 pointer-events-auto absolute inset-0 cursor-grab touch-none rounded-none focus-visible:ring-[3px] focus-visible:outline-none active:cursor-grabbing",
             isSelected ? "ring-primary ring-1" : "hover:ring-primary/50 hover:ring-1"
           )}

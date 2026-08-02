@@ -32,9 +32,8 @@ import {
   type RotationMember
 } from "../services"
 
-// Gesture classification and per-gesture update math for the pointer engine.
-// Pure logic over the normalized block index: useCanvasEngine owns the DOM and lifecycle; this
-// module owns the decisions, delegating primitives to services.
+// Pure gesture classification and per-frame math over the block index. useCanvasEngine owns the DOM
+// and the lifecycle; this module owns the decisions and delegates primitives to services.
 
 // A gesture arms at pointerdown and activates once the pointer travels this many screen pixels;
 // below it, release is a click (selection semantics only).
@@ -52,10 +51,9 @@ export type ActiveGesture =
       members: ResizeSetMember[]
       uniformOnly: boolean
     }
-  // One shape for single-block, group, and multi-selection resize: targets
-  // is the member set, baseReference is the single block's rect | the group's derived rect | the
-  // selection union, and uniformOnly forces aspect-locked scaling when any member (including a
-  // nested descendant) carries rotation.
+  // One shape for single-block, group, and multi-selection resize: baseReference is the block's
+  // rect, the group's derived rect, or the selection union, and uniformOnly forces aspect-locked
+  // scaling when any member (including a nested descendant) carries rotation.
   | { kind: "rotate"; targets: string[]; origin: Point; center: Point }
   | { kind: "pan"; startScroll: Point; startClient: Point }
 
@@ -83,9 +81,8 @@ export function classifyPress(input: {
 
   if (toggle) return { kind: "toggle", id: topLevelAncestorOf(index, topHit) ?? topHit }
 
-  // Only the topmost hit's ancestry carries the existing selection into a move; a
-  // selected block sitting underneath an unselected one must not steal the press meant for the
-  // block actually under the pointer.
+  // Only the topmost hit's ancestry carries the selection into a move: a selected block underneath
+  // an unselected one must not steal the press meant for the block actually under the pointer.
   const hitsSelection = ancestorChainOf(index, topHit).some((ancestor) => selection.has(ancestor))
 
   if (hitsSelection && selection.size > 0) {
@@ -103,14 +100,9 @@ export type MoveUpdate = {
   rects: Map<string, Rect>
 }
 
-// Per-frame move math: Shift locks to the dominant axis, the lead rect's
-// target position quantizes to the grid (whole pixels under the Alt bypass) so the whole set
-// moves in uniform steps, and the top-level members' union rect (excluding any member with a
-// parent rect) clamps into the content bounds — matching moveBlocks's commit-time union exactly,
-// so a mixed selection never drags further or less far than an arrow-key nudge commits. A member
-// with a parent rect floors at that parent's page origin — the same floor moveBlocks applies at
-// commit — so the drag preview never paints a child past its frame's origin and then snaps back
-// on drop.
+// Only the lead rect quantizes to the grid, so the whole set moves in uniform steps. The union
+// clamp and the per-child floor at the parent's page origin mirror moveBlocks's commit-time math
+// exactly, so the preview never drags further than the drop commits and then snaps back.
 export function resolveMoveUpdate(input: {
   baseRects: ReadonlyMap<string, Rect>
   origin: Point
@@ -181,17 +173,10 @@ export type ResizeUpdate = {
   limits: ResizeClampLimits
 }
 
-// Per-frame resize math: resolves the dragged handle into a next reference
-// rect (Shift/Alt modifiers, or forced aspect-lock when the set is not uniform-safe because a
-// member carries rotation), clamps that reference into the page bounds when the set contains a
-// top-level member (shrink-clamped so the anchor never moves; the limits feed the overlay's guide
-// lines), floors the resulting scale factors so no member passes the minimum size, and maps every
-// member proportionally from the gesture's base reference. A one-member set always reproduces the
-// resolved reference rect exactly. Grid quantization applies to a one-member set's sizes only — position
-// keeps whatever grid offset it had, which the anchor re-derivation preserves;
-// a genuine multi-member set commits whole pixels without quantization so member proportions are
-// preserved exactly. A sole frame-child target floors at its parent's page origin every frame,
-// the same floor the commit applies, so the preview never paints past it and then snaps back.
+// Clamps shrink rather than translate, so the anchor edge never moves under a resize. Grid
+// quantization applies to a one-member set only: a multi-member set commits whole pixels so member
+// proportions stay exact. The per-child floor at the parent's page origin mirrors the commit, so
+// the preview never paints past it and then snaps back.
 export function resolveResizeUpdate(input: {
   members: readonly ResizeSetMember[]
   baseReference: Rect
@@ -234,8 +219,8 @@ export function resolveResizeUpdate(input: {
     minHeight: MIN_BLOCK_HEIGHT
   })
 
-  // Single-member size quantization re-anchors through the rotated variant at nonzero rotation, so
-  // the dragged handle's opposite anchor stays visually fixed in page space after the grid snap.
+  // Re-anchored through the rotated variant at nonzero rotation, so the handle's opposite anchor
+  // stays visually fixed in page space after the grid snap.
   const quantizedSize = {
     width: Math.max(quantizeToGrid(rawReference.width), MIN_BLOCK_WIDTH),
     height: Math.max(quantizeToGrid(rawReference.height), MIN_BLOCK_HEIGHT)
@@ -264,15 +249,14 @@ export function resolveResizeUpdate(input: {
       clampedReference = clamped.rect
       limits = clamped.limits
     } else {
-      // A rotated reference bounds by its rotated AABB; the fit translates (and, only when the
-      // footprint cannot fit at all, uniformly shrinks) rather than pulling one raw edge.
+      // A rotated reference bounds by its AABB, so the fit translates (shrinking only when the
+      // footprint cannot fit at all) rather than pulling one raw edge.
       clampedReference = fitRotatedRectWithinBounds(sizedReference, baseRotation, bounds)
     }
   } else if (parentRect) {
     if (baseRotation === 0) {
-      // Edge-preserving floor, mirroring clampResizeRectToBounds's left/top logic: shrinking the
-      // near edge into the parent origin must shrink the size by the same delta so the opposite
-      // (anchor) edge never moves.
+      // Mirrors clampResizeRectToBounds's left/top logic: shrinking the near edge into the parent
+      // origin shrinks the size by the same delta, so the anchor edge never moves.
       const flooredX = Math.max(clampedReference.x, parentRect.x)
       const flooredY = Math.max(clampedReference.y, parentRect.y)
 
@@ -319,10 +303,8 @@ export function resolveResizeUpdate(input: {
 
   return {
     reference: nextReference,
-    // The pre-clamp/pre-floor sized reference (quantized to the grid, otherwise untouched): the
-    // commit path (useTemplateEditor's resizeBlocks) re-runs its own quantize->clamp against this
-    // value instead of the already-clamped `reference`, so the preview and the commit reproduce
-    // the exact same clamp result bit-for-bit.
+    // Pre-clamp: useTemplateEditor's resizeBlocks re-runs its own quantize->clamp against this
+    // rather than the already-clamped `reference`, so preview and commit agree bit-for-bit.
     sizedReference,
     members: scaleBlockSet(members, baseReference, nextReference),
     limits
@@ -337,14 +319,10 @@ export type ResizeSet = {
   parentRect: Rect | null
 }
 
-// The member set a resize press operates on: the shared base reference plus every unlocked member
-// collectResizeMemberIds resolves for the raw target set — a sole frame target scales only its own
-// box, every other target set (a leaf, a group, or a multi-selection) flattens each target's full
-// descendant subtree into the members that scale together — and, for a sole frame-child target,
-// the parent rect its reference floors at. A sole target's base reference is its OWN rect and
-// rotation (local-axes resize math needs the unrotated rectangle, never the AABB); a multi-
-// selection's is the axis-aligned union at rotation 0. Null when nothing in the selection is
-// resizable.
+// A sole target's base reference is its OWN rect and rotation, never its AABB: local-axes resize
+// math needs the unrotated rectangle. A multi-selection's is the axis-aligned union at rotation 0.
+// A sole frame target scales only its own box; every other target set flattens each target's full
+// descendant subtree into the members that scale together.
 export function collectResizeSet(index: BlockIndex, targets: readonly string[]): ResizeSet | null {
   const soleEntry =
     targets.length === 1 && targets[0] !== undefined ? index.get(targets[0]) : undefined
@@ -384,10 +362,8 @@ export type RotateUpdate = {
   members: Map<string, RotatedMember>
 }
 
-// Per-frame rotate math: the pointer's angle about the shared center minus the press origin's
-// angle is the delta, applied to every member through the same rotateSetBy the commit runs — the
-// preview is the commit by construction. atan2 in the page's y-down space is already clockwise-
-// positive, matching the stored rotation convention.
+// Runs the same rotateSetBy the commit runs, so the preview is the commit by construction. atan2
+// in the page's y-down space is already clockwise-positive, matching the stored convention.
 export function resolveRotateUpdate(input: {
   members: readonly RotationMember[]
   center: Point
@@ -407,9 +383,7 @@ export function resolveRotateUpdate(input: {
   return { degrees, members: rotateSetBy(members, center, degrees, bounds) }
 }
 
-// Page-bound limit lines for the overlay while a resize presses against the content box, in the
-// existing guide-line visual language (emphasis "reached": the edge sits at the limit). The
-// returned `at` is offset by the page margins, matching moveGuides.
+// The returned `at` is offset by the page margins, matching moveGuides.
 export function resizeLimitGuides(
   limits: ResizeClampLimits,
   margins: { top: number; left: number }
@@ -446,9 +420,8 @@ export function resizeLimitGuides(
     }))
 }
 
-// The marquee release decision: the default replaces the selection with whatever the marquee
-// caught; an additive (Shift) marquee toggles each caught id against the selection that was
-// already there instead, leaving untouched ids exactly as they were.
+// An additive (Shift) marquee toggles each caught id against the existing selection, leaving
+// untouched ids exactly as they were, rather than replacing the selection.
 export function resolveMarqueeSelection(
   current: ReadonlySet<string>,
   candidates: readonly string[],
@@ -469,8 +442,7 @@ export function resolveMarqueeSelection(
   return [...next]
 }
 
-// The drop-to-reparent target: the topmost frame under the pointer by paint order, excluding the
-// dragged subtree. Locked frames stay valid targets (parity with the legacy droppable behavior).
+// Excludes the dragged subtree. Locked frames stay valid targets, matching the legacy droppable.
 export function reparentTargetAt(
   index: BlockIndex,
   point: Point,
@@ -491,10 +463,8 @@ export function reparentTargetAt(
   return null
 }
 
-// Double-click/Enter-with-pointer descend: one level from the current single selection toward
-// whichever block is actually under the pointer. Null when the point misses every block, when the
-// selection is not a single id, or when that id is already the deepest hit (nothing left to
-// descend into) — the caller then leaves the selection untouched.
+// Descends one level toward the block under the pointer. Null when there is nothing to descend
+// into, which the caller reads as "leave the selection untouched".
 export function descendAt(
   index: BlockIndex,
   point: Point,
@@ -517,9 +487,8 @@ export function descendAt(
   return chain[position - 1] ?? null
 }
 
-// The double-click terminal state: descendAt already returned null, meaning the point sits exactly
-// on the current single selection and there is nothing left to descend into. Returns that block's
-// id when it is an interactive text leaf eligible for inline editing, else null.
+// The terminal state after descendAt returns null: the point sits on the current selection with
+// nothing left to enter, so a text leaf there becomes the inline-edit target.
 export function textEditTargetAt(
   index: BlockIndex,
   point: Point,
@@ -541,10 +510,8 @@ export function textEditTargetAt(
   return selectedId
 }
 
-// The extra shift that keeps the top-level members' union inside the content bounds: each member
-// clamps by its visual footprint — a rotated member contributes its rotated AABB — matching
-// moveMath's commit-time union exactly. Members with a parent rect are excluded (children moving
-// inside a container are unclamped).
+// Each member clamps by its visual footprint (a rotated member contributes its rotated AABB),
+// matching moveMath's commit-time union. Container children are excluded — they move unclamped.
 function clampMoveDelta(input: {
   baseRects: ReadonlyMap<string, Rect>
   delta: Point
@@ -569,8 +536,7 @@ function clampMoveDelta(input: {
   }
 }
 
-// A frame child's per-member floor at its parent's page origin — by the rotated footprint at
-// nonzero rotation, the raw near edges at 0 — the same floor moveBlocks applies at commit.
+// By the rotated footprint at nonzero rotation, the raw near edges at 0.
 function floorMovedRect(translated: Rect, rotation: number, parentRect: Rect): Rect {
   if (rotation !== 0) return floorRotatedRectAtOrigin(translated, rotation, parentRect)
 
@@ -581,9 +547,8 @@ function floorMovedRect(translated: Rect, rotation: number, parentRect: Rect): R
   }
 }
 
-// The drilled-in refinement of the click-target rule: when the current selection already sits inside the
-// hit's top-level ancestor, a click targets the hit's ancestor at the same depth (the sibling at
-// the already-entered level) instead of bouncing back to the top-level ancestor.
+// Once the selection sits inside the hit's top-level ancestor, a click targets the sibling at the
+// already-entered depth instead of bouncing back out to the top-level ancestor.
 function drilledTarget(
   index: BlockIndex,
   topHit: string,

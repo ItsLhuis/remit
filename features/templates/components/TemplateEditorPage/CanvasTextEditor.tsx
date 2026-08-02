@@ -57,9 +57,8 @@ function placeCaretAtPoint(element: HTMLElement, point: Point): boolean {
   return true
 }
 
-// insertFromPaste/insertReplacementText carry the incoming text on dataTransfer rather than
-// event.data; anything else with neither is unmeasurable, and the caller falls back to the
-// conservative current-length check for it.
+// insertFromPaste/insertReplacementText carry their text on dataTransfer rather than event.data.
+// Anything with neither is unmeasurable, and the caller falls back to a current-length check.
 function getIncomingInputLength(event: InputEvent): number | null {
   if (event.data) return event.data.length
   if (event.dataTransfer) return event.dataTransfer.getData("text/plain").length
@@ -68,22 +67,18 @@ function getIncomingInputLength(event: InputEvent): number | null {
 }
 
 // Mod-combos that collide with native text editing and must never reach the page's document-level
-// hotkey listeners while the caret is inside this surface: undo/redo, formatting, select-all, and
-// the page's duplicate hotkey.
+// hotkey listeners while the caret is inside this surface.
 const COLLIDING_MOD_KEYS = new Set(["z", "y", "b", "i", "u", "a", "d"])
 
-// The keys the autocomplete popover owns while it is open, moving its own highlight or closing it
-// instead of doing their native contentEditable thing (arrow caret movement, a newline, clearing the
-// canvas selection).
+// Owned by the autocomplete popover while it is open, instead of doing their native
+// contentEditable thing (caret movement, a newline, clearing the canvas selection).
 const AUTOCOMPLETE_NAVIGATION_KEYS = new Set(["ArrowDown", "ArrowUp", "Enter", "Escape"])
 const AUTOCOMPLETE_DISMISS_KEYS = new Set(["ArrowLeft", "ArrowRight", "Home", "End"])
 
 type OpenMergeToken = { textNode: Text; start: number; end: number }
 
-// Finds an unterminated "{{...}}" immediately before the caret, in the caret's own text node: start
-// is the index of the first "{" of the pair, end is the caret itself. Whitespace, a stray "{", or a
-// "}" inside the candidate abandons the match - the user has moved past the token or already closed
-// it by hand.
+// Finds an unterminated "{{" before the caret, in the caret's own text node. Whitespace, a stray
+// "{", or a "}" abandons the match: the user has moved past the token or already closed it.
 function findOpenMergeToken(): OpenMergeToken | null {
   const selection = window.getSelection()
 
@@ -124,10 +119,9 @@ type AutocompleteState = {
   highlighted: MergeVariableId | undefined
 }
 
-// Replaces the block's static HTML div in place while editing: same positioned wrapper, same
-// padding/typography (blockStyleToCss - the exact declarations the renderer emits), so entering and
-// leaving edit mode never jumps. Seeds from the raw stored content.html (never the resolved-sample
-// render), so merge tokens show their literal {{identifier}} form while editing.
+// Reuses the renderer's exact declarations (blockStyleToCss), so entering and leaving edit mode
+// never jumps. Seeds from the raw stored content.html rather than the resolved-sample render, so
+// merge tokens show their literal {{identifier}} form while editing.
 const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasTextEditorProps) => {
   const { t } = useTranslation()
 
@@ -152,11 +146,9 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     onExit()
   }
 
-  // Mount-only: seeds the raw authored HTML and places the caret exactly once when the surface
-  // appears. Re-running on every render would clobber in-progress edits with the stale block prop.
+  // Mount-only seed: writes the authored HTML and places the caret exactly once when the surface
+  // appears. Re-running on a changed block prop would clobber the edit in progress.
   /* eslint-disable react-hooks/exhaustive-deps -- deliberate mount-only seed (see comment above) */
-  // Mount-only seed: the inline editor writes the authored HTML and places the caret exactly once
-  // when the surface appears. Re-running on a changed block prop would clobber the edit in progress.
   useLayoutEffect(() => {
     const element = editableRef.current
 
@@ -170,13 +162,9 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
   }, [])
   /* eslint-enable react-hooks/exhaustive-deps */
 
-  // Capture phase: runs before the click's default focus/selection handling, so committing and
-  // exiting here never races the canvas engine's own pointerdown classification of the same click.
-  // A click inside the portaled autocomplete popover is excluded - it is not part of this surface's
-  // DOM subtree, so the browser blurs the contentEditable for it exactly as it would for any other
-  // outside click; suppressBlurRef tells the onBlur handler below to ignore that one (pointerdown
-  // always fires before the resulting blur), so selecting a suggestion never commits and exits the
-  // block before its own click handler runs.
+  // Capture phase, so committing and exiting never races the canvas engine's own pointerdown
+  // classification of the same click. The portaled popover is excluded: it sits outside this DOM
+  // subtree, so suppressBlurRef tells the onBlur handler below to ignore the blur it causes.
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node
@@ -197,9 +185,8 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     return () => document.removeEventListener("pointerdown", handlePointerDown, true)
   })
 
-  // React's onBeforeInput prop is wired to legacy composition/keypress/textInput/paste signals,
-  // never the native `beforeinput` event a contentEditable actually fires while typing, so the
-  // guard binds to the real DOM event directly instead of the synthetic prop.
+  // React's onBeforeInput prop is wired to legacy composition/keypress signals, never the native
+  // `beforeinput` a contentEditable fires while typing, so this binds the real DOM event.
   useEffect(() => {
     const element = editableRef.current
 
@@ -236,18 +223,15 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
       })
     : []
 
-  // Falls back to the first suggestion whenever the previously highlighted identifier is unset or
-  // has been filtered out by further typing, instead of tracking an index that would go stale as
-  // the list's length changes on every keystroke.
+  // Tracks the identifier rather than an index, which would go stale as further typing changes the
+  // list's length, falling back to the first suggestion when it is filtered out.
   const highlighted =
     autocomplete?.highlighted && suggestions.includes(autocomplete.highlighted)
       ? autocomplete.highlighted
       : suggestions[0]
 
-  // Replaces the open "{{query" span with the completed token and re-collapses the caret right
-  // after it, so typing can continue immediately. Re-locates the open token at call time (rather
-  // than trusting stashed offsets from an earlier keystroke) so a mouse click and a keyboard Enter
-  // both insert against the caret's current, exact position.
+  // Re-locates the open token at call time rather than trusting offsets stashed on an earlier
+  // keystroke, so a mouse click and a keyboard Enter both insert at the caret's exact position.
   const insertMergeVariable = (identifier: MergeVariableId) => {
     const open = findOpenMergeToken()
 
@@ -282,9 +266,8 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     editableRef.current?.focus()
   }
 
-  // Runs after every native input: an unterminated "{{query" right before the caret opens (or
-  // updates) the popover, positioned from the current selection range's bounding rect; anything
-  // else closes it.
+  // An unterminated "{{query" before the caret opens or updates the popover; anything else closes
+  // it.
   const handleInput = () => {
     const open = findOpenMergeToken()
     const selection = window.getSelection()
@@ -304,9 +287,8 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     }))
   }
 
-  // Consumes ArrowDown/ArrowUp/Enter/Escape while the popover is open (moving its highlight,
-  // inserting the highlighted token, or closing it) and reports whether it did, so handleKeyDown
-  // below never reaches its own Escape-commits-and-exits branch for the same keypress.
+  // Reports whether it consumed the key, so handleKeyDown below never reaches its own
+  // Escape-commits-and-exits branch for a keypress the popover already handled.
   const handleAutocompleteKeyDown = (event: KeyboardEvent<HTMLDivElement>): boolean => {
     if (!autocomplete) return false
 
@@ -345,13 +327,9 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     return true
   }
 
-  // Only Mod-combos that would otherwise collide with native text editing are stopped here:
-  // undo/redo (native text undo must win over the page's Mod+Z/Mod+Shift+Z/Mod+Y), formatting
-  // (Mod+B/I/U), select-all (Mod+A must select the surface's own text), and Mod+D (the page's
-  // duplicate hotkey must not fire while the caret is inside the text). Everything else - Mod+S,
-  // Mod+P, zoom, panel toggles - is left alone so it keeps reaching the page's document-level
-  // hotkey listeners while editing. Escape additionally commits and exits rather than falling
-  // through to the canvas's clear-selection behavior.
+  // Everything outside COLLIDING_MOD_KEYS - Mod+S, Mod+P, zoom, panel toggles - is deliberately
+  // left alone, so it keeps reaching the page's hotkey listeners while editing. Escape commits and
+  // exits rather than falling through to the canvas's clear-selection behavior.
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (handleAutocompleteKeyDown(event)) return
 
@@ -368,9 +346,8 @@ const CanvasTextEditor = ({ block, type, caretPoint, onCommit, onExit }: CanvasT
     }
   }
 
-  // A click inside the popover blurs this surface (it lives outside this DOM subtree), which would
-  // otherwise commit and exit the block before the click's own selection handler ever runs; the
-  // capture-phase pointerdown handler above sets the flag this reads and clears.
+  // Set by the capture-phase pointerdown handler above: a popover click blurs this surface, which
+  // would otherwise commit and exit before the click's own selection handler runs.
   const handleBlur = () => {
     if (suppressBlurRef.current) {
       suppressBlurRef.current = false

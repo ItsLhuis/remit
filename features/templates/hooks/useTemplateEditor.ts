@@ -55,10 +55,8 @@ type EditorDocument = {
   pageSettings: TemplatePageSettings
 }
 
-// Every stored coordinate and size moves in whole grid cells (GRID_SIZE) only - no pixel-level
-// path, no snap toggle. Move commits displace overlapped neighbours downward; resize commits
-// hard-clamp at the page bounds and neighbour edges. Both run through the pure canvas geometry so
-// overlap and out-of-bounds are impossible to commit.
+// Every geometry commit routes through the pure services, so an out-of-bounds block can never be
+// committed. Overlap is legal (the model is layered), so nothing displaces a neighbour.
 export function useTemplateEditor(
   initialBlocks: Block[],
   type: TemplateType,
@@ -70,8 +68,7 @@ export function useTemplateEditor(
     pageSettings: initialPageSettings
   }))
   // Ordered so the last entry is the most recently added member — the layers panel's Shift-range
-  // anchor. A single-selection UI (the property panel, the status bar) reads selectedBlockId, which
-  // is null while zero or several ids are selected.
+  // anchor.
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [assets, setAssets] = useState<Record<string, string>>(initialAssets)
   const [zoom, setZoomValue] = useState(1)
@@ -81,26 +78,23 @@ export function useTemplateEditor(
     JSON.stringify({ blocks: initialBlocks, pageSettings: initialPageSettings })
   )
 
-  // Consecutive edits sharing a tag (typing in one field, arrow-key nudging one block) coalesce
-  // into a single history entry so undo steps stay meaningful.
+  // Consecutive commits sharing a tag coalesce into one history entry, so typing or nudging is a
+  // single undo step.
   const lastCommitTagRef = useRef<string | null>(null)
 
   const { blocks, pageSettings } = document
 
   const bounds = useMemo(() => getContentBounds(type, pageSettings), [type, pageSettings])
 
-  // The normalized runtime index: rebuilt once per document commit; every
-  // hit-test, selection, and gesture computation reads it instead of re-walking the tree.
+  // Rebuilt once per commit so hit-testing, selection, and gestures never re-walk the tree.
   const blockIndex = useMemo(() => buildIndex(blocks), [blocks])
 
   const selectedBlockId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
   const selected = findBlock(blocks, selectedBlockId)
   const selectedBlock = selected?.block ?? null
 
-  // Stable identities (unlike every other returned method here): consumers such as the property
-  // panel's "select the first block on mount" effect list selectBlock in a useEffect dependency
-  // array, matching its pre-multi-select identity of the useState setter directly. A recreated
-  // function there would re-run the effect every render and loop.
+  // Stable identities, unlike every other method returned here: callers list these in useEffect
+  // dependency arrays, and a recreated function would re-run the effect every render and loop.
   const selectBlock = useCallback(
     (id: string | null) => setSelectedIds(id === null ? [] : [id]),
     []
@@ -125,10 +119,8 @@ export function useTemplateEditor(
   const canUndo = past.length > 0
   const canRedo = future.length > 0
 
-  // Every geometry commit re-derives every group's layout as the bounding union of its (possibly
-  // just-edited) children - the single choke point so a group's box never drifts from its members,
-  // whichever mutator produced the next tree. Reference-stable when nothing changed, so this is a
-  // no-op for the overwhelmingly common document with no group.
+  // The single choke point where normalizeGroups re-derives every group's box from its children, so
+  // a group can never drift from its members whichever mutator produced the next tree.
   const commit = (next: EditorDocument, tag: string | null = null) => {
     const coalesce = tag !== null && tag === lastCommitTagRef.current
 
@@ -188,9 +180,6 @@ export function useTemplateEditor(
     setSelectedIds((current) => current.filter((existing) => existing !== id))
   }
 
-  // Clipboard, duplicate-selection, remove-selection, z-order, and hidden/locked-toggle mutators:
-  // see selectionActions.ts. Recreated every render from the current blocks/bounds/selectedIds, the
-  // same way every other mutator here closes over them.
   const selectionActions = createSelectionActions({
     blocks,
     bounds,
@@ -203,9 +192,8 @@ export function useTemplateEditor(
     commitBlocks(replaceById(blocks, block), coalesceTag)
   }
 
-  // The inline-editor and panel-textarea commit primitive: html arrives already sanitized to the
-  // authored profile by the caller, so this is a plain content write - never a second, less-strict
-  // write path. Defaults to one undo entry per block, matching setBlocksStyle's tag convention.
+  // `html` arrives already sanitized by the caller, so this is a plain content write and never a
+  // second, less-strict write path.
   const setTextContent = (id: string, html: string, tag: string | null = `text:${id}`) => {
     const target = findBlock(blocks, id)?.block
 
@@ -215,9 +203,7 @@ export function useTemplateEditor(
     replaceBlock({ ...target, content: { html } }, tag)
   }
 
-  // The property panel's style write path, single- and multi-selection alike: each edit carries
-  // the member's fully resolved next style (undefined strips the field), and the whole map lands
-  // as one history entry so a multi-selection commit undoes in one step.
+  // The whole map lands as one history entry, so a multi-selection style commit undoes in one step.
   const setBlocksStyle = (edits: ReadonlyMap<string, BlockStyle | undefined>) => {
     let next = blocks
 
@@ -239,9 +225,8 @@ export function useTemplateEditor(
     commitBlocks(next, `style:${[...edits.keys()].join("+")}`)
   }
 
-  // Committing a move: the block takes its desired rectangle, clamped into the content box. Overlap
-  // is legal in the layered model, so no neighbour is displaced. Box children have no canvas
-  // position; their moves are reorders handled by moveBoxChild.
+  // Top-level blocks only: a container child has no canvas position, so its "move" is the reorder
+  // moveFrameChild performs.
   const moveBlockTo = (id: string, x: number, y: number, tag: string | null = null) => {
     const lookup = findBlock(blocks, id)
 
@@ -277,10 +262,7 @@ export function useTemplateEditor(
     return true
   }
 
-  // Moves a set of blocks by a page-space delta in one history entry (the pointer engine's commit
-  // path and every keyboard nudge). The union clamp and per-member floor math is
-  // services/moveMath.ts's resolveMovedBlocks (pure, no React), which returns null for a no-op move
-  // so no meaningless undo entry is pushed.
+  // resolveMovedBlocks returns null for a no-op move, so no meaningless undo entry is pushed.
   const moveBlocks = (ids: readonly string[], delta: Point, tag: string | null = null) => {
     const nextBlocks = resolveMovedBlocks(blockIndex, bounds, ids, delta)
 
@@ -293,10 +275,8 @@ export function useTemplateEditor(
     moveBlocks([id], { x: dxCells * GRID_SIZE, y: dyCells * GRID_SIZE }, `move:${id}`)
   }
 
-  // The shared resize commit primitive: the handle gesture and the panel's width/height fields
-  // both resolve a next reference rect and commit through this one path. The actual set-scale and
-  // frame-constraint math is services/constraints.ts's resolveResizedBlocks (pure, no React), kept
-  // out of this hook so only the commit itself lives here.
+  // The one resize commit path: the handle gesture and the panel's width/height fields both resolve
+  // a next reference rect and land here.
   const resizeBlocks = (
     targets: readonly string[],
     nextReference: Rect,
@@ -309,9 +289,6 @@ export function useTemplateEditor(
     commitBlocks(nextBlocks, tag)
   }
 
-  // Committing a resize from the property panel: the capability table gates which axes each type
-  // resizes, then the gated rect (page-space for a top-level block, local-to-parent for a frame
-  // child) commits through the same resizeBlocks primitive the handle gesture uses.
   const resizeBlockTo = (id: string, desired: Rect, edges: ResizeEdges) => {
     const lookup = findBlock(blocks, id)
 
@@ -328,7 +305,7 @@ export function useTemplateEditor(
     }
 
     // A gated-off axis keeps the block's current geometry, so a width-only type can never commit a
-    // height change (and vice versa).
+    // height change.
     const gatedRect: Rect = {
       ...lookup.block.layout,
       ...(gatedEdges.horizontal ? { x: desired.x, width: desired.width } : {}),
@@ -348,9 +325,8 @@ export function useTemplateEditor(
     resizeBlocks([id], pageRect, `resize:${id}`)
   }
 
-  // The rotate gesture's commit primitive: a shared-center delta applied to the targets' member
-  // set, one history entry. The set math is services/rotateMath.ts's resolveRotatedBlocks (pure,
-  // no React) — the same rotateSetBy the live preview runs, so the preview is the commit.
+  // A shared-center delta, resolved through the same rotateSetBy the live preview runs, so the
+  // preview is the commit.
   const rotateBlocks = (targets: readonly string[], degrees: number, tag: string | null = null) => {
     const nextBlocks = resolveRotatedBlocks(blockIndex, bounds, targets, degrees)
 
@@ -359,7 +335,7 @@ export function useTemplateEditor(
     commitBlocks(nextBlocks, tag)
   }
 
-  // The panel's rotation field: one absolute value applied about each member's own center.
+  // Unlike rotateBlocks, one absolute value about each member's own center, not a shared center.
   const rotateBlocksTo = (
     targets: readonly string[],
     degrees: number,
@@ -390,11 +366,8 @@ export function useTemplateEditor(
     )
   }
 
-  // Shared by groupSelection and wrapInFrame: both wrap the same selected top-level blocks, in the
-  // same parent-local coordinate space, through the same union-and-rebase math
-  // (services/groupBounds.ts's deriveContainerRebase) - the only difference is the container the
-  // caller builds around the result, so the two entry points produce identical child geometry from
-  // an identical selection.
+  // Shared by groupSelection and wrapInFrame so both produce identical child geometry from an
+  // identical selection; only the container the caller builds around the rebase differs.
   const wrapSelectionInContainer = (build: (rebase: ContainerRebase) => Block): string | null => {
     const ids = selectedIds
     const idSet = new Set(ids)
@@ -433,11 +406,8 @@ export function useTemplateEditor(
     return container.id
   }
 
-  // Wraps the selected top-level blocks in a new group, replacing the selection with it. A group
-  // has no independently authored size or style; its layout is the union deriveContainerRebase
-  // just computed, re-derived on every later commit by normalizeGroups. Returns the new group's id
-  // (or null on a refused/empty selection) so a keyboard or context-menu caller can move focus onto
-  // it after the old top-level blocks unmount.
+  // The layout set here is only a seed: normalizeGroups re-derives it on every later commit. The
+  // returned id lets a keyboard or context-menu caller move focus on after the old blocks unmount.
   const groupSelection = (): string | null => {
     return wrapSelectionInContainer((rebase) => ({
       id: crypto.randomUUID(),
@@ -449,10 +419,8 @@ export function useTemplateEditor(
     }))
   }
 
-  // Wraps the selected top-level blocks in a new frame, replacing the selection with it. Unlike a
-  // group, a frame has an authored box and style, and unclipped by default so nothing already
-  // visible disappears on wrap. Returns the new frame's id for the same focus-follow reason as
-  // groupSelection.
+  // Unlike a group, a frame has an authored box and style. Unclipped by default, so nothing already
+  // visible disappears on wrap.
   const wrapInFrame = (): string | null => {
     return wrapSelectionInContainer((rebase) => ({
       id: crypto.randomUUID(),
@@ -464,11 +432,8 @@ export function useTemplateEditor(
     }))
   }
 
-  // Dissolves a group, splicing its children back into whatever held the group (the top level or a
-  // parent container) at the group's own position, converted out of the group's local coordinate
-  // space back into that same space's absolute-to-the-group-origin coordinates. Selection becomes
-  // the freed children. Returns their ids (or null on a refused/no-op call) so a caller can move
-  // focus onto the freed selection once the dissolved group unmounts.
+  // The children are spliced back in at the group's own index, their coordinates converted out of
+  // the group's local space into whatever space held the group.
   const ungroup = (id: string): string[] | null => {
     const lookup = findBlock(blocks, id)
 
@@ -490,8 +455,7 @@ export function useTemplateEditor(
     return freedIds
   }
 
-  // Sets one block's per-axis layout constraints, read by applyFrameResize when its parent frame
-  // resizes; meaningless (ignored) everywhere else. One undo step.
+  // Constraints are read only by applyFrameResize when a parent frame resizes; ignored elsewhere.
   const setConstraints = (id: string, constraints: BlockConstraints) => {
     const target = findBlock(blocks, id)?.block
 
@@ -556,9 +520,7 @@ export function useTemplateEditor(
     replaceBlock(trimmed ? { ...target, name: trimmed } : stripName(target))
   }
 
-  // Reorders a block among its current siblings (top-level array, or a frame's children) to the
-  // given storage index — array order is z-order, so this is the layers panel's drag-reorder
-  // primitive. Moving between different parents is a reparent, not a reorder.
+  // Array order is z-order. Siblings only — moving between parents is reparentBlock, not a reorder.
   const reorderSibling = (id: string, targetIndex: number) => {
     const lookup = findBlock(blocks, id)
 
@@ -645,12 +607,10 @@ export function useTemplateEditor(
     setSavedSnapshot(JSON.stringify(document))
   }
 
-  // Text is resizable on both axes; this only raises a text block's height to the content floor so
-  // it never clips, and never shrinks below the height the user set. Floor syncs bypass the undo
-  // history: they re-derive after any undo/redo anyway, and recording them would create undo steps
-  // that instantly re-apply themselves. While the document is otherwise pristine, the saved snapshot
-  // re-baselines so a legacy template whose stored height is below its measured floor does not open
-  // dirty.
+  // Raises height to the measured content floor, never shrinks below what the user set. Bypasses
+  // the undo history on purpose: the floor re-derives after any undo/redo anyway, so recording it
+  // would create undo steps that instantly re-apply themselves. Re-baselines the saved snapshot
+  // while the document is pristine, so a legacy row below its floor does not open dirty.
   const syncBlockMinHeight = (id: string, minHeight: number) => {
     const lookup = findBlock(blocks, id)
 

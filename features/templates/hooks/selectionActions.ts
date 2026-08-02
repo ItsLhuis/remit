@@ -14,9 +14,8 @@ import {
   type Point
 } from "../services"
 
-// The in-memory clipboards: module-level (not React state, not inside services/) so a copy
-// survives navigating away from and back to the editor within the same session - every editor
-// instance in the tab shares one buffer, exactly like a native OS clipboard.
+// Module-level rather than React state, so a copy survives navigating away and back within the
+// session: every editor instance in the tab shares one buffer, like a native OS clipboard.
 let clipboardBuffer: Block[] | null = null
 let styleClipboardBuffer: { style: BlockStyle | undefined } | null = null
 
@@ -28,11 +27,9 @@ type SelectionActionsContext = {
   setSelection: (ids: readonly string[]) => void
 }
 
-// The context menu's and hotkeys' whole-selection mutators - clipboard, duplicate, remove,
-// z-order, and hidden/locked toggling, every one committing in a single undo entry. Split out of
-// useTemplateEditor.ts to keep that file under the repo's line budget; this stays exactly as much
-// "the hook layer" as the file it was extracted from - a plain factory with no hook calls of its
-// own, re-created every render from useTemplateEditor's current state and setters.
+// The whole-selection mutators, each committing in a single undo entry. A plain factory with no
+// hook calls of its own, re-created every render from useTemplateEditor's current state and
+// setters, split out only to keep that file under the repo's line budget.
 export function createSelectionActions({
   blocks,
   bounds,
@@ -53,10 +50,8 @@ export function createSelectionActions({
     setSelection(selectedIds.filter((id) => !idSet.has(id)))
   }
 
-  // Duplicate generalized to the whole selection: each top-level member clones through the same
-  // fresh-id-and-offset primitive as a single duplicate, folded into one commit. A selected id with
-  // no top-level match contributes nothing, matching duplicateBlockOnCanvas's own silent no-op for
-  // an unknown id.
+  // Each member clones through the same primitive a single duplicate uses, folded into one commit.
+  // A selected id with no top-level match contributes nothing, matching duplicateBlockOnCanvas.
   const duplicateSelection = () => {
     let next = blocks
     const newIds: string[] = []
@@ -84,9 +79,8 @@ export function createSelectionActions({
 
   const hasClipboard = () => clipboardBuffer !== null
 
-  // Plain paste offsets one grid cell from the copied source; "paste here" (anchor supplied by the
-  // context menu's cursor point) places the copied set's bounding box top-left at the cursor
-  // instead, preserving every member's relative offset.
+  // With an anchor ("paste here"), the copied set's bounding box top-left lands at the cursor,
+  // preserving every member's relative offset; without one it offsets a grid cell from the source.
   const pasteClipboard = (anchor?: Point) => {
     if (!clipboardBuffer) return
 
@@ -108,8 +102,8 @@ export function createSelectionActions({
 
   const hasStyleClipboard = () => styleClipboardBuffer !== null
 
-  // Paste style replaces every selected member's style sub-object outright (never merged) -
-  // geometry and content stay untouched, one undo entry for the whole selection.
+  // Replaces each member's style outright rather than merging; geometry and content stay
+  // untouched.
   const pasteStyle = () => {
     if (!styleClipboardBuffer) return
 
@@ -129,12 +123,10 @@ export function createSelectionActions({
     commitBlocks(next)
   }
 
-  // Z-order is sibling array order at whatever depth a block lives - moveSiblingOrder/
-  // moveSiblingGroupToEdge are tree-aware, so a frame child reorders within its own frame exactly
-  // like a top-level block reorders within the page. A step (forward/backward) applies to a single
-  // selected block only - it has no well-defined meaning for an arbitrary multi-member set; an edge
-  // (front/back) applies to the whole selection as one unit when every member shares the same
-  // parent (moveSiblingGroupToEdge itself refuses a mixed-parent set).
+  // Z-order is sibling array order at whatever depth a block lives, so a frame child reorders
+  // within its frame exactly as a top-level block does within the page. A step applies to a single
+  // block only, having no meaning for an arbitrary set; an edge applies to the whole selection when
+  // every member shares a parent, which moveSiblingGroupToEdge itself enforces.
   const commitSiblingStep = (direction: "forward" | "backward") => {
     const id = selectedIds.length === 1 ? selectedIds[0] : undefined
 
@@ -151,9 +143,7 @@ export function createSelectionActions({
     if (next) commitBlocks(next)
   }
 
-  // The context menu's and the hotkey's whole-selection toggle: hidden/locked if any member isn't
-  // yet, otherwise shown/unlocked - a standard multi-select toggle, one undo entry regardless of how
-  // many members it touches.
+  // Standard multi-select toggle: hidden/locked if any member is not yet, otherwise shown.
   const toggleSelectionFlag = (flag: "hidden" | "locked") => {
     if (selectedIds.length === 0) return
 

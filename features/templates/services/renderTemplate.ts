@@ -25,24 +25,14 @@ import { sanitizeTemplateHtml, toPlainText, type SanitizedHtml } from "./sanitiz
 import { blockStyleToCss, pageStyleToCss, rotationToCss } from "./styleCss"
 
 // Pure block -> HTML/text renderer. The same function powers the in-app live preview and the
-// headless-browser PDF job (ADR-0022), so preview and PDF share one HTML/CSS path.
+// headless-browser PDF job (ADR-0022), so preview and PDF share one HTML/CSS path, and the page
+// height comes from getPageHeight - the exact formula the canvas uses.
 //
-// Trust model: a template author is an authenticated owner/assistant whose text-block markup was
-// already reduced to the "authored" whitelist at save time. Merge VALUES may derive from
-// client-entered data, so in html format every substituted value is HTML-escaped before insertion,
-// and the assembled document runs through sanitizeTemplateHtml as the final defense-in-depth pass on
-// both the server render and the client preview. Tokens are substituted by direct dictionary lookup
-// against the per-type whitelist - never evaluated. Image blocks reference an upload id (or the
-// business logo's reserved asset key) the caller resolves to a storage URL via the assets map; the
-// renderer never receives or emits an external image URL. The PDF job additionally renders with
-// external resource loading disabled (ADR-0022).
-//
-// Layout: the page is a relatively positioned fixed-width surface (794px documents, 600px emails)
-// whose height getPageHeight computes from the lowest visible block - the exact formula the canvas
-// uses, which is what makes the preview pixel-identical. Every block is absolutely positioned at
-// its content-box rectangle offset by the page margins. Hidden blocks are skipped in every format.
-// All author-tunable style goes through blockStyleToCss, whose output the "document" sanitize
-// profile whitelists property-by-property.
+// Trust model: authored markup was already reduced to the "authored" whitelist at save time, but
+// merge VALUES may derive from client-entered data, so every substituted value is HTML-escaped and
+// the assembled document runs through sanitizeTemplateHtml as defense in depth. Tokens are
+// substituted by dictionary lookup against the per-type whitelist, never evaluated. Images resolve
+// through the assets map, so the renderer never receives or emits an external image URL.
 
 type RenderTemplateInput = {
   blocks: Block[]
@@ -59,14 +49,13 @@ type RenderBlockInput = {
   assets?: Record<string, string>
 }
 
-// Must default to true: the preview/PDF path never passes it, and its output must stay
+// Must default to true: the preview/PDF path never passes it and its output must stay
 // byte-identical. Only the editor passes false, to render a frame without baking child HTML.
 type RenderContentOptions = {
   includeChildren?: boolean
 }
 
-// The assets-map key the render-data builder stores the business logo's storage URL under
-// (settings.businessLogoUploadId resolved server-side).
+// The reserved assets-map key for the business logo, resolved server-side from settings.
 export const BUSINESS_LOGO_ASSET_KEY = "businessLogo"
 
 const TABLE_CELL_CSS = "padding:4px 8px;border:1px solid #e2e8f0;text-align:left;vertical-align:top"
@@ -81,8 +70,8 @@ export function renderTemplate({
 }: RenderTemplateInput): string {
   const context = createRenderContext(renderData, type, format, assets)
 
-  // Array order is z-order (later renders on top), matching the canvas, which maps blocks in array
-  // order. Do not sort by position — overlap is legal and the DOM/paint order is the layering.
+  // Array order is z-order. Do not sort by position: overlap is legal and paint order is the
+  // layering.
   const visible = blocks.filter((block) => !block.hidden)
 
   if (format === "text") {
@@ -104,9 +93,8 @@ export function renderTemplate({
   return sanitizeTemplateHtml(page, { profile: "document" })
 }
 
-// The canvas editor renders each block's real output through this same path, so what the user
-// arranges is the renderer's markup, never a hand-drawn approximation. The canvas owns the box
-// (position/size/selection); this returns the styled content inside it.
+// The canvas editor renders through this same path, so what the user arranges is the renderer's
+// markup and never an approximation. The canvas owns the box; this is the content inside it.
 export function renderBlockContent(
   block: Block,
   input: RenderBlockInput,
@@ -114,8 +102,7 @@ export function renderBlockContent(
 ): SanitizedHtml {
   const context = createRenderContext(input.renderData, input.type, "html", input.assets ?? {})
 
-  // The shape's fill div already carries its style plus height:100%; the wrapper skips it here too.
-  // A group carries no style of its own.
+  // A shape's fill div already carries its style, and a group has none of its own.
   const styleCss =
     block.type === "shape" || block.type === "group" ? "" : blockStyleToCss(block.style)
   const content = blockContentHtml(block, context, options)
@@ -140,9 +127,8 @@ function absoluteBlockHtml(
     `height:${height}px`
   ].join(";")
 
-  // Shapes own their entire visual on the fill div (see shapeHtml); the wrapper skips block style
-  // so a transparent rounded fill never shows a rectangular background behind it. A group carries
-  // no style of its own.
+  // The wrapper skips a shape's block style, so a transparent rounded fill never shows a
+  // rectangular background behind it. A group has no style of its own.
   const css = [
     positionCss,
     rotationToCss(block.type === "group" ? undefined : block.rotation),
@@ -180,8 +166,8 @@ function blockContentHtml(
   }
 }
 
-// A shape is a styled fill: its background/border/radius live on one 100%-fill div so an ellipse's
-// rounding and its fill are the same element. Ellipse forces border-radius:50% (see ADR / sanitizer).
+// Background, border, and radius live on one 100%-fill div, so an ellipse's rounding and its fill
+// are the same element.
 function shapeHtml(block: Extract<Block, { type: "shape" }>): string {
   const fillCss = [
     "width:100%",
@@ -204,8 +190,8 @@ function resolveImageSource(
   return block.content.uploadId ? context.assets[block.content.uploadId] : undefined
 }
 
-// Manual rows carry authored cell text (escaped, then substituted); a line-items table draws its
-// body from the render data's collection, each column mapped through its lineItem.* binding.
+// A line-items table draws its body from the render data's collection, each column mapped through
+// its lineItem.* binding; manual rows carry authored cell text instead.
 function tableHtml(
   content: Extract<Block, { type: "table" }>["content"],
   context: RenderContext
@@ -250,10 +236,8 @@ function lineItemRowHtml(
   return `<tr>${cells}</tr>`
 }
 
-// A frame is a relatively positioned fill; each child is absolutely positioned at its own rectangle
-// (relative to the frame content origin) in array (z) order, keeping its own authored style. `clip`
-// adds overflow:hidden so children past the frame's edge are clipped. includeChildren:false skips
-// the recursive child markup (the editor's own path, see RenderContentOptions).
+// Children are absolutely positioned relative to the frame's content origin, in array (z) order.
+// includeChildren:false skips the recursive child markup - the editor's own path.
 function frameHtml(
   block: Extract<Block, { type: "frame" }>,
   context: RenderContext,
@@ -278,9 +262,8 @@ function frameHtml(
   return `<div style="${containerCss}">${childHtml}</div>`
 }
 
-// A group is a purely logical container: relatively positioned, no clip, no independent style —
-// each child is absolutely positioned at its own rectangle (relative to the group's origin) in
-// array (z) order, exactly like a frame child.
+// A purely logical container: no clip, no style of its own, children positioned exactly as a
+// frame's are.
 function groupHtml(
   block: Extract<Block, { type: "group" }>,
   context: RenderContext,
@@ -307,8 +290,7 @@ function childBlockHtml(child: Block, context: RenderContext): string {
     `height:${height}px`
   ].join(";")
 
-  // Shapes own their whole visual on the fill div (see shapeHtml); the wrapper skips block style
-  // for them, exactly as the top-level absoluteBlockHtml does. A group carries no style of its own.
+  // Skips a shape's block style exactly as the top-level absoluteBlockHtml does.
   const css = [
     positionCss,
     rotationToCss(child.type === "group" ? undefined : child.rotation),

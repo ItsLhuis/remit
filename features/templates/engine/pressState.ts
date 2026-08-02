@@ -17,12 +17,10 @@ import {
   type RotateUpdate
 } from "./gestures"
 
-// The engine's press-state model plus the small pointer/press helpers that classify raw DOM
-// events. A press arms at pointerdown and carries everything its gesture needs; useCanvasEngine
-// owns the lifecycle and per-frame work.
+// The press-state model plus the helpers that classify raw DOM events. A press arms at pointerdown
+// carrying everything its gesture needs; useCanvasEngine owns the lifecycle and per-frame work.
 
-// A dedicated rotate cursor (CSS has no native one): a small circular-arrow SVG, hotspot at its
-// center, falling back to grab. Shared by the rotate zones and the in-gesture container cursor.
+// CSS has no native rotate cursor, so this is an inline SVG with its hotspot at the center.
 export const ROTATE_CURSOR = `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3C/svg%3E") 8 8, grab`
 
 export type PointerSample = {
@@ -94,16 +92,15 @@ export function pastThreshold(start: Point, event: { clientX: number; clientY: n
   return Math.hypot(event.clientX - start.x, event.clientY - start.y) >= GESTURE_ACTIVATION_DISTANCE
 }
 
-// happy-dom lacks pointer capture; real browsers route every subsequent pointer event to the
-// scroll container until release, so drags never drop when the pointer leaves it.
+// happy-dom lacks pointer capture. Real browsers route every later pointer event to the scroll
+// container until release, so drags never drop when the pointer leaves it.
 export function capturePointer(event: ReactPointerEvent<HTMLDivElement>): void {
   if (typeof event.currentTarget.setPointerCapture === "function") {
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 }
 
-// The direction of the resize handle under a pointerdown target, or null when the press did not
-// land on a handle. LiveOverlay stamps each handle with data-resize-handle="<direction>".
+// LiveOverlay stamps each handle with data-resize-handle="<direction>".
 export function handleDirectionAt(target: EventTarget | null): HandleDirection | null {
   if (!(target instanceof Element)) return null
 
@@ -116,21 +113,16 @@ export function handleDirectionAt(target: EventTarget | null): HandleDirection |
   return ALL_HANDLE_DIRECTIONS.find((candidate) => candidate === direction) ?? null
 }
 
-// Whether a pointerdown landed on one of LiveOverlay's rotate zones (stamped
-// data-rotate-zone), checked before block hit-testing exactly like the resize handles.
+// Checked before block hit-testing, exactly like the resize handles.
 export function isRotateZoneTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest("[data-rotate-zone]") !== null
 }
 
-// A pointerdown landing inside the active inline text-editing surface is native text interaction
-// (placing the caret, selecting a word) and must never arm a gesture — checked before any other
-// press classification. contentEditable is inherited, so every descendant of the editable element
-// matches too. The merge-variable autocomplete popover is part of the same surface but portaled to
-// the document body for CSS-transform reasons, so it carries no inherited isContentEditable and is
-// matched by its own marker instead — without this, React's portal-aware event bubbling still
-// delivers its pointerdown here (portals bubble through the React tree, not the DOM tree), which
-// would call setPointerCapture on the canvas surface and hijack every subsequent pointer event away
-// from the popover mid-click.
+// A pointerdown inside the inline text surface is native text interaction and must never arm a
+// gesture. contentEditable is inherited, so descendants match too - but the autocomplete popover is
+// portaled to the body and carries no inherited flag, so it needs its own marker. Without it React's
+// portal-aware bubbling still delivers the pointerdown here, and the resulting setPointerCapture
+// would hijack every subsequent pointer event away from the popover mid-click.
 export function isTextEditSurfaceTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
 
@@ -141,9 +133,8 @@ export function rectsEqual(a: Rect, b: Rect): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 }
 
-// The one transform the engine ever writes: the frame's translation composed with the member's
-// rotation, in that order (translate in page axes, then rotate about the element's center) —
-// exactly what the committed render produces (CanvasBlock's rotate + the block's rect).
+// The one transform the engine ever writes: translate in page axes, then rotate about the element's
+// center - exactly what the committed render produces.
 export function composeTransform(dx: number, dy: number, rotation: number): string {
   const translate = dx === 0 && dy === 0 ? "" : `translate(${dx}px, ${dy}px)`
   const rotate = rotation === 0 ? "" : `rotate(${rotation}deg)`
@@ -151,9 +142,8 @@ export function composeTransform(dx: number, dy: number, rotation: number): stri
   return [translate, rotate].filter(Boolean).join(" ")
 }
 
-// Clearing an in-flight transform must put back the block's committed rotation (CanvasBlock
-// renders it as the wrapper's inline transform, which every engine write replaced), never a bare
-// "": the caller passes a lookup into the current block index.
+// Never clears to a bare "": CanvasBlock renders the committed rotation as that same inline
+// transform, so the caller passes a lookup into the current block index to restore it.
 export function clearNodeTransforms(
   getNode: (id: string) => HTMLElement | null,
   ids: readonly string[],
@@ -166,8 +156,8 @@ export function clearNodeTransforms(
   }
 }
 
-// A resize writes width/height inline as well as the transform, so cancelling one must put the
-// pre-gesture sizes back (a commit instead lets React's commit render own them).
+// A resize writes width/height inline too, so a cancel must restore the pre-gesture sizes; a commit
+// instead lets React's commit render own them.
 export function restoreNodeRects(
   getNode: (id: string) => HTMLElement | null,
   baseRects: ReadonlyMap<string, Rect>,

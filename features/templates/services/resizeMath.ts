@@ -1,12 +1,8 @@
 import { type Rect } from "./canvasLayout"
 import { rotatePoint, type Point } from "./geometry"
 
-// The resize pipeline, set-first: resolveHandleResize resolves a handle
-// drag into a next reference rectangle; scaleBlockSet maps every member of a set proportionally
-// from a base reference to a next one; clampSetScaleFactors floors the scale so no member drops
-// below the minimum size; isUniformOnly reports when a set must scale uniformly because a member
-// carries rotation. Single-block resize is scaleBlockSet
-// called with a one-member set whose rect equals the reference rect, so it is not a special case.
+// The resize pipeline is set-first: single-block resize is scaleBlockSet called with a one-member
+// set whose rect equals the reference rect, so it is never a special case.
 
 export type HandleDirection = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw"
 
@@ -30,15 +26,10 @@ export type ResizeSetMember = {
 type HorizontalAnchor = "left" | "right" | "center"
 type VerticalAnchor = "top" | "bottom" | "center"
 
-// Pure reference-rectangle resolution for one handle drag. Edge handles resize one axis; corner
-// handles resize both; the opposite edge/corner is the anchor. Shift (aspectLock) locks the aspect
-// ratio captured in baseRect; Alt (centerAnchor) anchors the center so both symmetric edges move
-// together; Shift+Alt combines both. The rect can never invert: the dragged edge stops at the
-// anchor minus the minimum size. At nonzero rotation, the pointer delta is projected into the
-// block's own rotated frame first (local-axes math) so the handle follows its visual direction, and
-// the anchor is re-derived with anchorResizedRectRotated so it stays visually fixed in page space;
-// at rotation 0 this reduces to the exact unrotated path (anchorResizedRect), so every existing
-// caller sees no change.
+// The opposite edge or corner is the anchor, and the rect can never invert: the dragged edge stops
+// at the anchor minus the minimum size. At nonzero rotation the pointer delta is projected into the
+// block's own frame first, so the handle follows its visual direction; at 0 this reduces to the
+// exact unrotated path.
 export function resolveHandleResize(input: ResolveHandleResizeInput): Rect {
   const {
     baseRect,
@@ -67,10 +58,8 @@ export function resolveHandleResize(input: ResolveHandleResizeInput): Rect {
     : anchorResizedRectRotated({ baseRect, rotation, direction, centerAnchor, size })
 }
 
-// Re-derives a resized rect's position from its anchor: the edge/corner opposite the dragged
-// handle (or the center under Alt) stays visually fixed for any width/height. resolveHandleResize
-// ends here, and the gesture layer reuses it to re-anchor after quantizing sizes to the grid or
-// flooring set scale factors, so every size adjustment keeps the same anchor contract.
+// The anchor stays visually fixed for any width/height. The gesture layer re-enters here after
+// quantizing or flooring sizes, so every size adjustment keeps the same anchor contract.
 export function anchorResizedRect(
   baseRect: Rect,
   direction: HandleDirection,
@@ -97,12 +86,9 @@ export function anchorResizedRect(
   }
 }
 
-// The rotated counterpart to anchorResizedRect: works in the block's own rotated frame so the
-// dragged handle's opposite anchor (or the center, under Alt) stays visually fixed in page space,
-// even though the returned rect's x/y/width/height are always the plain unrotated local rectangle.
-// At rotation 0 this reduces algebraically to anchorResizedRect's formula exactly (asserted by a
-// dedicated equivalence test), which is why resolveHandleResize only reaches for this at nonzero
-// rotation.
+// Works in the block's own rotated frame, though the returned rect is always the plain unrotated
+// local rectangle. At rotation 0 it reduces algebraically to anchorResizedRect (asserted by an
+// equivalence test), which is why resolveHandleResize only reaches for it at nonzero rotation.
 export function anchorResizedRectRotated(input: {
   baseRect: Rect
   rotation: number
@@ -135,12 +121,9 @@ export function anchorResizedRectRotated(input: {
   }
 }
 
-// Maps every member's rect proportionally from the base reference rect to the next one: positions
-// scale with the reference origin, sizes scale by the resulting factors. A one-member set whose
-// rect equals baseReference reproduces nextReference exactly (relative offset and scale are both
-// zero/one at that member), which is what makes single-block resize the same primitive as group and
-// multi-selection resize. Nested descendants scale for free as long as their (page-space) rect is
-// included as a member: the same proportional map applies to every member independent of parentage.
+// A one-member set whose rect equals baseReference reproduces nextReference exactly, which is what
+// makes single-block resize the same primitive as group and multi-selection resize. The map is
+// independent of parentage, so nested descendants scale for free once included as members.
 export function scaleBlockSet(
   members: readonly ResizeSetMember[],
   baseReference: Rect,
@@ -159,10 +142,8 @@ export function scaleBlockSet(
       rect: {
         x: nextReference.x + relativeX * scaleX,
         y: nextReference.y + relativeY * scaleY,
-        // Divide before multiplying (member share of base, then applied to next) rather than
-        // multiplying by the precomputed scale: this is what makes a one-member set whose rect
-        // equals baseReference reproduce nextReference exactly (the ratio is exactly 1, not a
-        // value that round-trips through an intermediate division with floating-point error).
+        // Divide before multiplying rather than applying the precomputed scale: the ratio is then
+        // exactly 1 for a member equal to baseReference, with no floating-point round-trip.
         width: (member.rect.width / baseReference.width) * nextReference.width,
         height: (member.rect.height / baseReference.height) * nextReference.height
       },
@@ -173,10 +154,8 @@ export function scaleBlockSet(
   return result
 }
 
-// Floors the requested scale factors so no member's resulting size drops below the minimum: the
-// whole set stops together instead of one member flattening past the minimum and distorting the
-// arrangement. Only ever raises a factor toward 1 (never lowers one below what was requested), so
-// growing is never blocked, only shrinking past the floor.
+// The whole set stops together, instead of one member flattening past the minimum and distorting
+// the arrangement. Only ever raises a factor toward 1, so growing is never blocked.
 export function clampSetScaleFactors(
   members: readonly ResizeSetMember[],
   baseReference: Rect,
@@ -196,16 +175,13 @@ export function clampSetScaleFactors(
   return { scaleX, scaleY }
 }
 
-// True when any member of the set - including nested descendants, which callers must flatten into
-// members - carries nonzero rotation: a non-uniform scale across a
-// rotated rectangle is a shear, which the render/sanitize/PDF pipeline does not support, so the
-// gesture forces uniform scaling for the whole set whenever this is true.
+// A non-uniform scale across a rotated rectangle is a shear, which the render/PDF pipeline does not
+// support, so a rotated member anywhere in the set forces the whole set to scale uniformly.
 export function isUniformOnly(members: readonly ResizeSetMember[]): boolean {
   return members.some((member) => member.rotation !== 0)
 }
 
-// The size the pointer asks for before aspect locking: the dragged edge follows the pointer on
-// each affected axis (doubled under the center anchor, since both symmetric edges move).
+// Doubled under the center anchor, since both symmetric edges move.
 function requestedSize(input: ResolveHandleResizeInput): { width: number; height: number } {
   const { baseRect, direction, pointerDelta, centerAnchor } = input
 
@@ -224,9 +200,8 @@ function requestedSize(input: ResolveHandleResizeInput): { width: number; height
   return { width, height }
 }
 
-// Aspect lock: a corner handle picks the axis with the larger relative movement as dominant and
-// applies its scale to both dimensions; an edge handle (which drives only one axis directly)
-// derives the cross axis from that same scale.
+// A corner handle picks the axis with the larger relative movement and applies its scale to both;
+// an edge handle drives one axis directly and derives the cross axis from that same scale.
 function lockAspect(
   baseRect: Rect,
   direction: HandleDirection,
@@ -263,9 +238,8 @@ function anchoredY(anchor: VerticalAnchor, baseRect: Rect, height: number): numb
   return baseRect.y
 }
 
-// The unrotated point a resize anchors to, expressed as a fraction of the base rect's width/height
-// (0 = left/top, 1 = right/bottom, 0.5 = center) - anchorResizedRectRotated's local-frame
-// equivalent of anchoredX/anchoredY's edge selection.
+// A fraction of the base rect (0 = left/top, 1 = right/bottom, 0.5 = center):
+// anchorResizedRectRotated's local-frame equivalent of anchoredX/anchoredY's edge selection.
 function anchorLocalPoint(rect: Rect, horizontalFraction: number, verticalFraction: number): Point {
   return { x: rect.x + horizontalFraction * rect.width, y: rect.y + verticalFraction * rect.height }
 }

@@ -11,10 +11,8 @@ import { type EditorInteraction } from "../../hooks"
 import { BLOCK_LABEL_KEYS } from "../../labels"
 import { GRID_SIZE, type Block } from "../../schemas"
 
-// Keyboard-gesture bindings for one canvas block, scoped to its focusable surface:
-// arrows nudge one grid cell, Shift+arrows nudge ten whole pixels, Mod+arrows resize
-// through the panel-equivalent commit path, Delete/Backspace remove. Rendered only while the
-// block is interactive, so locked and hidden blocks register nothing.
+// Keyboard bindings for one block, scoped to its focusable surface. Rendered only while the block
+// is interactive, so locked and hidden blocks register nothing.
 
 const NUDGE_LARGE = 10
 
@@ -25,10 +23,8 @@ const ARROW_DELTAS = [
   ["ArrowRight", 1, 0]
 ] as const
 
-// Derives only whether a gesture is active, not the overlay snapshot itself (which
-// changes every drag frame via guides) — useSyncExternalStore bails out of re-rendering while
-// this boolean stays the same, so a block's hotkeys don't re-render per frame like LiveOverlay
-// intentionally does.
+// Derives a boolean rather than the overlay snapshot, which changes every drag frame, so
+// useSyncExternalStore bails out and a block's hotkeys never re-render per frame.
 function hasActiveGesture(interaction: EditorInteraction): boolean {
   return interaction.getOverlay().gesture !== null
 }
@@ -58,8 +54,7 @@ const CanvasBlockHotkeys = ({
 }: CanvasBlockHotkeysProps) => {
   const { t } = useTranslation()
 
-  // Gated so an in-flight gesture's baseRects can't be invalidated by a document commit a
-  // block-level hotkey (arrows/Delete/etc.) would trigger mid-drag.
+  // Gated so a hotkey commit mid-drag cannot invalidate an in-flight gesture's baseRects.
   const gestureActive = useSyncExternalStore(
     interaction.subscribeOverlay,
     () => hasActiveGesture(interaction),
@@ -82,9 +77,7 @@ const CanvasBlockHotkeys = ({
     )
   }
 
-  // Keyboard descend/ascend move the selection; focus must follow onto the newly selected block's
-  // surface so a repeated Enter continues descending one level further each time, and Shift+Enter
-  // works from wherever the selection landed.
+  // Focus must follow the selection, so a repeated Enter keeps descending a level each time.
   const focusBlock = (id: string | null) => {
     if (id === null) return
 
@@ -135,10 +128,8 @@ const CanvasBlockHotkeys = ({
     { hotkey: "Shift+Enter", callback: () => focusBlock(onAscend(block.id)) }
   ]
 
-  // Suspended for the block currently in inline text edit: CanvasBlock unmounts this block's own
-  // `target` button for the same render (replaced by the text editor surface), so the registration
-  // is already inert - disabling explicitly keeps the intent visible rather than relying on that
-  // unmount ordering.
+  // Already inert while inline editing, since CanvasBlock unmounts the `target` button that same
+  // render; disabling explicitly keeps the intent visible rather than relying on that ordering.
   useHotkeys(definitions, {
     target,
     enabled: !gestureActive && interaction.editingTextId !== block.id

@@ -1,6 +1,6 @@
-// Screen-reader announcement channel for canvas gestures. A module-level store keeps the
-// announce call reachable from gesture code and keyboard
-// handlers without prop plumbing; LiveRegion renders the current message into an aria-live node.
+// Screen-reader announcements for canvas gestures. A module-level store keeps announce reachable
+// from gesture and keyboard code without prop plumbing; LiveRegion renders it into an aria-live
+// node.
 
 type AnnouncerListener = () => void
 
@@ -34,11 +34,10 @@ const GESTURE_PROGRESS_INTERVAL_MS = 500
 
 let lastProgressAt = 0
 
-// Gates the per-frame move/resize/rotate/marquee progress announcements to roughly twice a second:
-// screen readers reading every animation frame would be unusable noise, and only one gesture is
-// ever in flight at a time, so a single shared gate is enough. Callers check this before formatting
-// and announcing their translated message, so the (comparatively expensive) translation call itself
-// is skipped on every throttled frame, not just the announcement.
+// Roughly twice a second: a screen reader reading every animation frame would be unusable noise,
+// and only one gesture is ever in flight, so one shared gate is enough. Callers check this before
+// formatting, so the translation call is skipped on a throttled frame too, not just the
+// announcement.
 export function shouldAnnounceGestureProgress(): boolean {
   const now = Date.now()
 
@@ -49,8 +48,7 @@ export function shouldAnnounceGestureProgress(): boolean {
   return true
 }
 
-// Called when a gesture activates so its first progress update is never muted by a throttle
-// window left over from a different, already-finished gesture.
+// So a gesture's first update is never muted by a window left over from an earlier gesture.
 export function resetGestureProgressThrottle(): void {
   lastProgressAt = 0
 }

@@ -123,10 +123,8 @@ export async function updateTemplate(input: unknown): Promise<TemplateMutationRe
     const blocks = sanitizeBlocks(parsed.data.blocks)
     const pageSettings = parsed.data.pageSettings
 
-    // The free canvas can represent out-of-bounds rectangles, so the server never trusts the client:
-    // this pure check rejects any out-of-bounds block set (and a line-items table on a type without
-    // the collection) before anything persists. Overlap is legal in the layered model, so it is not
-    // rejected.
+    // The free canvas can represent out-of-bounds rectangles, so the server never trusts the
+    // client: nothing persists until this pure check passes.
     const layoutValidation = validateLayout(blocks, pageSettings, existing.type)
 
     if (!layoutValidation.valid) return { error: layoutValidationError(layoutValidation.reason) }
@@ -396,13 +394,10 @@ function layoutValidationError(reason: CanvasValidationReason): string {
   }
 }
 
-// Text blocks accept author HTML, but a template author may be a lower-privileged assistant whose
-// markup later renders in the owner's browser and in the PDF/email pipeline. Sanitize at the write
-// boundary through the feature's single sanitizer entry point so no script, event handler, unsafe
-// URL, or <img> (images exist only through the structured image block) is ever persisted - frame
-// children included, to any nesting depth. Merge tokens are plain text and survive sanitization
-// untouched; table headers and cells are plain text the renderer escapes before substitution, so
-// they carry no HTML to sanitize.
+// A template author may be a lower-privileged assistant whose markup later renders in the owner's
+// browser and in the PDF/email pipeline, so text HTML is sanitized at the write boundary - frame
+// children included, to any depth. Merge tokens survive untouched, and table cells are plain text
+// the renderer escapes before substitution, so they carry no HTML to sanitize.
 function sanitizeBlocks(blocks: Blocks): Blocks {
   return blocks.map(sanitizeBlock)
 }
@@ -422,9 +417,8 @@ function sanitizeBlock(block: Block): Block {
   return block
 }
 
-// Uploads carry no ownership column by design (single-instance, ADR/security rules), so the
-// authorization boundary is the authenticated write gate plus row existence: a template may only
-// reference an uploads row that actually exists (frame-children images included, to any depth).
+// Uploads carry no ownership column by design, so the authorization boundary is the authenticated
+// write gate plus row existence, checked to any nesting depth.
 async function findMissingImageUpload(blocks: Blocks): Promise<string | null> {
   const uploadIds = flattenBlocks(blocks)
     .map((block) => (block.type === "image" ? block.content.uploadId : null))

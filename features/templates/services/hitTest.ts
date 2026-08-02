@@ -7,11 +7,10 @@ import {
 import { type Rect } from "./canvasLayout"
 import { pointInRotatedRect, rectsIntersectRotated, type Point } from "./geometry"
 
-// Canvas hit-testing over the normalized index: ids under a canvas point, topmost first. Paint
-// order is sibling array order (later paints on top) and children paint above their own
-// container, so the walk visits siblings top-down and each container's children before the
-// container itself. Hidden blocks never hit (their subtrees included); locked blocks are skipped
-// unless the caller opts in (reparent targeting keeps parity with the legacy drop behavior).
+// Ids under a canvas point, topmost first. Paint order is sibling array order and children paint
+// above their container, so the walk visits siblings top-down and each container's children first.
+// Hidden subtrees never hit; locked blocks are skipped unless the caller opts in, which reparent
+// targeting does for parity with the legacy drop behavior.
 
 export type HitTestOptions = {
   includeLocked?: boolean
@@ -36,16 +35,12 @@ export function topLevelAncestorAt(index: BlockIndex, point: Point): string | nu
 }
 
 export type MarqueeOptions = {
-  // Ctrl/Cmd-marquee: catches nested children (the deepest intersecting node per branch) instead
-  // of top-level blocks only.
+  // Ctrl/Cmd-marquee catches the deepest intersecting node per branch, not top-level blocks.
   nested: boolean
 }
 
-// Marquee hit-collection over the normalized index: every block (locked excluded, hidden subtrees
-// excluded, matching ordinary hit-testing) whose page rect intersects the marquee rect. The
-// default mode keeps only top-level blocks; nested mode walks every depth and keeps only the
-// deepest intersecting node per branch, so a container is reported only where none of its own
-// descendants also intersect.
+// Same locked/hidden rules as ordinary hit-testing. Nested mode keeps the deepest intersecting node
+// per branch, so a container is reported only where none of its descendants also intersect.
 export function blocksInMarquee(
   index: BlockIndex,
   marqueeRect: Rect,
@@ -71,8 +66,7 @@ export function blocksInMarquee(
   )
 }
 
-// Hidden never hits at any depth: a visible child of a hidden container is not painted, so the
-// marquee must not catch it — the same subtree rule collectHits applies by pruning its walk.
+// A visible child of a hidden container is not painted, so the marquee must not catch it.
 function inHiddenSubtree(index: BlockIndex, id: string): boolean {
   return ancestorChainOf(index, id).some(
     (ancestorId) => index.get(ancestorId)?.block.hidden === true

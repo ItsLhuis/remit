@@ -1,10 +1,7 @@
-// Numeric property-panel fields (position, size, rotation, spacing) accept either a plain number or
-// a small arithmetic expression: +, -, *, / only, standard precedence, left-to-right associativity,
-// no parentheses (not needed by any documented field). A leading "+" or "-" is relative to the
-// field's current committed value ("+10" adds 10 to it); every other expression is absolute and
-// evaluated on its own ("240/2", "10*3-8"). Malformed input returns null so the caller can revert
-// to the current value instead of committing a partial or NaN result. No eval/Function - a real
-// tokenizer/recursive-descent parser.
+// Numeric property-panel fields accept a plain number or a small arithmetic expression: +, -, *, /
+// with standard precedence and no parentheses. A leading "+" or "-" is relative to the field's
+// current value; everything else is absolute. Malformed input returns null so the caller reverts
+// rather than committing NaN. No eval/Function - a real tokenizer and parser.
 
 type Token = { type: "number"; value: number } | { type: "operator"; value: "+" | "-" | "*" | "/" }
 
@@ -130,10 +127,8 @@ function evaluateExpression(source: string): number | null {
   return result !== null && Number.isFinite(result) ? result : null
 }
 
-// A leading "+" or "-" makes the expression relative to the field's current value (prepending it
-// before parsing, so standard precedence still applies to the rest: "+10*2" is current + 10*2, not
-// (current + 10) * 2). A relative expression with no current value (the multi-selection "Mixed"
-// placeholder) is rejected - there is nothing to be relative to.
+// The current value is prepended before parsing, so precedence still applies to the rest: "+10*2"
+// is current + 10*2, never (current + 10) * 2. Rejected with no current value to be relative to.
 export function evaluateFieldExpression(raw: string, current: number | null): number | null {
   const trimmed = raw.trim()
 

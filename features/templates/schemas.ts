@@ -51,13 +51,11 @@ export const TEMPLATE_TYPES = [
 
 export const BLOCK_TYPES = ["text", "image", "table", "frame", "group", "shape"] as const
 
-// The block types the "add empty block" palette offers: every persisted type except group, which
-// has no independently authored content and can only be created by grouping an existing selection.
+// Every persisted type except group, which can only be created by grouping an existing selection.
 export type AddableBlockType = Exclude<(typeof BLOCK_TYPES)[number], "group">
 
-// The block types the add-child palette offers inside a frame: leaves plus a nested frame, bounded
-// to FRAME_MAX_DEPTH container levels by a depth walk on the write path. The write union admits any
-// block as a frame child (reparent can drag any block in); this is only the click-to-add subset.
+// Only the click-to-add subset: the write union admits any block as a frame child, since reparent
+// can drag any block in.
 export const FRAME_CHILD_TYPES = ["text", "image", "shape", "frame"] as const
 
 export const TEMPLATE_FONT_KEYS = ["sans", "serif", "mono"] as const
@@ -84,8 +82,7 @@ export const BLOCK_CAPABILITIES = {
   image: { resizableAxes: "both" },
   table: { resizableAxes: "both" },
   frame: { resizableAxes: "both" },
-  // A group is resizable, but resizing one always means scaling its members through the shared
-  // set-scale primitive (services/resizeMath.ts) - a group never authors an independent size.
+  // A group is resizable only in the sense that its members scale; it authors no size of its own.
   group: { resizableAxes: "both" },
   shape: { resizableAxes: "both" }
 } as const satisfies Record<(typeof BLOCK_TYPES)[number], BlockCapability>
@@ -107,26 +104,19 @@ export const renameBlockSchema = z.object({ name: blockNameSchema })
 
 export type RenameBlockValues = z.infer<typeof renameBlockSchema>
 
-// Position (x/y) is a whole page pixel, not constrained to the grid: dragging with Alt held places
-// a block off-grid (grid snapping is the default the editor applies, not a persistence rule). A
-// top-level block's position below 0 is rejected at save time by validateLayout
-// (services/canvasLayout.ts, which needs the template type and margins this schema cannot see) -
-// every interactive path (drag, resize, rotate, nudge, panel field, paste) clamps a top-level block
-// into the page bounds before it ever commits, so validateLayout's reject is a backstop against
-// malformed data, not a normal-path outcome; a container child's position may be negative (it has
-// dragged partially outside its frame or group, which clips or shows the overflow), so the schema
-// floor stays symmetric rather than per-position-in-tree.
+// Grid snapping is an editor default, not a persistence rule, so a whole pixel is the only floor
+// here: Alt-drag places off-grid legitimately. The floor stays symmetric rather than
+// per-position-in-tree because a container child may sit at a negative offset, having been dragged
+// partially outside its frame.
 const coordinateSchema = z
   .number()
   .int(i18n.t("templates.validation.layoutInvalid"))
   .min(-CANVAS_MAX_HEIGHT, i18n.t("templates.validation.layoutInvalid"))
   .max(CANVAS_MAX_HEIGHT, i18n.t("templates.validation.layoutInvalid"))
 
-// Width/height are whole pixels with no grid-multiple constraint: proportional set scaling (group
-// and multi-selection resize) cannot preserve both member proportions and grid-multiple
-// sizes, so grid alignment is the editor's default snap behavior, not a storage invariant. Single-
-// block handle resize still snaps to the grid by default; clampRectToBounds and the normalizeBlocks
-// migrators keep quantizing on their own paths regardless of what this schema accepts.
+// No grid-multiple constraint: proportional set scaling cannot preserve both member proportions
+// and grid-multiple sizes, so grid alignment stays an editor default rather than a stored
+// invariant.
 const blockWidthSchema = z
   .number()
   .int(i18n.t("templates.validation.sizeInvalid"))
@@ -139,8 +129,7 @@ const blockHeightSchema = z
   .min(MIN_BLOCK_HEIGHT, i18n.t("templates.validation.sizeInvalid"))
   .max(CANVAS_MAX_HEIGHT, i18n.t("templates.validation.sizeInvalid"))
 
-// A table column's width stays grid-aligned: columns are never scaled through the set-scale
-// primitive, so the persistence relaxation above does not apply to them.
+// Columns never go through set scaling, so the relaxation above does not apply to them.
 const tableColumnWidthSchema = z
   .number()
   .int(i18n.t("templates.validation.sizeInvalid"))
@@ -148,10 +137,9 @@ const tableColumnWidthSchema = z
   .max(BLOCK_WIDTH_MAX, i18n.t("templates.validation.sizeInvalid"))
   .multipleOf(GRID_SIZE, i18n.t("templates.validation.sizeInvalid"))
 
-// A block's position is an absolute rectangle inside the page's content box (page minus margins),
-// in whole page pixels (grid-snapped by default, off-grid when placed with Alt). Overlap is legal
-// (layered z-order); staying in-bounds is the one hard invariant, rejected on save by validateLayout
-// in services/canvasLayout.ts (which needs the template type and margins this schema cannot see).
+// An absolute rectangle in the page's content box. Overlap is legal (z-order is array order);
+// staying in bounds is the one hard invariant, and it is enforced by validateLayout in
+// services/canvasLayout.ts, which sees the template type and margins this schema cannot.
 export const blockLayoutSchema = z.object({
   x: coordinateSchema,
   y: coordinateSchema,
@@ -161,13 +149,9 @@ export const blockLayoutSchema = z.object({
 
 export type BlockLayout = z.infer<typeof blockLayoutSchema>
 
-// A block's rotation about its own rect's center: finite degrees (z.number() rejects NaN/Infinity)
-// normalized to [0, 360), the range services/geometry.ts's normalizeDegrees produces and the
-// handle-cursor bucketing assumes. A sibling of layout, never folded into it, so every rect-only
-// consumer keeps working in plain axis-aligned rects (matching BlockIndexEntry.rotation and
-// ResizeSetMember.rotation). Optional like style/constraints: absent means 0, applied by readers.
-// A group never rotates itself - groupBaseShape has no field for it; normalizeGroups always
-// re-derives a group's box as the union of its children.
+// Normalized to [0, 360), the range services/geometry.ts's normalizeDegrees produces and the
+// handle-cursor bucketing assumes. A sibling of layout and never folded into it, so every rect-only
+// consumer keeps working in plain axis-aligned rects. Absent means 0, applied by readers.
 const rotationInvalidMessage = i18n.t("templates.validation.layoutInvalid")
 const rotationSchema = z.number().min(0, rotationInvalidMessage).lt(360, rotationInvalidMessage)
 
@@ -230,8 +214,7 @@ const textContentSchema = z.object({
   })
 })
 
-// Images resolve through the assets map only: an uploads-row id, or the business logo upload from
-// settings. No URL is ever stored.
+// Resolved through the assets map only - an uploads-row id or the settings logo. No URL is stored.
 const imageContentSchema = z.object({
   source: z.enum(["upload", "businessLogo"]),
   uploadId: z.uuid(i18n.t("templates.validation.imageUploadInvalid")).nullable(),
@@ -289,9 +272,8 @@ const tableRowSchema = z.object({
 
 export type TableRow = z.infer<typeof tableRowSchema>
 
-// Manual tables are author-controlled grids (cells may hold scalar merge tokens); line-items
-// tables bind every column to a lineItem.* field and their body rows populate from the document's
-// real items at render time.
+// A line-items table binds every column to a lineItem.* field and populates its body rows from the
+// document at render time; a manual table's cells are authored, holding at most a scalar token.
 const tableContentSchema = z
   .object({
     source: z.enum(["manual", "lineItems"]),
@@ -321,9 +303,8 @@ const tableContentSchema = z
     })
   })
 
-// Per-child layout constraints: meaningful only for a frame's direct children (services/constraints
-// .ts's applyFrameResize reads them when the frame resizes); absent on every other block, where it
-// defaults to "start"/"start" (pin top-left, today's resize behavior).
+// Read only by services/constraints.ts's applyFrameResize, for a frame's direct children. Absent
+// everywhere else, where it defaults to "start"/"start".
 export const blockConstraintsSchema = z.object({
   horizontal: z.enum(["start", "end", "center", "stretch", "scale"]),
   vertical: z.enum(["start", "end", "center", "stretch", "scale"])
@@ -342,8 +323,8 @@ const blockBaseShape = {
   style: blockStyleSchema.optional()
 }
 
-// A group carries no style and no independent size: its layout rectangle is always
-// re-derived as the bounding union of its children (services/groupBounds.ts), never authored.
+// A group's layout is always re-derived from its children by services/groupBounds.ts, never
+// authored, and it carries no style.
 const groupBaseShape = {
   id: blockIdSchema,
   name: blockNameSchema,
@@ -358,11 +339,9 @@ const leafBlockSchemas = [
   z.object({ ...blockBaseShape, type: z.literal("image"), content: imageContentSchema })
 ] as const
 
-// A frame is a container of absolute-positioned children: each child keeps its own x/y (relative to
-// the frame's content origin), width, and height, and its array index is its z-order. Children may
-// be any block — including a nested frame — so a block dragged in keeps its type; nesting recurses
-// through the getters below (Zod 4 recursive objects) and is bounded to FRAME_MAX_DEPTH container
-// levels by the depth walk on blocksSchema, so unbounded recursion can never reach the write path.
+// Children are absolutely positioned relative to the frame's content origin, and may be any block
+// including a nested frame - the getters below are Zod 4 recursive objects, bounded to
+// FRAME_MAX_DEPTH by blocksSchema's depth walk so unbounded recursion cannot reach the write path.
 const frameBlockSchema = z.object({
   ...blockBaseShape,
   type: z.literal("frame"),
@@ -383,10 +362,8 @@ const frameContentSchema = z.object({
 export type FrameContent = z.infer<typeof frameContentSchema>
 export type FrameBlock = z.infer<typeof frameBlockSchema>
 
-// A group is a purely logical container: no style, no clip, no independently authored size.
-// Children keep their own x/y exactly like frame children (relative to the group's own origin);
-// the group's own layout re-derives as their bounding union after every edit
-// (services/groupBounds.ts's normalizeGroups), so it is never set by hand.
+// A purely logical container: no style, no clip. Children are positioned relative to the group's
+// own origin, exactly like frame children.
 const groupBlockSchema = z.object({
   ...groupBaseShape,
   type: z.literal("group"),
@@ -420,14 +397,11 @@ export const blockSchema = z.discriminatedUnion("type", [...blockMemberSchemas])
 export type Block = z.infer<typeof blockSchema>
 export type BlockType = Block["type"]
 
-// The block variants that carry a style property: every type except group, which is styleless by
-// design. The property panel's style sections (spacing/appearance/typography) accept only this
-// narrower type, matching BLOCK_PROPERTY_GROUPS.group = [] (they are never rendered for a group).
+// Every type except group. The property panel's style sections accept only this narrower type,
+// matching BLOCK_PROPERTY_GROUPS.group = [].
 export type StyledBlock = Exclude<Block, GroupBlock>
 
-// A frame or group's children may include frames and groups, bounded to FRAME_MAX_DEPTH container
-// levels — enforced here by an explicit depth walk so a pathologically deep payload is rejected
-// before it can be persisted.
+// An explicit depth walk, so a pathologically deep payload is rejected before it can be persisted.
 function containerContentDepth(content: FrameContent | GroupContent): number {
   return (
     1 +
@@ -461,11 +435,10 @@ export const blocksSchema = z.array(blockSchema).superRefine((blocks, context) =
 
 export type Blocks = z.infer<typeof blocksSchema>
 
-// Stored rows may predate the free-canvas model in three generations: the original list model
-// (frameless rows, no layout), the legacy freeform-canvas model (per-block frame, no layout), and
-// the constrained document-flow model ((row, column) layouts, plus the structured domain types and
-// the heading primitive that shipped within it). Reads parse with this tolerant schema and
-// normalize through normalizeBlocks; the strict blocksSchema stays the only write-path shape.
+// Stored rows may predate the free-canvas model in three generations: the list model (no layout),
+// the freeform-canvas model (per-block frame, no layout), and the document-flow model ((row,
+// column) layouts, structured domain types, the heading primitive). Reads parse with this tolerant
+// schema and normalize through normalizeBlocks; strict blocksSchema stays the only write shape.
 const legacyFrameSchema = z.object({
   x: z.number().int().min(0).max(4000),
   y: z.number().int().min(0).max(4000),
@@ -501,8 +474,7 @@ const storedBlockBaseShape = {
   frame: legacyFrameSchema.optional()
 }
 
-// Structured members keep only the user-authored string the migration preserves; every other field
-// (presentation toggles) is stripped by the object parse and dropped.
+// Only the user-authored string survives the migration; presentation toggles are dropped.
 const storedHeadingContentSchema = z.object({
   text: z.string(),
   level: z.union([z.literal(1), z.literal(2), z.literal(3)])

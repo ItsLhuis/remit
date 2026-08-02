@@ -3,10 +3,9 @@ import { type Block, type BlockLayout } from "../schemas"
 import { type Rect } from "./canvasLayout"
 import { type Point } from "./geometry"
 
-// The normalized runtime view of the persisted block tree: one entry per block
-// with absolute page-space geometry and parentage, so hit-testing, selection, and gesture math
-// never re-walk the tree. Commits convert back through toTree/updateRects, so the persisted tree
-// shape never changes.
+// The normalized runtime view of the persisted tree: one entry per block with absolute page-space
+// geometry and parentage, so hit-testing, selection, and gesture math never re-walk the tree.
+// Commits convert back through toTree/updateRects, so the persisted shape never changes.
 
 export type BlockIndexEntry = {
   block: Block
@@ -28,9 +27,8 @@ export function buildIndex(blocks: readonly Block[]): BlockIndex {
   return entries
 }
 
-// Inverse of buildIndex: rebuilds the persisted tree from the entries. Container blocks re-derive
-// their children arrays from childIds so replaced child blocks surface; untouched leaves keep
-// their identity.
+// Containers re-derive their children from childIds so replaced children surface; untouched leaves
+// keep their identity.
 export function toTree(index: BlockIndex): Block[] {
   return [...index.values()]
     .filter((entry) => entry.parentId === null)
@@ -38,9 +36,8 @@ export function toTree(index: BlockIndex): Block[] {
     .map((entry) => rebuildBlock(index, entry))
 }
 
-// Applies page-space rectangle edits and returns the tree with them applied. A nested edit is
-// converted to parent-local coordinates against the parent's (possibly also edited) page rect,
-// so a frame and its children may move in one commit without their offsets drifting.
+// A nested edit converts to parent-local coordinates against the parent's own (possibly also
+// edited) rect, so a frame and its children can move in one commit without their offsets drifting.
 export function updateRects(index: BlockIndex, edits: ReadonlyMap<string, Rect>): Block[] {
   return [...index.values()]
     .filter((entry) => entry.parentId === null)
@@ -55,9 +52,7 @@ export function topLevelAncestorOf(index: BlockIndex, id: string): string | null
   return top ?? null
 }
 
-// The keyboard descend target one level into id: a container's topmost child (childIds is z-order,
-// last = top of stack), or null when id is not a container or has no children (already the
-// deepest).
+// The container's topmost child - childIds is z-order, so last is top of stack.
 export function descendInto(index: BlockIndex, id: string): string | null {
   const entry = index.get(id)
 
@@ -68,12 +63,9 @@ export function descendInto(index: BlockIndex, id: string): string | null {
   return childIds[childIds.length - 1] ?? null
 }
 
-// The member id set a resize operates on: a sole frame target resizes only its own authored box
-// (its children apply constraints separately - services/constraints.ts's applyFrameResize); every
-// other target set (a leaf, a group, or a multi-selection) flattens each target's full descendant
-// subtree into the set, so containers scale as one unit with their contents through the shared
-// scale primitive. Shared by the engine's live preview (gestures.ts) and the document-store
-// commit (useTemplateEditor.ts) so both entry points resolve the same set.
+// A sole frame target resizes only its own box, its children reflowing through applyFrameResize
+// instead; every other target set flattens its full descendant subtree in, so containers scale as
+// one unit. Shared by the live preview and the commit, so both resolve the same set.
 export function collectResizeMemberIds(index: BlockIndex, targets: readonly string[]): string[] {
   const soleId = targets.length === 1 ? targets[0] : undefined
 
@@ -100,11 +92,9 @@ function collectDescendantIds(index: BlockIndex, id: string, into: Set<string>):
   }
 }
 
-// The page rect of the block's nearest enclosing frame, or null when no frame encloses it. A frame
-// is an authored box that pins its children non-negative; a group is a derived bounding union that
-// must be free to grow in every direction, so it is transparent here. A block with no enclosing
-// frame - top level, or nested only in groups - is therefore bounded by the page, exactly like a
-// top-level block, and one inside a frame is bounded by that frame instead and never by the page.
+// A group is transparent here: it is a derived union that must be free to grow in every direction,
+// while a frame is an authored box that pins its children non-negative. So a block nested only in
+// groups is page-bounded like a top-level one, and a frame child is bounded by the frame alone.
 export function enclosingFrameRect(index: BlockIndex, id: string): Rect | null {
   const [, ...ancestors] = ancestorChainOf(index, id)
 
@@ -117,8 +107,7 @@ export function enclosingFrameRect(index: BlockIndex, id: string): Rect | null {
   return null
 }
 
-// The block's ancestry from itself up to its top-level ancestor: [id, parent, ..., topLevel].
-// Unknown ids yield an empty chain.
+// [id, parent, ..., topLevel]. An unknown id yields an empty chain.
 export function ancestorChainOf(index: BlockIndex, id: string): string[] {
   const chain: string[] = []
 
@@ -156,8 +145,7 @@ function visit(
       parentId: context.parentId,
       childIds: children.map((child) => child.id),
       pageRect,
-      // A group never carries its own rotation (groupBounds.ts's normalizeGroups always
-      // re-derives its box from its children's union); every other type defaults to 0.
+      // A group never carries rotation - normalizeGroups re-derives its box from its children.
       rotation: block.type === "group" ? 0 : (block.rotation ?? 0),
       depth: context.depth,
       siblingIndex
@@ -201,8 +189,8 @@ function rebuildWithEdits(
 ): Block {
   const { block } = entry
   const edit = edits.get(block.id)
-  // An unedited block keeps its local layout, so it travels with an edited parent; an edited
-  // block converts its page-space rect against the parent's already-updated origin.
+  // An unedited block keeps its local layout and so travels with an edited parent; an edited one
+  // converts against the parent's already-updated origin.
   const layout: BlockLayout = edit
     ? {
         x: edit.x - parentOrigin.x,

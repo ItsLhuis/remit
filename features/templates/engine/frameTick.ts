@@ -44,13 +44,10 @@ export type UseCanvasEngineOptions = {
   onMarqueeCancel: () => void
 }
 
-// Per-frame pointermove work: turns the current press plus the latest pointer sample into this
-// frame's geometry and writes it straight to the registered block nodes, at most once per rAF
-// tick, zero document-store round trips. Every function here takes the already-dereferenced
-// options and press state as plain arguments (never a React ref) so it can be called from
-// useCanvasEngine's event-handler closures with no ref crossing the module boundary.
-// useCanvasEngine owns the refs, classification, arming, and commit; this module owns only what
-// happens between pointerdown and pointerup, once per frame.
+// Turns the current press plus the latest pointer sample into this frame's geometry and writes it
+// straight to the registered block nodes, at most once per rAF tick with no document-store round
+// trip. Every function takes already-dereferenced arguments rather than a React ref, so no ref
+// crosses the module boundary: useCanvasEngine owns the refs, classification, arming, and commit.
 
 export function contentPointAt(
   opts: UseCanvasEngineOptions,
@@ -63,8 +60,7 @@ export function contentPointAt(
   return toContentPoint(sample, page, opts.editor.zoom, opts.editor.pageSettings.margins)
 }
 
-// Every gesture-driven overlay update preserves the layers panel's hover highlight — a gesture
-// in progress and a hovered row are independent bits of ephemeral UI state.
+// A gesture in progress and a hovered layers row are independent bits of ephemeral state.
 export function setGestureOverlay(
   opts: UseCanvasEngineOptions,
   patch: Omit<InteractionOverlay, "hoveredId" | "rotationBadge"> & { rotationBadge?: number | null }
@@ -160,9 +156,9 @@ export function runMoveFrame(
       })
     : []
 
-  // liveRects stays null for a move: handles are hidden during it, so nothing overlay-visible
-  // depends on the per-frame rects, and a fresh Map here would re-render LiveOverlay every
-  // frame — breaking the zero-React-commits-per-frame invariant the move path guarantees.
+  // Null for a move: handles are hidden during one, so nothing overlay-visible needs the per-frame
+  // rects, and a fresh Map would re-render LiveOverlay and break the zero-commits-per-frame
+  // invariant the move path guarantees.
   setGestureOverlay(opts, { gesture: press.gesture, guides, liveRects: null, marquee: null })
 
   const lead = press.ids[0] === undefined ? undefined : update.rects.get(press.ids[0])
@@ -170,8 +166,8 @@ export function runMoveFrame(
   if (lead) opts.onMoveProgress(press.ids, { x: lead.x, y: lead.y })
 }
 
-// Per-frame marquee math: the live rect only, in the same content-space coordinates as every
-// block's pageRect, so LiveOverlay can position it exactly like the hover/gesture chrome.
+// In the same content-space coordinates as every block's pageRect, so LiveOverlay positions it
+// exactly like the rest of the chrome.
 export function runMarqueeFrame(
   opts: UseCanvasEngineOptions,
   press: Extract<PressState, { kind: "empty" }>,
@@ -190,8 +186,8 @@ export function runMarqueeFrame(
   opts.onMarqueeProgress(candidates.length)
 }
 
-// Per-member DOM writes for a live resize: position via transform against the base rect (the
-// same channel a move uses) and size via inline width/height. Zero React commits per frame.
+// Position via transform against the base rect, the same channel a move uses, and size via inline
+// width/height. Zero React commits per frame.
 export function applyResizeRects(
   opts: UseCanvasEngineOptions,
   press: Extract<PressState, { kind: "resize" }>,
@@ -262,9 +258,8 @@ export function resolveRotateUpdateAt(
   })
 }
 
-// Per-frame rotate work: every member's next rect and rotation from the same rotateSetBy the
-// commit runs, written as translate+rotate transforms; the badge shows the sole member's absolute
-// angle for a single-member set, else the set's applied delta.
+// Runs the same rotateSetBy the commit runs. The badge shows a sole member's absolute angle, or
+// the set's applied delta for a multi-member set.
 export function runRotateFrame(
   opts: UseCanvasEngineOptions,
   press: Extract<PressState, { kind: "rotate" }>,

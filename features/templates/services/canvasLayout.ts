@@ -13,14 +13,10 @@ import {
 import { rotatedAabb } from "./geometry"
 import { getTemplateCategory, supportsLineItems } from "./templateCategories"
 
-// All free-canvas geometry lives here so components never inline positioning logic. A block's
-// position is an absolute grid-quantized rectangle inside the page's content box (page minus
-// margins). Blocks may overlap freely — the model is layered (z-order is array order) — so the one
-// remaining hard invariant is staying in bounds: every move/resize clamps into the
-// content box through these pure functions, and validateLayout rejects only an out-of-bounds block
-// set (or a line-items table on a type without the collection) at save time. Units are CSS pixels in
-// the page coordinate space: documents compose at A4 print width (794px @96dpi, at least one page
-// tall), emails at an email-safe 600px; the page grows downward with content.
+// All free-canvas geometry, so components never inline positioning logic. Blocks may overlap
+// freely (the model is layered, z-order is array order), leaving staying in bounds as the one hard
+// invariant. Units are CSS pixels in page space: documents at A4 print width (794px @96dpi), emails
+// at an email-safe 600px, the page growing downward with content.
 
 export const DOCUMENT_PAGE_WIDTH = 794
 export const DOCUMENT_MIN_PAGE_HEIGHT = 1123
@@ -40,8 +36,7 @@ export type Size = {
   height: number
 }
 
-// The content box the blocks live in: page width minus horizontal margins (floored to the grid)
-// by the maximum canvas height. Vertical margins apply outside this box.
+// Vertical margins apply outside this box, so only the horizontal ones narrow it.
 export type ContentBounds = Size
 
 export type ResizeEdges = {
@@ -87,9 +82,8 @@ export function getContentBounds(
   return { width: Math.floor(width / GRID_SIZE) * GRID_SIZE, height: CANVAS_MAX_HEIGHT }
 }
 
-// The rendered page height: one full page minimum for documents (an editor-visible minimum for
-// emails), growing with the lowest visible block. The canvas and the renderer both size the page
-// through this function, which is what makes the preview pixel-identical to the canvas.
+// The canvas and the renderer both size the page through this, which is what makes the preview
+// pixel-identical to the canvas.
 export function getPageHeight(
   blocks: readonly Block[],
   type: TemplateType,
@@ -119,10 +113,8 @@ export function quantizeToGrid(value: number): number {
   return Math.round(value / GRID_SIZE) * GRID_SIZE || 0
 }
 
-// The content floor for a text block: the smallest whole-cell height that fully contains the
-// rendered text at its current width. A text block is freely resizable on both axes, but its stored
-// height is raised to this floor so content never clips; the stored rect stays concrete for
-// collision, page height, and save-time validation.
+// The smallest whole-cell height that fully contains the rendered text at its current width. Text
+// is freely resizable, but its stored height is raised to this floor so content never clips.
 export function contentMinHeight(measured: number): number {
   return Math.max(Math.ceil(measured / GRID_SIZE) * GRID_SIZE, MIN_BLOCK_HEIGHT)
 }
@@ -141,10 +133,8 @@ export function clampRectToBounds(rect: Rect, bounds: ContentBounds): Rect {
   return { x, y, width, height }
 }
 
-// A move commit's clamp: unlike clampRectToBounds, this never re-quantizes x/y. Grid snapping is
-// already applied upstream by the drag modifier (and skipped when Alt is held), so re-quantizing
-// here would undo an intentional off-grid placement. The incoming x/y are already whole pixels;
-// this only keeps the block inside the content box.
+// Unlike clampRectToBounds, never re-quantizes x/y: snapping is applied upstream by the drag
+// modifier and skipped under Alt, so quantizing here would undo an intentional off-grid placement.
 export function clampMoveRect(layout: Rect, x: number, y: number, bounds: ContentBounds): Rect {
   const clampedX = Math.min(Math.max(Math.round(x), 0), bounds.width - layout.width)
   const clampedY = Math.min(Math.max(Math.round(y), 0), bounds.height - layout.height)
@@ -159,12 +149,9 @@ export type ResizeClampLimits = {
   bottom?: number
 }
 
-// The resize-flavored page clamp: an edge past the content bounds is pulled to
-// the bound and the size shrinks, so the anchored side never moves - unlike clampRectToBounds,
-// which preserves size and translates the rect (correct for a move, wrong for a resize).
-// Non-quantizing on purpose: set scaling must not re-impose grid multiples on scaled sizes;
-// single-block callers quantize sizes before clamping. Reports each bound actually hit so the
-// overlay can draw its limit guide lines.
+// The resize flavour: shrinks rather than translating, so the anchored side never moves - unlike
+// clampRectToBounds, which preserves size and is correct only for a move. Non-quantizing on
+// purpose, since set scaling must not re-impose grid multiples on scaled sizes.
 export function clampResizeRectToBounds(
   rect: Rect,
   bounds: ContentBounds
@@ -207,9 +194,8 @@ export function clampResizeRectToBounds(
   }
 }
 
-// Margin changes shrink the content box; every block clamps back inside it. Overlap is legal in the
-// layered model, so the clamp is the whole reflow — no downward sweep. Z-order (array order) and the
-// user's chosen positions are preserved; only out-of-bounds rectangles move.
+// Overlap is legal, so the clamp is the whole reflow: z-order and the user's chosen positions are
+// preserved, and only out-of-bounds rectangles move.
 export function reflowToBounds(blocks: readonly Block[], bounds: ContentBounds): Block[] {
   return blocks.map((block) => {
     const clamped = clampRectToBounds(block.layout, bounds)
@@ -218,8 +204,7 @@ export function reflowToBounds(blocks: readonly Block[], bounds: ContentBounds):
   })
 }
 
-// Where addBlock drops a new block: the content-box origin, or directly below the lowest existing
-// block (hidden blocks included — they keep their rectangles).
+// Hidden blocks count toward the lowest edge - they keep their rectangles.
 export function findFreePosition(
   blocks: readonly Block[],
   size: Size,
@@ -235,11 +220,7 @@ export function findFreePosition(
   return clampRectToBounds({ x: 0, y, width: size.width, height: size.height }, bounds)
 }
 
-// Hard-clamps a resize: in the layered model blocks may overlap, so growth stops only at the page
-// content bounds (no neighbour-edge clamping), reporting each limit actually hit so the canvas can
-// draw its guide line. The vertical axis clamps against the block's original horizontal span, then
-// the horizontal axis clamps against the already-clamped vertical span, which keeps corner drags
-// deterministic.
+// Reports each limit actually hit, so the canvas can draw its guide line.
 export function resolveResize(
   blocks: readonly Block[],
   bounds: ContentBounds,
@@ -387,10 +368,8 @@ function clampLeadingEdge(
   }
 }
 
-// The server-side save gate: every block in-bounds (hidden blocks included — they keep their
-// rectangles) and a line-items-bound table only on template types that carry the collection. Overlap
-// is legal in the layered model, so it is no longer rejected. Runs in updateTemplate after the schema
-// parse; nothing persists on failure.
+// The save gate, run by updateTemplate after the schema parse: every block in bounds, and a
+// line-items-bound table only on template types that carry the collection.
 export function validateLayout(
   blocks: readonly Block[],
   pageSettings: TemplatePageSettings,

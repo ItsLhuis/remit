@@ -3,9 +3,8 @@ import { type Rect } from "./canvasLayout"
 import { normalizeDegrees, rotatedAabb, unionRects, type Point } from "./geometry"
 import { type HandleDirection } from "./resizeMath"
 
-// Selection-level geometry for the pointer engine's overlay: the shared bounding rect of a
-// selection, the alignment guides shown while it moves, and the resize handle rig (position per
-// direction, cursor per direction) drawn around it.
+// Selection-level geometry for the overlay: the selection's bounding rect, the alignment guides
+// shown while it moves, and the handle rig drawn around it.
 
 export type GuideLine = {
   key: string
@@ -29,9 +28,7 @@ export const ALL_HANDLE_DIRECTIONS: readonly HandleDirection[] = [
   "w"
 ]
 
-// The axis-aligned box enclosing every selected block's visual footprint: a rotated member
-// contributes its rotated AABB so the selection frame always encloses what is painted. At rotation
-// 0 each member contributes its pageRect unchanged.
+// A rotated member contributes its AABB, so the frame always encloses what is actually painted.
 export function selectionBounds(index: BlockIndex, ids: Iterable<string>): Rect | null {
   const rects = [...ids]
     .map((id) => index.get(id))
@@ -41,12 +38,8 @@ export function selectionBounds(index: BlockIndex, ids: Iterable<string>): Rect 
   return unionRects(rects)
 }
 
-// Alignment guides while moving: any top-level neighbour's edge the moving rectangle approaches
-// within the threshold renders as a line, so the user can align blocks by eye. Each neighbour
-// contributes four candidate edges (its left/right against the moving rect's right/left, its
-// top/bottom against the moving rect's bottom/top). Overlap is legal, so these are pure alignment
-// aids, not limits. The returned `at` is offset by the page margins so the overlay can position
-// lines in page coordinates directly.
+// Overlap is legal, so these are pure alignment aids and never limits. The returned `at` is offset
+// by the page margins, so the overlay can position lines in page coordinates directly.
 export function moveGuides(input: {
   moving: Rect
   movingIds: ReadonlySet<string>
@@ -117,9 +110,8 @@ export function moveGuides(input: {
   })
 }
 
-// Base angle of each handle measured clockwise from north at rotation 0; cursorForHandle rotates
-// this by the block's rotation before bucketing, so a rotated block's handles show the visually
-// correct diagonal/straight cursor.
+// Clockwise from north at rotation 0. cursorForHandle rotates this by the block's own rotation
+// before bucketing, so a rotated block's handles show the visually correct cursor.
 const HANDLE_BASE_ANGLES: Record<HandleDirection, number> = {
   n: 0,
   ne: 45,
@@ -142,8 +134,7 @@ const HANDLE_CURSORS_BY_BUCKET = [
   "nwse-resize"
 ] as const
 
-// The screen position of every handle around a selection's rect, rotated about its center (every
-// caller passes rotation 0, where this is simply the rect's four corners and four edge midpoints).
+// Rotated about the rect's center; at rotation 0 this is its four corners and edge midpoints.
 export function handlePositions(rect: Rect, rotation: number): Record<HandleDirection, Point> {
   const centerX = rect.x + rect.width / 2
   const centerY = rect.y + rect.height / 2
@@ -176,8 +167,7 @@ export function handlePositions(rect: Rect, rotation: number): Record<HandleDire
   ) as Record<HandleDirection, Point>
 }
 
-// The CSS cursor for a handle: its base angle plus the block's rotation, bucketed into 8 45°
-// sectors so a rotated block's handles show the visually correct straight/diagonal resize cursor.
+// Base angle plus the block's rotation, bucketed into eight 45° sectors.
 export function cursorForHandle(direction: HandleDirection, rotation: number): string {
   const angle = normalizeDegrees(HANDLE_BASE_ANGLES[direction] + rotation)
   const bucket = Math.round(angle / 45) % HANDLE_CURSORS_BY_BUCKET.length

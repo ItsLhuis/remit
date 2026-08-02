@@ -54,11 +54,10 @@ import {
   type PressState
 } from "./pressState"
 
-// The canvas pointer engine: classifies every gesture at pointerdown, batches pointermove work
-// into one rAF callback that delegates to frameTick.ts for the per-frame math and DOM writes, and
-// commits to the document store exactly once at pointerup. The commit's inline styles are cleared
-// by EditorCanvas in a layout effect keyed to the commit render, so no frame ever paints without
-// either the transform or the committed geometry.
+// Classifies at pointerdown, batches pointermove into one rAF callback that delegates to
+// frameTick.ts, and commits exactly once at pointerup. EditorCanvas clears the commit's inline
+// styles in a layout effect keyed to that render, so no frame paints without either the transform
+// or the committed geometry.
 
 export type CanvasEngineHandlers = {
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void
@@ -77,10 +76,8 @@ export type CanvasEngine = {
 export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
   const optionsRef = useRef(options)
 
-  // Refreshed every render, deliberately without a dependency array. Callers build `options` fresh
-  // each render so the engine can read current editor state through this ref while staying built
-  // once; a `[options]` dependency would be a comparison that can never hold, claiming a
-  // reactivity this hook does not have while running exactly as often as no array at all.
+  // Deliberately no dependency array: `options` is rebuilt every render, so an `[options]`
+  // dependency would run exactly as often while claiming a reactivity this hook does not have.
   useEffect(() => {
     optionsRef.current = options
   })
@@ -88,16 +85,14 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
   const pressRef = useRef<PressState | null>(null)
   const frameRef = useRef<number | null>(null)
   const lastMoveRef = useRef<PointerSample | null>(null)
-  // The transforms to clear after the commit render paints, keyed to each member's JUST-committed
-  // rotation. The rotation is captured at commit time because the clearing layout effect runs
-  // before optionsRef refreshes — reading the block index there would see the stale pre-commit
-  // rotation and wipe the transform React just painted.
+  // Keyed to each member's JUST-committed rotation, captured here because the clearing layout
+  // effect runs before optionsRef refreshes: reading the block index there would see the stale
+  // pre-commit rotation and wipe the transform React just painted.
   const pendingClearRef = useRef<ReadonlyMap<string, number> | null>(null)
 
   const engine = useMemo<CanvasEngine>(() => {
-    // Clearing/restoring always re-applies the block's committed rotation from the CURRENT block
-    // index — after a commit that is the just-committed value, after a cancel the untouched
-    // pre-gesture one.
+    // Always re-applies rotation from the CURRENT index: the just-committed value after a commit,
+    // the untouched pre-gesture one after a cancel.
     const committedRotationOf = (id: string) =>
       optionsRef.current.editor.blockIndex.get(id)?.rotation ?? 0
 
@@ -145,10 +140,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       window.removeEventListener("blur", handleWindowBlur)
     }
 
-    // Escape with no press in progress falls through to clearing the selection (returns
-    // false); Escape mid-press consumes the key and cancels only that press (returns true) — a
-    // pan or an armed-but-unactivated press is simply dropped, and only an activated gesture
-    // needs the full teardown (transforms/sizes, overlay, cursor, announcer).
+    // Returns whether the key was consumed: Escape with no press in progress falls through to the
+    // caller's clear-selection behavior. Only an activated gesture needs the full teardown.
     const cancelGesture = (): boolean => {
       const press = pressRef.current
 
@@ -233,9 +226,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
 
       if (!point) return
 
-      // A press on a resize handle takes precedence over hit-testing blocks:
-      // the handle carries its direction as a data attribute and the current selection is the
-      // target set.
+      // Takes precedence over hit-testing blocks: the handle carries its direction as a data
+      // attribute and the current selection is the target set.
       const direction = handleDirectionAt(event.target)
 
       if (direction !== null) {
@@ -297,9 +289,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       event.preventDefault()
     }
 
-    // The rotate zones only render around the explicit selection's chrome, so the current
-    // selection is always the target set; collectRotationMembers expands a group into its children
-    // (a group never carries rotation) and skips locked members.
+    // Rotate zones only render around the selection's chrome, so the selection is always the
+    // target set. collectRotationMembers expands a group into its children and skips locked ones.
     const armRotatePress = (event: ReactPointerEvent<HTMLDivElement>, point: Point) => {
       const opts = optionsRef.current
       const targets = [...opts.interaction.selection]
@@ -405,8 +396,7 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       if (frameRef.current === null) frameRef.current = requestAnimationFrame(runFrame)
     }
 
-    // A marquee "activates" like every other gesture: past the threshold, the press marks itself
-    // moved and joins the rAF frame loop so the live rect draws once per display tick.
+    // A marquee activates like every other gesture, joining the rAF loop past the threshold.
     const trackMarqueeMove = (
       press: Extract<PressState, { kind: "empty" }>,
       event: ReactPointerEvent<HTMLDivElement>
@@ -466,9 +456,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
           origin: press.origin,
           baseRects: press.baseRects
         }
-        // Same reason as the resize/rotate cursors below: the captured pointer immediately leaves
-        // the dragged block's own element, so its CSS active:cursor-grabbing state stops applying -
-        // the container carries the grabbing cursor for the whole gesture instead.
+        // The captured pointer immediately leaves the dragged element, so its CSS active: cursor
+        // stops applying and the container must carry it for the whole gesture.
         setContainerCursor("grabbing")
       } else if (press.kind === "rotate") {
         press.gesture = {
@@ -489,8 +478,7 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
           members: press.members,
           uniformOnly: press.uniformOnly
         }
-        // The captured pointer leaves the handle element immediately, so the container carries
-        // the directional cursor for the whole gesture.
+        // Same capture reason as the move cursor above.
         setContainerCursor(cursorForHandle(press.direction, press.baseRotation))
       }
 
@@ -577,9 +565,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       opts.onGestureEnd(press.ids, lead ? { x: lead.x, y: lead.y } : { x: 0, y: 0 })
     }
 
-    // One resizeBlocks commit at pointerup: the final resolved update is
-    // written to the DOM first so the commit render replaces exactly what is painted, then the
-    // reference rect commits through the same document-store primitive the panel fields use.
+    // The final update is written to the DOM first, so the commit render replaces exactly what is
+    // painted.
     const commitResizeDrop = (
       press: Extract<PressState, { kind: "resize" }>,
       sample: PointerSample
@@ -598,9 +585,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       }
 
       applyResizeRects(opts, press, update)
-      // Pass the pre-clamp sized reference, not the already-clamped `reference`: resizeBlocks
-      // re-runs its own quantize->clamp, and clamping an already-clamped off-grid rect a second
-      // time can round to a different result than the preview showed (2px snap at drop).
+      // The pre-clamp reference, not the already-clamped one: resizeBlocks re-runs its own
+      // quantize->clamp, and clamping twice can round differently than the preview showed.
       opts.editor.resizeBlocks(press.targets, update.sizedReference)
       pendingClearRef.current = new Map(
         [...update.members].map(([id, member]) => [id, member.rotation])
@@ -609,8 +595,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       opts.onGestureEnd(press.targets, { x: update.reference.x, y: update.reference.y })
     }
 
-    // One rotateBlocks commit at pointerup: the shared-center delta commits through the same
-    // resolveRotatedBlocks the per-frame preview ran, so the committed geometry is the last frame.
+    // Commits through the same resolveRotatedBlocks the preview ran, so the committed geometry is
+    // the last painted frame.
     const commitRotateDrop = (
       press: Extract<PressState, { kind: "rotate" }>,
       sample: PointerSample
@@ -643,9 +629,8 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
       cancelGesture()
     }
 
-    // Double-click descend: hit-tests at the click point independently of the DOM element actually
-    // clicked (blocks may visually overlap), so it stays correct regardless of which nested block's
-    // surface received the native dblclick.
+    // Hit-tests at the click point rather than trusting the clicked element: blocks may overlap,
+    // so the native dblclick target is not reliably the topmost block.
     const onDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
       const opts = optionsRef.current
 

@@ -50,17 +50,9 @@ const LAYOUT_LENGTH = [/^\d+(?:\.\d+)?px$/]
 const HEX_COLOR = [/^#[0-9a-fA-F]{6}$/]
 const HAIRLINE_BORDER = [/^\d+px solid #[0-9a-fA-F]{6}$/]
 
-// The exact declarations the absolute-position renderer emits (pageStyleToCss, blockStyleToCss,
-// absoluteBlockHtml, frameHtml, tableHtml) - nothing more. Every property is whitelisted
-// value-by-value; each entry names its emitter:
-// - position/left/top: absoluteBlockHtml block rectangles and frameHtml's absolute children;
-//   position:relative is the page surface and the frame container.
-// - width/height: block rectangles, frame children, table column widths; 100% is the image fill,
-//   the frame fill, and the table's own width.
-// - overflow:hidden: frameHtml's clip toggle (a frame with clip:true clips overflowing children).
-// - border-collapse/vertical-align: tableHtml's table and cell declarations.
-// - The font-family patterns are the three TEMPLATE_FONT_STACKS strings.
-// - border-radius additionally allows 50%: shapeHtml forces it for the ellipse shape variant.
+// The exact declarations the renderer emits and nothing more, whitelisted value-by-value. The
+// emitters are pageStyleToCss, blockStyleToCss, absoluteBlockHtml, frameHtml, tableHtml and
+// shapeHtml, whose ellipse variant is why border-radius additionally admits 50%.
 const DOCUMENT_OPTIONS: sanitize.IOptions = {
   allowedTags: [...AUTHORED_TAGS, "img", "table", "thead", "tbody", "tr", "th", "td"],
   allowedAttributes: {
@@ -101,8 +93,8 @@ const DOCUMENT_OPTIONS: sanitize.IOptions = {
       "text-align": [/^(?:left|center|right)$/],
       "line-height": [/^\d+(?:\.\d+)?$/],
       "object-fit": [/^contain$/],
-      // Exactly rotationToCss's emitted form: a degrees value in [0, 360) quantized to a tenth
-      // (services/rotateMath.ts's quantizeDegrees). Never matrix() — see ADR-0024.
+      // Exactly rotationToCss's emitted form, quantized to a tenth by rotateMath.ts. Never
+      // matrix() - see ADR-0024.
       transform: [/^rotate\((?:[0-9]|[1-9][0-9]|[12][0-9]{2}|3[0-5][0-9])(?:\.[0-9])?deg\)$/]
     }
   },
@@ -111,11 +103,9 @@ const DOCUMENT_OPTIONS: sanitize.IOptions = {
 
 declare const sanitizedHtmlBrand: unique symbol
 
-// HTML that has been through sanitizeTemplateHtml. The brand cannot be produced outside this module,
-// so holding a SanitizedHtml is proof the sanitizer ran. It stays assignable to string, so every
-// existing consumer is unaffected; only the reverse is blocked, which is the point. A DOM sink takes
-// the raw string back through unwrapSanitizedHtml, leaving the trust boundary as one explicit,
-// greppable call at the sink rather than a comment asserting the sanitizer ran somewhere upstream.
+// The brand cannot be produced outside this module, so holding a SanitizedHtml is proof the
+// sanitizer ran. It stays assignable to string; only the reverse is blocked, which is the point. A
+// DOM sink unwraps through unwrapSanitizedHtml, making the trust boundary one greppable call.
 export type SanitizedHtml = string & { readonly [sanitizedHtmlBrand]: true }
 
 export function sanitizeTemplateHtml(
@@ -132,9 +122,8 @@ export function unwrapSanitizedHtml(html: SanitizedHtml): string {
   return html
 }
 
-// Plain-text extraction for the text render format. sanitize-html strips the markup but
-// entity-escapes the remaining text, so the inverse of the canonical escapeHtml (lib/utils) restores
-// the raw characters.
+// sanitize-html strips the markup but entity-escapes what remains, so the inverse of the canonical
+// escapeHtml restores the raw characters.
 export function toPlainText(html: string): string {
   const stripped = sanitize(html, { allowedTags: [], allowedAttributes: {} })
 

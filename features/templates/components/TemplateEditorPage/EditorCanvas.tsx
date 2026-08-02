@@ -52,10 +52,9 @@ const PAGE_GRID_STYLE = {
   backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`
 }
 
-// The canvas host: it renders the page surface and owns the two DOM refs everything else hangs off.
-// The self-contained mechanisms that used to live inline here - gesture narration, the context
-// menu's hit resolution, the wheel-zoom anchor - are hooks that own their own state and take only
-// the refs for the elements this component renders.
+// Renders the page surface and owns the two DOM refs everything else hangs off. Gesture narration,
+// context-menu hit resolution, and the wheel-zoom anchor are hooks that own their own state and
+// take only those refs.
 const EditorCanvas = ({
   editor,
   interaction,
@@ -89,9 +88,8 @@ const EditorCanvas = ({
 
   const announcers = useCanvasAnnouncers(editor)
 
-  // useCanvasEngine takes a fresh options object every render on purpose: it mirrors it into a ref
-  // and builds the engine once with an empty dep array, so the pointer handlers stay referentially
-  // stable while still reading current editor state. Memoizing only moves the churn one level up.
+  // A fresh object every render on purpose: useCanvasEngine mirrors it into a ref and builds once,
+  // so the handlers stay stable while reading current state. Memoizing only moves the churn up.
   const engine = useCanvasEngine({
     editor,
     interaction,
@@ -104,16 +102,14 @@ const EditorCanvas = ({
     ...announcers
   })
 
-  // The flicker-killing teardown ordering: the pointerup commit renders the new
-  // rects, and this layout effect — running with that commit render, after DOM mutation, before
-  // paint — removes the in-flight transforms. No frame paints the pre-drag rectangle.
+  // Runs with the commit render, after DOM mutation and before paint, so no frame ever paints the
+  // pre-drag rectangle.
   useLayoutEffect(() => {
     engine.clearCommittedTransforms()
   })
 
-  // Disabled while a block's text is being edited: the inline editing surface owns Escape itself
-  // (closing its merge-variable popover on the first press, committing and exiting on the next),
-  // and this hotkey's target-scoped listener would otherwise race it for the same keypress.
+  // The inline editing surface owns Escape itself, and this target-scoped listener would otherwise
+  // race it for the same keypress.
   useHotkey(
     "Escape",
     () => {
@@ -124,17 +120,15 @@ const EditorCanvas = ({
 
   const contextPoint = useCanvasContextMenu({ scrollRef, pageRef, editor, interaction, disabled })
 
-  // The latest setZoom lives in a ref so the fit effect depends only on its real trigger
-  // (fitCounter) without closing over a stale editor state object.
+  // In a ref so the fit effect depends only on fitCounter, without closing over stale state.
   const setZoomRef = useRef(editor.setZoom)
 
   useEffect(() => {
     setZoomRef.current = editor.setZoom
   }, [editor.setZoom])
 
-  // The last-handled counter initializes to the mount-time value, so remounting the canvas (the
-  // preview toggle) never re-runs a fit that would clobber the preserved zoom; only a new
-  // fit-to-view request does.
+  // Initialized to the mount-time value, so remounting the canvas never re-runs a fit that would
+  // clobber the preserved zoom.
   const lastFitRef = useRef(fitCounter)
 
   useEffect(() => {

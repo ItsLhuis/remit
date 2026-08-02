@@ -5,13 +5,10 @@ import { findBlock, stripStyle } from "./blockTree"
 import { clampRectToBounds, quantizeToGrid, type ContentBounds } from "./canvasLayout"
 import { unionRects, type Point } from "./geometry"
 
-// The in-memory clipboard's pure logic: what to copy and how to place a paste. The clipboard
-// buffer itself is not state here (see architecture.md's IO-free services rule) - it lives in the
-// hook layer, which calls these functions with whatever it currently holds.
+// The clipboard's pure logic only. The buffer itself lives in the hook layer, which calls these
+// with whatever it currently holds, keeping this file free of state.
 
-// Resolves the selected ids against the tree (top-level or nested, matching findBlock) and returns
-// their blocks in selection order. Null for an empty selection so callers never store an empty
-// clipboard buffer.
+// Null for an empty selection, so callers never store an empty clipboard buffer.
 export function serializeSelection(
   blocks: readonly Block[],
   selectedIds: readonly string[]
@@ -23,11 +20,9 @@ export function serializeSelection(
   return found.length > 0 ? found : null
 }
 
-// Clones every block in the payload with fresh ids (reusing duplicateBlock's own reassignIds, so a
-// paste and a duplicate share the exact same id-reassignment), then places the set: a plain paste
-// offsets one grid cell down-right from the source, an anchored "paste here" moves the set's
-// bounding box top-left to the anchor point while preserving every member's relative offset. Every
-// resulting rect is clamped back into the content bounds independently, exactly like duplicateBlock.
+// Reuses duplicateBlock's reassignIds, so a paste and a duplicate share the same id-reassignment.
+// An anchored "paste here" moves the set's bounding box top-left to the anchor, preserving relative
+// offsets; a plain paste offsets one grid cell from the source.
 export function materializePastedBlocks(
   payload: readonly Block[],
   bounds: ContentBounds,
@@ -50,13 +45,12 @@ export function materializePastedBlocks(
   })
 }
 
-// A group carries no style of its own, matching stripStyle/BLOCK_PROPERTY_GROUPS.group = [].
+// A group carries no style of its own, matching stripStyle and BLOCK_PROPERTY_GROUPS.group = [].
 export function extractStyle(block: Block): BlockStyle | undefined {
   return block.type === "group" ? undefined : block.style
 }
 
-// Copy/paste style replaces the whole style sub-object - geometry and content are never touched -
-// and is a no-op for a group, which is styleless by design.
+// Replaces the whole style sub-object; geometry and content are never touched.
 export function applyStyleToBlock(block: Block, style: BlockStyle | undefined): Block {
   if (block.type === "group") return block
 

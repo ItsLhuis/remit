@@ -18,12 +18,9 @@ import { fitRotatedRectWithinBounds, floorRotatedRectAtOrigin } from "./geometry
 import { scaleBlockSet, type ResizeSetMember } from "./resizeMath"
 import { selectionBounds } from "./selectionGeometry"
 
-// Applies a frame's per-child layout constraints when the frame's own authored box resizes:
-// unlike a group or multi-selection resize, which always proportionally scales
-// every member through the shared set-scale primitive (services/resizeMath.ts), a frame has an
-// authored box and each child opts into one behavior per axis independently. A child with no
-// constraints defaults to "start"/"start" (pin top-left, today's resize behavior), matching a
-// child block schema.ts describes as "absent === pin top-left".
+// Unlike a group or multi-selection resize, which proportionally scales every member, a frame has
+// an authored box and each child opts into one behavior per axis. A child with no constraints
+// defaults to "start"/"start", matching schemas.ts's "absent means pin top-left".
 
 const DEFAULT_CONSTRAINTS: BlockConstraints = { horizontal: "start", vertical: "start" }
 
@@ -75,10 +72,8 @@ export function applyFrameResize(
   })
 }
 
-// One axis of one child: start keeps the near-edge offset; end keeps the far-edge offset; center
-// keeps the center's proportional position; stretch pins both edges (the size absorbs the frame's
-// delta); scale keeps the child proportional to the frame on that axis (position and size both
-// scale by the same factor).
+// start keeps the near-edge offset, end the far-edge offset, center the proportional center;
+// stretch pins both edges so the size absorbs the delta, scale moves position and size together.
 function resizeAxis({
   constraint,
   start,
@@ -110,27 +105,18 @@ function resizeAxis({
   }
 }
 
-// The shared resize commit primitive: the handle gesture and the panel's width/height fields both
-// resolve a next reference rect and reduce it to a final block tree through this one path. targets
-// is the raw target set (a single block, a group, or a multi-selection); the reference rect is its
-// union, but the member set that actually scales is collectResizeMemberIds's expansion - a sole
-// frame target scales only its own box (its children reflow via constraints below), every other
-// target set (a leaf, a group, or a multi-selection) flattens each target's full descendant subtree
-// into the members that scale together. A one-member set maps to nextReference exactly. Sizes
-// quantize to the grid for a single member (position keeps whatever grid offset it had); a genuine
-// multi-member set commits whole pixels so member proportions are preserved. A top-level set
-// shrink-clamps into the content box (the anchored edge never moves); a frame child stays unclamped
-// by the page but floors at its parent's content origin, matching moveBlocks. Returns null when the
-// resize has no effect (no valid target, no member, or no edit).
+// The commit counterpart of the gesture layer's resolveResizeUpdate, and it must reproduce that
+// preview's result exactly: same member expansion, same one-member-only quantization, same
+// shrink-clamp for a top-level set and origin floor for a frame child. Null when the resize has no
+// effect, so no empty undo entry is pushed.
 export function resolveResizedBlocks(
   blockIndex: BlockIndex,
   bounds: ContentBounds,
   targets: readonly string[],
   nextReference: Rect
 ): Block[] | null {
-  // A sole target's base is its own rect and rotation — the member maps 1:1 onto the reference
-  // and a rotated block clamps by its rotated AABB; a multi-selection's base is the union at
-  // rotation 0. This mirrors collectResizeSet so the gesture preview and this commit agree.
+  // Mirrors collectResizeSet, so the gesture preview and this commit agree: a sole target's base
+  // is its own rect and rotation, a multi-selection's is the union at rotation 0.
   const soleEntry =
     targets.length === 1 && targets[0] !== undefined ? blockIndex.get(targets[0]) : undefined
   const baseReference = soleEntry?.pageRect ?? selectionBounds(blockIndex, targets)
@@ -185,9 +171,8 @@ export function resolveResizedBlocks(
   return reflowResizedFrame(blockIndex, updateRects(blockIndex, edits), targets, edits)
 }
 
-// The reference rect's bound: a top-level set clamps into the page content box (by rotated AABB at
-// nonzero rotation), a frame child floors at its parent's content origin — the same split the
-// gesture preview applies, so preview and commit agree.
+// The same split the gesture preview applies: a top-level set clamps into the page content box, a
+// frame child only floors at its parent's origin.
 function resolveReferenceBounds(input: {
   blockIndex: BlockIndex
   bounds: ContentBounds
@@ -210,11 +195,8 @@ function resolveReferenceBounds(input: {
     : floorRotatedAtParentOrigin(blockIndex, sized, baseRotation, targets[0])
 }
 
-// The frame/group distinction: a sole frame target resizes only its own authored box (handled
-// above via scaleBlockSet's one-member set), and its direct children then reflow per their own
-// constraints against the frame's old/new size - never proportionally scaled with the frame,
-// unlike a group's or a multi-selection's members. A no-op for every other target set (which has
-// no single authored frame box to reflow children against).
+// A frame's children reflow per their own constraints rather than scaling with it, which is the
+// whole frame/group distinction. A no-op for every other target set.
 function reflowResizedFrame(
   blockIndex: BlockIndex,
   nextBlocks: Block[],
@@ -246,14 +228,10 @@ function reflowResizedFrame(
   })
 }
 
-// A frame child's reference floors at its parent's page origin with no upper bound - the frame's
-// own box does not clamp its children (clip only masks the overflow). Edge-preserving floor,
-// mirroring clampResizeRectToBounds's left/top logic: shrinking the near edge into the parent
-// origin shrinks the size by the same delta so the opposite (anchor) edge never moves, matching
-// resolveResizeUpdate's per-frame preview.
-// The rotated counterpart: a rotated child's footprint (its rotated AABB) floors at the frame's
-// origin by translation — the local rect cannot shrink one raw edge and stay a rectangle in page
-// space.
+// No upper bound: a frame's box does not clamp its children, clip only masks the overflow. The
+// floor is edge-preserving so the anchor edge never moves, matching resolveResizeUpdate. A rotated
+// child floors by translation instead - its local rect cannot shrink one raw edge and stay a
+// rectangle in page space.
 function floorRotatedAtParentOrigin(
   blockIndex: BlockIndex,
   rect: Rect,
