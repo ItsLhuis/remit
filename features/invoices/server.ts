@@ -18,6 +18,8 @@ export {
   listInvoicesByProject
 } from "./queries"
 
+export { getInvoiceOverviewPageData } from "./overviewQueries"
+
 export {
   emitInvoiceCreated,
   emitInvoiceDeleted,
