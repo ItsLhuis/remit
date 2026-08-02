@@ -1544,6 +1544,27 @@ export type Translations = {
       count: string
       clearFilters: string
     }
+    overview: {
+      title: string
+      description: string
+      tableTitle: string
+      totalHint: string
+      parentColumn: string
+      clientColumn: string
+      outstandingColumn: string
+      noParent: string
+      noClient: string
+      openProject: string
+      openClient: string
+      browseProjects: string
+      searchPlaceholder: string
+      searchLabel: string
+      filters: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
     status: {
       draft: string
       sent: string

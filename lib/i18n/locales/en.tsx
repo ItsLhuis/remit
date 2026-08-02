@@ -1596,6 +1596,27 @@ export const english: Language = {
         count: "{count, plural, one {# invoice} other {# invoices}}",
         clearFilters: "Clear filters"
       },
+      overview: {
+        title: "Invoices",
+        description: "Every invoice across your clients and projects, soonest due first",
+        tableTitle: "All invoices",
+        totalHint: "Across every client and project",
+        parentColumn: "Belongs to",
+        clientColumn: "Client",
+        outstandingColumn: "Outstanding",
+        noParent: "No parent",
+        noClient: "No client",
+        openProject: "Open project",
+        openClient: "Open client",
+        browseProjects: "Browse projects",
+        searchPlaceholder: "Search by number, project, or client",
+        searchLabel: "Search invoices",
+        filters: "Filters",
+        emptyTitle: "No invoices yet",
+        emptyDescription: "Invoices are raised from a project. Open a project to bill its work.",
+        noMatchTitle: "No invoices match these filters",
+        noMatchDescription: "Clear the filters to see every invoice again."
+      },
       status: {
         draft: "Draft",
         sent: "Sent",
