@@ -186,8 +186,8 @@ export type EventMap = {
     invoiceId: string
     userId: string
   }
-  // Emitted by the full-settlement path in Stage 16 and by payment aggregation from Stage 18 on;
-  // the payload deliberately carries no amount so both producers can emit the same event.
+  // The payload deliberately carries no amount, so a full-settlement write and a payment
+  // aggregation reaching the total can emit the same event.
   "invoice.paid": {
     invoiceId: string
     userId: string

@@ -35,7 +35,7 @@ type ContractContentFieldProps = {
 // its blocks into this draft, and the count below is a read-only confirmation of what was copied.
 // The canvas itself is bound to a template row (features/templates' TemplateEditorPage takes a
 // TemplateEditorData and saves through the template mutations), so it cannot edit contracts.blocks
-// without being reworked - see the Stage 14 report.
+// without being reworked.
 const ContractContentField = ({
   control,
   setValue,

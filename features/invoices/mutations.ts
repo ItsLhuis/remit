@@ -351,11 +351,8 @@ export async function markInvoicePaid(input: unknown): Promise<MarkInvoicePaidRe
 
     const paidAt = new Date()
 
-    // Full settlement is assumed here, which is why `amountPaidCents` is written from `totalCents`.
-    // That single assignment is the Stage 18 seam: once payments exist it becomes the aggregate of
-    // `payments.amount_cents` for the invoice, and the status write becomes conditional on that
-    // aggregate reaching the total. Nothing else in this action has to move, and no caller sees a
-    // different signature.
+    // Full settlement is assumed here, which is why `amountPaidCents` is written from `totalCents`
+    // rather than from a payment record.
     const [paid] = await database
       .update(invoices)
       .set({
