@@ -221,3 +221,44 @@ ruleTester.run("hook-file-exports-its-hook", hookFileExportsItsHook, {
     }
   ]
 })
+
+const noUnnamedUseWatch = rules["no-unnamed-use-watch"]
+
+ruleTester.run("no-unnamed-use-watch", noUnnamedUseWatch, {
+  valid: [
+    {
+      name: "a single named field",
+      filename: "features/proposals/components/ProposalForm/ProposalDetailsFields.tsx",
+      code: 'const kind = useWatch({ control, name: "discountKind" })'
+    },
+    {
+      name: "a named field list",
+      filename: "features/proposals/components/ProposalForm/ProposalPricingSection.tsx",
+      code: 'const [currency, items] = useWatch({ control, name: ["currency", "lineItems"] })'
+    },
+    {
+      name: "a spread that could carry name is not guessed at",
+      filename: "features/proposals/components/ProposalForm/ProposalPricingSection.tsx",
+      code: "const value = useWatch({ ...options })"
+    },
+    {
+      name: "a test file is exempt",
+      filename: "features/proposals/components/ProposalForm/__tests__/ProposalForm.test.tsx",
+      code: "const watched = useWatch({ control })"
+    }
+  ],
+  invalid: [
+    {
+      name: "control alone subscribes to every field",
+      filename: "features/proposals/components/ProposalForm/ProposalForm.tsx",
+      code: "const watched = useWatch({ control: form.control })",
+      errors: [{ messageId: "unnamedUseWatch" }]
+    },
+    {
+      name: "no argument at all subscribes to every field",
+      filename: "features/invoices/components/InvoiceForm/InvoiceForm.tsx",
+      code: "const watched = useWatch()",
+      errors: [{ messageId: "unnamedUseWatch" }]
+    }
+  ]
+})

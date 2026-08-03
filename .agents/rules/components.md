@@ -213,6 +213,32 @@ Do not extract a generic settings section or form shell just because several set
 similar. Extract only when state behavior, submit behavior, result handling, and layout semantics
 are identical across at least three call sites.
 
+## Watch named fields, not the whole form
+
+`useWatch({ control })` with no `name` subscribes to every field, so one keystroke anywhere
+re-renders the whole component and everything below it. Name the fields the component actually
+reads, and put the `useWatch` in the component that reads them rather than passing watched values
+down from the form root — a value watched at the root re-renders every sibling too.
+
+```tsx
+// Good - only this component re-renders, and only when the discount kind changes
+const discountKind = useWatch({ control, name: "discountKind" })
+
+// Good - the pricing section subscribes to exactly what it prices
+const [currency, discountKind, discountPercentage, discountAmount, lineItems] = useWatch({
+  control,
+  name: ["currency", "discountKind", "discountPercentage", "discountAmount", "lineItems"]
+})
+
+// Bad - typing a note re-prices the document and re-renders every line-item row
+const watched = useWatch({ control: form.control })
+```
+
+This is lint-enforced by `remit/no-unnamed-use-watch`, which fails a `useWatch` with no `name` under
+`features/**/components/**`. `ProposalPricingSection` and `InvoicePricingSection` are the canonical
+shape; their rows are `memo`'d, because a document-level discount makes every row's total depend on
+every other row and the list would otherwise re-render whole on each keystroke.
+
 ## Fragments and conditionals
 
 Use `Fragment` from React when a component needs a fragment and nearby files do so. Conditional JSX

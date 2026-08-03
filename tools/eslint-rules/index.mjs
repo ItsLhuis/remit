@@ -460,12 +460,62 @@ const hookFileExportsItsHook = {
   }
 }
 
+function hasNameProperty(objectExpression) {
+  for (const property of objectExpression.properties) {
+    // A spread could carry `name`; the rule cannot see inside it, so it declines to report rather
+    // than guess.
+    if (property.type === "SpreadElement") return true
+
+    if (property.type !== "Property") continue
+
+    if (property.key.type === "Identifier" && property.key.name === "name") return true
+    if (property.key.type === "Literal" && property.key.value === "name") return true
+  }
+
+  return false
+}
+
+const noUnnamedUseWatch = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "`useWatch` in a feature component subscribes to named fields, not the whole form"
+    },
+    messages: {
+      unnamedUseWatch:
+        "`useWatch` without `name` subscribes to every field, so one keystroke re-renders the whole form. Pass the fields this component actually reads (see components.md)."
+    },
+    schema: []
+  },
+  create(context) {
+    const filename = toPosixPath(context.filename ?? context.getFilename())
+
+    if (/(^|\/)__tests__\//.test(filename)) return {}
+
+    return {
+      CallExpression(node) {
+        if (node.callee.type !== "Identifier" || node.callee.name !== "useWatch") return
+
+        const [options] = node.arguments
+
+        if (!options) return context.report({ node, messageId: "unnamedUseWatch" })
+        if (options.type !== "ObjectExpression") return
+        if (hasNameProperty(options)) return
+
+        context.report({ node, messageId: "unnamedUseWatch" })
+      }
+    }
+  }
+}
+
 const plugin = {
   rules: {
     "helper-placement": helperPlacement,
     "hook-file-exports-its-hook": hookFileExportsItsHook,
     "no-blank-lines-in-jsx-return": noBlankLinesInJsxReturn,
     "no-hook-in-components": noHookInComponents,
+    "no-unnamed-use-watch": noUnnamedUseWatch,
     "validate-before-io": validateBeforeIo
   }
 }

@@ -419,7 +419,8 @@ const eslintConfig = defineConfig([
       remit: remitRules
     },
     rules: {
-      "remit/no-hook-in-components": "error"
+      "remit/no-hook-in-components": "error",
+      "remit/no-unnamed-use-watch": "error"
     }
   },
   {
