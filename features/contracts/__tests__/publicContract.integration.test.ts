@@ -8,16 +8,14 @@ import { makeTextBlock } from "@/tests/factories/blocks"
 import { getContractSigningTarget, getPublicContract } from "../publicQueries"
 
 const mocks = vi.hoisted(() => ({
-  matchesPublicContractToken: vi.fn()
+  matchesPublicToken: vi.fn()
 }))
 
-vi.mock("../services/publicContractToken", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../services/publicContractToken")>()
+vi.mock("@/lib/publicToken", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/publicToken")>()
 
   return {
-    matchesPublicContractToken: mocks.matchesPublicContractToken.mockImplementation(
-      actual.matchesPublicContractToken
-    )
+    matchesPublicToken: mocks.matchesPublicToken.mockImplementation(actual.matchesPublicToken)
   }
 })
 
@@ -173,8 +171,8 @@ describe("getPublicContract", () => {
 
     await getPublicContract({ token: makeToken() })
 
-    expect(mocks.matchesPublicContractToken).toHaveBeenCalledTimes(1)
-    expect(mocks.matchesPublicContractToken.mock.calls[0]?.[1]).toHaveLength(43)
+    expect(mocks.matchesPublicToken).toHaveBeenCalledTimes(1)
+    expect(mocks.matchesPublicToken.mock.calls[0]?.[1]).toHaveLength(43)
   })
 })
 

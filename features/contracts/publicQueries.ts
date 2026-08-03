@@ -2,6 +2,8 @@ import { and, eq, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
+import { matchesPublicToken } from "@/lib/publicToken"
+
 import { database } from "@/database"
 import { clients, contracts, projects } from "@/database/schema"
 
@@ -12,7 +14,6 @@ import {
   type ContractRenderBusiness,
   type ContractRenderClient
 } from "./services"
-import { matchesPublicContractToken } from "./services/publicContractToken"
 import { type ContractSigningTarget, type PublicContract, type PublicContractIssuer } from "./types"
 
 // The anonymous read side of `/c/[token]`, paired with the write side in `publicSigning.ts`. It
@@ -112,11 +113,11 @@ function getContractConsentText(number: string, issuerName: string): string {
   return t("contracts.public.consent.text", { number, issuer: issuerName })
 }
 
-// The unique index on `contracts.public_token` finds the candidate row; `matchesPublicContractToken`
-// is what actually admits it. The compare runs on every call, against a decoy when the lookup
-// missed, so a miss and a hit spend the same work here and the branch cannot be timed apart. The
-// decoy is the length of a real token and cannot collide with one — `randomBytes(32)` would have to
-// return 32 zero bytes to encode as 43 zeros.
+// The unique index on `contracts.public_token` finds the candidate row; `matchesPublicToken` is what
+// actually admits it. The compare runs on every call, against a decoy when the lookup missed, so a
+// miss and a hit spend the same work here and the branch cannot be timed apart. The decoy is the
+// length of a real token and cannot collide with one — `randomBytes(32)` would have to return 32
+// zero bytes to encode as 43 zeros.
 //
 // The display status is what gates availability, not the stored one: a `sent` contract whose
 // effective window has already closed reads as `expired` and must be as unreachable as a signed one.
@@ -125,10 +126,7 @@ async function findSignableContractByToken(token: string): Promise<ContractRow |
     where: and(eq(contracts.publicToken, token), isNull(contracts.deletedAt))
   })
 
-  const tokenMatches = matchesPublicContractToken(
-    token,
-    contract?.publicToken ?? PUBLIC_TOKEN_MISS_DECOY
-  )
+  const tokenMatches = matchesPublicToken(token, contract?.publicToken ?? PUBLIC_TOKEN_MISS_DECOY)
 
   if (!contract || !tokenMatches) return null
 

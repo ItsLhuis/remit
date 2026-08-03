@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto"
 
 import { describe, expect, test } from "vitest"
 
-import { matchesPublicToken } from "../publicProposalToken"
+import { matchesPublicToken } from "../publicToken"
 
 describe("matchesPublicToken", () => {
   test("accepts a token identical to the stored one", () => {

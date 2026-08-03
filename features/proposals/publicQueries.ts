@@ -1,12 +1,13 @@
 import { and, eq, isNull } from "drizzle-orm"
 
+import { matchesPublicToken } from "@/lib/publicToken"
+
 import { database } from "@/database"
 import { clients, projects, proposals } from "@/database/schema"
 
 import { listProposalLineItems, toProposalDetailLineItem } from "./queries"
 import { publicProposalTokenSchema } from "./schemas"
 import { canTransitionProposalStatus, isProposalExpired } from "./services"
-import { matchesPublicToken } from "./services/publicProposalToken"
 import {
   type ProposalResponseTarget,
   type PublicProposal,
