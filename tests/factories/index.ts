@@ -1,6 +1,7 @@
 export * from "./blocks"
 export * from "./clients"
 export * from "./contracts"
+export * from "./creditNotes"
 export * from "./invoices"
 export * from "./leads"
 export * from "./lineItems"
