@@ -18,6 +18,7 @@ import {
 const INVOICE_DESCRIPTION_MAX_LENGTH = 500
 const INVOICE_UNIT_MAX_LENGTH = 50
 const INVOICE_NOTES_MAX_LENGTH = 5000
+const INVOICE_TOKEN_MAX_LENGTH = 128
 const QUANTITY_PATTERN = /^\d+(\.\d{1,2})?$/
 
 export const INVOICE_STATUS_VALUES = ["draft", "sent", "paid"] as const
@@ -238,6 +239,17 @@ export const invoiceListParamsSchema = z.object({
 })
 
 export type InvoiceListParams = z.infer<typeof invoiceListParamsSchema>
+
+// Bounded, not shaped: the stored token is always 43 base64url characters, but validating that here
+// would turn a malformed token into a distinguishable rejection. Anything within the bound falls
+// through to the same constant-time miss as a well-formed token that does not exist.
+const publicInvoiceTokenValueSchema = z
+  .string()
+  .trim()
+  .min(1, i18n.t("invoices.public.validation.tokenInvalid"))
+  .max(INVOICE_TOKEN_MAX_LENGTH, i18n.t("invoices.public.validation.tokenInvalid"))
+
+export const publicInvoiceTokenSchema = z.object({ token: publicInvoiceTokenValueSchema })
 
 const INVOICE_OVERVIEW_SORT_FIELDS = [
   "number",

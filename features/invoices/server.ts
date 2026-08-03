@@ -20,6 +20,10 @@ export {
 
 export { getInvoiceOverviewPageData } from "./overviewQueries"
 
+export { getPublicInvoice } from "./publicQueries"
+
+export { recordPublicInvoiceView } from "./publicView"
+
 export {
   emitInvoiceCreated,
   emitInvoiceDeleted,

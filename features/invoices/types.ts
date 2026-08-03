@@ -133,6 +133,48 @@ export type InvoiceDetail = {
   defaults: InvoiceDefaults
 }
 
+export type PublicInvoiceIssuer = {
+  name: string
+  email: string | null
+}
+
+// The payment affordances an anonymous holder may see. It is `PublicPaymentBlock` from
+// `@/features/settings/server` flattened onto the invoice, so the page never has to know that the
+// two come from different tables. `stripeConfigured` is a boolean and never a key.
+export type PublicInvoicePayment = {
+  bankName: string | null
+  ibanDisplay: string | null
+  instructions: string | null
+  hasBankTransferDetails: boolean
+  stripeConfigured: boolean
+}
+
+// Carries neither `id` nor `publicToken`: this model is serialized into an anonymous page, and the
+// token is a bearer credential. `viewStatus` is derived server-side so the badge cannot disagree
+// with the amounts printed beside it.
+export type PublicInvoice = {
+  number: string
+  status: InvoiceStatus
+  viewStatus: InvoiceViewStatus
+  currency: string
+  subtotalCents: number
+  discountAmountTotalCents: number
+  taxAmountCents: number
+  totalCents: number
+  amountPaidCents: number
+  outstandingCents: number
+  issueDate: Date | null
+  dueDate: Date | null
+  paidAt: Date | null
+  notes: string
+  preparedFor: string
+  issuer: PublicInvoiceIssuer
+  locale: string
+  timeZone: string
+  payment: PublicInvoicePayment
+  lineItems: InvoiceDetailLineItem[]
+}
+
 export type InvoiceFormData = InvoiceFormInputValues & {
   id: string
   number: string

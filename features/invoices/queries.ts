@@ -182,9 +182,12 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
     notes: invoice.notes ?? "",
     viewCount: invoice.viewCount,
     templateName: template?.name ?? null,
-    // The token exists from creation, but exposing it before the invoice is issued would hand out a
-    // live client URL for a document the client is not meant to have seen yet.
-    publicPath: invoice.issueDate ? `/i/${invoice.publicToken}` : null,
+    // The token exists from creation, but exposing it before the invoice is sent would hand out a
+    // live client URL for a document the client is not meant to have seen yet. The test is the
+    // status rather than `issueDate`, because a draft may already carry an issue date from the form
+    // and `getPublicInvoice` in publicQueries.ts admits sent and paid invoices only — a link offered
+    // for a draft would resolve to the "unavailable" panel.
+    publicPath: invoice.status === "draft" ? null : `/i/${invoice.publicToken}`,
     lineItems: rows.map(toInvoiceDetailLineItem),
     defaults
   }
@@ -348,7 +351,7 @@ export async function getProposalInvoiceSnapshot(
   }
 }
 
-async function listInvoiceLineItems(invoiceId: string): Promise<LineItemRow[]> {
+export async function listInvoiceLineItems(invoiceId: string): Promise<LineItemRow[]> {
   return database
     .select()
     .from(lineItems)
@@ -402,7 +405,7 @@ function toInvoiceListItem(row: InvoiceListRow, defaultCurrency: string): Invoic
   }
 }
 
-function toInvoiceDetailLineItem(row: LineItemRow): InvoiceDetailLineItem {
+export function toInvoiceDetailLineItem(row: LineItemRow): InvoiceDetailLineItem {
   return {
     id: row.id,
     position: row.position,
