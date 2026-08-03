@@ -1740,6 +1740,42 @@ export type Translations = {
       discountAmountRequired: string
       discountPercentageRequired: string
     }
+    public: {
+      metadataTitle: string
+      fromLabel: string
+      preparedFor: string
+      unavailable: {
+        title: string
+        description: string
+      }
+      summary: {
+        title: string
+        issueDate: string
+        dueDate: string
+        paidAt: string
+        noDate: string
+      }
+      payment: {
+        title: string
+        description: string
+        settledTitle: string
+        settledDescription: string
+        settledNote: string
+        amountDue: string
+        amountSettled: string
+        bankTitle: string
+        bankName: string
+        iban: string
+        reference: string
+        cardTitle: string
+        cardButton: string
+        cardUnavailable: string
+        noMethods: string
+      }
+      validation: {
+        tokenInvalid: string
+      }
+    }
     errors: {
       notFound: string
       projectNotFound: string

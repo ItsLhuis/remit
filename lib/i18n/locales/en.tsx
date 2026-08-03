@@ -1794,6 +1794,44 @@ export const english: Language = {
         discountAmountRequired: "Enter a discount amount",
         discountPercentageRequired: "Enter a discount percentage"
       },
+      public: {
+        metadataTitle: "Invoice",
+        fromLabel: "From",
+        preparedFor: "Prepared for {parent}",
+        unavailable: {
+          title: "This invoice is not available",
+          description:
+            "The link may have been withdrawn or never existed. Ask the sender for a new one."
+        },
+        summary: {
+          title: "Summary",
+          issueDate: "Issued",
+          dueDate: "Due",
+          paidAt: "Paid",
+          noDate: "Not set"
+        },
+        payment: {
+          title: "How to pay",
+          description: "Pay using any of the details below and quote the invoice number.",
+          settledTitle: "Nothing to pay",
+          settledDescription: "This invoice has been settled in full.",
+          settledNote: "Thank you. No further payment is due.",
+          amountDue: "Amount due",
+          amountSettled: "Total paid",
+          bankTitle: "Bank transfer",
+          bankName: "Bank",
+          iban: "IBAN",
+          reference: "Reference",
+          cardTitle: "Card payment",
+          cardButton: "Pay by card",
+          cardUnavailable: "Card payments are not available yet. Use the details above to pay.",
+          noMethods:
+            "No payment details have been published. Contact the sender to arrange payment."
+        },
+        validation: {
+          tokenInvalid: "Invalid invoice link"
+        }
+      },
       errors: {
         notFound: "Invoice not found",
         projectNotFound: "Project not found",
