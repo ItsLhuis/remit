@@ -18,8 +18,17 @@ test("returns a public payment block without exposing the full IBAN", async () =
     bankName: "Acme Bank",
     paymentIbanDisplay: "GB82 ... 5432",
     paymentInstructions: "Use the invoice number as the transfer reference.",
-    hasBankTransferDetails: true
+    hasBankTransferDetails: true,
+    stripeConfigured: true
   })
   expect(JSON.stringify(result)).not.toContain("GB82WEST12345698765432")
   expect(JSON.stringify(result)).not.toContain("sk_test_never_public")
+})
+
+test("reports Stripe as unconfigured when no secret key is stored", async () => {
+  await makeSettings({ paymentBankName: "Acme Bank" })
+
+  const result = await getPublicPaymentBlock()
+
+  expect(result.stripeConfigured).toBe(false)
 })

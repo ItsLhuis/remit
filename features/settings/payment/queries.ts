@@ -7,11 +7,15 @@ export type PaymentSettingsFormData = PaymentSettingsValues & {
   stripeTestConnectionAt: string | null
 }
 
+// What an anonymous document page may know about how to pay. Every field is either already public
+// (a bank name, free-text instructions), deliberately masked (the IBAN), or a boolean standing in
+// for a secret that must never leave the server (`stripeConfigured`).
 export type PublicPaymentBlock = {
   bankName: string | null
   paymentIbanDisplay: string | null
   paymentInstructions: string | null
   hasBankTransferDetails: boolean
+  stripeConfigured: boolean
 }
 
 type PaymentSettingsRow = {
@@ -28,6 +32,7 @@ type PublicPaymentBlockRow = {
   paymentIban: string | null
   paymentBankName: string | null
   paymentInstructions: string | null
+  stripeSecretKey: string | null
 }
 
 export async function getPaymentSettings(): Promise<PaymentSettingsFormData> {
@@ -51,7 +56,8 @@ export async function getPublicPaymentBlock(): Promise<PublicPaymentBlock> {
     columns: {
       paymentIban: true,
       paymentBankName: true,
-      paymentInstructions: true
+      paymentInstructions: true,
+      stripeSecretKey: true
     }
   })
 
@@ -86,7 +92,11 @@ function toPublicPaymentBlock(row: PublicPaymentBlockRow | null): PublicPaymentB
     bankName,
     paymentIbanDisplay,
     paymentInstructions,
-    hasBankTransferDetails: Boolean(bankName || paymentIbanDisplay || paymentInstructions)
+    hasBankTransferDetails: Boolean(bankName || paymentIbanDisplay || paymentInstructions),
+    // The secret key alone, because that is what a server-side Checkout Session needs; the
+    // publishable key is not required to start one. The key itself is read only to be collapsed
+    // into this boolean and never travels further.
+    stripeConfigured: Boolean(row?.stripeSecretKey)
   }
 }
 
