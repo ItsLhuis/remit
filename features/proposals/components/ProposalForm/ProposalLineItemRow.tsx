@@ -1,5 +1,7 @@
 "use client"
 
+import { memo } from "react"
+
 import { Controller, type Control } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
@@ -24,17 +26,13 @@ import {
   Typography
 } from "@/components/ui"
 
-import {
-  PROPOSAL_DISCOUNT_KINDS,
-  type ProposalFormInputValues,
-  type ProposalFormValues
-} from "../../schemas"
+import { PROPOSAL_DISCOUNT_KINDS, type ProposalFormInputValues } from "../../schemas"
 import { type ProposalTaxRateOption } from "../../types"
 
 import { fromSelectValue, toSelectValue, NO_SELECTION } from "./selectSentinel"
 
 type ProposalLineItemRowProps = {
-  control: Control<ProposalFormInputValues, unknown, ProposalFormValues>
+  control: Control<ProposalFormInputValues>
   index: number
   taxRates: ProposalTaxRateOption[]
   currency: string
@@ -43,10 +41,14 @@ type ProposalLineItemRowProps = {
   discountKind: string
   canRemove: boolean
   disabled: boolean
-  onRemove: () => void
+  onRemove: (index: number) => void
 }
 
-const ProposalLineItemRow = ({
+// Memoised because a document-level discount makes every row's displayed total depend on every
+// other row, so the pricing section re-renders the whole list on each keystroke. With every prop
+// either stable or a primitive, only the rows whose total or discount kind actually moved re-render
+// — typing a description re-renders one row instead of all of them.
+const ProposalLineItemRow = memo(function ProposalLineItemRow({
   control,
   index,
   taxRates,
@@ -57,7 +59,7 @@ const ProposalLineItemRow = ({
   canRemove,
   disabled,
   onRemove
-}: ProposalLineItemRowProps) => {
+}: ProposalLineItemRowProps) {
   const { t } = useTranslation()
 
   return (
@@ -76,7 +78,7 @@ const ProposalLineItemRow = ({
               size="icon-sm"
               label={t("proposals.lineItems.removeButton")}
               disabled={disabled || !canRemove}
-              onClick={onRemove}
+              onClick={() => onRemove(index)}
             >
               <Icon name="Trash2" />
             </IconButton>
@@ -270,6 +272,6 @@ const ProposalLineItemRow = ({
       </CardContent>
     </Card>
   )
-}
+})
 
 export { ProposalLineItemRow }

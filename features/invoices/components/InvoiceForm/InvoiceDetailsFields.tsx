@@ -1,6 +1,6 @@
 "use client"
 
-import { Controller, type Control } from "react-hook-form"
+import { Controller, useWatch, type Control } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -20,29 +20,23 @@ import {
   SelectValue
 } from "@/components/ui"
 
-import {
-  INVOICE_DISCOUNT_KINDS,
-  type InvoiceFormInputValues,
-  type InvoiceFormValues
-} from "../../schemas"
+import { INVOICE_DISCOUNT_KINDS, type InvoiceFormInputValues } from "../../schemas"
 import { type InvoiceTemplateOption } from "../../types"
 
 import { fromSelectValue, toSelectValue, NO_SELECTION } from "./selectSentinel"
 
 type InvoiceDetailsFieldsProps = {
-  control: Control<InvoiceFormInputValues, unknown, InvoiceFormValues>
+  control: Control<InvoiceFormInputValues>
   templates: InvoiceTemplateOption[]
-  discountKind: string
   disabled: boolean
 }
 
-const InvoiceDetailsFields = ({
-  control,
-  templates,
-  discountKind,
-  disabled
-}: InvoiceDetailsFieldsProps) => {
+const InvoiceDetailsFields = ({ control, templates, disabled }: InvoiceDetailsFieldsProps) => {
   const { t } = useTranslation()
+
+  // Watched here rather than passed down, so the only thing a discount-kind change re-renders is
+  // this field group.
+  const discountKind = useWatch({ control, name: "discountKind" })
 
   return (
     <FieldGroup className="grid gap-4 sm:grid-cols-2">

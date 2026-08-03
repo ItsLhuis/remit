@@ -6,14 +6,14 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Button, FieldError, Icon, Typography } from "@/components/ui"
 
-import { type InvoiceFormInputValues, type InvoiceFormValues } from "../../schemas"
+import { type InvoiceFormInputValues } from "../../schemas"
 import { type InvoiceTaxRateOption } from "../../types"
 
 import { EMPTY_LINE_ITEM } from "./emptyLineItem"
 import { InvoiceLineItemRow } from "./InvoiceLineItemRow"
 
 type InvoiceLineItemsFieldProps = {
-  control: Control<InvoiceFormInputValues, unknown, InvoiceFormValues>
+  control: Control<InvoiceFormInputValues>
   taxRates: InvoiceTaxRateOption[]
   currency: string
   locale: string
@@ -56,7 +56,7 @@ const InvoiceLineItemsField = ({
           discountKind={discountKinds[index] ?? "none"}
           canRemove={fields.length > 1}
           disabled={disabled}
-          onRemove={() => remove(index)}
+          onRemove={remove}
         />
       ))}
       {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}

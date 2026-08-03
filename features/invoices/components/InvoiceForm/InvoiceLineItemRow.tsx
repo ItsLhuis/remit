@@ -1,5 +1,7 @@
 "use client"
 
+import { memo } from "react"
+
 import { Controller, type Control } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
@@ -24,17 +26,13 @@ import {
   Typography
 } from "@/components/ui"
 
-import {
-  INVOICE_DISCOUNT_KINDS,
-  type InvoiceFormInputValues,
-  type InvoiceFormValues
-} from "../../schemas"
+import { INVOICE_DISCOUNT_KINDS, type InvoiceFormInputValues } from "../../schemas"
 import { type InvoiceTaxRateOption } from "../../types"
 
 import { fromSelectValue, toSelectValue, NO_SELECTION } from "./selectSentinel"
 
 type InvoiceLineItemRowProps = {
-  control: Control<InvoiceFormInputValues, unknown, InvoiceFormValues>
+  control: Control<InvoiceFormInputValues>
   index: number
   taxRates: InvoiceTaxRateOption[]
   currency: string
@@ -43,10 +41,14 @@ type InvoiceLineItemRowProps = {
   discountKind: string
   canRemove: boolean
   disabled: boolean
-  onRemove: () => void
+  onRemove: (index: number) => void
 }
 
-const InvoiceLineItemRow = ({
+// Memoised because a document-level discount makes every row's displayed total depend on every
+// other row, so the pricing section re-renders the whole list on each keystroke. With every prop
+// either stable or a primitive, only the rows whose total or discount kind actually moved re-render
+// — typing a description re-renders one row instead of all of them.
+const InvoiceLineItemRow = memo(function InvoiceLineItemRow({
   control,
   index,
   taxRates,
@@ -57,7 +59,7 @@ const InvoiceLineItemRow = ({
   canRemove,
   disabled,
   onRemove
-}: InvoiceLineItemRowProps) => {
+}: InvoiceLineItemRowProps) {
   const { t } = useTranslation()
 
   return (
@@ -76,7 +78,7 @@ const InvoiceLineItemRow = ({
               size="icon-sm"
               label={t("invoices.lineItems.removeButton")}
               disabled={disabled || !canRemove}
-              onClick={onRemove}
+              onClick={() => onRemove(index)}
             >
               <Icon name="Trash2" />
             </IconButton>
@@ -270,6 +272,6 @@ const InvoiceLineItemRow = ({
       </CardContent>
     </Card>
   )
-}
+})
 
 export { InvoiceLineItemRow }

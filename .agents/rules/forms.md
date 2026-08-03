@@ -29,6 +29,38 @@ const form = useForm<LoginValues>({
 const { isSubmitting, isDirty, isValid } = form.formState
 ```
 
+## Transforming schemas: resolve with `raw: true`
+
+`zodResolver` defaults to `raw: false`, so `handleSubmit` receives the schema's **transformed
+output**, not the values the controls hold. When a form schema and its server action's schema are
+built from the same field shape — the shape every document feature uses, `invoiceFieldsShape`,
+`proposalFieldsShape`, `projectFieldsShape`, `taskFieldsShape` — sending that output makes the
+action's re-parse fail at the trust boundary with `expected string, received number`. Resolve with
+`raw: true` so the strings travel and the transform runs once, on the server:
+
+```tsx
+const form = useForm<InvoiceFormInputValues>({
+  resolver: zodResolver(invoiceFormSchema, {}, { raw: true }),
+  mode: "onChange",
+  defaultValues
+})
+```
+
+Drop the third `useForm` generic when you do: with `raw: true` the input shape is what travels, so
+`useForm<XFormInputValues>` is the whole contract and the output type has no call site.
+
+The exception is a form whose schema is a deliberate **bridge** into a differently shaped action
+schema. `features/contracts` is the only one: `contractFormSchema` owns the string shape the
+controls hold and transforms it into the nullable uuids and `Date`s `createContractSchema` expects,
+because a select with nothing chosen is `""` and the domain shape wants `null`. That form resolves
+_without_ `raw`, and adding it there would send `""` where a uuid is required.
+
+Splitting every feature's form and action schemas the way contracts does was considered and
+rejected: it would restate every field and every validation message twice for no gain, which
+`code-style.md` bans under "do not extract shared schema fragments". One shape validated on both
+sides, with `raw: true` deciding only _where_ the transform runs, keeps a single source of truth.
+Each feature's `__tests__/schemas.test.ts` pins the resulting contract.
+
 ## Submit handlers
 
 Name form submit handlers `onSubmit` when they are passed to `form.handleSubmit(onSubmit)`. The

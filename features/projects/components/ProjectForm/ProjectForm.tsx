@@ -36,7 +36,6 @@ import {
   projectFormSchema,
   PROJECT_STATUS_VALUES,
   type ProjectFormInputValues,
-  type ProjectFormValues,
   type ProjectStatus
 } from "../../schemas"
 import { type ProjectClientOption, type ProjectFormData } from "../../types"
@@ -83,8 +82,12 @@ const ProjectForm = (props: ProjectFormProps) => {
     }
   }, [props.mode, props.project, props.defaultClientId])
 
-  const form = useForm<ProjectFormInputValues, unknown, ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
+  const form = useForm<ProjectFormInputValues>({
+    // `raw: true`, so the values that reach `onSubmit` are the strings the controls hold rather
+    // than the schema's transformed output. createProject re-validates with a schema built from
+    // the same string-input shape (schemas.ts's projectFieldsShape), so sending the transformed
+    // cents and Dates would fail that re-parse at the trust boundary.
+    resolver: zodResolver(projectFormSchema, {}, { raw: true }),
     mode: "onChange",
     defaultValues
   })
@@ -100,10 +103,8 @@ const ProjectForm = (props: ProjectFormProps) => {
 
   const submitDisabled = isSaving || !isValid || (isEdit && !isDirty)
 
-  const onSubmit = () => {
+  const onSubmit = (values: ProjectFormInputValues) => {
     if (submitDisabled) return
-
-    const values = form.getValues()
 
     setServerError(null)
 

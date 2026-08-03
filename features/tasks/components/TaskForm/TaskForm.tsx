@@ -35,8 +35,7 @@ import {
   taskFormSchema,
   TASK_PRIORITY_VALUES,
   TASK_STATUS_VALUES,
-  type TaskFormInputValues,
-  type TaskFormValues
+  type TaskFormInputValues
 } from "../../schemas"
 import { type TaskFormData } from "../../types"
 
@@ -71,8 +70,12 @@ const TaskForm = (props: TaskFormProps) => {
     }
   }, [props.mode, props.task])
 
-  const form = useForm<TaskFormInputValues, unknown, TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
+  const form = useForm<TaskFormInputValues>({
+    // `raw: true`, so the values that reach `onSubmit` are the strings the controls hold rather
+    // than the schema's transformed output. createTask re-validates with a schema built from the
+    // same string-input shape (schemas.ts's taskFieldsShape), so sending the transformed cents and
+    // Dates would fail that re-parse at the trust boundary.
+    resolver: zodResolver(taskFormSchema, {}, { raw: true }),
     mode: "onChange",
     defaultValues
   })
@@ -83,10 +86,8 @@ const TaskForm = (props: TaskFormProps) => {
 
   const submitDisabled = isSaving || !isValid || (isEdit && !isDirty)
 
-  const onSubmit = () => {
+  const onSubmit = (values: TaskFormInputValues) => {
     if (submitDisabled) return
-
-    const values = form.getValues()
 
     setServerError(null)
 

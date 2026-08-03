@@ -6,14 +6,14 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Button, FieldError, Icon, Typography } from "@/components/ui"
 
-import { type ProposalFormInputValues, type ProposalFormValues } from "../../schemas"
+import { type ProposalFormInputValues } from "../../schemas"
 import { type ProposalTaxRateOption } from "../../types"
 
 import { EMPTY_LINE_ITEM } from "./emptyLineItem"
 import { ProposalLineItemRow } from "./ProposalLineItemRow"
 
 type ProposalLineItemsFieldProps = {
-  control: Control<ProposalFormInputValues, unknown, ProposalFormValues>
+  control: Control<ProposalFormInputValues>
   taxRates: ProposalTaxRateOption[]
   currency: string
   locale: string
@@ -56,7 +56,7 @@ const ProposalLineItemsField = ({
           discountKind={discountKinds[index] ?? "none"}
           canRemove={fields.length > 1}
           disabled={disabled}
-          onRemove={() => remove(index)}
+          onRemove={remove}
         />
       ))}
       {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}

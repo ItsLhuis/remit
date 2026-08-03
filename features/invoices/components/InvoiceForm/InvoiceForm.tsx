@@ -5,11 +5,9 @@ import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm, useWatch } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
-
-import { isValidAmount, parseAmountToCents } from "@/lib/utils"
 
 import {
   Button,
@@ -24,66 +22,13 @@ import {
 } from "@/components/ui"
 
 import { createInvoice, updateInvoice } from "../../mutations"
-import {
-  invoiceFormSchema,
-  type InvoiceFormInputValues,
-  type InvoiceFormValues
-} from "../../schemas"
-import {
-  calculateInvoiceLineTotals,
-  calculateInvoiceTotal,
-  type InvoiceDiscount,
-  type InvoiceLineItemInput
-} from "../../services"
+import { invoiceFormSchema, type InvoiceFormInputValues } from "../../schemas"
 import { type InvoiceEditorData, type InvoiceFormData } from "../../types"
 
 import { EMPTY_LINE_ITEM } from "./emptyLineItem"
 import { FormSection } from "./FormSection"
 import { InvoiceDetailsFields } from "./InvoiceDetailsFields"
-import { InvoiceLineItemsField } from "./InvoiceLineItemsField"
-import { InvoiceTotalsPanel } from "./InvoiceTotalsPanel"
-
-// Mirrors the schema's coercion without its validation: the live totals panel has to price a row
-// the moment it is typed, long before the row is valid, so an unparseable amount reads as zero
-// rather than blocking the preview. The committed numbers always come from the server, which runs
-// the same pure service over the parsed values.
-function toCents(value: string): number {
-  return isValidAmount(value) ? (parseAmountToCents(value) ?? 0) : 0
-}
-
-function toQuantity(value: string): number {
-  const quantity = Number(value)
-
-  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0
-}
-
-function toPreviewLine(
-  item: Partial<InvoiceFormInputValues["lineItems"][number]> | undefined,
-  taxPercentages: Map<string, number>
-): InvoiceLineItemInput {
-  return {
-    quantity: toQuantity(item?.quantity ?? ""),
-    unitPriceCents: toCents(item?.unitPrice ?? ""),
-    discount: toPreviewDiscount(item?.discountKind, item?.discountPercentage, item?.discountAmount),
-    taxPercentage: taxPercentages.get(item?.taxRateId ?? "") ?? 0
-  }
-}
-
-function toPreviewDiscount(
-  kind: string | undefined,
-  percentage: string | undefined,
-  amount: string | undefined
-): InvoiceDiscount | null {
-  if (kind === "percentage") {
-    const value = Number(percentage)
-
-    return { type: "percentage", percentage: Number.isFinite(value) ? Math.min(value, 100) : 0 }
-  }
-
-  if (kind === "fixed") return { type: "fixed", amountCents: toCents(amount ?? "") }
-
-  return null
-}
+import { InvoicePricingSection } from "./InvoicePricingSection"
 
 type InvoiceFormProps = {
   editor: InvoiceEditorData
@@ -118,8 +63,12 @@ const InvoiceForm = ({ editor, invoice }: InvoiceFormProps) => {
     }
   }, [invoice, editor.taxRates, editor.defaults])
 
-  const form = useForm<InvoiceFormInputValues, unknown, InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema),
+  const form = useForm<InvoiceFormInputValues>({
+    // `raw: true`, so the values that reach `onSubmit` are the strings the controls hold rather
+    // than the schema's transformed output. createInvoice re-validates with a schema built from
+    // the same string-input shape (schemas.ts's invoiceFieldsShape), so sending the transformed
+    // cents and Dates would fail that re-parse at the trust boundary.
+    resolver: zodResolver(invoiceFormSchema, {}, { raw: true }),
     // onChange, not onBlur: `submitDisabled` gates on `isValid`, which only leaves its initial
     // `false` once validation has run. Under onBlur a freshly filled form stays unsubmittable until
     // every field has also been blurred.
@@ -129,35 +78,11 @@ const InvoiceForm = ({ editor, invoice }: InvoiceFormProps) => {
 
   const { isDirty, isValid } = form.formState
 
-  const watched = useWatch({ control: form.control })
-
-  const taxPercentages = useMemo(
-    () => new Map(editor.taxRates.map((taxRate) => [taxRate.id, taxRate.percentage])),
-    [editor.taxRates]
-  )
-
-  const previewLines = useMemo(
-    () => (watched.lineItems ?? []).map((item) => toPreviewLine(item, taxPercentages)),
-    [watched.lineItems, taxPercentages]
-  )
-
-  const previewDiscount = toPreviewDiscount(
-    watched.discountKind,
-    watched.discountPercentage,
-    watched.discountAmount
-  )
-
-  const totals = calculateInvoiceTotal(previewLines, previewDiscount)
-  const lineTotals = calculateInvoiceLineTotals(previewLines, previewDiscount)
-
-  const currency = watched.currency ?? editor.defaults.defaultCurrency
-  const locale = editor.defaults.defaultLocale
-
   const isEdit = invoice !== null
 
   const submitDisabled = isSaving || !isValid || (isEdit && !isDirty)
 
-  const onSubmit = (values: InvoiceFormValues) => {
+  const onSubmit = (values: InvoiceFormInputValues) => {
     if (submitDisabled) return
 
     setServerError(null)
@@ -191,7 +116,6 @@ const InvoiceForm = ({ editor, invoice }: InvoiceFormProps) => {
         <InvoiceDetailsFields
           control={form.control}
           templates={editor.templates}
-          discountKind={watched.discountKind ?? "none"}
           disabled={isSaving}
         />
       </FormSection>
@@ -200,17 +124,14 @@ const InvoiceForm = ({ editor, invoice }: InvoiceFormProps) => {
         title={t("invoices.form.lineItemsSection")}
         description={t("invoices.form.lineItemsDescription")}
       >
-        <InvoiceLineItemsField
+        <InvoicePricingSection
           control={form.control}
           taxRates={editor.taxRates}
-          currency={currency}
-          locale={locale}
-          lineTotalsCents={lineTotals.map((line) => line.totalCents)}
-          discountKinds={(watched.lineItems ?? []).map((item) => item?.discountKind ?? "none")}
+          defaultCurrency={editor.defaults.defaultCurrency}
+          locale={editor.defaults.defaultLocale}
           errorMessage={form.formState.errors.lineItems?.message}
           disabled={isSaving}
         />
-        <InvoiceTotalsPanel totals={totals} currency={currency} locale={locale} />
       </FormSection>
       <Separator />
       <FormSection

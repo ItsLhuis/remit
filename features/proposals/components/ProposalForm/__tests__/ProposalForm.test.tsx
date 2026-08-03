@@ -161,7 +161,9 @@ describe("ProposalForm", () => {
     expect(screen.getAllByLabelText("proposals.lineItems.descriptionColumn")).toHaveLength(1)
   })
 
-  test("submits the parsed values to createProposal and navigates to the new proposal", async () => {
+  // The typed strings, not the schema's transformed cents: createProposal re-validates with a
+  // schema built from the same string-input shape, so the amount has to stay "100.00" on the wire.
+  test("submits the field values to createProposal and navigates to the new proposal", async () => {
     const user = userEvent.setup()
 
     renderForm(null)
@@ -175,7 +177,7 @@ describe("ProposalForm", () => {
     expect(mocks.createProposal).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: editor.projectId,
-        lineItems: [expect.objectContaining({ description: "Workshop", unitPrice: 10000 })]
+        lineItems: [expect.objectContaining({ description: "Workshop", unitPrice: "100.00" })]
       })
     )
     expect(mocks.push).toHaveBeenCalledWith(`/projects/${editor.projectId}/proposals/${draft.id}`)
@@ -194,6 +196,32 @@ describe("ProposalForm", () => {
 
     expect(await screen.findByText("Only draft proposals can be changed")).toBeInTheDocument()
     expect(mocks.push).not.toHaveBeenCalled()
+  })
+
+  test("keeps every row's total correct when a row in the middle is removed", async () => {
+    const user = userEvent.setup()
+
+    renderForm(null)
+
+    for (let index = 0; index < 3; index++) {
+      await user.click(screen.getByRole("button", { name: "proposals.lineItems.addButton" }))
+    }
+
+    const unitPrices = screen.getAllByLabelText("proposals.lineItems.unitPriceColumn")
+
+    for (const [index, unitPrice] of unitPrices.entries()) {
+      await user.type(unitPrice, `${(index + 1) * 100}.00`)
+    }
+
+    expect(await screen.findAllByText("€1,000.00")).not.toHaveLength(0)
+
+    await user.click(screen.getAllByRole("button", { name: "proposals.lineItems.removeButton" })[1])
+
+    expect(await screen.findAllByText("€800.00")).not.toHaveLength(0)
+    expect(screen.getByText("€100.00")).toBeInTheDocument()
+    expect(screen.getByText("€300.00")).toBeInTheDocument()
+    expect(screen.getByText("€400.00")).toBeInTheDocument()
+    expect(screen.queryByText("€200.00")).not.toBeInTheDocument()
   })
 
   test("blocks submission while an existing draft is untouched", () => {
