@@ -207,8 +207,16 @@ function isStaticAsset(pathname: string): boolean {
   )
 }
 
+// Webhook receivers are anonymous by construction: the caller is a payment provider, never a session.
+// Without this the session check below rewrites the delivery to the login page and answers 200, which
+// Stripe reads as a successful delivery and never retries — the event would be lost silently. Each
+// receiver authenticates its own caller instead, by signature (`features/payments/stripeWebhook.ts`).
 function isPublicApiRoute(pathname: string): boolean {
-  return pathname === "/api/health" || pathname.startsWith("/api/auth/")
+  return (
+    pathname === "/api/health" ||
+    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/webhooks/")
+  )
 }
 
 // The route template, never the pathname. On a public-token route the second segment *is* the

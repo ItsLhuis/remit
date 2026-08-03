@@ -1847,6 +1847,90 @@ export const english: Language = {
         proposalHasNoLineItems: "This proposal has no line items to invoice"
       }
     },
+    payments: {
+      method: {
+        bank_transfer: "Bank transfer",
+        stripe: "Stripe",
+        cash: "Cash",
+        other: "Other"
+      },
+      list: {
+        title: "Payments",
+        description: "Money received against this invoice",
+        rowActions: "Payment actions"
+      },
+      actions: {
+        record: "Record payment",
+        edit: "Edit payment",
+        delete: "Delete payment"
+      },
+      empty: {
+        title: "No payments recorded",
+        description: "Record a payment when the money arrives",
+        draftDescription: "Send the invoice before recording a payment"
+      },
+      totals: {
+        recorded: "Recorded",
+        outstanding: "Outstanding"
+      },
+      fields: {
+        amount: "Amount",
+        paidAt: "Payment date",
+        method: "Method",
+        reference: "Reference",
+        notes: "Notes"
+      },
+      placeholders: {
+        amount: "0.00",
+        reference: "Bank transaction reference",
+        notes: "Anything worth remembering about this payment"
+      },
+      form: {
+        createTitle: "Record payment",
+        createDescription: "Record money received against this invoice",
+        editTitle: "Edit payment",
+        editDescription: "Correct the details of this payment record",
+        saveCreate: "Record payment",
+        saveEdit: "Save payment",
+        recorded: "Payment recorded",
+        updated: "Payment updated"
+      },
+      delete: {
+        title: "Delete this payment?",
+        description:
+          "The {amount} recorded here will be removed and the invoice totals recalculated",
+        confirm: "Delete payment"
+      },
+      notifications: {
+        deleted: "Payment deleted"
+      },
+      validation: {
+        amountRequired: "Amount is required",
+        amountInvalid: "Enter a valid amount",
+        amountPositive: "Amount must be greater than zero",
+        dateInvalid: "Enter a valid date",
+        referenceTooLong: "Reference must be {count} characters or fewer",
+        notesTooLong: "Notes must be {count} characters or fewer",
+        invoiceIdInvalid: "Invalid invoice",
+        idInvalid: "Invalid payment"
+      },
+      errors: {
+        notFound: "Payment not found",
+        invoiceNotFound: "Invoice not found",
+        invoiceNotIssued: "Send the invoice before recording a payment",
+        currencyMismatch: "This payment is in a different currency to the invoice",
+        overpayment: "This would pay more than the invoice total; issue a credit note instead",
+        providerOwned: "A Stripe payment cannot be edited",
+        alreadySettled: "This invoice is already paid in full",
+        recordFailed: "Failed to record payment",
+        updateFailed: "Failed to update payment",
+        deleteFailed: "Failed to delete payment"
+      },
+      webhook: {
+        rateLimited: "Too many requests",
+        rejected: "Webhook rejected"
+      }
+    },
     templates: {
       metadataTitle: "Templates",
       title: "Templates",

@@ -96,6 +96,15 @@ describe("proxy on public token routes", () => {
     expect(JSON.stringify(mocks.writeAudit.mock.calls)).not.toContain(token)
   })
 
+  test("lets a webhook delivery reach its route without a session", async () => {
+    const { proxy } = await import("../proxy")
+
+    const response = await proxy(createRequest("/api/webhooks/stripe"))
+
+    expect(mocks.getSession).not.toHaveBeenCalled()
+    expect(response.headers.get("location")).toBeNull()
+  })
+
   test("allows a public token route to be framed while keeping other routes denied", async () => {
     const { applySecurityHeaders } = await import("../proxy")
     const { NextResponse } = await import("next/server")

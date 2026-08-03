@@ -11,6 +11,8 @@ import { enqueueJob } from "@/lib/jobs"
 import { database } from "@/database"
 import { invoices, lineItems, projects, taxRates } from "@/database/schema"
 
+import { recordInvoiceSettlement } from "@/features/payments/server"
+
 import {
   emitInvoiceCreated,
   emitInvoiceDeleted,
@@ -340,7 +342,7 @@ export async function markInvoicePaid(input: unknown): Promise<MarkInvoicePaidRe
   try {
     const existing = await database.query.invoices.findFirst({
       where: and(eq(invoices.id, parsed.data.id), isNull(invoices.deletedAt)),
-      columns: { id: true, status: true, totalCents: true }
+      columns: { id: true, status: true, projectId: true, clientId: true }
     })
 
     if (!existing) throw new ExpectedInvoiceError(t("invoices.errors.notFound"))
@@ -349,44 +351,25 @@ export async function markInvoicePaid(input: unknown): Promise<MarkInvoicePaidRe
 
     if (!transition.allowed) throw new ExpectedInvoiceError(t("invoices.errors.invalidTransition"))
 
-    const paidAt = new Date()
+    // The invoice row is not written here any more. `recordInvoiceSettlement` books the outstanding
+    // balance as a payment and moves `amount_paid_cents`, `status` and `paid_at` in the same
+    // transaction as that row, so this action cannot leave an aggregate that disagrees with the
+    // payments behind it. It stays silent on `invoice.paid` and reports the outcome instead, which
+    // is why the emission below is still this action's to make.
+    const settlement = await recordInvoiceSettlement(existing.id, context)
 
-    // Full settlement is assumed here, which is why `amountPaidCents` is written from `totalCents`
-    // rather than from a payment record.
-    const [paid] = await database
-      .update(invoices)
-      .set({
-        status: transition.nextStatus,
-        paidAt,
-        amountPaidCents: Number(existing.totalCents)
-      })
-      .where(
-        and(
-          eq(invoices.id, parsed.data.id),
-          eq(invoices.status, "sent"),
-          isNull(invoices.deletedAt)
-        )
-      )
-      .returning({
-        id: invoices.id,
-        projectId: invoices.projectId,
-        clientId: invoices.clientId,
-        totalCents: invoices.totalCents
-      })
+    if ("error" in settlement) throw new ExpectedInvoiceError(settlement.error)
 
-    if (!paid) throw new ExpectedInvoiceError(t("invoices.errors.invalidTransition"))
-
-    await writeInvoiceAudit(context, "invoice.paid", paid.id, {
-      projectId: paid.projectId,
-      clientId: paid.clientId,
-      paidAt: paidAt.toISOString(),
-      amountPaidCents: Number(paid.totalCents)
+    await writeInvoiceAudit(context, "invoice.paid", existing.id, {
+      projectId: existing.projectId,
+      clientId: existing.clientId,
+      paymentId: settlement.data.paymentId
     })
-    await emitInvoicePaid({ invoiceId: paid.id, userId: context.userId })
+    await emitInvoicePaid({ invoiceId: existing.id, userId: context.userId })
 
-    revalidateInvoicePaths(paid)
+    revalidateInvoicePaths(existing)
 
-    return { data: { id: paid.id } }
+    return { data: { id: existing.id } }
   } catch (error) {
     return handleInvoiceActionError(error, {
       action: "markInvoicePaid",

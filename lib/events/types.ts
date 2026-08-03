@@ -187,10 +187,18 @@ export type EventMap = {
     userId: string
   }
   // The payload deliberately carries no amount, so a full-settlement write and a payment
-  // aggregation reaching the total can emit the same event.
+  // aggregation reaching the total can emit the same event. `userId` is nullable because the
+  // aggregation can also be reached by the Stripe webhook, where no user is present.
   "invoice.paid": {
     invoiceId: string
-    userId: string
+    userId: string | null
+  }
+  // Emitted once per payment row created, whichever writer created it. `userId` is null for a
+  // payment recorded by the Stripe receiver.
+  "payment.received": {
+    paymentId: string
+    invoiceId: string
+    userId: string | null
   }
   "invoice.deleted": {
     invoiceId: string

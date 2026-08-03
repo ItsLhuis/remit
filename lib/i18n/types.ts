@@ -1791,6 +1791,89 @@ export type Translations = {
       proposalHasNoLineItems: string
     }
   }
+  payments: {
+    method: {
+      bank_transfer: string
+      stripe: string
+      cash: string
+      other: string
+    }
+    list: {
+      title: string
+      description: string
+      rowActions: string
+    }
+    actions: {
+      record: string
+      edit: string
+      delete: string
+    }
+    empty: {
+      title: string
+      description: string
+      draftDescription: string
+    }
+    totals: {
+      recorded: string
+      outstanding: string
+    }
+    fields: {
+      amount: string
+      paidAt: string
+      method: string
+      reference: string
+      notes: string
+    }
+    placeholders: {
+      amount: string
+      reference: string
+      notes: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      recorded: string
+      updated: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+    }
+    notifications: {
+      deleted: string
+    }
+    validation: {
+      amountRequired: string
+      amountInvalid: string
+      amountPositive: string
+      dateInvalid: string
+      referenceTooLong: string
+      notesTooLong: string
+      invoiceIdInvalid: string
+      idInvalid: string
+    }
+    errors: {
+      notFound: string
+      invoiceNotFound: string
+      invoiceNotIssued: string
+      currencyMismatch: string
+      overpayment: string
+      providerOwned: string
+      alreadySettled: string
+      recordFailed: string
+      updateFailed: string
+      deleteFailed: string
+    }
+    webhook: {
+      rateLimited: string
+      rejected: string
+    }
+  }
   templates: {
     metadataTitle: string
     title: string

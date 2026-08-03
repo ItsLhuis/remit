@@ -22,10 +22,13 @@ import {
   toast
 } from "@/components/ui"
 
+import { InvoicePaymentsCard, type PaymentListItem } from "@/features/payments"
+
 import { markInvoicePaid, sendInvoice, softDeleteInvoice } from "../../mutations"
 import {
   canTransitionInvoiceStatus,
   deriveInvoiceStatusView,
+  getInvoiceOutstandingCents,
   isInvoiceEditable
 } from "../../services"
 import { type InvoiceDetail } from "../../types"
@@ -40,9 +43,10 @@ import { InvoiceSummaryCard } from "./InvoiceSummaryCard"
 
 type InvoiceDetailPageProps = {
   invoice: InvoiceDetail
+  payments: PaymentListItem[]
 }
 
-const InvoiceDetailPage = ({ invoice }: InvoiceDetailPageProps) => {
+const InvoiceDetailPage = ({ invoice, payments }: InvoiceDetailPageProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -60,6 +64,7 @@ const InvoiceDetailPage = ({ invoice }: InvoiceDetailPageProps) => {
   const canMarkPaid = canTransitionInvoiceStatus(invoice.status, "paid").allowed
 
   const locale = invoice.defaults.defaultLocale
+  const outstandingCents = getInvoiceOutstandingCents(invoice)
 
   // A project-scoped invoice is reached through its project; a client-only one has no project route
   // to return to, so the fallback is the client. `chk_invoices_parent` guarantees one of the two.
@@ -201,6 +206,15 @@ const InvoiceDetailPage = ({ invoice }: InvoiceDetailPageProps) => {
                 </Typography>
               </div>
             ) : null}
+            <InvoicePaymentsCard
+              invoiceId={invoice.id}
+              payments={payments}
+              currency={invoice.currency}
+              locale={locale}
+              amountPaidCents={invoice.amountPaidCents}
+              outstandingCents={outstandingCents}
+              canRecord={!isEditable}
+            />
           </div>
           <div className="flex flex-col gap-6">
             <InvoiceSummaryCard invoice={invoice} />

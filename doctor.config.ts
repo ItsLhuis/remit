@@ -98,6 +98,8 @@ const config = {
     "requireInvoiceSend",
     "requireInvoiceMarkPaid",
     "requireInvoiceDelete",
+    "requirePaymentWrite",
+    "requirePaymentDelete",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",
