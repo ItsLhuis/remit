@@ -22,13 +22,20 @@ import {
   toast
 } from "@/components/ui"
 
+import {
+  computeInvoiceEffectiveReceivable,
+  computeInvoiceOutstandingAfterCredits,
+  sumCreditNoteTotalCents,
+  InvoiceCreditNotesCard,
+  type CreditNoteListItem
+} from "@/features/creditNotes"
+
 import { InvoicePaymentsCard, type PaymentListItem } from "@/features/payments"
 
 import { markInvoicePaid, sendInvoice, softDeleteInvoice } from "../../mutations"
 import {
   canTransitionInvoiceStatus,
   deriveInvoiceStatusView,
-  getInvoiceOutstandingCents,
   isInvoiceEditable
 } from "../../services"
 import { type InvoiceDetail } from "../../types"
@@ -44,9 +51,10 @@ import { InvoiceSummaryCard } from "./InvoiceSummaryCard"
 type InvoiceDetailPageProps = {
   invoice: InvoiceDetail
   payments: PaymentListItem[]
+  creditNotes: CreditNoteListItem[]
 }
 
-const InvoiceDetailPage = ({ invoice, payments }: InvoiceDetailPageProps) => {
+const InvoiceDetailPage = ({ invoice, payments, creditNotes }: InvoiceDetailPageProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -64,13 +72,29 @@ const InvoiceDetailPage = ({ invoice, payments }: InvoiceDetailPageProps) => {
   const canMarkPaid = canTransitionInvoiceStatus(invoice.status, "paid").allowed
 
   const locale = invoice.defaults.defaultLocale
-  const outstandingCents = getInvoiceOutstandingCents(invoice)
+
+  // The stored `total_cents` is never rewritten by a credit note, so what the invoice is still owed
+  // is derived here from the notes standing against it (`@/features/creditNotes`
+  // services/effectiveReceivable.ts). Every amount-due figure on this screen reads from these two.
+  const creditNoteTotals = creditNotes.map((creditNote) => creditNote.totalCents)
+  const creditedCents = sumCreditNoteTotalCents(creditNoteTotals)
+  const effectiveReceivableCents = computeInvoiceEffectiveReceivable(
+    invoice.totalCents,
+    creditNoteTotals
+  )
+  const outstandingCents = computeInvoiceOutstandingAfterCredits(invoice, creditNoteTotals)
 
   // A project-scoped invoice is reached through its project; a client-only one has no project route
   // to return to, so the fallback is the client. `chk_invoices_parent` guarantees one of the two.
   const listHref = invoice.projectId
     ? `/projects/${invoice.projectId}/invoices`
     : `/clients/${invoice.clientId}`
+
+  // Every credit-note route is nested under the project-scoped invoice route, so a client-only
+  // invoice has no base path to hang them off and the card renders without its links.
+  const creditNoteBasePath = invoice.projectId
+    ? `/projects/${invoice.projectId}/invoices/${invoice.id}`
+    : null
 
   const onConfirmSend = () => {
     if (isSending) return
@@ -215,9 +239,22 @@ const InvoiceDetailPage = ({ invoice, payments }: InvoiceDetailPageProps) => {
               outstandingCents={outstandingCents}
               canRecord={!isEditable}
             />
+            <InvoiceCreditNotesCard
+              basePath={creditNoteBasePath}
+              creditNotes={creditNotes}
+              currency={invoice.currency}
+              locale={locale}
+              creditedCents={creditedCents}
+              effectiveReceivableCents={effectiveReceivableCents}
+              canIssue={!isEditable}
+            />
           </div>
           <div className="flex flex-col gap-6">
-            <InvoiceSummaryCard invoice={invoice} />
+            <InvoiceSummaryCard
+              invoice={invoice}
+              creditedCents={creditedCents}
+              outstandingCents={outstandingCents}
+            />
             <InvoicePublicLinkCard publicPath={invoice.publicPath} />
           </div>
         </div>

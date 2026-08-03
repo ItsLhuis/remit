@@ -6,21 +6,27 @@ import { formatCurrency, formatDate, formatDay } from "@/lib/utils"
 
 import { Card, CardContent, CardHeader, CardTitle, Separator, Typography } from "@/components/ui"
 
-import { getInvoiceOutstandingCents } from "../../services"
 import { type InvoiceDetail } from "../../types"
 import { InvoiceDetailRow } from "../InvoiceDetailRow"
 
+// `creditedCents` and `outstandingCents` arrive already derived rather than being computed here:
+// they come from the credit-note services, and the card is one of three places on this screen that
+// print them (see InvoiceDetailPage.tsx), which must not each derive their own answer.
 type InvoiceSummaryCardProps = {
   invoice: InvoiceDetail
+  creditedCents: number
+  outstandingCents: number
 }
 
-const InvoiceSummaryCard = ({ invoice }: InvoiceSummaryCardProps) => {
+const InvoiceSummaryCard = ({
+  invoice,
+  creditedCents,
+  outstandingCents
+}: InvoiceSummaryCardProps) => {
   const { t } = useTranslation()
 
   const locale = invoice.defaults.defaultLocale
   const timeZone = invoice.defaults.defaultTimezone
-
-  const outstandingCents = getInvoiceOutstandingCents(invoice)
 
   return (
     <Card size="sm">
@@ -81,6 +87,11 @@ const InvoiceSummaryCard = ({ invoice }: InvoiceSummaryCardProps) => {
             {formatCurrency(invoice.totalCents, invoice.currency, locale)}
           </span>
         </div>
+        <InvoiceDetailRow
+          label={t("invoices.totals.credited")}
+          value={formatCurrency(-creditedCents, invoice.currency, locale)}
+          mono
+        />
         <InvoiceDetailRow
           label={t("invoices.totals.amountPaid")}
           value={formatCurrency(invoice.amountPaidCents, invoice.currency, locale)}

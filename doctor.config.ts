@@ -100,6 +100,8 @@ const config = {
     "requireInvoiceDelete",
     "requirePaymentWrite",
     "requirePaymentDelete",
+    "requireCreditNoteWrite",
+    "requireCreditNoteDelete",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",
