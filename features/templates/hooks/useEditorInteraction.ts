@@ -61,7 +61,11 @@ const IDLE_OVERLAY: InteractionOverlay = {
 export function useEditorInteraction(editor: TemplateEditorState): EditorInteraction {
   const editorRef = useRef(editor)
 
-  const nodesRef = useRef(new Map<string, HTMLElement>())
+  // Lazy useState, not useRef(new Map()): both hold a stable, never-re-rendered identity, but a
+  // useRef initializer would rebuild and discard the collection on every render, and reading
+  // ref.current back during render is not allowed.
+  const [nodes] = useState<Map<string, HTMLElement>>(() => new Map())
+
   const pendingFocusIdRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -72,11 +76,13 @@ export function useEditorInteraction(editor: TemplateEditorState): EditorInterac
     if (pendingId === null) return
 
     pendingFocusIdRef.current = null
-    focusBlockSurface(nodesRef.current, pendingId)
-  }, [editor])
+    focusBlockSurface(nodes, pendingId)
+  }, [editor, nodes])
 
   const overlayRef = useRef<InteractionOverlay>(IDLE_OVERLAY)
-  const listenersRef = useRef(new Set<() => void>())
+
+  const [listeners] = useState<Set<() => void>>(() => new Set())
+
   const [editingText, setEditingText] = useState<{ id: string; caretPoint: Point | null } | null>(
     null
   )
@@ -98,15 +104,18 @@ export function useEditorInteraction(editor: TemplateEditorState): EditorInterac
     editorRef.current.setSelection(ids)
   }, [])
 
-  const registerNode = useCallback((id: string, element: HTMLElement | null) => {
-    if (element === null) {
-      nodesRef.current.delete(id)
-    } else {
-      nodesRef.current.set(id, element)
-    }
-  }, [])
+  const registerNode = useCallback(
+    (id: string, element: HTMLElement | null) => {
+      if (element === null) {
+        nodes.delete(id)
+      } else {
+        nodes.set(id, element)
+      }
+    },
+    [nodes]
+  )
 
-  const getNode = useCallback((id: string) => nodesRef.current.get(id) ?? null, [])
+  const getNode = useCallback((id: string) => nodes.get(id) ?? null, [nodes])
 
   // Always deferred, never attempted immediately: even an id registered right now (a freed child
   // reclaiming its pre-group id) is about to remount at a new tree position, so focusing it
@@ -115,13 +124,16 @@ export function useEditorInteraction(editor: TemplateEditorState): EditorInterac
     pendingFocusIdRef.current = id
   }, [])
 
-  const setOverlay = useCallback((next: InteractionOverlay) => {
-    if (overlaysEqual(overlayRef.current, next)) return
+  const setOverlay = useCallback(
+    (next: InteractionOverlay) => {
+      if (overlaysEqual(overlayRef.current, next)) return
 
-    overlayRef.current = next
+      overlayRef.current = next
 
-    for (const listener of listenersRef.current) listener()
-  }, [])
+      for (const listener of listeners) listener()
+    },
+    [listeners]
+  )
 
   const setHovered = useCallback(
     (id: string | null) => {
@@ -132,13 +144,16 @@ export function useEditorInteraction(editor: TemplateEditorState): EditorInterac
 
   const getOverlay = useCallback(() => overlayRef.current, [])
 
-  const subscribeOverlay = useCallback((listener: () => void) => {
-    listenersRef.current.add(listener)
+  const subscribeOverlay = useCallback(
+    (listener: () => void) => {
+      listeners.add(listener)
 
-    return () => {
-      listenersRef.current.delete(listener)
-    }
-  }, [])
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    [listeners]
+  )
 
   const startTextEdit = useCallback((id: string, caretPoint: Point | null = null) => {
     setEditingText({ id, caretPoint })
