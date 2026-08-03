@@ -61,5 +61,8 @@ export {
   type InvoiceTaxRateOption,
   type InvoiceTemplateOption,
   type MarkInvoicePaidResult,
+  type PublicInvoice,
+  type PublicInvoiceIssuer,
+  type PublicInvoicePayment,
   type SendInvoiceResult
 } from "./types"

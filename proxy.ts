@@ -99,7 +99,7 @@ export async function proxy(request: NextRequest) {
     if (!rateLimitResult.allowed) {
       await writeAudit("auth.rate_limit.tripped", {
         ipAddress,
-        metadata: { route: pathname }
+        metadata: { route: getPublicTokenRouteLabel(pathname) }
       })
 
       return applySecurityHeaders(new NextResponse("Too many requests", { status: 429 }), true)
@@ -209,6 +209,15 @@ function isStaticAsset(pathname: string): boolean {
 
 function isPublicApiRoute(pathname: string): boolean {
   return pathname === "/api/health" || pathname.startsWith("/api/auth/")
+}
+
+// The route template, never the pathname. On a public-token route the second segment *is* the
+// token, and `audit_log` is readable by anyone with database access, so writing the raw path there
+// would file a live bearer credential in the audit trail (`security.md`).
+function getPublicTokenRouteLabel(pathname: string): string {
+  const [, prefix] = pathname.split("/")
+
+  return `/${prefix ?? ""}/[token]`
 }
 
 function isPublicTokenRoute(pathname: string): boolean {
