@@ -17,6 +17,9 @@ export type JobMap = {
   "invoice.pdf.render": {
     invoiceId: string
   }
+  "credit_note.pdf.render": {
+    creditNoteId: string
+  }
 }
 
 export type JobName = keyof JobMap

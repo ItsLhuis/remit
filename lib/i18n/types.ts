@@ -405,6 +405,7 @@ export type Translations = {
       proposals: string
       contracts: string
       invoices: string
+      creditNotes: string
       settings: string
       navigation: string
       configuration: string
@@ -1637,6 +1638,8 @@ export type Translations = {
       total: string
       amountPaid: string
       outstanding: string
+      credited: string
+      effectiveReceivable: string
     }
     template: {
       none: string
@@ -1789,6 +1792,160 @@ export type Translations = {
       proposalNotConvertible: string
       proposalAlreadyConverted: string
       proposalHasNoLineItems: string
+    }
+  }
+  creditNotes: {
+    metadata: {
+      list: string
+      detail: string
+      create: string
+    }
+    overview: {
+      title: string
+      description: string
+      tableTitle: string
+      count: string
+      numberColumn: string
+      invoiceColumn: string
+      clientColumn: string
+      issuedColumn: string
+      totalColumn: string
+      rowActions: string
+      noClient: string
+      openInvoice: string
+      openClient: string
+      browseInvoices: string
+      searchPlaceholder: string
+      searchLabel: string
+      filters: string
+      clearFilters: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      credited: string
+      creditedHint: string
+      creditedMultiCurrency: string
+      invoicesCredited: string
+      invoicesCreditedHint: string
+      average: string
+      averageHint: string
+    }
+    card: {
+      title: string
+      description: string
+      issuedOn: string
+    }
+    empty: {
+      title: string
+      description: string
+      lockedDescription: string
+    }
+    actions: {
+      create: string
+      view: string
+      delete: string
+      backToInvoice: string
+      backToList: string
+    }
+    fields: {
+      reason: string
+      invoice: string
+      client: string
+      issuedAt: string
+    }
+    placeholders: {
+      reason: string
+      description: string
+      quantity: string
+      unit: string
+      amount: string
+      percentage: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      creditingInvoice: string
+      lineItemsSection: string
+      lineItemsDescription: string
+      reasonSection: string
+      reasonDescription: string
+      saveCreate: string
+    }
+    lineItems: {
+      empty: string
+      addButton: string
+      removeButton: string
+      rowLabel: string
+      tableTitle: string
+      descriptionColumn: string
+      quantityColumn: string
+      unitPriceColumn: string
+      taxColumn: string
+      totalColumn: string
+      unitColumn: string
+      discountColumn: string
+      noTaxRate: string
+    }
+    discount: {
+      none: string
+      percentage: string
+      fixed: string
+    }
+    totals: {
+      subtotal: string
+      tax: string
+      total: string
+      invoiceTotal: string
+      alreadyCredited: string
+      outstanding: string
+    }
+    detail: {
+      summaryTitle: string
+      reasonTitle: string
+      noReason: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+    }
+    notifications: {
+      created: string
+      deleted: string
+    }
+    validation: {
+      descriptionRequired: string
+      descriptionTooLong: string
+      unitTooLong: string
+      quantityInvalid: string
+      amountRequired: string
+      amountInvalid: string
+      percentageInvalid: string
+      discountPercentageRequired: string
+      discountAmountRequired: string
+      reasonTooLong: string
+      lineItemsRequired: string
+      taxRateInvalid: string
+      invoiceIdInvalid: string
+      idInvalid: string
+    }
+    errors: {
+      notFound: string
+      invoiceNotFound: string
+      invoiceNotIssued: string
+      totalNotPositive: string
+      settingsMissing: string
+      createFailed: string
+      deleteFailed: string
+    }
+    routeError: {
+      title: string
+      description: string
     }
   }
   payments: {

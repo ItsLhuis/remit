@@ -204,6 +204,20 @@ export type EventMap = {
     invoiceId: string
     userId: string
   }
+  // A credit note is issued at creation — there is no draft state to leave — so this is the only
+  // "created" event the document has. It crosses the boundary because what an invoice is still owed
+  // moves the moment it fires, and no subscriber can derive that from the invoice row alone: the
+  // stored totals deliberately never change (see services/effectiveReceivable.ts).
+  "credit_note.issued": {
+    creditNoteId: string
+    invoiceId: string
+    userId: string
+  }
+  "credit_note.deleted": {
+    creditNoteId: string
+    invoiceId: string
+    userId: string
+  }
   "template.created": {
     templateId: string
     userId: string

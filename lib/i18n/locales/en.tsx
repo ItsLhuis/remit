@@ -424,6 +424,7 @@ export const english: Language = {
         proposals: "Proposals",
         contracts: "Contracts",
         invoices: "Invoices",
+        creditNotes: "Credit notes",
         settings: "Settings",
         navigation: "Navigation",
         configuration: "Configuration",
@@ -1689,7 +1690,9 @@ export const english: Language = {
         tax: "Tax",
         total: "Total",
         amountPaid: "Paid",
-        outstanding: "Outstanding"
+        outstanding: "Outstanding",
+        credited: "Credited",
+        effectiveReceivable: "Effective receivable"
       },
       template: {
         none: "No template"
@@ -1845,6 +1848,160 @@ export const english: Language = {
         proposalNotConvertible: "Only an accepted proposal can be invoiced",
         proposalAlreadyConverted: "This proposal has already been invoiced",
         proposalHasNoLineItems: "This proposal has no line items to invoice"
+      }
+    },
+    creditNotes: {
+      metadata: {
+        list: "Credit notes",
+        detail: "Credit note",
+        create: "New credit note"
+      },
+      overview: {
+        title: "Credit notes",
+        description: "Every adjustment issued against an invoice",
+        tableTitle: "All credit notes",
+        count: "{count, plural, one {# credit note} other {# credit notes}}",
+        numberColumn: "Number",
+        invoiceColumn: "Invoice",
+        clientColumn: "Client",
+        issuedColumn: "Issued",
+        totalColumn: "Credited",
+        rowActions: "Credit note actions",
+        noClient: "No client",
+        openInvoice: "Open invoice",
+        openClient: "Open client",
+        browseInvoices: "Browse invoices",
+        searchPlaceholder: "Search number, invoice, client",
+        searchLabel: "Search credit notes",
+        filters: "Filters",
+        clearFilters: "Clear filters",
+        emptyTitle: "No credit notes yet",
+        emptyDescription: "Credit notes are raised from an issued invoice",
+        noMatchTitle: "No credit notes match",
+        noMatchDescription: "Adjust the search or filters to widen the results"
+      },
+      summary: {
+        total: "Credit notes",
+        totalHint: "Issued on this instance",
+        credited: "Credited",
+        creditedHint: "Total reduced across invoices",
+        creditedMultiCurrency: "Largest of {count, plural, one {# currency} other {# currencies}}",
+        invoicesCredited: "Invoices credited",
+        invoicesCreditedHint: "Invoices carrying an adjustment",
+        average: "Average note",
+        averageHint: "Mean value in the leading currency"
+      },
+      card: {
+        title: "Credit notes",
+        description: "Adjustments reducing what this invoice is still owed",
+        issuedOn: "Issued {date}"
+      },
+      empty: {
+        title: "No credit notes",
+        description: "Credit this invoice when work is cancelled, returned or overbilled",
+        lockedDescription: "A draft invoice cannot be credited. Edit the invoice instead"
+      },
+      actions: {
+        create: "New credit note",
+        view: "View credit note",
+        delete: "Delete",
+        backToInvoice: "Back to invoice",
+        backToList: "Back to credit notes"
+      },
+      fields: {
+        reason: "Reason",
+        invoice: "Invoice",
+        client: "Client",
+        issuedAt: "Issued"
+      },
+      placeholders: {
+        reason: "Why is this credit being issued?",
+        description: "What is being credited",
+        quantity: "1",
+        unit: "hours",
+        amount: "0.00",
+        percentage: "0"
+      },
+      form: {
+        createTitle: "New credit note",
+        createDescription: "Credit part or all of an issued invoice. The number is permanent",
+        creditingInvoice: "Crediting {number} for {client}",
+        lineItemsSection: "Line items",
+        lineItemsDescription: "What is being credited, priced in {currency}",
+        reasonSection: "Reason",
+        reasonDescription: "Recorded on the credit note and shown to the client",
+        saveCreate: "Issue credit note"
+      },
+      lineItems: {
+        empty: "Add at least one line to credit",
+        addButton: "Add line",
+        removeButton: "Remove line",
+        rowLabel: "Line {position}",
+        tableTitle: "Credited items",
+        descriptionColumn: "Description",
+        quantityColumn: "Qty",
+        unitPriceColumn: "Unit price",
+        taxColumn: "Tax",
+        totalColumn: "Total",
+        unitColumn: "Unit",
+        discountColumn: "Discount",
+        noTaxRate: "No tax"
+      },
+      discount: {
+        none: "No discount",
+        percentage: "Percentage",
+        fixed: "Fixed amount"
+      },
+      totals: {
+        subtotal: "Subtotal",
+        tax: "Tax",
+        total: "Total credited",
+        invoiceTotal: "Invoice total",
+        alreadyCredited: "Already credited",
+        outstanding: "Still outstanding"
+      },
+      detail: {
+        summaryTitle: "Summary",
+        reasonTitle: "Reason",
+        noReason: "No reason recorded"
+      },
+      delete: {
+        title: "Delete this credit note?",
+        description: "The invoice returns to its uncredited balance. The number is never reused",
+        confirm: "Delete credit note"
+      },
+      notifications: {
+        created: "Credit note issued",
+        deleted: "Credit note deleted"
+      },
+      validation: {
+        descriptionRequired: "Description is required",
+        descriptionTooLong: "Description must be {count} characters or fewer",
+        unitTooLong: "Unit must be {count} characters or fewer",
+        quantityInvalid: "Quantity must be a positive number",
+        amountRequired: "Amount is required",
+        amountInvalid: "Enter a valid amount",
+        percentageInvalid: "Enter a percentage between 0 and 100",
+        discountPercentageRequired: "Enter a discount percentage",
+        discountAmountRequired: "Enter a discount amount",
+        reasonTooLong: "Reason must be {count} characters or fewer",
+        lineItemsRequired: "Add at least one line item",
+        taxRateInvalid: "Select a valid tax rate",
+        invoiceIdInvalid: "Invalid invoice",
+        idInvalid: "Invalid credit note"
+      },
+      errors: {
+        notFound: "Credit note not found",
+        invoiceNotFound: "Invoice not found",
+        invoiceNotIssued: "Only an issued invoice can be credited",
+        totalNotPositive: "A credit note must be worth more than zero",
+        settingsMissing: "Invoicing settings are not configured",
+        createFailed: "Failed to issue credit note",
+        deleteFailed: "Failed to delete credit note"
+      },
+      routeError: {
+        title: "Credit note unavailable",
+        description: "Something went wrong loading this credit note"
       }
     },
     payments: {
