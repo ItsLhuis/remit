@@ -107,3 +107,10 @@ database and the session. Routing state is never stored in cookies. Adding a coo
 route a user is directed to is a violation of this rule; extend the DB-derived state machine
 instead. See `docs/architecture/ARCHITECTURE.md` (Security Architecture - Routing state rule) for
 the authoritative state machine.
+
+## Comments
+
+Security code is where a reader most often "simplifies" something load-bearing. Say why a comparison
+is constant-time, why a miss and a revoked token return the same shape and timing, why the rate
+limit keys on what it keys on, and why a request or response is cloned before being consumed. Each
+reads as redundant until it is removed. See [comments.md](comments.md) ("Where comments belong").

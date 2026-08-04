@@ -964,36 +964,51 @@ Authorization is implemented as a thin layer in two places:
 endpoint that exposes the encryption key fingerprint are owner-only. Routes that perform sends or
 deletions are blocked for `assistant`. All other routes are accessible to all roles.
 
-**Action-level (operation gating).** Every server action declares its required role at the top via a
-`requireRole` helper that wraps the Better Auth session and checks the active member's role:
+**Action-level (operation gating).** Every server action gates on the active member's role before it
+writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
+what that call site is allowed to do when the check fails:
+
+- **Route and RSC gating uses `requireRole`.** It redirects to `/login` without a session and calls
+  `notFound()` on an insufficient role, so an unauthorized role cannot use the response to learn
+  that the route exists.
+- **Server actions use `getCurrentRole` and an explicit comparison.** An action must return
+  `{ data } | { error }` and must never throw to the client, so it cannot call `requireRole` —
+  `notFound()` inside an action would escape the contract every caller branches on.
 
 ```ts
 "use server"
 
-import { requireRole } from "@/features/auth/services/requireRole"
+import { getCurrentRole } from "@/lib/auth/session"
 
-export async function markInvoicePaid(input: unknown) {
-  await requireRole("owner")
-  // ...
-}
+const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
 
-export async function createInvoiceDraft(input: unknown) {
-  await requireRole(["owner", "assistant"])
-  // ...
-}
-
-export async function listInvoices() {
-  await requireRole(["owner", "accountant", "assistant"])
-  // ...
-}
+if (role !== "owner") return { error: t("errors.forbidden") }
 ```
 
-`requireRole` reads the session and delegates role lookup to Better Auth's active member role for
-the active organization. It does not silently create organizations, repair memberships, or infer
-roles from Remit-owned tables. It returns `{ error: "Not authorized" }` if the caller's role is
-insufficient. Audit log entries always include the actor's user id and role.
+Features with several gates name them rather than repeating the comparison — `requireInvoiceRole`,
+`requireContractRole`, `requirePaymentRole` and their siblings in each feature's
+`mutationContext.ts` wrap one implementation behind names that state the operation's policy (an
+assistant may draft and revise an invoice; recording that money arrived is the accountant's job as
+much as the owner's).
+
+`getCurrentRole` delegates role lookup to Better Auth's active member role for the active
+organization. It does not silently create organizations, repair memberships, or infer roles from
+Remit-owned tables; a user with no membership resolves to `null`, which every gate refuses. Audit
+log entries always include the actor's user id and role.
+
+**Read gating follows write gating.** A settings surface whose actions are owner-only also guards
+its page with `requireRole("owner")`. The settings rail hides links by role, but navigation
+visibility is never the authorization — each page refuses the URL on its own.
 
 ### Invitation flow
+
+**Not built yet, and the only part of this section that is not.** There is no `/settings/team`
+surface and no mutation that creates a membership, and `proxy.ts` sends `/register` away once any
+user exists, so an instance today holds exactly one member and that member is the `owner` Better
+Auth created at setup. Everything else in this chapter — the role vocabulary, the plugin
+configuration, the per-operation gates in every feature, and the audit actor role — is implemented
+and enforced ahead of the surface that will create the second member. Building that surface is
+therefore additive: it must not relax an existing gate to make a new role work.
 
 1. Owner invites an email address with a role from `/settings/team`.
 2. Better Auth creates an `invitation` record with the plugin's expected field shape. If SMTP is
@@ -1008,8 +1023,8 @@ Owners can remove memberships at any time. Removal invalidates all sessions for 
 ### What multi-user does not change
 
 - The domain model has no `tenantId` foreign keys. Adding one is a violation.
-- The single-instance model is the base; multi-user is layered on top via role assignment and
-  `requireRole`.
+- The single-instance model is the base; multi-user is layered on top via role assignment and the
+  gates described above.
 - The audit log captures the actor user id and role but never alters what gets recorded — the audit
   log is not a permission system.
 - All roles must enroll TOTP through the same `/setup` flow. Backup codes are generated and shown as

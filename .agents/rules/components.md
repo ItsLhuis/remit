@@ -244,3 +244,10 @@ every other row and the list would otherwise re-render whole on each keystroke.
 Use `Fragment` from React when a component needs a fragment and nearby files do so. Conditional JSX
 often uses explicit `: null` when there is an either/or expression. Preserve the local style instead
 of converting everything to `&&` or fragment shorthand.
+
+## Comments
+
+A component earns four kinds and no others: a deliberate accessibility deviation, a render-cost
+decision, a third-party quirk it works around, and a deliberate escape from the design system (the
+last already required above). Layout, markup, class names, and prop wiring get none. See
+[comments.md](comments.md) ("Components and JSX").

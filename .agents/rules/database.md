@@ -89,3 +89,12 @@ and transaction semantics are identical.
 
 If a helper requires broad generic Drizzle typing that obscures the write, keep the write local and
 extract only the truly generic non-IO pieces to `lib/utils/` or a pure service.
+
+## Comments
+
+A schema file shows shape and hides reasons. The business reason behind `set null` versus `cascade`,
+an insert-only table whose guard is a migration trigger rather than anything visible here, a partial
+index that is the structural form of a domain rule, and a column typed to an external library's
+contract rather than to Remit's own values are each invisible from the table definition and
+expensive to undo. Column-group section comments in large tables are the one sanctioned label-style
+comment. See [comments.md](comments.md) ("Where comments belong").

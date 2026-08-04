@@ -122,6 +122,13 @@ Working principles behind the detailed `.agents/rules/`, adapted from the
 - **Goal-driven execution.** Turn the task into a verifiable goal, then loop until `pnpm lint`,
   `pnpm typecheck`, and the tests covering the touched areas pass. Verify against the goal rather
   than declaring the work done.
+- **Comment the "why" before you call it done.** Nothing in the toolchain checks comment text, so
+  this is the one part of the definition of done that only a reading catches. Before finishing, walk
+  the files you touched against [comments.md](.agents/rules/comments.md) ("Where comments belong")
+  and record what the code cannot say — an invariant, a cross-file contract, a rejected alternative,
+  a trust boundary. Most files correctly end with none; a file with a load-bearing "why" left
+  unwritten is as much a defect as one padded with narration, and this repository has no other
+  memory between sessions.
 - **Separate form, structure, and meaning.** FORM (import order, padding, type-imports) is owned by
   ESLint - run `pnpm lint --fix` and do not hand-tune it. STRUCTURE (declaration and body-section
   order) is deterministic and followed exactly. MEANING (semantic blank lines) is the small

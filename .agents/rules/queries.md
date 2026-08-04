@@ -79,3 +79,11 @@ component.
 Use `get` for a single record or a computed read model and `list` for collections, matching the
 feature's existing names: `getClientDetail`, `getClientsPageData`, `listClients`,
 `listClientOptions`.
+
+## Comments
+
+Three things a read cannot say for itself: soft-delete visibility that deliberately differs from a
+sibling read, a status derived in SQL that a badge elsewhere must agree with, and an encrypted
+column reaching a client-bound read model rather than staying inside a server-only adapter. The last
+is the easiest to miss, because the column reads as ordinary here. See [comments.md](comments.md)
+("Where comments belong").

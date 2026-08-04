@@ -172,3 +172,10 @@ Audit metadata uses shared request helpers. Required audit fields are `actorUser
 Action names are verb phrases that describe the user operation: `saveBusinessProfile`,
 `changeEmailAddress`, `confirmAvatarUpload`. Client-side callers store the action return in `result`
 and branch on `"error" in result` when the action uses the discriminated union shape.
+
+## Comments
+
+An action's straight-line shape states itself and earns no commentary. What it cannot state is an
+ordering between two writes that looks arbitrary and is not, why a failure is swallowed rather than
+returned, why a rollback is best-effort, and why an event is emitted where it is. See
+[comments.md](comments.md) ("Where comments belong").
