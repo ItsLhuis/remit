@@ -149,6 +149,10 @@ const TaxRateFormDialog = ({ formState, onOpenChange, onSaved }: TaxRateFormDial
                 </Field>
               )}
             />
+            {/* An empty input becomes `NaN`, not `0` or `undefined`: `taxRateFormSchema` accepts 0
+                as a real rate, so mapping the empty field to it would let a blank input save as a
+                0% tax rate. `NaN` fails `z.number()` instead, which is what keeps the field
+                invalid until something is typed. */}
             <Controller
               name="percentage"
               control={form.control}

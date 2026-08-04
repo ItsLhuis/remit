@@ -32,6 +32,7 @@ import { TaxRateFormDialog, type TaxRateFormState } from "./TaxRateFormDialog"
 
 type TaxRatesSettingsFormProps = {
   initialTaxRates: TaxRateListItem[]
+  locale: string
 }
 
 function sortTaxRates(taxRates: TaxRateListItem[]): TaxRateListItem[] {
@@ -42,7 +43,7 @@ function sortTaxRates(taxRates: TaxRateListItem[]): TaxRateListItem[] {
   })
 }
 
-const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) => {
+const TaxRatesSettingsForm = ({ initialTaxRates, locale }: TaxRatesSettingsFormProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -99,12 +100,13 @@ const TaxRatesSettingsForm = ({ initialTaxRates }: TaxRatesSettingsFormProps) =>
 
     return getTaxRateColumns({
       t,
+      locale,
       isBusy,
       onEdit: (taxRate) => setActiveDialog({ kind: "form", state: { mode: "edit", taxRate } }),
       onSetDefault,
       onDelete: (taxRate) => setActiveDialog({ kind: "delete", taxRate })
     })
-  }, [t, isBusy, router])
+  }, [t, locale, isBusy, router])
 
   const { table } = useDataTable({
     data: sortedTaxRates,

@@ -29,6 +29,18 @@ export async function getTaxRates(): Promise<TaxRateListItem[]> {
   return rows.map(toTaxRateListItem)
 }
 
+type TaxRateDefaults = {
+  defaultLocale: string
+}
+
+export async function getTaxRateDefaults(): Promise<TaxRateDefaults> {
+  const row = await database.query.settings.findFirst({
+    columns: { defaultLocale: true }
+  })
+
+  return { defaultLocale: row?.defaultLocale ?? "en" }
+}
+
 export function toTaxRateListItem(row: TaxRateRow): TaxRateListItem {
   return {
     id: row.id,

@@ -23,6 +23,7 @@ import { type TaxRateListItem } from "../../schemas"
 
 type TaxRateColumnsOptions = {
   t: TFunction
+  locale: string
   isBusy: boolean
   onEdit: (taxRate: TaxRateListItem) => void
   onSetDefault: (taxRate: TaxRateListItem) => void
@@ -31,6 +32,7 @@ type TaxRateColumnsOptions = {
 
 export function getTaxRateColumns({
   t,
+  locale,
   isBusy,
   onEdit,
   onSetDefault,
@@ -62,7 +64,7 @@ export function getTaxRateColumns({
       cell: ({ row }) => (
         <span className="font-mono text-sm tabular-nums">
           {t("settings.taxRates.percentageValue", {
-            percentage: formatPercentage(row.original.percentage)
+            percentage: formatPercentage(row.original.percentage, locale)
           })}
         </span>
       )

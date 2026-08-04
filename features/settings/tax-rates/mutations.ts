@@ -137,6 +137,11 @@ export async function setDefaultTaxRate(input: unknown): Promise<TaxRateWriteRes
   const { context } = gate
 
   try {
+    // Clearing first is required, not tidiness: `uq_tax_rates_default` is a partial unique index
+    // over `is_default = true AND deleted_at IS NULL`, so promoting a second rate before demoting
+    // the incumbent violates it. The transaction is what keeps the momentary no-default state from
+    // ever being observable, and what puts both statements behind one rollback if the id turns out
+    // not to exist.
     const defaultTaxRate = await database.transaction(async (transaction) => {
       await transaction
         .update(taxRates)

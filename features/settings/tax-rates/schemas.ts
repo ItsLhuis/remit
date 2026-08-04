@@ -4,6 +4,9 @@ import i18n from "@/lib/i18n/i18n"
 
 const TAX_RATE_NAME_MAX_LENGTH = 80
 
+// The column is `numeric(precision: 5, scale: 2)`, so Postgres would silently round a third decimal
+// place rather than reject it, and a rate the user typed would not be the rate that prices their
+// invoices. The 0-100 range below is `chk_tax_rates_percentage` restated for the same reason.
 function hasAtMostTwoDecimalPlaces(value: number): boolean {
   return /^\d+(\.\d{1,2})?$/.test(value.toString())
 }
