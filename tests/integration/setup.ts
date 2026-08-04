@@ -4,6 +4,12 @@ import { afterAll, beforeEach } from "vitest"
 
 import { client, database } from "./database"
 
+// The two `DISABLE TRIGGER` statements below are the only sanctioned place in the repository where
+// the insert-only guards are switched off. Migration 0001 puts BEFORE UPDATE / DELETE / TRUNCATE
+// triggers on `audit_logs` and `contract_signatures` that raise instead of applying the statement,
+// so a per-test truncation aborts without them. A third insert-only table added to the schema has
+// to be named here too, or every integration test starts failing on this reset rather than on
+// anything it asserts.
 beforeEach(async () => {
   await database.execute(sql`
     DO $$ DECLARE

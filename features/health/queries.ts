@@ -77,6 +77,16 @@ export async function getHealthChecks(): Promise<HealthCheckResult[]> {
   ]
 }
 
+// The fingerprint is safe to render because it is one-way and truncated: eight hex characters of
+// a SHA-256 digest identify which key an instance runs without carrying enough of it to be worth
+// attacking. It exists so an operator can tell two instances apart by eye, and nothing compares it
+// programmatically.
+//
+// It is deliberately not the archive fingerprint. `scripts/core/archive/header.ts`'s
+// `computeKeyFingerprint` digests the decoded 32-byte key and keeps 16 bytes, while this digests
+// the base64 *string* and keeps 4, so the two values never match for the same key and neither can
+// be checked against the other. Making them comparable is a format change to the archive header,
+// not an edit here.
 export function getSystemInfo(): SystemInfo {
   return {
     version: pkg.version,

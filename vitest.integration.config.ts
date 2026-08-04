@@ -12,6 +12,10 @@ export default defineConfig({
     include: ["**/*.integration.test.ts"],
     environment: "node",
     setupFiles: ["tests/integration/setup.ts"],
+    // One file at a time, because `tests/integration/setup.ts` truncates every public table before
+    // each test against a single shared database. Two files in flight would delete each other's
+    // fixtures mid-assertion, and the failures would land in whichever file lost the race rather
+    // than in the one that caused it.
     fileParallelism: false,
     testTimeout: 30_000,
     env: {

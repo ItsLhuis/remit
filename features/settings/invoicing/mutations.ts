@@ -75,6 +75,10 @@ export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoici
   try {
     const existing = await getPersistedInvoicingSettings()
 
+    // The forward-only rule is checked twice on purpose, and this is the half that counts. The
+    // schema's floor (`createInvoicingSettingsSchema`) is built from whatever the counter read at
+    // page render, so it only turns a stale form into a field error; by the time the write lands an
+    // invoice may have consumed a number since. Only this comparison sees the current row.
     if (existing && parsed.data.nextInvoiceNumber < existing.nextInvoiceNumber) {
       return {
         error: t("settings.invoicing.validation.nextInvoiceNumberForward", {

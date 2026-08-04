@@ -68,8 +68,7 @@ export async function POST(
 // `proxy.ts` already stamps `X-Robots-Tag` on everything under `/c/`, and this sets it again at the
 // handler: the proxy matcher is one edit away from not covering a path, and a public token response
 // that reaches a crawler is not recoverable once indexed. The twin of `noindexJson` in
-// `app/(public)/p/[token]/otp/publicOtpRoute.ts`; the two merge into one shared module when
-// `/i/[token]` adds the third copy.
+// `app/(public)/p/[token]/otp/publicOtpRoute.ts`, which must keep setting the same header.
 function noindexJson(body: unknown, status: number): NextResponse {
   const response = NextResponse.json(body, { status })
 

@@ -231,6 +231,10 @@ const PaymentSettingsForm = ({
               {t("settings.payment.stripeSectionDescription")}
             </Typography>
           </div>
+          {/* The publishable and secret keys are validated as a pair by `paymentSettingsSchema`'s
+              superRefine, so each one's onChange triggers the other: react-hook-form only refreshes
+              the field that changed, and without the cross-trigger the twin's error stays on screen
+              after the edit that satisfied it. */}
           <Controller
             name="stripePublishableKey"
             control={form.control}

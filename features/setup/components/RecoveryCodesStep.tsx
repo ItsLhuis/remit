@@ -20,6 +20,10 @@ const RecoveryCodesStep = ({ backupCodes, onComplete }: RecoveryCodesStepProps) 
 
   const [acknowledged, setAcknowledged] = useState(false)
 
+  // This screen is the only time these codes are ever displayed: Better Auth returned them once
+  // from `twoFactor.enable` and nothing can print them again, so leaving before the acknowledgement
+  // means an account with TOTP enforced and no way back in. Hence the unload prompt, and the
+  // duplicate history entry pushed on every popstate, which is what makes Back land here again.
   useEffect(() => {
     if (acknowledged) return
 

@@ -394,9 +394,9 @@ describe("useTemplateEditor.resizeBlocks", () => {
     expect(after?.layout.height).toBe(16)
   })
 
-  // IMPORTANT: the engine commits resolveResizeUpdate's pre-clamp sizedReference (not the
-  // already-clamped reference), so resizeBlocks' own quantize->clamp reproduces the preview's
-  // clamped reference bit-for-bit instead of re-quantizing an already-clamped, off-grid width.
+  // The engine commits resolveResizeUpdate's pre-clamp sizedReference (not the already-clamped
+  // reference), so resizeBlocks' own quantize->clamp reproduces the preview's clamped reference
+  // bit-for-bit instead of re-quantizing an already-clamped, off-grid width.
   test("commits the exact preview rect for an off-grid block resized into the page bound", () => {
     const offGridBlocks = makeInitialBlocks().map(
       (block): Block =>

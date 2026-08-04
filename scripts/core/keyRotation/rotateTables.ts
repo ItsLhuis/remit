@@ -21,6 +21,12 @@ type RawEncryptedRow = {
   values: Record<string, string | null>
 }
 
+// One transaction per table, never one for the whole run, and the completion audit marker is
+// written inside the same transaction as that table's updates. That pairing is what makes a
+// rotation resumable: `completedTables` is rebuilt from those markers, so an interrupted run skips
+// what already landed. Committing the marker separately would let a crash between the two leave a
+// table that reads as unrotated and gets encrypted a second time under the new key, which no key
+// can then decrypt.
 export async function rotateEncryptedTables(
   client: Sql,
   tables: readonly EncryptedTable[],

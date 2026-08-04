@@ -63,11 +63,10 @@ export async function replayPreRestoreAuditTrail(state: RestoreRuntimeState): Pr
   if (!state.databaseApplied || !state.database || !state.schema) return
   if (state.auditTrail.length === 0) return
 
-  // Restored dump replaced live database, so pre-restore audit rows are gone. In
-  // success path forward migrations already (re)created audit_logs, but on abort
-  // path replay can run before migrations against an older dump that predates the
-  // table. Skip replay with a clear warning instead of failing on missing-table
-  // insert.
+  // The restored dump replaced the live database, so the pre-restore audit rows are gone. On the
+  // success path the forward migrations have already re-created `audit_logs`, but on the abort path
+  // the replay can run before them, against an older dump that predates the table. The replay is
+  // skipped with a warning rather than failing the restore on a missing-table insert.
   if (!(await auditLogsTableExists(state.database))) {
     console.warn(
       "Restored database has no audit_logs table; skipping pre-restore audit replay. Forward migrations will create it on the next start."
@@ -137,8 +136,8 @@ export async function writeAbortAuditIfAllowed(
       snapshotPath: state.snapshotPath
     })
   } catch (auditError) {
-    // Preserve original restore failure as actionable operator-facing message;
-    // surface secondary audit failure so lost operational visibility is not silent.
+    // The original restore failure stays the message the operator acts on. The secondary audit
+    // failure is still printed, so the lost operational visibility is not silent.
     console.error(`Failed to write restore abort audit entry: ${redactRestoreReason(auditError)}`)
   }
 }

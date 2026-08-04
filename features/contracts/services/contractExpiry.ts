@@ -17,8 +17,8 @@ export function isContractExpired(effectiveUntil: Date | null, now: Date): boole
   return today > lastDay
 }
 
-// `expired` is derived, never stored by the contract-core stage: only an unsigned contract the
-// counterparty already has can lapse, so the derivation applies to `sent` alone. A signed contract
+// `expired` is derived at read time rather than stored: only an unsigned contract the counterparty
+// already has can lapse, so the derivation applies to `sent` alone. A signed contract
 // stays `signed` past its end date (the document was executed, and the record of that outlives the
 // window), and a draft never lapses because it was never issued.
 export function resolveContractDisplayStatus(

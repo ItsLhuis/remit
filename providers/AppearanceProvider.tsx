@@ -72,6 +72,11 @@ type AppearanceProviderProps = {
 }
 
 const AppearanceProvider = ({ children }: AppearanceProviderProps) => {
+  // Reading localStorage in an initializer normally risks a hydration mismatch, and does not here
+  // because none of these values is ever rendered: they only reach `document.documentElement` as
+  // `data-*` attributes, through the effects below. The blocking script in `app/layout.tsx` has
+  // already stamped the same attributes before first paint, so these effects re-apply what is
+  // there rather than causing a visible switch.
   const [fontSize, setFontSizeState] = useState<FontSize>(() =>
     readStored(STORAGE_KEY_FONT_SIZE, FONT_SIZES, DEFAULT_FONT_SIZE)
   )

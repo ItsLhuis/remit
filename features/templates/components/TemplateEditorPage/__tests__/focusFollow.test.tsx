@@ -10,8 +10,8 @@ import { type EditorInteraction, type TemplateEditorState } from "../../../hooks
 
 import { Harness, setupCanvasTest, surfaceFor } from "./canvasHarness"
 
-// Pins the M7 accessibility fix: group/wrap/ungroup replace the selected top-level blocks with a
-// newly created (or newly freed) block, unmounting the block that keyboard focus was sitting on.
+// Pins focus-follow: group/wrap/ungroup replace the selected top-level blocks with a newly created
+// (or newly freed) block, unmounting the block that keyboard focus was sitting on.
 // Without focus-follow, focus is stranded on document.body. These drive editor.groupSelection /
 // wrapInFrame / ungroup and interaction.focusNode exactly as the Mod+G / Mod+Shift+W / Mod+Shift+G
 // hotkey handlers in TemplateEditorPage do, over the real canvas render tree.

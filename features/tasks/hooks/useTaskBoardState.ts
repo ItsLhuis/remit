@@ -9,6 +9,11 @@ import {
   type TaskView
 } from "../schemas"
 
+// Every parameter is `shallow: true`, which is what makes the board filter differently from the
+// other list surfaces: the URL changes without re-running the server component, and `TaskKanban`
+// narrows the already-loaded columns itself. A board is small enough to hold whole, and a round
+// trip per keystroke would fight the optimistic drag state. Clearing writes `null` not "", so a
+// filter that is off leaves no parameter behind in a shared link.
 export function useTaskBoardState() {
   const [view, setView] = useQueryState(
     "view",

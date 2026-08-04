@@ -4,6 +4,9 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Button, Typography } from "@/components/ui"
 
+// Next.js passes `{ error, reset }`; only `reset` is accepted here, so the error object cannot be
+// rendered by accident. A message or digest reaching this screen would leak internals of whatever
+// failed to a signed-in user's browser and, from there, to a screenshot in a support thread.
 type ErrorPageProps = {
   reset: () => void
 }

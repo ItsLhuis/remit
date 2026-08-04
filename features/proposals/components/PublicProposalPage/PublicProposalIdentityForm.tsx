@@ -65,6 +65,10 @@ const PublicProposalIdentityForm = ({
       return
     }
 
+    // Advances to the code step even when the address does not match the proposal's recipient, and
+    // that is the point rather than an oversight: `publicResponse.ts` answers a mismatch with the
+    // same success payload it answers a match with, and sends nothing. Branching here on whether a
+    // code was really issued would hand a link-holder the oracle the server refuses to be.
     onSent(values)
   }
 

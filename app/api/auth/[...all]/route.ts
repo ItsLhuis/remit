@@ -55,6 +55,10 @@ function getStringProperty(value: unknown, key: string): string | null {
   return typeof property === "string" ? property : null
 }
 
+// Both readers clone before consuming. A body stream can be read once, and here the original is
+// still needed afterwards: `POST` reads the request body for audit metadata and then hands the same
+// request to Better Auth, and reads the response body for its user id before returning that
+// response to the client. Dropping either `clone()` leaves the real consumer with a drained stream.
 async function readJson(request: NextRequest): Promise<unknown> {
   try {
     return await request.clone().json()
@@ -185,6 +189,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     return response
   }
 
+  // Sign-up is in `AuditedAuthRoute` only so a 429 on registration reaches the rate-limit audit
+  // above; a successful sign-up writes nothing here. Dropping it from `getAuditedRoute` would send
+  // the route down the unaudited fast path and silently stop auditing registration rate-limit
+  // trips, which `security.md` requires.
   if (auditedRoute === "signUp") return response
 
   if (!isSuccess(response)) return response

@@ -32,6 +32,10 @@ export async function verifyOldKeyMatchesInstance(
           `decrypt failed for ${table.table}.${column} - verify REMIT_ENCRYPTION_KEY matches the database's current key.`
         )
       }
+      // Exits the whole scan, not just this table: every encrypted column on the instance is
+      // sealed under the one `REMIT_ENCRYPTION_KEY`, so a single successful round trip has already
+      // proved the supplied old key. The note below is reached only when no encrypted value exists
+      // anywhere, which is a weaker check and says so.
       return
     }
   }

@@ -406,7 +406,8 @@ export async function writeAbortAuditIfPossible(
       reason: redactRotationReason(error)
     })
   } catch {
-    // Preserve original rotation failure as actionable operator-facing message.
+    // Swallowed so the original rotation failure stays the message the operator acts on; a
+    // secondary audit-write failure must not replace it.
   }
 }
 

@@ -5,7 +5,6 @@ import path from "node:path"
 import { PassThrough } from "node:stream"
 import { createGunzip } from "node:zlib"
 
-// @integration
 import { afterEach, expect, test } from "vitest"
 
 import { settings } from "@/database/schema"

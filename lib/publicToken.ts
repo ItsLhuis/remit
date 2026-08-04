@@ -4,8 +4,8 @@ import { timingSafeEqual } from "node:crypto"
 // by client-safe schema modules, and `node:crypto` has no browser build, so a helper behind it would
 // break every client component that pulls a schema in. Server callers import this path directly.
 //
-// One copy for every `/{letter}/[token]` route. It began as three identical feature-local files
-// (proposals, contracts, invoices) that were merged here the moment the third appeared.
+// One copy for every `/{letter}/[token]` route, so the compare a token is admitted by cannot differ
+// between the invoice, proposal, and contract surfaces.
 
 // Constant-time comparison of a caller-supplied public token against the stored one, per
 // `.agents/rules/security.md`. `timingSafeEqual` throws on unequal lengths, so the length guard

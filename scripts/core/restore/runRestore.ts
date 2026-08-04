@@ -149,6 +149,10 @@ export async function runRestore(): Promise<void> {
       schemaMigrationId: verified.manifest.schemaMigrationId
     })
 
+    // Taken before the operator confirms rather than after: `confirmDestructiveRestore` makes them
+    // type this exact path back, which is only possible once the archive exists, and it is the one
+    // artifact that makes the restore reversible. Nothing destructive has run yet, so a cancelled
+    // restore costs only the snapshot it leaves behind.
     state.snapshotPath = buildPreRestoreSnapshotPath(remitDataDir, snapshotDate, pkg.version)
     await takePreRestoreSnapshot(database, schema, {
       databaseUrl: env.DATABASE_URL,

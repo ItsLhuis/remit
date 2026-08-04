@@ -16,11 +16,11 @@ type AppearanceSectionProps = {
   onStyleChange: (edits: ReadonlyMap<string, BlockStyle | undefined>) => void
 }
 
-// Flat-by-default: background is none-or-solid and borders are always solid hairlines (width 0 =
-// none) - the mockup's gradient, opacity, and shadow controls do not survive DESIGN.md scrutiny
-// on a printable document surface. One section for single- and multi-selection: fields show the
-// shared value or the Mixed placeholder, and a commit writes through to every member as a single
-// history entry.
+// Background is none-or-solid and borders are always solid hairlines (width 0 = none): gradient,
+// opacity, and shadow controls are deliberately absent, since DESIGN.md's Flat-By-Default rule
+// reserves depth for surfaces above the page and this one is the printable document itself. One
+// section for single- and multi-selection: fields show the shared value or the Mixed placeholder,
+// and a commit writes through to every member as a single history entry.
 const AppearanceSection = ({ blocks, disabled, onStyleChange }: AppearanceSectionProps) => {
   const { t } = useTranslation()
 

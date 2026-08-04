@@ -362,9 +362,9 @@ describe("resolveResizeUpdate", () => {
     expect(update.limits).toEqual({ right: 728 })
   })
 
-  // IMPORTANT: the commit path must clamp the same pre-clamp sized reference the preview
-  // clamped, not re-clamp the already-clamped `reference` - quantize(clamp(x)) != clamp(quantize(x))
-  // at an off-grid position, which is the 2px preview/commit mismatch this field prevents.
+  // The commit path must clamp the same pre-clamp sized reference the preview clamped, not
+  // re-clamp the already-clamped `reference` - quantize(clamp(x)) != clamp(quantize(x)) at an
+  // off-grid position, which is the 2px preview/commit mismatch this field prevents.
   test("exposes the pre-clamp sized reference alongside the clamped reference", () => {
     const baseReference = { x: 70, y: 10, width: 160, height: 96 }
     const members: ResizeSetMember[] = [{ id: "a", rect: baseReference, rotation: 0 }]

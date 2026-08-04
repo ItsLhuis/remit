@@ -77,6 +77,9 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
     hasActiveFilters
   } = useTaskBoardState()
 
+  // The filter input below is fed `search` and the board is fed this deferred copy, on purpose: the
+  // input has to echo every keystroke immediately, while re-filtering and re-rendering every column
+  // may lag a frame behind. Passing the same value to both would make one of the two wrong.
   const deferredSearch = useDeferredValue(search)
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -87,6 +90,12 @@ const TaskBoardPage = ({ data }: TaskBoardPageProps) => {
 
   const locale = data.defaults.defaultLocale
 
+  // The status write has to land before the reorder, never the other way round: `reorderTask` reads
+  // the task's persisted status to pick the column it renumbers, so reordering first would compute
+  // `toIndex` against the column the card just left. The two writes are separate statements with no
+  // transaction around them, which is why every path here refreshes — a status change that commits
+  // before a failing reorder leaves the card in the right column at the wrong position, and only
+  // the server's ordering is authoritative after that.
   const persistMove = async ({
     id,
     fromStatus,

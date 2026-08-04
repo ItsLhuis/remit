@@ -1,6 +1,5 @@
 import { count } from "drizzle-orm"
 
-// @integration
 import { expect, test } from "vitest"
 
 import * as schema from "@/database/schema"

@@ -41,6 +41,13 @@ export type ClientDetail = {
   taxId: string
   currency: string
   address: ClientAddress
+  // The one encrypted column that is deliberately allowed to leave the server. `security.md` lists
+  // `clients.notes` alongside the SMTP, Stripe and IBAN secrets, and the settings read models blank
+  // those out on purpose (`settings/payment/queries.ts`), so this looks like the same violation and
+  // is not: notes are the owner's own working record, written and read by them in the workspace,
+  // and a read model that withheld them would leave the field permanently uneditable. What the
+  // encryption buys here is confidentiality at rest, not from the authenticated owner. It is still
+  // excluded from audit diffing — see `mutations.ts`'s `auditFields`.
   notes: string
   outstandingBalanceCents: number
   health: ClientHealth

@@ -30,6 +30,10 @@ type RenameBlockDialogProps = {
 const RenameBlockDialog = ({ open, name, onOpenChange, onRename }: RenameBlockDialogProps) => {
   const { t } = useTranslation()
 
+  // `values`, not the `defaultValues` every other form in the repository uses: this dialog stays
+  // mounted for the whole editor session and is pointed at a different block each time it opens, so
+  // seed-once defaults would show the previously renamed block's name and save that back over the
+  // one the user actually picked. `values` re-syncs the field whenever the prop changes.
   const form = useForm<RenameBlockValues>({
     resolver: zodResolver(renameBlockSchema),
     mode: "onSubmit",

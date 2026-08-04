@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm"
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
 
-// Skip status write when no settings row exists yet rather than inserting a
-// phantom settings row populated only with backup-status fields. Backup status
-// belongs on the operator's real settings row, created during /setup.
+// The status write is skipped when no settings row exists yet, rather than inserting a phantom row
+// populated only with backup-status fields. Backup status belongs on the operator's real settings
+// row, which /setup creates.
 export async function updateBackupSuccess(
   database: Database,
   schema: Schema,

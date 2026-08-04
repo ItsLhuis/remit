@@ -20,7 +20,7 @@ import { type EditorInteraction, type TemplateEditorState } from "../../hooks"
 import { BLOCK_ICON_NAMES, BLOCK_LABEL_KEYS } from "../../labels"
 import { hitTestBlocks, type Point } from "../../services"
 
-// The one canvas context menu (replacing the old per-block CanvasBlockMenu): it opens for whatever
+// The one canvas context menu, shared by every block and by the page: it opens for whatever
 // EditorCanvas resolved as "the selection under the cursor" at right-click time, or for the page
 // when that selection is empty. Every row reads live selection/clipboard state at render time,
 // which happens fresh on each open since Radix mounts ContextMenuContent only while open.

@@ -29,6 +29,10 @@ export const emailSettingsSchema = z
     smtpPort: z.number().int(i18n.t("settings.email.validation.smtpPortInvalid")),
     smtpUser: optionalTextSchema,
     smtpPass: optionalTextSchema,
+    // Not a field the user fills in: the read model never sends a stored secret to the client
+    // (`queries.ts`'s `toEmailSettingsFormData`), so a blank password box means "keep what is
+    // stored" whenever this flag is true, and "no password has ever been set" when it is false.
+    // The refinement below is the only place the distinction is enforced.
     smtpPassConfigured: z.boolean(),
     smtpSecure: z.boolean(),
     resendApiKey: optionalTextSchema,

@@ -26,6 +26,10 @@ export async function getInvoicingSettings(): Promise<InvoicingSettingsValues> {
   return toInvoicingSettingsFormData(row ?? null)
 }
 
+// The fallbacks are the `settings` column defaults repeated for the pre-setup case, where no row
+// exists yet: an instance that has never saved these settings still issues `INV-0001` on 30-day
+// terms. They only stay correct while they match `database/schema/settings.ts`, since nothing links
+// the two.
 export function toInvoicingSettingsFormData(
   row: InvoicingSettingsRow | null
 ): InvoicingSettingsValues {

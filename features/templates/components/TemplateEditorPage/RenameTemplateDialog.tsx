@@ -35,6 +35,9 @@ const RenameTemplateDialog = ({
 }: RenameTemplateDialogProps) => {
   const { t } = useTranslation()
 
+  // `values`, not the `defaultValues` every other form in the repository uses: this dialog stays
+  // mounted for the whole editor session, so seed-once defaults would keep showing the name the
+  // template carried at first render and rename it back to that on the next submit.
   const form = useForm<TemplateNameValues>({
     resolver: zodResolver(templateNameSchema),
     mode: "onSubmit",

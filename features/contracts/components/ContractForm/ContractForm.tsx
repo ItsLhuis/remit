@@ -84,6 +84,11 @@ const ContractForm = ({
     }
   }, [contract, defaultProjectId, defaultClientId])
 
+  // The one document form in the repository that resolves without `raw: true`: `contractFormSchema`
+  // is a bridge, transforming the strings the controls hold into the nullable uuids and `Date`s
+  // `createContractSchema` expects, so here the transformed output is what the action wants.
+  // Adding `raw: true` to match the invoice, proposal and credit-note forms would send `""` where a
+  // uuid or a null is required, and the action would refuse it at the trust boundary (`forms.md`).
   const form = useForm<ContractFormInputValues, unknown, ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
     mode: "onBlur",

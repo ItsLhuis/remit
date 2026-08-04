@@ -40,6 +40,10 @@ function getTimezoneOptions(): string[] {
   }
   const supportedTimezones = intl.supportedValuesOf?.("timeZone") ?? []
 
+  // UTC is prepended, and filtered out of the tail so it appears once, because it is the stored
+  // fallback for this field (`queries.ts` and the column default both use it). A runtime whose
+  // `supportedValuesOf` is missing or omits UTC would otherwise leave a fresh instance showing an
+  // empty select for a value it already holds.
   return ["UTC", ...supportedTimezones.filter((timezone) => timezone !== "UTC")]
 }
 

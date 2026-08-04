@@ -112,12 +112,10 @@ export async function signPublicContract(
   // The executed document is rendered out of band per ADR-0022, which is why the signature id
   // travels with the job: the worker needs it to attach the stored PDF to this exact signature.
   //
-  // Note for whoever writes that worker: it cannot simply UPDATE the row. Migration 0001 puts a
-  // BEFORE UPDATE trigger (`contract_signatures_no_update`, `insert_only_guard`) on the table, so
-  // `signed_pdf_upload_id` is unwritable after insert, while ADR-0022 forbids rendering the PDF
-  // inline here — the two rules leave no path that populates the column today. Resolving it is a
-  // schema decision (relax the trigger for that one column, or move the pointer to a table that is
-  // not insert-only), not something the signing path may decide on its own.
+  // The worker cannot reach that row with an UPDATE: `contract_signatures` carries a BEFORE UPDATE
+  // trigger (`contract_signatures_no_update`, `insert_only_guard`), so `signed_pdf_upload_id` is
+  // unwritable once the row is inserted. Attaching the rendered PDF therefore takes a schema
+  // change, not a change to this path.
   await enqueueJob("contract.signed_pdf.render", { contractId: target.id, signatureId })
 
   revalidateContractSigningPaths(target)

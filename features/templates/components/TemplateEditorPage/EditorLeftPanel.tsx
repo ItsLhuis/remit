@@ -14,7 +14,7 @@ type EditorLeftPanelProps = {
   disabled?: boolean
 }
 
-// The left rail is the Layers tree only: insertion moved to the floating toolbar's insert menu, so
+// The left rail is the Layers tree only — the floating toolbar's insert menu owns insertion — so
 // this panel is dedicated to navigating and ordering the page's blocks (Page root plus every block
 // top-of-stack first, frame children indented).
 const EditorLeftPanel = ({ editor, interaction, disabled }: EditorLeftPanelProps) => {

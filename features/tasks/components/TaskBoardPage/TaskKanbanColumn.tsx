@@ -36,6 +36,10 @@ const TaskKanbanColumn = ({
   onChangeStatus,
   onCreate
 }: TaskKanbanColumnProps) => {
+  // The column must lose every collision it shares with a card: `TaskCard`'s sortable is left at
+  // dnd-kit's default priority, so `Low` here is what makes a drop over a populated column resolve
+  // to the card under the pointer and reorder, rather than being swallowed by the column and
+  // appended. The column still wins when nothing else collides, which is how an empty one accepts.
   const { ref, isDropTarget } = useDroppable({
     id: status,
     type: "column",

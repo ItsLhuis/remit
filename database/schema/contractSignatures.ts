@@ -3,6 +3,12 @@ import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { contracts } from "./contracts"
 import { uploads } from "./uploads"
 
+// Insert-only, and enforced as such by the database rather than by convention: migration 0001 puts
+// BEFORE UPDATE / DELETE / TRUNCATE triggers on this table that raise instead of applying the
+// statement. Nothing in the schema below shows that, so a write path added here fails at runtime,
+// not at compile time — `signedPdfUploadId` in particular cannot be filled in after the row lands.
+// A signature is the legal record of what a counterparty agreed to, so it carries no `deletedAt`
+// and no `updatedAt` either.
 export const contractSignatures = pgTable(
   "contract_signatures",
   {

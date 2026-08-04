@@ -286,7 +286,7 @@ export async function sendProposal(input: unknown): Promise<SendProposalResult> 
         issuedAt,
         // `lockedAt` stays null here on purpose: SCHEMA.md defines it as the moment an *accepted*
         // proposal became immutable, which the public acceptance route owns. Draft-only editing is
-        // enforced from `status`, so nothing in this stage depends on it.
+        // enforced from `status`, so no read path depends on it being set here.
         validUntil: existing.validUntil ?? calculateProposalValidUntil(issuedAt, validityDays)
       })
       .where(

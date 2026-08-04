@@ -902,6 +902,10 @@ function deterministicUuid(seed: number, namespace: string, index: number): stri
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
+// Derived from the seed rather than generated with `randomBytes`, which is what `security.md`
+// requires of every real public token. Demo rows must come out byte-identical for a given seed,
+// the contract `docs/architecture/operations/CLI-CONTRACT.md` states for `remit:seed-demo`, and a
+// random token would break it. These tokens are therefore guessable and belong only to demo data.
 function deterministicToken(seed: number, namespace: string, index: number): string {
   return createHash("sha256").update(`remit-demo:${seed}:${namespace}:${index}`).digest("base64url")
 }

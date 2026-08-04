@@ -50,6 +50,11 @@ export async function writeEncryptedTar(input: WriteEncryptedTarInput): Promise<
 
   const gzip = createGzip()
   const encryption = encryptStream(input.encryptionKey, iv)
+  // `{ end: false }` so the GCM authentication tag can still be appended after the ciphertext:
+  // the cipher only produces it once it has flushed, and `output.end` below writes it as the
+  // archive's last AUTH_TAG_LENGTH bytes. `restore/verifyArchive.ts` reads the file back as
+  // header, ciphertext, tag in exactly that layout, so letting the pipe close the file here
+  // would leave every archive missing its tag and refused at restore.
   gzip.pipe(encryption.stream).pipe(output, { end: false })
 
   const tar = new TarWriter(gzip)
@@ -98,9 +103,9 @@ export async function enforceRemoteRetention(
     const deletions = computeRetentionDeletions(existing, plan.retentionPolicy, new Date())
 
     for (const key of deletions) {
-      // Never delete archive this run just uploaded, even when retention policy
-      // would keep nothing (e.g. every tier set to 0). Discarding freshly written
-      // backup while reporting success would be silent data loss.
+      // Never delete the archive this run just uploaded, even when the retention policy would keep
+      // nothing (every tier set to 0). Discarding a freshly written backup while reporting success
+      // would be silent data loss.
       if (key === plan.objectKey) continue
 
       await destinationAdapter.delete(key)

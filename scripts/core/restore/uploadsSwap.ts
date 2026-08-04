@@ -50,9 +50,9 @@ export async function applyUploadsAtomicSwap(input: {
       restoredUploadsDir: liveUploadsDir
     }
   } catch (error) {
-    // Roll back to original layout. Undoing the staging move is best-effort: its
-    // failure must never prevent the authoritative step below, which restores the
-    // operator's previous uploads from previousUploadsDir back to liveUploadsDir.
+    // Rolls back to the original layout. Undoing the staging move is best-effort: its failure must
+    // never prevent the authoritative step below, which restores the operator's previous uploads
+    // from previousUploadsDir back to liveUploadsDir.
     if (stagingMoved) {
       try {
         await rename(liveUploadsDir, stagingUploadsDir)

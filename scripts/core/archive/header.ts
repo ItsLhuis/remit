@@ -7,6 +7,21 @@ import {
   type DecipherGCM
 } from "node:crypto"
 
+// The 64-byte plaintext header every `.remitbak` archive opens with, ahead of the AES-256-GCM
+// ciphertext. Offsets are frozen: archives already written to operators' disks and object stores
+// are read back by this same parser, so a field may only ever be added inside the reserved runs,
+// and a layout change needs a new `ARCHIVE_FORMAT_VERSION` restore refuses rather than misreads.
+//
+//   0..10   magic "REMIT-BAK\0"
+//   10..12  format version, big-endian uint16
+//   12      encryption algorithm byte (0x01 = AES-256-GCM)
+//   13..16  reserved, must be zero
+//   16..28  GCM initialisation vector (12 bytes)
+//   28..44  key fingerprint (16 bytes, see computeKeyFingerprint below)
+//   44..64  reserved, must be zero
+//
+// The two reserved runs are verified on read, not skipped, so a corrupt or foreign file is rejected
+// at the header instead of failing later as an authentication error nobody can diagnose.
 export const ARCHIVE_FORMAT_VERSION = 1
 export const ARCHIVE_HEADER_LENGTH = 64
 export const AUTH_TAG_LENGTH = 16

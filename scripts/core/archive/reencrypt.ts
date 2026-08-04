@@ -25,6 +25,11 @@ export function reencryptArchiveBuffer(input: {
 
   const keyState = readArchiveKeyState(input)
 
+  // Returns the caller's own buffer, by reference, for an archive already on the new key.
+  // `keyRotation/archives.ts` decides whether to write an archive back by comparing the result
+  // against what it passed in, so returning an equal-but-distinct copy here would rewrite every
+  // archive on disk and in object storage on every run, and file a re-encryption audit entry for
+  // each. It is also what makes a re-run over an already-rotated set a no-op.
   if (keyState === "new-key") return input.archive
 
   if (keyState !== "old-key")

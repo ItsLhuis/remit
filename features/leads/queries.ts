@@ -52,6 +52,10 @@ export async function listLeads(
   const whereClause = getLeadListWhereClause(query)
 
   const sortColumns: Record<LeadSortField, AnyColumn | SQL> = {
+    // Sorts by the same fallback chain the row displays: a person's name, else the company, else
+    // the email, which is the one field a lead always has. `concat_ws` already skips nulls, so the
+    // `nullif(trim(...), '')` is what makes a lead with neither name part fall through to the next
+    // link instead of sorting under a blank string ahead of everything else.
     name: sql`coalesce(nullif(trim(concat_ws(' ', ${leads.firstName}, ${leads.lastName})), ''), ${leads.company}, ${leads.email})`,
     company: leads.company,
     status: leads.status,

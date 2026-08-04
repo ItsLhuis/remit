@@ -8,16 +8,16 @@ import { RestoreCliError } from "./errors"
 import { redactRestoreReason } from "./redact"
 
 export async function runPostRestoreMigrations(databaseUrl: string): Promise<void> {
-  // Resolve sibling migrate module relative to this file and match its extension.
-  // tsup emits restore.js and migrate.js side by side in scripts/dist, while
-  // running from source executes restore.ts/migrate.ts through tsx. Run .ts
-  // sibling under tsx loader and compiled .js sibling on plain node, so spawn
-  // works regardless of how command was invoked.
+  // The sibling migrate module is resolved relative to this file and matched on its extension,
+  // because tsup emits restore.js and migrate.js side by side in scripts/dist while running from
+  // source executes restore.ts and migrate.ts through tsx. A .ts sibling is spawned under the tsx
+  // loader and a compiled .js sibling on plain node, so the spawn works however the command was
+  // invoked.
   const currentModulePath = fileURLToPath(import.meta.url)
   const moduleExtension = path.extname(currentModulePath)
-  // After build, this module sits in scripts/dist next to migrate.js (tsup
-  // flattens the output). From source, it lives at scripts/core/restore/
-  // postRestoreMigrations.ts and the migrate entrypoint is at scripts/migrate.ts.
+  // After a build this module sits in scripts/dist next to migrate.js, since tsup flattens the
+  // output. From source it lives at scripts/core/restore/postRestoreMigrations.ts and the migrate
+  // entrypoint is at scripts/migrate.ts.
   const migrateScript =
     moduleExtension === ".ts"
       ? path.resolve(path.dirname(currentModulePath), "../../migrate.ts")

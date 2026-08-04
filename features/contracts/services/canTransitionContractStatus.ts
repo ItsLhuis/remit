@@ -10,9 +10,9 @@ export type ContractStatusTransition =
 // at `/c/[token]`, so it can never fall back to `draft`. `expired` and `terminated` are off-ramps
 // rather than steps — `expired` is reached only from `sent` (an unsigned window that closed), while
 // `terminated` is reachable from `sent` and from `signed`, because ending a contract that both sides
-// executed is exactly what termination is for. `expired` is never persisted by the contract-core
-// stage; it is derived at read time by services/contractExpiry.ts and only the scheduled job writes
-// it, which is why the edge exists here.
+// executed is exactly what termination is for. No user action persists `expired` — it is derived at
+// read time by services/contractExpiry.ts and only the scheduled job writes it, which is why the
+// edge exists here.
 const ALLOWED_TRANSITIONS: Record<ContractStatus, readonly ContractStatus[]> = {
   draft: ["sent"],
   sent: ["signed", "expired", "terminated"],

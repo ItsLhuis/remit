@@ -8,6 +8,11 @@ type ReservedSql = postgres.ReservedSql
 export const ROTATION_LOCK_ID = "5928229461845757780"
 
 export async function acquireRotationLock(client: Sql): Promise<ReservedSql> {
+  // The lock is taken on a reserved connection and the same connection is handed back to the
+  // caller, because a `pg_advisory_lock` lives on the session that took it. Taking it through the
+  // pool would let the connection be returned between statements, so a second rotation could
+  // acquire the lock while the first was still rewriting tables, and the unlock would run on
+  // whichever session happened to be free.
   const reserved = await client.reserve()
   let acquired = false
 

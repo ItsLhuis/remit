@@ -58,6 +58,10 @@ export async function confirmAvatarUpload(
 ): Promise<{ data: { storageKey: string } } | { error: string }> {
   const requestHeaders = await headers()
 
+  // One of the call sites `lib/auth/index.ts`'s cookie-cache note is about. `session.user.image` is
+  // not just read here, it decides which object the cleanup below deletes, and the cached copy can
+  // be up to five minutes old — long enough for a second avatar change to make it name a key that
+  // has already been replaced, orphaning the real previous file.
   const session = await auth.api.getSession({
     headers: requestHeaders,
     query: { disableCookieCache: true }
@@ -111,6 +115,10 @@ export async function confirmAvatarUpload(
 export async function removeAvatar(): Promise<{ data: { success: true } } | { error: string }> {
   const requestHeaders = await headers()
 
+  // One of the call sites `lib/auth/index.ts`'s cookie-cache note is about. `session.user.image` is
+  // not just read here, it decides which object the cleanup below deletes, and the cached copy can
+  // be up to five minutes old — long enough for a second avatar change to make it name a key that
+  // has already been replaced, orphaning the real previous file.
   const session = await auth.api.getSession({
     headers: requestHeaders,
     query: { disableCookieCache: true }

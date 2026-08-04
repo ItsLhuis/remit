@@ -30,6 +30,10 @@ const OutstandingBreakdown = ({ items, owingClients, locale }: OutstandingBreakd
     )
   }
 
+  // Minor units summed across different currencies, which is meaningless as money and is only ever
+  // a denominator for the ribbon widths below — the bar is `aria-hidden` and each segment prints
+  // its own amount with its own currency code. Nothing derived from this is shown to the user, so
+  // it does not become the mixed-currency total that ADR-0009 exists to prevent.
   const total = items.reduce((sum, item) => sum + item.totalCents, 0)
 
   return (

@@ -26,6 +26,10 @@ export const members = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    // Plain `text`, not the `memberRole` enum, even though Remit constrains the values to
+    // owner/accountant/assistant: the installed Better Auth version is the schema contract for its
+    // own tables (see auth.ts), and it writes this column through its organization APIs. Narrowing
+    // it to a pgEnum here would make a role Better Auth considers valid fail the insert.
     role: text("role").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
   },
@@ -33,6 +37,8 @@ export const members = pgTable(
     index("member_user_id_idx").on(table.userId),
     index("member_organization_id_idx").on(table.organizationId),
     uniqueIndex("member_user_organization_idx").on(table.userId, table.organizationId),
+    // "Exactly one owner per instance" made structural rather than left to the application: a
+    // second owner cannot be inserted even by a path that forgot to check (ADR-0002).
     uniqueIndex("uq_member_owner_per_org")
       .on(table.organizationId)
       .where(sql`${table.role} = 'owner'`)

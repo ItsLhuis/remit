@@ -20,9 +20,9 @@ export async function restoreDatabaseDump(
     "--dbname",
     databaseUrl
   ]
-  // shell mode on Windows lets PATHEXT resolve pg_restore.exe or a pg_restore.cmd
-  // shim; arguments are passed as an array so the shell never receives unescaped
-  // input. Matches how dumpDatabaseToTempFile spawns pg_dump.
+  // Shell mode on Windows lets PATHEXT resolve pg_restore.exe or a pg_restore.cmd shim; arguments
+  // are passed as an array so the shell never receives unescaped input. Matches how
+  // dumpDatabaseToTempFile spawns pg_dump.
   const child = spawn("pg_restore", args, {
     env: {
       ...process.env,

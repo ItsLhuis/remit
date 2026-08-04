@@ -148,9 +148,16 @@ const TaskKanban = ({
   const [columns, setColumns] = useState<TaskColumns>(() => groupTasksByStatus(tasks))
   const [pendingIds, setPendingIds] = useState<Set<string>>(() => new Set())
 
+  // The plugin factory is memoized on `t` alone and the drag handlers run outside React's render,
+  // so both would close over whichever `columns` existed when they were created. Everything that
+  // reads the board mid-gesture goes through this ref instead.
   const columnsRef = useRef(columns)
   const snapshotRef = useRef<TaskColumns | null>(null)
 
+  // Adjusting state during render rather than in an effect, which is React's documented way to
+  // reset derived state when a prop changes. An effect would paint one frame of the old board after
+  // a server refresh — long enough to see a card the write already moved snap back — and would also
+  // fight the optimistic updates the drag handlers below apply.
   const [previousTasks, setPreviousTasks] = useState(tasks)
 
   if (tasks !== previousTasks) {
@@ -183,6 +190,9 @@ const TaskKanban = ({
         return status ? t(`tasks.status.${status}`) : ""
       }
 
+      // The stock Accessibility plugin has to be filtered out before the configured one is added:
+      // dnd-kit installs both if it is left in, and the board then announces every drag twice, in
+      // dnd-kit's own English on top of the translated announcements below.
       return [
         ...defaults.filter((plugin) => plugin !== Accessibility),
         Feedback.configure({ dropAnimation: null }),

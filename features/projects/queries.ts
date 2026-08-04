@@ -197,6 +197,11 @@ export async function getProjectForEdit(input: unknown): Promise<ProjectFormData
   return detail ? toProjectFormData(detail) : null
 }
 
+// Filters on `projects.deletedAt` alone, never the client's. The inner join above cannot drop a row
+// on its own — `projects.client_id` is NOT NULL and cascades — so a project whose client has been
+// soft-deleted stays listed under that client's name, which is the intent: the work is still live
+// even once the client has been retired. Proposals take the opposite line, and say so in their own
+// `getProposalOverviewBaseCondition`, because an offer dies with the records around it.
 function getProjectListWhereClause(query: ProjectListQuery): SQL | undefined {
   const conditions: SQL[] = []
 

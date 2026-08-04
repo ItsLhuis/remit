@@ -10,6 +10,10 @@ export function useListFilters<TStatus extends string>(
   startTransition: TransitionStartFunction,
   statusKey = "status"
 ) {
+  // `shallow: false` on purpose: these filters narrow a server-paginated list, so the URL change
+  // has to re-run the server component that fetches it. It is the deliberate opposite of the task
+  // board, which holds its whole column set client-side and stays shallow. Every setter resets the
+  // page first, because a narrower result set can leave the current page past the end of it.
   const sharedOptions = { shallow: false as const, startTransition }
 
   const [, setPage] = useQueryState(

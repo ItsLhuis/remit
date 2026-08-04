@@ -22,6 +22,10 @@ type DatePickerProps = {
   placeholder?: string
 }
 
+// Built from the parts in local time rather than parsed with `new Date(value)`, which reads a bare
+// `YYYY-MM-DD` as UTC midnight. `formatIsoDay` in `lib/utils/format.ts` writes the value back from
+// local getters, so a UTC parse here would print the previous day everywhere west of Greenwich and
+// walk a stored date backwards each time the picker was opened and saved.
 function toDate(value?: string): Date | undefined {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
 

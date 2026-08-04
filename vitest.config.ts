@@ -11,6 +11,9 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     setupFiles: ["tests/setup.ts"],
+    // The two projects partition the suite by environment, so the `node` project's `include` and
+    // the `happy-dom` project's `exclude` have to stay exact complements: a `__tests__` root added
+    // to one and not the other either runs twice, once per environment, or stops running at all.
     projects: [
       {
         extends: true,

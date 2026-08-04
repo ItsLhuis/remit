@@ -70,6 +70,10 @@ const DataTable = <TData,>({
 
     const target = event.target as HTMLElement
 
+    // The contract every feature's `columns.tsx` is written against: a cell that renders its own
+    // interactive control must be reachable by this selector, or carry `data-no-row-click`, or a
+    // click on that control also fires the row's navigation. Narrowing the selector silently makes
+    // row menus and selection checkboxes navigate away instead of doing what they were clicked for.
     if (
       target.closest('a, button, input, [role="menuitem"], [role="checkbox"], [data-no-row-click]')
     ) {

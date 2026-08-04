@@ -10,7 +10,7 @@ import { pointInRotatedRect, rectsIntersectRotated, type Point } from "./geometr
 // Ids under a canvas point, topmost first. Paint order is sibling array order and children paint
 // above their container, so the walk visits siblings top-down and each container's children first.
 // Hidden subtrees never hit; locked blocks are skipped unless the caller opts in, which reparent
-// targeting does for parity with the legacy drop behavior.
+// targeting does because a lock protects a frame's own geometry, not what may be dropped into it.
 
 export type HitTestOptions = {
   includeLocked?: boolean

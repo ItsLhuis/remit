@@ -42,11 +42,11 @@ function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
 }
 
 // A plain unsigned numeral's formatted echo always equals what was typed, so committing it on every
-// keystroke (the pre-expression behavior) never disrupts typing. An expression - anything starting
-// with "+"/"-" or containing an operator - evaluates to a different string than what was typed
-// ("+10" -> "110"), so committing that mid-type would snap the field to the evaluated number and
-// corrupt further typing; it is deferred to blur/Enter (commit-time) instead, with a local draft
-// mirroring the raw text in between so the field keeps showing exactly what the user typed.
+// keystroke never disrupts typing. An expression - anything starting with "+"/"-" or containing an
+// operator - evaluates to a different string than what was typed ("+10" -> "110"), so committing
+// that mid-type would snap the field to the evaluated number and corrupt further typing; it is
+// deferred to blur/Enter (commit-time) instead, with a local draft mirroring the raw text in
+// between so the field keeps showing exactly what the user typed.
 const PLAIN_NUMERAL = /^\d+(\.\d+)?$/
 const FieldRowNumber = ({
   id,

@@ -8,6 +8,9 @@ import {
   formatPercentage
 } from "../format"
 
+// Load-bearing, not leftover configuration: `formatDay` and `formatMonthShort` pass no `timeZone`,
+// so they render a UTC instant in whatever zone the process runs in. Without this pin the
+// `Date.UTC(2026, 0, 15)` assertions below pass in Europe and fail west of Greenwich.
 process.env.TZ = "UTC"
 
 describe("formatCompactNumber", () => {

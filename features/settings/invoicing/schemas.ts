@@ -2,6 +2,12 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
+// Every bound below restates a check constraint on the `settings` table — `chk_settings_invoice_
+// prefix` (24 characters, printable ASCII), `chk_settings_number_padding_width` (1-10),
+// `chk_settings_next_invoice_number` (>= 1) and `chk_settings_payment_terms` (0-365). They are
+// restated here so a bad value is a field error the user can fix rather than a database exception,
+// which means the two sides have to be widened together or the schema starts rejecting values the
+// column would accept.
 export const INVOICE_PREFIX_MAX_LENGTH = 24
 
 const printableAsciiRegex = /^[ -~]*$/

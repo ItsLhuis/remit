@@ -24,6 +24,13 @@ export const recoveryCodeSchema = z.object({
 
 export type RecoveryCodeValues = z.infer<typeof recoveryCodeSchema>
 
+// The rules themselves are shared; the `.refine()` chain that applies them is deliberately repeated
+// in each flow below rather than extracted. Every flow needs its own translation key per rule
+// ("auth.register.validation.passwordUppercase" against "auth.resetPassword.validation.…"), and the
+// field being validated is `password` in one and `newPassword` in the others, so a single shared
+// chain would have to take both as parameters and would stop being simpler than the repetition.
+// `code-style.md` records the same conclusion: extract this only through a schema factory that
+// preserves the per-flow keys and field names.
 export const passwordRules = {
   minLength: 12,
   hasUppercase: /[A-Z]/,

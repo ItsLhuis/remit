@@ -14,7 +14,7 @@ export type InvoiceSettlement =
 //
 // `overpaid` is a rejection rather than a state the database is allowed to hold: `chk_invoices_
 // amount_paid` bounds `amount_paid_cents` at `total_cents`, and reducing what a client owes is a
-// credit note (Stage 19), never an aggregate that runs past the total.
+// credit note (`features/creditNotes`), never an aggregate that runs past the total.
 //
 // A zero-total invoice reads as `unpaid` rather than `settled`. It is unreachable from a payment
 // write — every payment is `> 0` (`chk_payments_amount`), so the first one against a zero total is

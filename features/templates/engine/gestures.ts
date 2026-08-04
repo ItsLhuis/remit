@@ -442,7 +442,8 @@ export function resolveMarqueeSelection(
   return [...next]
 }
 
-// Excludes the dragged subtree. Locked frames stay valid targets, matching the legacy droppable.
+// Excludes the dragged subtree. A locked frame stays a valid drop target: the lock protects the
+// frame's own geometry, not what may be dropped into it.
 export function reparentTargetAt(
   index: BlockIndex,
   point: Point,

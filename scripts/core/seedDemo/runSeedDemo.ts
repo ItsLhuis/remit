@@ -211,18 +211,16 @@ async function insertDemoRows(
   plan: DemoSeedPlan
 ): Promise<SeedDemoRowCounts> {
   const counts = zeroCounts()
-  // Authoritative settings read inside the transaction. Pre-transaction read in
-  // getSettingsAction only drives the plan/preview; this snapshot decides the
-  // actual write so a settings row created between planning and writing is still
-  // observed. Settings table has no unique constraint, so a concurrent insert
-  // cannot raise a unique violation here; the seed is single-operator, so the
-  // narrow read-then-write window is not a practical race.
+  // The authoritative settings read, taken inside the transaction. The pre-transaction read in
+  // getSettingsAction only drives the plan and preview; this snapshot decides the actual write, so
+  // a settings row created between planning and writing is still observed. The settings table
+  // carries no unique constraint, so a concurrent insert cannot raise a unique violation here, and
+  // the seed is single-operator, so the narrow read-then-write window is not a practical race.
   const existingSettings = await database.query.settings.findFirst()
 
   if (existingSettings) {
-    // --reseed clears domain data but preserves the operator's business profile,
-    // only filling fields that are still empty, so profile edits made after the
-    // first seed are never reverted.
+    // --reseed clears domain data but preserves the operator's business profile, filling only the
+    // fields that are still empty, so profile edits made after the first seed are never reverted.
     const update = buildSettingsUpdate(existingSettings, plan)
 
     if (update) {
