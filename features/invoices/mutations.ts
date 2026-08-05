@@ -20,6 +20,7 @@ import {
   emitInvoiceSent,
   emitInvoiceUpdated
 } from "./events"
+import { writeInvoiceLineItems, type InvoiceLineItemRow } from "./invoiceWrites"
 import {
   claimInvoiceNumber,
   emptyToNull,
@@ -31,8 +32,7 @@ import {
   requireInvoiceWrite,
   revalidateInvoicePaths,
   writeInvoiceAudit,
-  ExpectedInvoiceError,
-  type InvoiceTransaction
+  ExpectedInvoiceError
 } from "./mutationContext"
 import {
   createInvoiceSchema,
@@ -42,7 +42,6 @@ import {
   type UpdateInvoiceValues
 } from "./schemas"
 import {
-  calculateInvoiceLineTotals,
   calculateInvoiceTotal,
   canTransitionInvoiceStatus,
   isInvoiceEditable,
@@ -126,7 +125,12 @@ export async function createInvoice(input: unknown): Promise<InvoiceMutationResu
 
       if (!created) throw new Error("Invoice insert returned no row")
 
-      await writeInvoiceLineItems(transaction, created.id, parsed.data, taxPercentages)
+      await writeInvoiceLineItems(
+        transaction,
+        created.id,
+        toInvoiceLineItemRows(parsed.data, taxPercentages),
+        toInvoiceDiscount(parsed.data)
+      )
 
       return created.id
     })
@@ -217,7 +221,12 @@ export async function updateInvoice(input: unknown): Promise<InvoiceMutationResu
       // never been shown to a client, so there is no history to preserve.
       await transaction.delete(lineItems).where(eq(lineItems.invoiceId, parsed.data.id))
 
-      await writeInvoiceLineItems(transaction, parsed.data.id, parsed.data, taxPercentages)
+      await writeInvoiceLineItems(
+        transaction,
+        parsed.data.id,
+        toInvoiceLineItemRows(parsed.data, taxPercentages),
+        toInvoiceDiscount(parsed.data)
+      )
     })
 
     const changedFields = getChangedInvoiceFields(existing, parsed.data)
@@ -426,35 +435,19 @@ export async function softDeleteInvoice(input: unknown): Promise<DeleteInvoiceRe
   }
 }
 
-async function writeInvoiceLineItems(
-  transaction: InvoiceTransaction,
-  invoiceId: string,
+function toInvoiceLineItemRows(
   values: InvoiceWriteValues,
   taxPercentages: Map<string, number>
-): Promise<void> {
-  const lineTotals = calculateInvoiceLineTotals(
-    toLineItemInputs(values, taxPercentages),
-    toInvoiceDiscount(values)
-  )
-
-  await transaction.insert(lineItems).values(
-    values.lineItems.map((item, index) => ({
-      invoiceId,
-      taxRateId: item.taxRateId,
-      position: index,
-      description: item.description,
-      unit: emptyToNull(item.unit),
-      quantity: String(item.quantity),
-      unitPriceCents: item.unitPrice,
-      ...toInvoiceDiscountColumns(item),
-      // The percentage is copied onto the line, never joined at read time: editing the `tax_rates`
-      // row later must not move the totals of an invoice the client has already seen (ADR-0017).
-      taxPercentageSnapshot: String(getTaxPercentage(item.taxRateId, taxPercentages)),
-      subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
-      taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,
-      totalCents: lineTotals[index]?.totalCents ?? 0
-    }))
-  )
+): InvoiceLineItemRow[] {
+  return values.lineItems.map((item) => ({
+    taxRateId: item.taxRateId,
+    description: item.description,
+    unit: emptyToNull(item.unit),
+    quantity: item.quantity,
+    unitPriceCents: item.unitPrice,
+    discount: toInvoiceDiscountColumns(item),
+    taxPercentage: getTaxPercentage(item.taxRateId, taxPercentages)
+  }))
 }
 
 async function getTaxPercentages(values: InvoiceWriteValues): Promise<Map<string, number>> {

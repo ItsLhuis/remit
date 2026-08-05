@@ -19,3 +19,11 @@ export function emitInvoicePaid(payload: EventMap["invoice.paid"]): Promise<void
 export function emitInvoiceDeleted(payload: EventMap["invoice.deleted"]): Promise<void> {
   return emit("invoice.deleted", payload)
 }
+
+export function emitInvoiceOverdue(payload: EventMap["invoice.overdue"]): Promise<void> {
+  return emit("invoice.overdue", payload)
+}
+
+export function emitInvoiceReminderSent(payload: EventMap["invoice.reminder_sent"]): Promise<void> {
+  return emit("invoice.reminder_sent", payload)
+}

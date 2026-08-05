@@ -2,8 +2,6 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { sql } from "drizzle-orm"
-
 import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
@@ -15,12 +13,14 @@ import { logger } from "@/lib/logger"
 
 import { getIpAddress } from "@/lib/utils"
 
-import { type database } from "@/database"
-import { settings } from "@/database/schema"
-
+import { claimInvoiceNumber, ExpectedInvoiceError, type InvoiceTransaction } from "./invoiceWrites"
 import { getInvoiceForEdit } from "./queries"
-import { generateInvoiceNumber } from "./services"
 import { type InvoiceMutationResult } from "./types"
+
+// Re-exported rather than moved-and-updated at every call site: these three now live in
+// invoiceWrites.ts so the background worker can reach them without pulling in `next/cache` and
+// `next/headers`, which this module imports and a worker process cannot satisfy.
+export { claimInvoiceNumber, ExpectedInvoiceError, type InvoiceTransaction }
 
 // The session, role, numbering, audit, and revalidation plumbing the invoice write paths share,
 // kept beside mutations.ts and conversion.ts rather than inside either because a "use server" module
@@ -54,13 +54,6 @@ export type InvoiceParentIds = {
   clientId: string | null
 }
 
-export type InvoiceTransaction = Parameters<Parameters<typeof database.transaction>[0]>[0]
-
-// A failure the user is meant to read: thrown to unwind whatever the action was midway through and
-// caught by handleInvoiceActionError, which passes the message straight back rather than logging it
-// as an incident.
-export class ExpectedInvoiceError extends Error {}
-
 // Four named gates over one implementation. An assistant may draft and revise an invoice, but
 // issuing a numbered document to a client and destroying one are owner-only; recording that money
 // arrived is the accountant's job as much as the owner's. The names are what `doctor.config.ts`
@@ -79,30 +72,6 @@ export function requireInvoiceMarkPaid(): Promise<InvoiceWriteGate> {
 
 export function requireInvoiceDelete(): Promise<InvoiceWriteGate> {
   return requireInvoiceRole(["owner"])
-}
-
-// A single atomic increment rather than read-then-write: two concurrent creates that both read the
-// same `next_invoice_number` would mint the same number and one would fail the unique index on
-// `invoices.number`. The returned value is the counter *after* the bump, so the number this call
-// owns is one below it. Running inside the caller's transaction is what makes a failed create give
-// the number back instead of burning it.
-export async function claimInvoiceNumber(transaction: InvoiceTransaction): Promise<string> {
-  const [row] = await transaction
-    .update(settings)
-    .set({ nextInvoiceNumber: sql`${settings.nextInvoiceNumber} + 1` })
-    .returning({
-      nextNumber: settings.nextInvoiceNumber,
-      prefix: settings.invoicePrefix,
-      paddingWidth: settings.numberPaddingWidth
-    })
-
-  if (!row) throw new ExpectedInvoiceError(t("invoices.errors.updateFailed"))
-
-  return generateInvoiceNumber({
-    prefix: row.prefix,
-    paddingWidth: row.paddingWidth,
-    nextSequence: row.nextNumber - 1
-  })
 }
 
 export async function loadInvoiceResult(invoiceId: string): Promise<InvoiceMutationResult> {

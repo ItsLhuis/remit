@@ -150,14 +150,19 @@ const importOrderRule = [
   }
 ]
 
+// `systemWrites` is a second sanctioned cross-feature door, and it exists because `server.ts` cannot
+// serve the background worker: that barrel re-exports the feature's `"use server"` actions, which
+// pull `next/headers` and `next/cache` into whatever imports it. Those resolve inside Next and fail
+// outright in the standalone worker process (ADR-0023). A `systemWrites` module is the session-free
+// write path — plain async functions, no request context — so a job may import it directly.
 const featureBoundaryRule = [
   "error",
   {
     patterns: [
       {
-        group: ["@/features/*/*", "!@/features/*/server"],
+        group: ["@/features/*/*", "!@/features/*/server", "!@/features/*/systemWrites"],
         message:
-          "Import feature code through the feature root barrel (@/features/<feature>). Use relative imports within the same feature."
+          "Import feature code through the feature root barrel (@/features/<feature>), its server barrel, or its systemWrites module. Use relative imports within the same feature."
       }
     ]
   }

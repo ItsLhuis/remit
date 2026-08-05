@@ -61,6 +61,15 @@ const config = {
         rules: ["react-doctor/nextjs-no-img-element"]
       },
       {
+        // The sequencing is the point, not an oversight. A sweep that fanned its enqueues out with
+        // Promise.all would open one Redis command per due row at once, and the two scheduler loops
+        // reconcile a three-entry list at boot where concurrency buys nothing. Serial also keeps the
+        // per-entity failure isolated: one bad row logs and the loop continues, which is what makes
+        // a sweep safe to retry (ADR-0023).
+        files: ["lib/jobs/schedules.ts", "features/*/jobs.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
         // Deliberate hook keys, argued at both call sites and already eslint-disabled inline for
         // react-hooks: CanvasBlock keys its HTML memo on the content/style/type the renderer reads
         // so a block reuses its HTML across gesture frames, and CanvasTextEditor seeds the inline
@@ -102,6 +111,9 @@ const config = {
     "requirePaymentDelete",
     "requireCreditNoteWrite",
     "requireCreditNoteDelete",
+    "requireRecurringInvoiceWrite",
+    "requireRecurringInvoiceCancel",
+    "requireRecurringInvoiceDelete",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",

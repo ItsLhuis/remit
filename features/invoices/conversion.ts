@@ -9,9 +9,10 @@ import { and, eq, isNull } from "drizzle-orm"
 import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
-import { invoices, lineItems } from "@/database/schema"
+import { invoices } from "@/database/schema"
 
 import { emitInvoiceCreated } from "./events"
+import { writeInvoiceLineItems, type InvoiceLineItemRow } from "./invoiceWrites"
 import {
   claimInvoiceNumber,
   handleInvoiceActionError,
@@ -24,7 +25,6 @@ import {
 import { getProposalInvoiceSnapshot } from "./queries"
 import { createInvoiceFromProposalSchema } from "./schemas"
 import {
-  calculateInvoiceLineTotals,
   calculateInvoiceTotal,
   toInvoiceColumnDiscount,
   type InvoiceLineItemInput
@@ -68,7 +68,6 @@ export async function createInvoiceFromProposal(input: unknown): Promise<Invoice
     const snapshotDiscount = toInvoiceColumnDiscount(snapshot)
 
     const totals = calculateInvoiceTotal(snapshotLines, snapshotDiscount)
-    const lineTotals = calculateInvoiceLineTotals(snapshotLines, snapshotDiscount)
 
     const invoiceId = await database.transaction(async (transaction) => {
       const number = await claimInvoiceNumber(transaction)
@@ -96,26 +95,11 @@ export async function createInvoiceFromProposal(input: unknown): Promise<Invoice
 
       if (!created) throw new Error("Invoice insert returned no row")
 
-      await transaction.insert(lineItems).values(
-        snapshot.lineItems.map((item, index) => ({
-          invoiceId: created.id,
-          taxRateId: item.taxRateId,
-          position: index,
-          description: item.description,
-          unit: item.unit,
-          quantity: item.quantity,
-          unitPriceCents: item.unitPriceCents,
-          discountType: item.discountType,
-          discountPercentage: item.discountPercentage,
-          discountAmountCents: item.discountAmountCents,
-          // The proposal line's own snapshot, copied across untouched. Re-reading `tax_rates` here
-          // would let a rate edited between acceptance and invoicing move a number the client has
-          // already agreed to (ADR-0017).
-          taxPercentageSnapshot: String(item.taxPercentage),
-          subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
-          taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,
-          totalCents: lineTotals[index]?.totalCents ?? 0
-        }))
+      await writeInvoiceLineItems(
+        transaction,
+        created.id,
+        snapshot.lineItems.map(toSnapshotLineItemRow),
+        snapshotDiscount
       )
 
       return created.id
@@ -149,6 +133,27 @@ export async function createInvoiceFromProposal(input: unknown): Promise<Invoice
       userId: context.userId,
       fallbackMessage: toConversionErrorMessage(error)
     })
+  }
+}
+
+// The proposal line's own snapshot, copied across untouched. Re-reading `tax_rates` here would let a
+// rate edited between acceptance and invoicing move a number the client has already agreed to
+// (ADR-0017).
+function toSnapshotLineItemRow(
+  item: ProposalInvoiceSnapshot["lineItems"][number]
+): InvoiceLineItemRow {
+  return {
+    taxRateId: item.taxRateId,
+    description: item.description,
+    unit: item.unit,
+    quantity: Number(item.quantity),
+    unitPriceCents: item.unitPriceCents,
+    discount: {
+      discountType: item.discountType,
+      discountPercentage: item.discountPercentage,
+      discountAmountCents: item.discountAmountCents
+    },
+    taxPercentage: item.taxPercentage
   }
 }
 

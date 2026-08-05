@@ -171,20 +171,25 @@ export type EventMap = {
     contractId: string
     userId: string
   }
+  // `userId` is nullable because an invoice is not always raised by a person: the recurring-schedule
+  // generation job creates one as the system actor, with no session behind it. Same reasoning as
+  // `invoice.paid` and `payment.received` below.
   "invoice.created": {
     invoiceId: string
     projectId: string | null
     clientId: string | null
-    userId: string
+    userId: string | null
   }
   "invoice.updated": {
     invoiceId: string
     userId: string
     changedFields: string[]
   }
+  // Nullable for the same reason as `invoice.created`: a schedule with `auto_send` set issues the
+  // invoice straight to `sent` from the job, where no user is present.
   "invoice.sent": {
     invoiceId: string
-    userId: string
+    userId: string | null
   }
   // The payload deliberately carries no amount, so a full-settlement write and a payment
   // aggregation reaching the total can emit the same event. `userId` is nullable because the
@@ -203,6 +208,41 @@ export type EventMap = {
   "invoice.deleted": {
     invoiceId: string
     userId: string
+  }
+  // Emitted once per invoice per crossing of its due date, by the overdue-detection job — never by a
+  // request. `overdue` is a derived status that is never written to `invoices.status`, so this event
+  // is the only moment the transition is observable; a subscriber that misses it cannot recover the
+  // fact from the row, only re-derive the condition. `daysOverdue` is whole UTC days.
+  "invoice.overdue": {
+    invoiceId: string
+    clientId: string | null
+    daysOverdue: number
+  }
+  // `offsetDays` and `phase` together identify which entry of the settings reminder arrays this
+  // dispatch corresponds to, which is also the idempotency key the job guards on.
+  "invoice.reminder_sent": {
+    invoiceId: string
+    offsetDays: number
+    phase: "before" | "after"
+  }
+  // No `userId`: a schedule generates on its own timetable, and the person who created it may be
+  // long gone. `occurrence` is the 1-based index of the run within the schedule, so a subscriber can
+  // tell "first invoice of this retainer" from "the ninth" without re-reading the counter.
+  "recurring.invoice_generated": {
+    recurringInvoiceId: string
+    invoiceId: string
+    clientId: string
+    projectId: string | null
+    occurrence: number
+  }
+  // Fires on the run that first consumes the pool, not on every run afterwards. It crosses the
+  // boundary because the freelancer needs to know their client is now billing at the overage rate,
+  // and nothing on the invoice says so.
+  "retainer.pool_exhausted": {
+    recurringInvoiceId: string
+    clientId: string
+    includedHours: number
+    consumedHours: number
   }
   // A credit note is issued at creation — there is no draft state to leave — so this is the only
   // "created" event the document has. It crosses the boundary because what an invoice is still owed
