@@ -402,6 +402,7 @@ export type Translations = {
       leads: string
       clients: string
       projects: string
+      time: string
       proposals: string
       contracts: string
       invoices: string
@@ -440,6 +441,7 @@ export type Translations = {
       country: string
       notes: string
       website: string
+      defaultHourlyRate: string
     }
     placeholders: {
       name: string
@@ -453,6 +455,7 @@ export type Translations = {
       postalCode: string
       website: string
       notes: string
+      defaultHourlyRate: string
     }
     status: {
       active: string
@@ -612,6 +615,7 @@ export type Translations = {
       websiteInvalid: string
       currencyInvalid: string
       countryInvalid: string
+      hourlyRateInvalid: string
       idInvalid: string
     }
   }
@@ -1046,6 +1050,135 @@ export type Translations = {
       notFound: string
       projectNotFound: string
       invalidTransition: string
+      updateFailed: string
+    }
+  }
+  timeTracking: {
+    metadata: {
+      list: string
+    }
+    list: {
+      title: string
+      description: string
+      tableTitle: string
+      count: string
+      actions: string
+      edit: string
+      bulkDelete: string
+      emptyTitle: string
+      emptyDescription: string
+      noProjectsDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    actions: {
+      logManually: string
+      delete: string
+    }
+    filters: {
+      title: string
+      search: string
+      searchPlaceholder: string
+      status: string
+      reset: string
+    }
+    status: {
+      active: string
+      deleted: string
+      all: string
+    }
+    fields: {
+      project: string
+      projectOption: string
+      task: string
+      noTask: string
+      description: string
+      startedAt: string
+      endedAt: string
+      duration: string
+      billable: string
+      billableHelp: string
+      hourlyRate: string
+      invoiced: string
+      source: string
+      amount: string
+    }
+    placeholders: {
+      project: string
+      description: string
+      hourlyRate: string
+    }
+    billable: {
+      billable: string
+      nonBillable: string
+    }
+    invoiced: {
+      unbilled: string
+      invoiced: string
+    }
+    source: {
+      timer: string
+      manual: string
+    }
+    duration: {
+      hoursMinutes: string
+      withSeconds: string
+    }
+    timer: {
+      idleTitle: string
+      idleDescription: string
+      runningTitle: string
+      runningDescription: string
+      running: string
+      rateHint: string
+      start: string
+      stop: string
+      started: string
+      stopped: string
+    }
+    summary: {
+      tracked: string
+      trackedHint: string
+      billable: string
+      billableHint: string
+      unbilled: string
+      unbilledHint: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      created: string
+      updated: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    validation: {
+      projectRequired: string
+      taskInvalid: string
+      idInvalid: string
+      amountInvalid: string
+      descriptionTooLong: string
+      dateTimeInvalid: string
+      endBeforeStart: string
+    }
+    errors: {
+      notFound: string
+      projectNotFound: string
+      taskNotFound: string
+      taskProjectMismatch: string
+      timerAlreadyRunning: string
+      timerNotRunning: string
+      timerRunning: string
+      endBeforeStart: string
+      alreadyInvoiced: string
       updateFailed: string
     }
   }
@@ -2929,6 +3062,9 @@ export type Translations = {
       nextInvoiceNumberHelp: string
       paymentTermsDays: string
       paymentTermsDaysHelp: string
+      defaultHourlyRate: string
+      defaultHourlyRatePlaceholder: string
+      defaultHourlyRateHelp: string
       documentDefaultsSection: string
       documentDefaultsSectionDescription: string
       defaultNotesInvoice: string
@@ -2949,6 +3085,7 @@ export type Translations = {
         nextInvoiceNumberInvalid: string
         nextInvoiceNumberForward: string
         paymentTermsDaysInvalid: string
+        defaultHourlyRateInvalid: string
       }
     }
     taxRates: {

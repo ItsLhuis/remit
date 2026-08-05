@@ -421,6 +421,7 @@ export const english: Language = {
         leads: "Leads",
         clients: "Clients",
         projects: "Projects",
+        time: "Time",
         proposals: "Proposals",
         contracts: "Contracts",
         invoices: "Invoices",
@@ -458,7 +459,8 @@ export const english: Language = {
         postalCode: "Postal code",
         country: "Country",
         notes: "Notes",
-        website: "Website"
+        website: "Website",
+        defaultHourlyRate: "Default hourly rate"
       },
       placeholders: {
         name: "Acme Studio",
@@ -471,7 +473,8 @@ export const english: Language = {
         state: "State or region",
         postalCode: "Postal code",
         website: "https://example.com",
-        notes: "Internal notes for this client"
+        notes: "Internal notes for this client",
+        defaultHourlyRate: "Leave blank to use the instance default"
       },
       status: {
         active: "Active",
@@ -638,6 +641,7 @@ export const english: Language = {
         websiteInvalid: "Enter a valid URL.",
         currencyInvalid: "Select a valid ISO 4217 currency.",
         countryInvalid: "Select a valid country.",
+        hourlyRateInvalid: "Enter a valid hourly rate.",
         idInvalid: "Invalid client."
       }
     },
@@ -1084,6 +1088,136 @@ export const english: Language = {
         projectNotFound: "Project not found",
         invalidTransition: "That status change is not allowed",
         updateFailed: "Failed to update task"
+      }
+    },
+    timeTracking: {
+      metadata: {
+        list: "Time"
+      },
+      list: {
+        title: "Time",
+        description: "Track hours against projects and tasks, then bill the unbilled ones.",
+        tableTitle: "Time entries",
+        count: "{count, plural, one {# entry} other {# entries}}",
+        actions: "Time entry actions",
+        edit: "Edit entry",
+        bulkDelete: "Delete",
+        emptyTitle: "No time logged yet",
+        emptyDescription: "Start the timer or log an entry by hand to begin tracking hours.",
+        noProjectsDescription: "Create a project first — every time entry belongs to one.",
+        noMatchTitle: "No entries match those filters",
+        noMatchDescription: "Try widening the date range or clearing a filter."
+      },
+      actions: {
+        logManually: "Log time",
+        delete: "Delete entry"
+      },
+      filters: {
+        title: "Filters",
+        search: "Search time entries",
+        searchPlaceholder: "Search descriptions, projects, tasks",
+        status: "Entry status",
+        reset: "Reset filters"
+      },
+      status: {
+        active: "Active",
+        deleted: "Deleted",
+        all: "All"
+      },
+      fields: {
+        project: "Project",
+        projectOption: "{client} — {project}",
+        task: "Task",
+        noTask: "No task",
+        description: "Description",
+        startedAt: "Started",
+        endedAt: "Ended",
+        duration: "Duration",
+        billable: "Billable",
+        billableHelp: "Unbillable time is tracked but never appears on an invoice",
+        hourlyRate: "Hourly rate override",
+        invoiced: "Billing",
+        source: "Source",
+        amount: "Amount"
+      },
+      placeholders: {
+        project: "Select a project",
+        description: "What did you work on?",
+        hourlyRate: "Leave blank to use the task, project or client rate"
+      },
+      billable: {
+        billable: "Billable",
+        nonBillable: "Not billable"
+      },
+      invoiced: {
+        unbilled: "Unbilled",
+        invoiced: "Invoiced"
+      },
+      source: {
+        timer: "Timer",
+        manual: "Manual"
+      },
+      duration: {
+        hoursMinutes: "{hours}h {minutes}m",
+        withSeconds: "{hours}h {minutes}m {seconds}s"
+      },
+      timer: {
+        idleTitle: "Start a timer",
+        idleDescription: "Pick a project and start the clock. One timer runs at a time.",
+        runningTitle: "Timer running",
+        runningDescription: "{project} · {task}",
+        running: "Running",
+        rateHint: "Billing at {rate} per hour",
+        start: "Start timer",
+        stop: "Stop timer",
+        started: "Timer started",
+        stopped: "Timer stopped"
+      },
+      summary: {
+        tracked: "Tracked",
+        trackedHint: "All time logged on this instance",
+        billable: "Billable",
+        billableHint: "Hours marked billable",
+        unbilled: "Unbilled",
+        unbilledHint: "{duration} not yet on an invoice"
+      },
+      form: {
+        createTitle: "Log time",
+        createDescription: "Record work you have already done.",
+        editTitle: "Edit time entry",
+        editDescription: "Change the hours, the scope or the rate for this entry.",
+        saveCreate: "Log time",
+        saveEdit: "Save entry",
+        created: "Time entry logged",
+        updated: "Time entry updated"
+      },
+      delete: {
+        title: "Delete time entry?",
+        description:
+          "The entry is removed from your logged hours. Invoiced entries cannot be deleted.",
+        confirm: "Delete entry",
+        deleted: "Time entry deleted"
+      },
+      validation: {
+        projectRequired: "Select a project",
+        taskInvalid: "Select a valid task",
+        idInvalid: "Invalid time entry",
+        amountInvalid: "Enter a valid amount",
+        descriptionTooLong: "Description must be {count} characters or fewer",
+        dateTimeInvalid: "Enter a valid date and time",
+        endBeforeStart: "The end time must be after the start time"
+      },
+      errors: {
+        notFound: "Time entry not found",
+        projectNotFound: "Project not found",
+        taskNotFound: "Task not found",
+        taskProjectMismatch: "That task belongs to a different project",
+        timerAlreadyRunning: "A timer is already running. Stop it before starting another one",
+        timerNotRunning: "That timer is not running",
+        timerRunning: "Stop the timer before editing this entry",
+        endBeforeStart: "The end time must be after the start time",
+        alreadyInvoiced: "This entry has already been invoiced and can no longer be changed",
+        updateFailed: "Failed to save the time entry"
       }
     },
     proposals: {
@@ -3008,6 +3142,10 @@ export const english: Language = {
           "The next number cannot be lower than the current next number: {number}.",
         paymentTermsDays: "Default payment terms",
         paymentTermsDaysHelp: "Days added to the issue date when calculating the due date.",
+        defaultHourlyRate: "Default hourly rate",
+        defaultHourlyRatePlaceholder: "0.00",
+        defaultHourlyRateHelp:
+          "The last fallback for time entries. A client, project, task or entry rate always wins. Leave blank to log time with no rate.",
         documentDefaultsSection: "Document defaults",
         documentDefaultsSectionDescription:
           "These notes and footer text are copied into new invoice drafts.",
@@ -3030,7 +3168,8 @@ export const english: Language = {
           nextInvoiceNumberInvalid: "Next invoice number must be a positive whole number.",
           nextInvoiceNumberForward:
             "Next invoice number cannot be lower than the current next number ({number}).",
-          paymentTermsDaysInvalid: "Payment terms must be a whole number from 0 to 365."
+          paymentTermsDaysInvalid: "Payment terms must be a whole number from 0 to 365.",
+          defaultHourlyRateInvalid: "Enter a valid hourly rate."
         }
       },
       taxRates: {
