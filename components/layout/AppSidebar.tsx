@@ -66,6 +66,11 @@ const mainNavItems = [
   { labelKey: "app.navigation.proposals", href: "/proposals", icon: "FileText" as const },
   { labelKey: "app.navigation.contracts", href: "/contracts", icon: "FileSignature" as const },
   { labelKey: "app.navigation.invoices", href: "/invoices", icon: "Receipt" as const },
+  {
+    labelKey: "app.navigation.recurringInvoices",
+    href: "/recurring-invoices",
+    icon: "Repeat" as const
+  },
   { labelKey: "app.navigation.creditNotes", href: "/credit-notes", icon: "ReceiptText" as const }
 ] as const
 

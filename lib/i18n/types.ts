@@ -405,6 +405,7 @@ export type Translations = {
       proposals: string
       contracts: string
       invoices: string
+      recurringInvoices: string
       creditNotes: string
       settings: string
       navigation: string
@@ -1536,6 +1537,12 @@ export type Translations = {
       create: string
       edit: string
     }
+    reminders: {
+      subjectBefore: string
+      subjectAfter: string
+      bodyBefore: string
+      bodyAfter: string
+    }
     list: {
       title: string
       description: string
@@ -1941,6 +1948,191 @@ export type Translations = {
       totalNotPositive: string
       settingsMissing: string
       createFailed: string
+      deleteFailed: string
+    }
+    routeError: {
+      title: string
+      description: string
+    }
+  }
+  recurringInvoices: {
+    metadata: {
+      list: string
+      detail: string
+      create: string
+      edit: string
+    }
+    list: {
+      title: string
+      description: string
+      createButton: string
+      searchPlaceholder: string
+      moreActions: string
+      columns: {
+        name: string
+        client: string
+        project: string
+        cadence: string
+        nextRun: string
+        status: string
+        occurrences: string
+      }
+      empty: {
+        title: string
+        description: string
+        action: string
+      }
+    }
+    filters: {
+      status: string
+      cadence: string
+      client: string
+      clear: string
+    }
+    status: {
+      active: string
+      paused: string
+      completed: string
+      cancelled: string
+    }
+    cadence: {
+      weekly: string
+      monthly: string
+      quarterly: string
+      yearly: string
+    }
+    fields: {
+      name: string
+      client: string
+      project: string
+      template: string
+      cadence: string
+      cadenceDay: string
+      nextRunAt: string
+      endCondition: string
+      endAfterCount: string
+      endByDate: string
+      autoSend: string
+      currency: string
+      includedHours: string
+      overageRate: string
+      notes: string
+      lineItems: string
+    }
+    fieldHints: {
+      cadenceDayWeekly: string
+      cadenceDayMonthly: string
+      autoSend: string
+      includedHours: string
+      overageRate: string
+    }
+    endCondition: {
+      never: string
+      after_count: string
+      by_date: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      sections: {
+        details: string
+        schedule: string
+        retainer: string
+        lineItems: string
+        notes: string
+      }
+      addLineItem: string
+      removeLineItem: string
+      submitCreate: string
+      submitEdit: string
+      cancel: string
+      retainerToggle: string
+      retainerDescription: string
+    }
+    detail: {
+      title: string
+      scheduleSummary: string
+      nextRun: string
+      lastRun: string
+      occurrences: string
+      endCondition: string
+      retainer: string
+      retainerNone: string
+      generatedInvoices: string
+      generatedInvoicesEmpty: string
+      noProject: string
+    }
+    dialogs: {
+      pause: {
+        title: string
+        description: string
+        confirm: string
+      }
+      resume: {
+        title: string
+        description: string
+        confirm: string
+      }
+      cancel: {
+        title: string
+        description: string
+        confirm: string
+      }
+      delete: {
+        title: string
+        description: string
+        confirm: string
+      }
+    }
+    toasts: {
+      created: string
+      updated: string
+      paused: string
+      resumed: string
+      cancelled: string
+      deleted: string
+    }
+    validation: {
+      nameRequired: string
+      nameTooLong: string
+      clientRequired: string
+      referenceInvalid: string
+      cadenceDayInvalid: string
+      cadenceDayOutOfRange: string
+      nextRunRequired: string
+      dateInvalid: string
+      occurrenceCountRequired: string
+      occurrenceCountInvalid: string
+      endDateRequired: string
+      endDateBeforeNextRun: string
+      currencyInvalid: string
+      includedHoursInvalid: string
+      retainerIncomplete: string
+      notesTooLong: string
+      lineItemsRequired: string
+      descriptionRequired: string
+      descriptionTooLong: string
+      unitTooLong: string
+      quantityInvalid: string
+      amountRequired: string
+      amountInvalid: string
+      percentageInvalid: string
+    }
+    overage: {
+      lineDescription: string
+      lineUnit: string
+    }
+    errors: {
+      notFound: string
+      clientNotFound: string
+      projectNotFound: string
+      taxRateInvalid: string
+      invalidTransition: string
+      terminal: string
+      createFailed: string
+      updateFailed: string
       deleteFailed: string
     }
     routeError: {

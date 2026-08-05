@@ -424,6 +424,7 @@ export const english: Language = {
         proposals: "Proposals",
         contracts: "Contracts",
         invoices: "Invoices",
+        recurringInvoices: "Recurring",
         creditNotes: "Credit notes",
         settings: "Settings",
         navigation: "Navigation",
@@ -1588,6 +1589,14 @@ export const english: Language = {
         create: "New invoice",
         edit: "Edit invoice"
       },
+      reminders: {
+        subjectBefore: "Invoice {number} is due in {days, plural, one {# day} other {# days}}",
+        subjectAfter: "Invoice {number} is {days, plural, one {# day} other {# days}} overdue",
+        bodyBefore:
+          "Hello {clientName},\n\nThis is a reminder that invoice {number} for {amount} is due on {dueDate}.\n\nYou can view and pay it here: {url}\n\nThank you,\n{businessName}",
+        bodyAfter:
+          "Hello {clientName},\n\nInvoice {number} for {amount} was due on {dueDate} and is still outstanding.\n\nYou can view and pay it here: {url}\n\nThank you,\n{businessName}"
+      },
       list: {
         title: "Invoices",
         description: "Bill this project's work and track what is still owed",
@@ -2002,6 +2011,193 @@ export const english: Language = {
       routeError: {
         title: "Credit note unavailable",
         description: "Something went wrong loading this credit note"
+      }
+    },
+    recurringInvoices: {
+      metadata: {
+        list: "Recurring invoices",
+        detail: "Recurring invoice",
+        create: "New recurring invoice",
+        edit: "Edit recurring invoice"
+      },
+      list: {
+        title: "Recurring invoices",
+        description: "Schedules that raise invoices on their own, soonest run first",
+        createButton: "New recurring invoice",
+        searchPlaceholder: "Search by name, client, or project",
+        moreActions: "More",
+        columns: {
+          name: "Name",
+          client: "Client",
+          project: "Project",
+          cadence: "Cadence",
+          nextRun: "Next run",
+          status: "Status",
+          occurrences: "Generated"
+        },
+        empty: {
+          title: "No recurring invoices yet",
+          description: "Set up a schedule to bill a client on a fixed rhythm",
+          action: "New recurring invoice"
+        }
+      },
+      filters: {
+        status: "Status",
+        cadence: "Cadence",
+        client: "Client",
+        clear: "Clear filters"
+      },
+      status: {
+        active: "Active",
+        paused: "Paused",
+        completed: "Completed",
+        cancelled: "Cancelled"
+      },
+      cadence: {
+        weekly: "Weekly",
+        monthly: "Monthly",
+        quarterly: "Quarterly",
+        yearly: "Yearly"
+      },
+      fields: {
+        name: "Name",
+        client: "Client",
+        project: "Project",
+        template: "Template",
+        cadence: "Cadence",
+        cadenceDay: "Billing day",
+        nextRunAt: "First run",
+        endCondition: "Ends",
+        endAfterCount: "Number of occurrences",
+        endByDate: "End date",
+        autoSend: "Send automatically",
+        currency: "Currency",
+        includedHours: "Included hours",
+        overageRate: "Overage rate",
+        notes: "Notes",
+        lineItems: "Line items"
+      },
+      fieldHints: {
+        cadenceDayWeekly: "1 is Monday, 7 is Sunday. Leave blank to use the first run's weekday",
+        cadenceDayMonthly: "Day of the month from 1 to 31. Short months use their last day",
+        autoSend: "Issue and email each invoice as soon as it is generated",
+        includedHours: "Hours covered by the retainer before overage is billed",
+        overageRate: "Charged per hour once the included hours are used up"
+      },
+      endCondition: {
+        never: "Never",
+        after_count: "After a number of invoices",
+        by_date: "On a date"
+      },
+      form: {
+        createTitle: "New recurring invoice",
+        createDescription: "Set up a schedule. The first invoice is raised on its first run date",
+        editTitle: "Edit recurring invoice",
+        editDescription: "Changes apply to invoices generated from the next run onwards",
+        sections: {
+          details: "Details",
+          schedule: "Schedule",
+          retainer: "Retainer",
+          lineItems: "Line items",
+          notes: "Notes"
+        },
+        addLineItem: "Add line item",
+        removeLineItem: "Remove line item",
+        submitCreate: "Create schedule",
+        submitEdit: "Save changes",
+        cancel: "Cancel",
+        retainerToggle: "Bill this as a retainer",
+        retainerDescription: "Include a pool of hours each period and bill anything beyond it"
+      },
+      detail: {
+        title: "Recurring invoice",
+        scheduleSummary: "Schedule",
+        nextRun: "Next run",
+        lastRun: "Last run",
+        occurrences: "{count, plural, one {# invoice generated} other {# invoices generated}}",
+        endCondition: "Ends",
+        retainer:
+          "{includedHours, plural, one {# hour} other {# hours}} included, then {rate} an hour",
+        retainerNone: "Not a retainer",
+        generatedInvoices: "Generated invoices",
+        generatedInvoicesEmpty: "Nothing has been generated yet",
+        noProject: "No project"
+      },
+      dialogs: {
+        pause: {
+          title: "Pause this schedule?",
+          description: "No invoices are generated until you resume it",
+          confirm: "Pause schedule"
+        },
+        resume: {
+          title: "Resume this schedule?",
+          description: "The next invoice is generated on the next run date",
+          confirm: "Resume schedule"
+        },
+        cancel: {
+          title: "Cancel this schedule?",
+          description: "Cancelling is permanent. Invoices already generated are kept",
+          confirm: "Cancel schedule"
+        },
+        delete: {
+          title: "Delete this recurring invoice?",
+          description: "The schedule is removed from your lists. Generated invoices are kept",
+          confirm: "Delete schedule"
+        }
+      },
+      toasts: {
+        created: "Recurring invoice created",
+        updated: "Recurring invoice updated",
+        paused: "Schedule paused",
+        resumed: "Schedule resumed",
+        cancelled: "Schedule cancelled",
+        deleted: "Recurring invoice deleted"
+      },
+      validation: {
+        nameRequired: "Name is required",
+        nameTooLong: "Name is too long",
+        clientRequired: "Client is required",
+        referenceInvalid: "Selection is not valid",
+        cadenceDayInvalid: "Day must be a whole number",
+        cadenceDayOutOfRange: "Day is outside the range allowed by this cadence",
+        nextRunRequired: "First run date is required",
+        dateInvalid: "Date is not valid",
+        occurrenceCountRequired: "Number of occurrences is required",
+        occurrenceCountInvalid: "Number of occurrences must be between 1 and 1000",
+        endDateRequired: "End date is required",
+        endDateBeforeNextRun: "End date cannot be before the first run",
+        currencyInvalid: "Currency must be a three-letter code",
+        includedHoursInvalid: "Included hours must be a positive number",
+        retainerIncomplete: "Set both included hours and an overage rate, or neither",
+        notesTooLong: "Notes are too long",
+        lineItemsRequired: "Add at least one line item",
+        descriptionRequired: "Description is required",
+        descriptionTooLong: "Description is too long",
+        unitTooLong: "Unit is too long",
+        quantityInvalid: "Quantity must be greater than zero",
+        amountRequired: "Amount is required",
+        amountInvalid: "Amount is not valid",
+        percentageInvalid: "Percentage must be between 0 and 100"
+      },
+      overage: {
+        lineDescription:
+          "Additional hours beyond the {includedHours, plural, one {# included hour} other {# included hours}}",
+        lineUnit: "hours"
+      },
+      errors: {
+        notFound: "Recurring invoice not found",
+        clientNotFound: "Client not found",
+        projectNotFound: "Project does not belong to this client",
+        taxRateInvalid: "One of the selected tax rates is no longer available",
+        invalidTransition: "This schedule cannot change to that state",
+        terminal: "A completed or cancelled schedule cannot be edited",
+        createFailed: "Failed to create recurring invoice",
+        updateFailed: "Failed to update recurring invoice",
+        deleteFailed: "Failed to delete recurring invoice"
+      },
+      routeError: {
+        title: "Recurring invoice unavailable",
+        description: "Something went wrong loading this recurring invoice"
       }
     },
     payments: {

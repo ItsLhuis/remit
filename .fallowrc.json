@@ -14,7 +14,12 @@
     "doctor.config.ts"
   ],
   "ignoreDependencies": ["pino-pretty", "postcss-load-config"],
-  "dynamicallyLoaded": ["lib/storage/s3.ts"],
+  "dynamicallyLoaded": [
+    "lib/storage/s3.ts",
+    "lib/jobs/worker.ts",
+    "features/invoices/jobs.ts",
+    "features/recurringInvoices/jobs.ts"
+  ],
   "rules": {
     "unused-exports": "warn",
     "unused-types": "warn"
