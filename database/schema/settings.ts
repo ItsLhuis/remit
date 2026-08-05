@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
+  bigint,
   boolean,
   check,
   integer,
@@ -55,6 +56,9 @@ export const settings = pgTable(
     nextContractNumber: integer("next_contract_number").notNull().default(1),
     nextCreditNoteNumber: integer("next_credit_note_number").notNull().default(1),
     numberPaddingWidth: integer("number_padding_width").notNull().default(4),
+
+    // Time tracking
+    defaultHourlyRateCents: bigint("default_hourly_rate_cents", { mode: "number" }),
 
     // Payments
     paymentIban: encryptedColumn("payment_iban"),
@@ -128,6 +132,14 @@ export const settings = pgTable(
     check(
       "chk_settings_number_padding_width",
       sql`${table.numberPaddingWidth} >= 1 AND ${table.numberPaddingWidth} <= 10`
+    ),
+    // The last rung of the rate precedence ladder, and deliberately not defaulted: an instance that
+    // has never configured a rate must resolve to the `"none"` source in
+    // features/timeTracking/services/resolveHourlyRate.ts rather than to an invented number that
+    // would silently price every entry.
+    check(
+      "chk_settings_default_hourly_rate",
+      sql`${table.defaultHourlyRateCents} IS NULL OR ${table.defaultHourlyRateCents} >= 0`
     )
   ]
 )

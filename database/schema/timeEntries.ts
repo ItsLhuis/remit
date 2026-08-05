@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid
 } from "drizzle-orm/pg-core"
 
@@ -31,6 +32,11 @@ export const timeEntries = pgTable(
     endedAt: timestamp("ended_at", { withTimezone: true, mode: "date" }),
     durationSeconds: integer("duration_seconds"),
     billable: boolean("billable").notNull().default(true),
+    // Two rate columns, not one. The override is what the user typed on this entry and is the top
+    // rung of the precedence ladder; the snapshot is what that ladder resolved to at log time and is
+    // frozen afterwards. Collapsing them would make a later project-rate change indistinguishable
+    // from a deliberate per-entry rate on re-resolution.
+    hourlyRateOverrideCents: bigint("hourly_rate_override_cents", { mode: "number" }),
     hourlyRateSnapshotCents: bigint("hourly_rate_snapshot_cents", { mode: "number" }).notNull(),
     description: text("description"),
     source: timeEntrySource("source").notNull().default("timer"),
@@ -46,6 +52,13 @@ export const timeEntries = pgTable(
     index("time_entries_unbilled_idx")
       .on(table.projectId)
       .where(sql`${table.invoicedInId} IS NULL AND ${table.billable} = true`),
+    // The structural form of the "one running timer per user" rule. The application guard in
+    // features/timeTracking/mutations.ts (`startTimer`) is what produces the friendly error; this
+    // index is what makes the rule hold when two start requests race, since both would read "no
+    // running timer" before either inserts.
+    uniqueIndex("time_entries_running_timer_idx")
+      .on(table.userId)
+      .where(sql`${table.endedAt} IS NULL AND ${table.deletedAt} IS NULL`),
     check(
       "chk_time_entries_duration",
       sql`${table.durationSeconds} IS NULL OR ${table.durationSeconds} >= 0`
@@ -54,6 +67,10 @@ export const timeEntries = pgTable(
       "chk_time_entries_ended",
       sql`(${table.endedAt} IS NULL AND ${table.durationSeconds} IS NULL) OR (${table.endedAt} IS NOT NULL AND ${table.durationSeconds} IS NOT NULL AND ${table.endedAt} >= ${table.startedAt})`
     ),
-    check("chk_time_entries_rate", sql`${table.hourlyRateSnapshotCents} >= 0`)
+    check("chk_time_entries_rate", sql`${table.hourlyRateSnapshotCents} >= 0`),
+    check(
+      "chk_time_entries_rate_override",
+      sql`${table.hourlyRateOverrideCents} IS NULL OR ${table.hourlyRateOverrideCents} >= 0`
+    )
   ]
 )

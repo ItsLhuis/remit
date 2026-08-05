@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm"
-import { index, pgTable, text, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
+import {
+  bigint,
+  check,
+  index,
+  pgTable,
+  text,
+  uniqueIndex,
+  uuid,
+  varchar
+} from "drizzle-orm/pg-core"
 
 import { encryptedColumn, softDelete, timestamps } from "./helpers"
 
@@ -20,6 +29,7 @@ export const clients = pgTable(
     country: text("country"),
     currency: varchar("currency", { length: 3 }),
     locale: text("locale"),
+    defaultHourlyRateCents: bigint("default_hourly_rate_cents", { mode: "number" }),
     notes: encryptedColumn("notes"),
     portalToken: text("portal_token"),
     ...softDelete,
@@ -33,6 +43,14 @@ export const clients = pgTable(
       .where(sql`${table.deletedAt} IS NULL`),
     uniqueIndex("clients_portal_token_idx")
       .on(table.portalToken)
-      .where(sql`${table.portalToken} IS NOT NULL`)
+      .where(sql`${table.portalToken} IS NOT NULL`),
+    // Nullable rather than defaulted: null means "this client has no negotiated rate", which is a
+    // different fact from "their rate is 0", and only the first may fall through to the instance
+    // default in features/timeTracking/services/resolveHourlyRate.ts. Zero is a rate a freelancer
+    // can genuinely agree to, so it must stop the fallthrough.
+    check(
+      "chk_clients_default_hourly_rate",
+      sql`${table.defaultHourlyRateCents} IS NULL OR ${table.defaultHourlyRateCents} >= 0`
+    )
   ]
 )

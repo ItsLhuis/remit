@@ -314,6 +314,7 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | next_proposal_number       | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
 |                  | next_credit_note_number    | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
 |                  | number_padding_width       | integer          | no   | Default `4`. 1–10                                                                                                                                                                        |
+| Time tracking    | default_hourly_rate_cents  | bigint           | yes  | Last rung of the time-entry rate precedence ladder. Null = no instance rate configured; deliberately not defaulted. ≥ 0 if not null.                                                     |
 | Payments         | payment_iban               | text (encrypted) | yes  |                                                                                                                                                                                          |
 |                  | payment_bank_name          | text             | yes  |                                                                                                                                                                                          |
 |                  | payment_instructions       | text             | yes  |                                                                                                                                                                                          |
@@ -358,6 +359,8 @@ Constraints (named):
 - `chk_settings_next_proposal_number` — `>= 1`.
 - `chk_settings_next_credit_note_number` — `>= 1`.
 - `chk_settings_number_padding_width` — `>= 1 AND <= 10`.
+- `chk_settings_default_hourly_rate` —
+  `default_hourly_rate_cents IS NULL OR default_hourly_rate_cents >= 0`.
 
 No FK to `user` — settings are instance-scoped, not user-scoped.
 
@@ -569,30 +572,36 @@ Indexes: `leads_email_idx`, `leads_status_idx`, `leads_created_at_idx` on `creat
 
 ### `clients`
 
-| Column        | Type             | Null | Default             | Notes                                                                                                              |
-| ------------- | ---------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| id            | uuid             | no   | `gen_random_uuid()` | PK                                                                                                                 |
-| name          | text             | no   |                     |                                                                                                                    |
-| email         | text             | no   |                     |                                                                                                                    |
-| phone         | text             | yes  |                     |                                                                                                                    |
-| website       | text             | yes  |                     |                                                                                                                    |
-| tax_id        | text             | yes  |                     |                                                                                                                    |
-| address_line1 | text             | yes  |                     |                                                                                                                    |
-| address_line2 | text             | yes  |                     |                                                                                                                    |
-| city          | text             | yes  |                     |                                                                                                                    |
-| state         | text             | yes  |                     |                                                                                                                    |
-| postal_code   | text             | yes  |                     |                                                                                                                    |
-| country       | text             | yes  |                     | ISO 3166-1 alpha-2                                                                                                 |
-| currency      | varchar(3)       | yes  |                     | Override of `settings.default_currency` for this client's documents                                                |
-| locale        | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default. |
-| notes         | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                   |
-| portal_token  | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`                                                                          |
+| Column                    | Type             | Null | Default             | Notes                                                                                                                                    |
+| ------------------------- | ---------------- | ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| id                        | uuid             | no   | `gen_random_uuid()` | PK                                                                                                                                       |
+| name                      | text             | no   |                     |                                                                                                                                          |
+| email                     | text             | no   |                     |                                                                                                                                          |
+| phone                     | text             | yes  |                     |                                                                                                                                          |
+| website                   | text             | yes  |                     |                                                                                                                                          |
+| tax_id                    | text             | yes  |                     |                                                                                                                                          |
+| address_line1             | text             | yes  |                     |                                                                                                                                          |
+| address_line2             | text             | yes  |                     |                                                                                                                                          |
+| city                      | text             | yes  |                     |                                                                                                                                          |
+| state                     | text             | yes  |                     |                                                                                                                                          |
+| postal_code               | text             | yes  |                     |                                                                                                                                          |
+| country                   | text             | yes  |                     | ISO 3166-1 alpha-2                                                                                                                       |
+| currency                  | varchar(3)       | yes  |                     | Override of `settings.default_currency` for this client's documents                                                                      |
+| locale                    | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default.                       |
+| default_hourly_rate_cents | bigint           | yes  |                     | Default rate for time entries on this client's projects. Null = no negotiated rate, which is distinct from a rate of 0. ≥ 0 if not null. |
+| notes                     | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                                         |
+| portal_token              | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`                                                                                                |
 
 Standard `timestamps` and `softDelete`.
 
 Indexes: `clients_name_idx`, `clients_email_idx`, `clients_active_idx` on `id` where
 `deleted_at IS NULL`, unique `clients_portal_token_idx` on `portal_token` where
 `portal_token IS NOT NULL`.
+
+Constraints:
+
+- `chk_clients_default_hourly_rate` —
+  `default_hourly_rate_cents IS NULL OR default_hourly_rate_cents >= 0`.
 
 ---
 
@@ -666,7 +675,8 @@ Indexes: `tasks_project_id_idx`, `tasks_status_idx`, `tasks_due_at_idx` on `due_
 | ended_at                   | timestamptz | yes  |                     | Null while a timer is running                                      |
 | duration_seconds           | integer     | yes  |                     | Computed when ended_at is set; ≥ 0                                 |
 | billable                   | boolean     | no   | `true`              |                                                                    |
-| hourly_rate_snapshot_cents | bigint      | no   |                     | Resolved at log time via the rate precedence rule                  |
+| hourly_rate_override_cents | bigint      | yes  |                     | Per-entry rate the user typed; top rung of the precedence ladder   |
+| hourly_rate_snapshot_cents | bigint      | no   |                     | Resolved at log time via the rate precedence rule, then frozen     |
 | description                | text        | yes  |                     |                                                                    |
 | source                     | enum        | no   | `'timer'`           | `timer \| manual`                                                  |
 | invoiced_in_id             | uuid        | yes  |                     | FK → `invoices.id` (set null) — the invoice that billed this entry |
@@ -679,10 +689,20 @@ Constraints:
 - `chk_time_entries_ended` —
   `(ended_at IS NULL AND duration_seconds IS NULL) OR (ended_at IS NOT NULL AND duration_seconds IS NOT NULL AND ended_at >= started_at)`.
 - `chk_time_entries_rate` — `hourly_rate_snapshot_cents >= 0`.
+- `chk_time_entries_rate_override` —
+  `hourly_rate_override_cents IS NULL OR hourly_rate_override_cents >= 0`.
+
+Rate precedence: `entry → task → project → client → settings`, resolved by
+`features/timeTracking/services/resolveHourlyRate.ts` and snapshotted onto
+`hourly_rate_snapshot_cents` at log time. A rate of `0` at any level is a set rate and stops the
+fallthrough; only `NULL` falls through. When no level carries a rate the snapshot is `0` and the
+resolved source is `"none"` — no default is invented.
 
 Indexes: `time_entries_project_id_idx`, `time_entries_task_id_idx`, `time_entries_user_id_idx`,
 `time_entries_started_at_idx` on `started_at DESC`, `time_entries_unbilled_idx` on `project_id`
-where `invoiced_in_id IS NULL AND billable = true`.
+where `invoiced_in_id IS NULL AND billable = true`, unique `time_entries_running_timer_idx` on
+`user_id` where `ended_at IS NULL AND deleted_at IS NULL` — the structural form of the
+one-running-timer-per-user rule.
 
 ---
 
