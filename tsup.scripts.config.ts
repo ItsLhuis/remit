@@ -7,7 +7,8 @@ export default defineConfig({
     "reset-password": "scripts/reset-password.ts",
     restore: "scripts/restore.ts",
     "rotate-encryption-key": "scripts/rotate-encryption-key.ts",
-    "seed-demo": "scripts/seed-demo.ts"
+    "seed-demo": "scripts/seed-demo.ts",
+    worker: "scripts/worker.ts"
   },
   outDir: "scripts/dist",
   format: ["esm"],

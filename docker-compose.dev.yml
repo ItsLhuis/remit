@@ -18,6 +18,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # Append-only persistence: durable job state is the whole reason ADR-0023 chose a queue over an
+    # in-process scheduler, and a restart that dropped it would silently skip a recurring run.
+    command: redis-server --appendonly yes
+    ports:
+      # Exposed to the host in development only - the app and the worker both run on the host there.
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   minio:
     image: minio/minio:latest
     restart: unless-stopped
@@ -39,4 +56,5 @@ services:
 
 volumes:
   postgres_dev_data:
+  redis_dev_data:
   minio_dev_data:

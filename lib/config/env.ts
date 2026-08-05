@@ -17,6 +17,21 @@ const encryptionKeySchema = z
     return key.length === 32 && key.toString("base64") === value
   }, "Must be a base64-encoded 32-byte key")
 
+// `z.url()` would accept any absolute URL, including the `http://` an operator reaches for by
+// reflex. ioredis silently treats an unknown protocol as a hostname, so the failure would surface as
+// a connection timeout inside the worker rather than at boot, which is the opposite of what this
+// file exists for.
+const redisUrlSchema = z
+  .string()
+  .trim()
+  .refine((value) => {
+    try {
+      return ["redis:", "rediss:"].includes(new URL(value).protocol)
+    } catch {
+      return false
+    }
+  }, "Must be a redis:// or rediss:// connection string")
+
 const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.preprocess((value) => {
     if (typeof value !== "string") return value
@@ -29,10 +44,14 @@ const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
 // Every field without `optionalEnvString` is boot-fatal: the process exits below rather than
 // starting degraded, because a missing database URL, auth secret, encryption key or object-store
 // credential makes the instance unable to serve or to decrypt its own data, and failing at boot is
-// far cheaper than failing per request. `SENTRY_DSN` and `REMIT_METRICS_TOKEN` are the only
+// far cheaper than failing per request. `REDIS_URL` is boot-fatal for the same reason even though
+// only the worker consumes it: server actions enqueue jobs, and an instance that cannot reach its
+// queue silently stops generating recurring invoices and sending reminders (ADR-0023).
+// `SENTRY_DSN` and `REMIT_METRICS_TOKEN` are the only
 // optional ones, since their features simply stay off when unset.
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
+  REDIS_URL: redisUrlSchema,
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.url(),
   NEXT_PUBLIC_APP_URL: z.url(),
@@ -66,6 +85,7 @@ const parsed = isBuildEnvValidationSkipped
   ? schema.safeParse({
       ...process.env,
       DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+      REDIS_URL: "redis://localhost:6379",
       BETTER_AUTH_SECRET: "build-time-placeholder-secret",
       BETTER_AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",

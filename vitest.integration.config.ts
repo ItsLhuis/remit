@@ -21,6 +21,10 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
       DATABASE_URL: "postgresql://remit_test:remit_test@localhost:5433/remit_test",
+      // Never dialled: integration tests stub `@/lib/jobs` at the module boundary, so no queue
+      // connection is opened. It is present only because `lib/config/env.ts` validates it at import
+      // time and exits the process when it is missing, which would surface here as a worker crash.
+      REDIS_URL: "redis://localhost:6379",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       BETTER_AUTH_SECRET: "test-secret-for-integration-tests-not-real",
       BETTER_AUTH_URL: "http://localhost:3000",

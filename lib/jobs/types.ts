@@ -20,6 +20,29 @@ export type JobMap = {
   "credit_note.pdf.render": {
     creditNoteId: string
   }
+  // The three sweeps below are the repeatable jobs registered in `schedules.ts`; they carry no
+  // payload because their input is "whatever the database says is due right now". Each one only
+  // selects work and fans it out, so a sweep that runs twice costs a duplicate query and nothing
+  // else — the money-affecting half is always a separate per-entity job with its own guard.
+  "recurring.schedule.sweep": Record<string, never>
+  // `occurrenceKey` is the schedule's `next_run_at` as an ISO day at the moment the sweep saw it.
+  // It is not read by the handler, which re-derives due-ness from the row under a lock; it exists to
+  // make the BullMQ job id deterministic per occurrence so a sweep repeated inside one period does
+  // not queue the same generation twice.
+  "recurring.invoice.generate": {
+    recurringInvoiceId: string
+    occurrenceKey: string
+  }
+  "invoice.overdue.sweep": Record<string, never>
+  "invoice.reminder.sweep": Record<string, never>
+  "invoice.reminder.send": {
+    invoiceId: string
+    // Days relative to the due date, always positive; `phase` carries the direction. Splitting them
+    // keeps the value aligned with the `reminder_before_due_days` / `reminder_after_due_days`
+    // settings arrays it is drawn from, which are both non-negative.
+    offsetDays: number
+    phase: "before" | "after"
+  }
 }
 
 export type JobName = keyof JobMap

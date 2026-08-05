@@ -16,6 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # Append-only persistence: durable job state is the whole reason ADR-0023 chose a queue over an
+    # in-process scheduler, and a restart that dropped it would silently skip a recurring run.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    # No ports exposed - reachable only within the Docker network, like the database.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   minio:
     image: minio/minio:latest
     restart: unless-stopped
@@ -61,6 +76,7 @@ services:
       REMIT_DATA_DIR: /app/data
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -71,6 +87,8 @@ services:
       - uploads:/app/uploads
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -83,7 +101,40 @@ services:
       retries: 5
       start_period: 30s
 
+  worker:
+    image: ghcr.io/itslhuis/remit:${REMIT_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # The same image as `app`, running a second process. `entrypoint` is overridden rather than
+    # `command` because docker-entrypoint.sh runs migrations and then execs the web server, ignoring
+    # any arguments appended to it - a `command:` here would start a second web server instead.
+    # Waiting on `app` being healthy is what keeps the two containers from migrating concurrently.
+    entrypoint: ["node", "scripts/dist/worker.js"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      REMIT_ENCRYPTION_KEY: ${REMIT_ENCRYPTION_KEY}
+      REMIT_HOSTED_MODE: ${REMIT_HOSTED_MODE:-false}
+      REMIT_DATA_DIR: /app/data
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-remit}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
+    volumes:
+      - ${REMIT_DATA_DIR:-./data}:/app/data
+      - uploads:/app/uploads
+    depends_on:
+      app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  redis_data:
   minio_data:
   uploads:
