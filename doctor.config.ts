@@ -94,6 +94,8 @@ const config = {
     "requireProjectDelete",
     "requireTaskWrite",
     "requireTaskDelete",
+    "requireTimeEntryWrite",
+    "requireTimeEntryDelete",
     "requireTemplateWrite",
     "requireTemplateDelete",
     "requireProposalWrite",

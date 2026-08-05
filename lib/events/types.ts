@@ -258,6 +258,18 @@ export type EventMap = {
     invoiceId: string
     userId: string
   }
+  // Emitted only once an entry has an end, never when a timer starts, because a running timer has no
+  // duration and nothing outside the feature can act on it. It crosses the boundary because a
+  // completed billable entry is what makes unbilled work exist for invoicing to draw on, and that
+  // fact is otherwise only visible by re-querying `time_entries.invoiced_in_id IS NULL`.
+  "time.logged": {
+    timeEntryId: string
+    projectId: string
+    taskId: string | null
+    userId: string
+    durationSeconds: number
+    billable: boolean
+  }
   "template.created": {
     templateId: string
     userId: string

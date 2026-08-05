@@ -63,6 +63,7 @@ const mainNavItems = [
   { labelKey: "app.navigation.leads", href: "/leads", icon: "Target" as const },
   { labelKey: "app.navigation.clients", href: "/clients", icon: "Users" as const },
   { labelKey: "app.navigation.projects", href: "/projects", icon: "FolderOpen" as const },
+  { labelKey: "app.navigation.time", href: "/time", icon: "Clock" as const },
   { labelKey: "app.navigation.proposals", href: "/proposals", icon: "FileText" as const },
   { labelKey: "app.navigation.contracts", href: "/contracts", icon: "FileSignature" as const },
   { labelKey: "app.navigation.invoices", href: "/invoices", icon: "Receipt" as const },
