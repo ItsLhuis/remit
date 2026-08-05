@@ -4,6 +4,7 @@ import i18n from "@/lib/i18n/i18n"
 
 import {
   isSafeHttpUrl,
+  isValidAmount,
   readArrayParam,
   readDateAt,
   readIntParam,
@@ -63,6 +64,16 @@ const currencySchema = z
     message: i18n.t("clients.validation.currencyInvalid")
   })
 
+// Held as the string the control shows rather than transformed to cents, because `clientFormSchema`
+// is also the action's schema: a transform here would make the server re-parse a number where it
+// expects a string (`forms.md`). `toClientWriteValues` is where it becomes cents.
+const optionalHourlyRateSchema = z
+  .string()
+  .trim()
+  .refine((value) => isValidAmount(value), {
+    message: i18n.t("clients.validation.hourlyRateInvalid")
+  })
+
 const clientStatusFilterSchema = z.enum(CLIENT_STATUS_FILTERS).catch("active")
 
 export const clientFormSchema = z.object({
@@ -85,7 +96,8 @@ export const clientFormSchema = z.object({
   postalCode: optionalTextSchema(),
   country: optionalCountrySchema,
   notes: optionalTextSchema(CLIENT_NOTES_MAX_LENGTH),
-  website: optionalUrlSchema
+  website: optionalUrlSchema,
+  defaultHourlyRate: optionalHourlyRateSchema
 })
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>

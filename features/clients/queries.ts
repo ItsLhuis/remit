@@ -17,6 +17,8 @@ import {
   type SQL
 } from "drizzle-orm"
 
+import { formatCentsForInput } from "@/lib/utils"
+
 import { database } from "@/database"
 import { clients, invoices, payments, projects, recurringInvoices } from "@/database/schema"
 
@@ -290,7 +292,8 @@ export function toClientFormData(row: ClientDetailRow): ClientFormData {
     postalCode: row.postalCode ?? "",
     country: row.country ?? "",
     notes: row.notes ?? "",
-    website: row.website ?? ""
+    website: row.website ?? "",
+    defaultHourlyRate: formatCentsForInput(row.defaultHourlyRateCents)
   }
 }
 

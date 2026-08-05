@@ -64,7 +64,8 @@ const validClient = {
   postalCode: "97201",
   country: "US",
   notes: "Confidential renewal terms",
-  website: "https://example.com"
+  website: "https://example.com",
+  defaultHourlyRate: "85.00"
 }
 
 describe("client mutations", () => {

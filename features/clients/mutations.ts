@@ -15,7 +15,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, parseAmountToCents } from "@/lib/utils"
 
 import { database } from "@/database"
 import { clients } from "@/database/schema"
@@ -76,6 +76,7 @@ const clientReturnColumns = {
   country: clients.country,
   currency: clients.currency,
   locale: clients.locale,
+  defaultHourlyRateCents: clients.defaultHourlyRateCents,
   notes: clients.notes,
   portalToken: clients.portalToken,
   deletedAt: clients.deletedAt,
@@ -83,9 +84,11 @@ const clientReturnColumns = {
   updatedAt: clients.updatedAt
 } as const
 
-// Every writable client field except `notes`, which is excluded because it is the one encrypted
-// column on the table (see `security.md`): no encrypted field takes part in audit diffing, so this
-// list must not be "completed" from the client schema.
+// Every writable *string* client field except `notes`, which is excluded because it is the one
+// encrypted column on the table (see `security.md`): no encrypted field takes part in audit
+// diffing, so this list must not be "completed" from the client schema. `defaultHourlyRateCents` is
+// absent for the other reason — the two helpers below diff trimmed strings, and it is the one
+// numeric column here.
 const auditFields = [
   "name",
   "email",
@@ -282,7 +285,8 @@ function toClientWriteValues(values: ClientFormValues): typeof clients.$inferIns
     postalCode: emptyToNull(values.postalCode),
     country: emptyToNull(values.country),
     notes: emptyToNull(values.notes),
-    website: emptyToNull(values.website)
+    website: emptyToNull(values.website),
+    defaultHourlyRateCents: parseAmountToCents(values.defaultHourlyRate)
   }
 }
 

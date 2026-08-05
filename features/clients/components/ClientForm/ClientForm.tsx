@@ -12,14 +12,12 @@ import { useTranslation } from "@/lib/i18n"
 import {
   Button,
   CountrySelect,
-  CurrencySelect,
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
   FormTextField,
   Icon,
-  PhoneInput,
   ScrollArea,
   Separator,
   Spinner,
@@ -31,6 +29,7 @@ import { createClient, updateClient } from "../../mutations"
 import { type ClientFormInputValues, type ClientFormValues, clientFormSchema } from "../../schemas"
 import { type ClientFormData } from "../../types"
 
+import { ClientProfileSection } from "./ClientProfileSection"
 import { FormSection } from "./FormSection"
 
 type ClientFormCallbacks = {
@@ -77,7 +76,8 @@ const ClientForm = (props: ClientFormProps) => {
       postalCode: "",
       country: "",
       notes: "",
-      website: ""
+      website: "",
+      defaultHourlyRate: ""
     }
   }, [props.mode, props.client, props.defaultCurrency])
 
@@ -137,85 +137,7 @@ const ClientForm = (props: ClientFormProps) => {
 
   const fields = (
     <Fragment>
-      <FormSection
-        title={t("clients.form.profileSection")}
-        description={t("clients.form.profileDescription")}
-      >
-        <FieldGroup className="grid gap-4">
-          <FormTextField
-            control={form.control}
-            name="name"
-            label={t("clients.fields.name")}
-            placeholder={t("clients.placeholders.name")}
-            autoComplete="organization"
-            disabled={isSaving}
-          />
-          <FormTextField
-            control={form.control}
-            name="email"
-            label={t("clients.fields.email")}
-            placeholder={t("clients.placeholders.email")}
-            type="email"
-            autoComplete="email"
-            disabled={isSaving}
-          />
-          <Controller
-            name="phone"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{t("clients.fields.phone")}</FieldLabel>
-                <PhoneInput
-                  id={field.name}
-                  name={field.name}
-                  ref={field.ref}
-                  value={field.value}
-                  onBlur={field.onBlur}
-                  onValueChangeAction={field.onChange}
-                  valid={!fieldState.invalid}
-                  disabled={isSaving}
-                  placeholder={t("clients.placeholders.phone")}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <Controller
-            name="currency"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>{t("clients.fields.currency")}</FieldLabel>
-                <CurrencySelect
-                  id={field.name}
-                  ref={field.ref}
-                  value={field.value}
-                  onValueChangeAction={field.onChange}
-                  valid={!fieldState.invalid}
-                  disabled={isSaving}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <FormTextField
-            control={form.control}
-            name="taxId"
-            label={t("clients.fields.taxId")}
-            placeholder={t("clients.placeholders.taxId")}
-            disabled={isSaving}
-          />
-          <FormTextField
-            control={form.control}
-            name="website"
-            label={t("clients.fields.website")}
-            placeholder={t("clients.placeholders.website")}
-            type="url"
-            autoComplete="url"
-            disabled={isSaving}
-          />
-        </FieldGroup>
-      </FormSection>
+      <ClientProfileSection control={form.control} disabled={isSaving} />
       <Separator />
       <FormSection
         title={t("clients.form.addressSection")}

@@ -242,7 +242,8 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
       postalCode: "",
       country: "",
       notes: "",
-      website: ""
+      website: "",
+      defaultHourlyRate: ""
     })
 
     if ("error" in clientResult) return { error: clientResult.error }

@@ -22,7 +22,8 @@ const formInput: ClientFormInputValues = {
   postalCode: "",
   country: "pt",
   notes: "",
-  website: ""
+  website: "",
+  defaultHourlyRate: ""
 }
 
 // ClientForm resolves without `raw`, so what travels to the server action is the schema's output,
