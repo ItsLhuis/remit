@@ -15,7 +15,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, parseAmountToCents } from "@/lib/utils"
 
 import { database } from "@/database"
 import { settings } from "@/database/schema"
@@ -44,6 +44,7 @@ type PersistedInvoicingSettings = {
   paymentTermsDays: number
   defaultNotesInvoice: string | null
   defaultInvoiceFooter: string | null
+  defaultHourlyRateCents: number | null
 }
 
 type InvoicingSettingsWritePlan = {
@@ -58,7 +59,8 @@ const invoicingSettingsReturnColumns = {
   nextInvoiceNumber: settings.nextInvoiceNumber,
   paymentTermsDays: settings.paymentTermsDays,
   defaultNotesInvoice: settings.defaultNotesInvoice,
-  defaultInvoiceFooter: settings.defaultInvoiceFooter
+  defaultInvoiceFooter: settings.defaultInvoiceFooter,
+  defaultHourlyRateCents: settings.defaultHourlyRateCents
 } as const
 
 export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoicingSettingsResult> {
@@ -132,7 +134,8 @@ async function getPersistedInvoicingSettings(): Promise<PersistedInvoicingSettin
         nextInvoiceNumber: true,
         paymentTermsDays: true,
         defaultNotesInvoice: true,
-        defaultInvoiceFooter: true
+        defaultInvoiceFooter: true,
+        defaultHourlyRateCents: true
       }
     })) ?? null
   )
@@ -145,13 +148,15 @@ function buildInvoicingSettingsWritePlan(
   const defaultNotesInvoice = emptyToNull(values.defaultNotesInvoice)
   const defaultInvoiceFooter = emptyToNull(values.defaultInvoiceFooter)
   const invoicePrefix = values.invoicePrefix.trim()
+  const defaultHourlyRateCents = parseAmountToCents(values.defaultHourlyRate)
   const writeValues: Partial<typeof settings.$inferInsert> = {
     invoicePrefix,
     numberPaddingWidth: values.numberPaddingWidth,
     nextInvoiceNumber: values.nextInvoiceNumber,
     paymentTermsDays: values.paymentTermsDays,
     defaultNotesInvoice,
-    defaultInvoiceFooter
+    defaultInvoiceFooter,
+    defaultHourlyRateCents
   }
   const changedFields = getChangedFields([
     ["invoicePrefix", existing?.invoicePrefix ?? null, invoicePrefix],
@@ -159,7 +164,8 @@ function buildInvoicingSettingsWritePlan(
     ["nextInvoiceNumber", existing?.nextInvoiceNumber ?? null, values.nextInvoiceNumber],
     ["paymentTermsDays", existing?.paymentTermsDays ?? null, values.paymentTermsDays],
     ["defaultNotesInvoice", existing?.defaultNotesInvoice ?? null, defaultNotesInvoice],
-    ["defaultInvoiceFooter", existing?.defaultInvoiceFooter ?? null, defaultInvoiceFooter]
+    ["defaultInvoiceFooter", existing?.defaultInvoiceFooter ?? null, defaultInvoiceFooter],
+    ["defaultHourlyRateCents", existing?.defaultHourlyRateCents ?? null, defaultHourlyRateCents]
   ])
 
   return {

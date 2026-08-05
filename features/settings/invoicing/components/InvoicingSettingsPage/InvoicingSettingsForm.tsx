@@ -188,6 +188,28 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
             )}
           />
           <Controller
+            name="defaultHourlyRate"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>
+                  {t("settings.invoicing.defaultHourlyRate")}
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  inputMode="decimal"
+                  placeholder={t("settings.invoicing.defaultHourlyRatePlaceholder")}
+                  aria-invalid={fieldState.invalid}
+                  disabled={isSaving}
+                  autoComplete="off"
+                />
+                <FieldDescription>{t("settings.invoicing.defaultHourlyRateHelp")}</FieldDescription>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          <Controller
             name="paymentTermsDays"
             control={form.control}
             render={({ field, fieldState }) => (

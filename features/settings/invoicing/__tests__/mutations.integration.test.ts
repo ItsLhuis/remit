@@ -52,7 +52,8 @@ const validInvoicingSettings = {
   nextInvoiceNumber: 42,
   paymentTermsDays: 14,
   defaultNotesInvoice: "Thank you for your business.",
-  defaultInvoiceFooter: "Payment is due according to the terms above."
+  defaultInvoiceFooter: "Payment is due according to the terms above.",
+  defaultHourlyRate: "85.00"
 }
 
 describe("invoicing settings mutations", () => {
@@ -92,7 +93,8 @@ describe("invoicing settings mutations", () => {
         nextInvoiceNumber: 42,
         paymentTermsDays: 14,
         defaultNotesInvoice: "Thank you for your business.",
-        defaultInvoiceFooter: "Payment is due according to the terms above."
+        defaultInvoiceFooter: "Payment is due according to the terms above.",
+        defaultHourlyRateCents: 8500
       })
     )
     expect(auditRows).toHaveLength(1)
@@ -105,7 +107,8 @@ describe("invoicing settings mutations", () => {
           "nextInvoiceNumber",
           "paymentTermsDays",
           "defaultNotesInvoice",
-          "defaultInvoiceFooter"
+          "defaultInvoiceFooter",
+          "defaultHourlyRateCents"
         ]
       })
     )
@@ -166,6 +169,15 @@ describe("invoicing settings mutations", () => {
     })
     expect(settingsRow?.nextInvoiceNumber).toBe(25)
     expect(auditRows).toHaveLength(0)
+  })
+
+  test("stores a blank default hourly rate as no configured rate", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    await saveInvoicingSettings({ ...validInvoicingSettings, defaultHourlyRate: "" })
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow?.defaultHourlyRateCents).toBeNull()
   })
 
   test("returns forbidden without writing settings when the current user is not the owner", async () => {

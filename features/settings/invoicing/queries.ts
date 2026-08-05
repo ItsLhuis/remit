@@ -1,3 +1,5 @@
+import { formatCentsForInput } from "@/lib/utils"
+
 import { database } from "@/database"
 
 import { type InvoicingSettingsValues } from "./schemas"
@@ -9,6 +11,7 @@ type InvoicingSettingsRow = {
   paymentTermsDays: number
   defaultNotesInvoice: string | null
   defaultInvoiceFooter: string | null
+  defaultHourlyRateCents: number | null
 }
 
 export async function getInvoicingSettings(): Promise<InvoicingSettingsValues> {
@@ -19,7 +22,8 @@ export async function getInvoicingSettings(): Promise<InvoicingSettingsValues> {
       nextInvoiceNumber: true,
       paymentTermsDays: true,
       defaultNotesInvoice: true,
-      defaultInvoiceFooter: true
+      defaultInvoiceFooter: true,
+      defaultHourlyRateCents: true
     }
   })
 
@@ -39,6 +43,7 @@ export function toInvoicingSettingsFormData(
     nextInvoiceNumber: row?.nextInvoiceNumber ?? 1,
     paymentTermsDays: row?.paymentTermsDays ?? 30,
     defaultNotesInvoice: row?.defaultNotesInvoice ?? "",
-    defaultInvoiceFooter: row?.defaultInvoiceFooter ?? ""
+    defaultInvoiceFooter: row?.defaultInvoiceFooter ?? "",
+    defaultHourlyRate: formatCentsForInput(row?.defaultHourlyRateCents ?? null)
   }
 }

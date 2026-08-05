@@ -12,8 +12,27 @@ const validInvoicingSettings = {
   nextInvoiceNumber: 42,
   paymentTermsDays: 30,
   defaultNotesInvoice: "Thank you for your business.",
-  defaultInvoiceFooter: "Payment is due according to the terms above."
+  defaultInvoiceFooter: "Payment is due according to the terms above.",
+  defaultHourlyRate: "85.00"
 }
+
+test("accepts a blank default hourly rate as no configured rate", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    defaultHourlyRate: ""
+  })
+
+  expect(result.success).toBe(true)
+})
+
+test("rejects a default hourly rate that is not a plain amount", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    defaultHourlyRate: "85,00"
+  })
+
+  expect(result.success).toBe(false)
+})
 
 test("accepts valid invoice numbering and document defaults", () => {
   const result = invoicingSettingsSchema.safeParse(validInvoicingSettings)

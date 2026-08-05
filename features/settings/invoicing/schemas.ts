@@ -2,6 +2,8 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
+import { isValidAmount } from "@/lib/utils"
+
 // Every bound below restates a check constraint on the `settings` table — `chk_settings_invoice_
 // prefix` (24 characters, printable ASCII), `chk_settings_number_padding_width` (1-10),
 // `chk_settings_next_invoice_number` (>= 1) and `chk_settings_payment_terms` (0-365). They are
@@ -43,13 +45,24 @@ const paymentTermsDaysSchema = z
   .min(0, i18n.t("settings.invoicing.validation.paymentTermsDaysInvalid"))
   .max(365, i18n.t("settings.invoicing.validation.paymentTermsDaysInvalid"))
 
+// Kept as the string the control holds rather than transformed to cents here: this schema is the
+// action's schema too, and a transform would make the server re-parse a number where it expects a
+// string (see `forms.md`). `buildInvoicingSettingsWritePlan` is where it becomes cents.
+const defaultHourlyRateSchema = z
+  .string()
+  .trim()
+  .refine((value) => isValidAmount(value), {
+    message: i18n.t("settings.invoicing.validation.defaultHourlyRateInvalid")
+  })
+
 const invoicingSettingsBaseSchema = z.object({
   invoicePrefix: invoicePrefixSchema,
   numberPaddingWidth: numberPaddingWidthSchema,
   nextInvoiceNumber: nextInvoiceNumberSchema,
   paymentTermsDays: paymentTermsDaysSchema,
   defaultNotesInvoice: optionalDocumentTextSchema,
-  defaultInvoiceFooter: optionalDocumentTextSchema
+  defaultInvoiceFooter: optionalDocumentTextSchema,
+  defaultHourlyRate: defaultHourlyRateSchema
 })
 
 // The counter may only ever move forward. Lowering it would hand out a number that has already
