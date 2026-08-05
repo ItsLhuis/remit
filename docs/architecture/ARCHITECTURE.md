@@ -164,8 +164,8 @@ compiler's guarantees hold all the way from the database schema to the React com
 Self-hosting operations are product work, not afterthoughts. The architecture target includes
 install, upgrade, backup, restore, and disaster recovery. Password-reset recovery, encrypted backup
 archives, destructive-safe restores, deterministic demo seeding, encryption-key rotation, and
-host-side upgrades are shipped operational surfaces; the installer and scheduler remain planned
-until backed by code. See the Self-hosting experience section.
+host-side upgrades, and the background job worker are shipped operational surfaces; the installer
+remains planned until backed by code. See the Self-hosting experience section.
 
 ---
 

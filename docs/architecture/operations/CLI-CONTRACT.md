@@ -248,6 +248,24 @@ implemented command.
   `node scripts/dist/migrate.js` before `node server.js`.
 - **Limitations:** not a user-facing `remit:*` command and not a package script.
 
+### `scripts/worker.ts`
+
+- **Runs in:** its own long-lived container, the `worker` service in `docker-compose.yml`, started
+  with `entrypoint: ["node", "scripts/dist/worker.js"]`.
+- **Required configuration:** `DATABASE_URL`, `REDIS_URL`, plus the encryption key and storage
+  credentials the jobs it runs depend on.
+- **Destructive scope:** none directly, but the jobs it consumes are money-affecting — recurring
+  invoice generation, overdue detection and reminder dispatch (ADR-0023). Each carries its own
+  entity-scoped idempotency guard so a retry cannot double-generate or double-send.
+- **Confirmation:** no prompts; it is a supervised process, not an operator command.
+- **Effects:** builds to `scripts/dist/worker.js`; registers the repeatable job schedulers in Redis
+  on boot and consumes the queue until it receives `SIGTERM` or `SIGINT`.
+- **Limitations:** not a user-facing `remit:*` command and not a package script. It cannot satisfy
+  the `process.exit(0)` on success rule in Build and packaging, because success for a worker means
+  staying up; that is why it is documented here rather than promoted to the `remit:*` namespace.
+  `pnpm dev:worker` and `pnpm start:worker` exist for local runs only — the production container
+  does not use them.
+
 ## `remit:upgrade` exception
 
 Upgrade is host-side only.
