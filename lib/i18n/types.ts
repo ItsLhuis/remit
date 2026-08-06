@@ -403,6 +403,7 @@ export type Translations = {
       clients: string
       projects: string
       time: string
+      expenses: string
       proposals: string
       contracts: string
       invoices: string
@@ -1180,6 +1181,168 @@ export type Translations = {
       endBeforeStart: string
       alreadyInvoiced: string
       updateFailed: string
+    }
+  }
+  expenses: {
+    metadata: {
+      list: string
+    }
+    list: {
+      title: string
+      description: string
+      tableTitle: string
+      count: string
+      actions: string
+      edit: string
+      bulkDelete: string
+      rebillsAt: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+    }
+    actions: {
+      create: string
+      delete: string
+      export: string
+    }
+    filters: {
+      title: string
+      search: string
+      searchPlaceholder: string
+      status: string
+      reset: string
+    }
+    status: {
+      active: string
+      deleted: string
+      all: string
+    }
+    fields: {
+      spentAt: string
+      category: string
+      description: string
+      amount: string
+      currency: string
+      project: string
+      projectOption: string
+      noProject: string
+      client: string
+      noClient: string
+      clientFollowsProject: string
+      rebillable: string
+      rebillableHelp: string
+      markupPercentage: string
+      invoiced: string
+      receipt: string
+    }
+    placeholders: {
+      category: string
+      description: string
+      amount: string
+      markupPercentage: string
+    }
+    categories: {
+      travel: string
+      accommodation: string
+      meals: string
+      software: string
+      hardware: string
+      subcontracting: string
+      office: string
+      marketing: string
+      fees: string
+      other: string
+    }
+    rebillable: {
+      rebillable: string
+      nonRebillable: string
+    }
+    invoiced: {
+      unbilled: string
+      invoiced: string
+    }
+    receipt: {
+      none: string
+      upload: string
+      replace: string
+      remove: string
+      open: string
+      help: string
+    }
+    summary: {
+      total: string
+      totalHint: string
+      rebillable: string
+      rebillableHint: string
+      unbilled: string
+      unbilledHint: string
+    }
+    form: {
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      saveCreate: string
+      saveEdit: string
+      created: string
+      updated: string
+    }
+    delete: {
+      title: string
+      description: string
+      confirm: string
+      deleted: string
+    }
+    export: {
+      exported: string
+      columns: {
+        spentAt: string
+        category: string
+        description: string
+        project: string
+        client: string
+        amount: string
+        currency: string
+        rebillable: string
+        markupPercentage: string
+        rebillableAmount: string
+        invoiced: string
+        receipt: string
+      }
+    }
+    validation: {
+      idInvalid: string
+      amountRequired: string
+      amountInvalid: string
+      currencyInvalid: string
+      categoryRequired: string
+      categoryTooLong: string
+      descriptionRequired: string
+      descriptionTooLong: string
+      dateRequired: string
+      dateInvalid: string
+      projectInvalid: string
+      clientInvalid: string
+      markupInvalid: string
+      markupRequiresRebillable: string
+      receiptKeyInvalid: string
+      receiptFilenameRequired: string
+      receiptTypeInvalid: string
+      receiptSizeInvalid: string
+      receiptTooLarge: string
+    }
+    errors: {
+      notFound: string
+      projectNotFound: string
+      clientNotFound: string
+      clientProjectMismatch: string
+      alreadyInvoiced: string
+      updateFailed: string
+      exportFailed: string
+      invalidFileType: string
+      uploadUrlFailed: string
+      uploadFailed: string
     }
   }
   proposals: {

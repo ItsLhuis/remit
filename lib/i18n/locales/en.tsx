@@ -422,6 +422,7 @@ export const english: Language = {
         clients: "Clients",
         projects: "Projects",
         time: "Time",
+        expenses: "Expenses",
         proposals: "Proposals",
         contracts: "Contracts",
         invoices: "Invoices",
@@ -1218,6 +1219,170 @@ export const english: Language = {
         endBeforeStart: "The end time must be after the start time",
         alreadyInvoiced: "This entry has already been invoiced and can no longer be changed",
         updateFailed: "Failed to save the time entry"
+      }
+    },
+    expenses: {
+      metadata: {
+        list: "Expenses"
+      },
+      list: {
+        title: "Expenses",
+        description: "Record what a job cost you, then pass the rebillable part on.",
+        tableTitle: "Expenses",
+        count: "{count, plural, one {# expense} other {# expenses}}",
+        actions: "Expense actions",
+        edit: "Edit expense",
+        bulkDelete: "Delete",
+        rebillsAt: "+{markup}% → {amount}",
+        emptyTitle: "No expenses yet",
+        emptyDescription:
+          "Log a cost you have paid and attach its receipt while you still have it.",
+        noMatchTitle: "No expenses match those filters",
+        noMatchDescription: "Try widening the date range or clearing a filter."
+      },
+      actions: {
+        create: "Log expense",
+        delete: "Delete expense",
+        export: "Export CSV"
+      },
+      filters: {
+        title: "Filters",
+        search: "Search expenses",
+        searchPlaceholder: "Search descriptions, categories, projects, clients",
+        status: "Expense status",
+        reset: "Reset filters"
+      },
+      status: {
+        active: "Active",
+        deleted: "Deleted",
+        all: "All"
+      },
+      fields: {
+        spentAt: "Date",
+        category: "Category",
+        description: "Description",
+        amount: "Amount",
+        currency: "Currency",
+        project: "Project",
+        projectOption: "{client} — {project}",
+        noProject: "No project",
+        client: "Client",
+        noClient: "No client",
+        clientFollowsProject: "Set from the selected project",
+        rebillable: "Rebillable",
+        rebillableHelp: "Rebillable costs are passed on to the client on their next invoice",
+        markupPercentage: "Markup %",
+        invoiced: "Billing",
+        receipt: "Receipt"
+      },
+      placeholders: {
+        category: "Travel, software, subcontracting…",
+        description: "What was this spent on?",
+        amount: "0.00",
+        markupPercentage: "Leave blank to rebill at cost"
+      },
+      categories: {
+        travel: "Travel",
+        accommodation: "Accommodation",
+        meals: "Meals",
+        software: "Software",
+        hardware: "Hardware",
+        subcontracting: "Subcontracting",
+        office: "Office",
+        marketing: "Marketing",
+        fees: "Fees",
+        other: "Other"
+      },
+      rebillable: {
+        rebillable: "Rebillable",
+        nonRebillable: "Own cost"
+      },
+      invoiced: {
+        unbilled: "Unbilled",
+        invoiced: "Invoiced"
+      },
+      receipt: {
+        none: "None",
+        upload: "Upload receipt",
+        replace: "Replace receipt",
+        remove: "Remove",
+        open: "Open receipt {filename}",
+        help: "Images or PDF, up to {megabytes} MB"
+      },
+      summary: {
+        total: "Total spent",
+        totalHint: "{count, plural, one {# expense} other {# expenses}} recorded",
+        rebillable: "Rebillable",
+        rebillableHint: "What clients owe once billed, markup included",
+        unbilled: "Unbilled",
+        unbilledHint: "Rebillable and not yet on an invoice"
+      },
+      form: {
+        createTitle: "Log expense",
+        createDescription: "Record a cost you have already paid.",
+        editTitle: "Edit expense",
+        editDescription: "Change the amount, the scope or the markup for this expense.",
+        saveCreate: "Log expense",
+        saveEdit: "Save expense",
+        created: "Expense logged",
+        updated: "Expense updated"
+      },
+      delete: {
+        title: "Delete expense?",
+        description:
+          "The expense is removed from your records. Invoiced expenses cannot be deleted.",
+        confirm: "Delete expense",
+        deleted: "Expense deleted"
+      },
+      export: {
+        exported: "Exported {count, plural, one {# expense} other {# expenses}}",
+        columns: {
+          spentAt: "Date",
+          category: "Category",
+          description: "Description",
+          project: "Project",
+          client: "Client",
+          amount: "Amount",
+          currency: "Currency",
+          rebillable: "Rebillable",
+          markupPercentage: "Markup %",
+          rebillableAmount: "Rebillable amount",
+          invoiced: "Invoiced",
+          receipt: "Receipt"
+        }
+      },
+      validation: {
+        idInvalid: "Invalid expense",
+        amountRequired: "Enter an amount",
+        amountInvalid: "Enter a valid amount",
+        currencyInvalid: "Select a currency",
+        categoryRequired: "Enter a category",
+        categoryTooLong: "Category must be {count} characters or fewer",
+        descriptionRequired: "Enter a description",
+        descriptionTooLong: "Description must be {count} characters or fewer",
+        dateRequired: "Select the date the expense was paid",
+        dateInvalid: "Enter a valid date",
+        projectInvalid: "Select a valid project",
+        clientInvalid: "Select a valid client",
+        markupInvalid: "Markup must be between 0 and {max}",
+        markupRequiresRebillable: "A markup only applies to a rebillable expense",
+        receiptKeyInvalid: "Invalid receipt",
+        receiptFilenameRequired: "The receipt needs a filename",
+        receiptTypeInvalid: "Receipts must be an image or a PDF",
+        receiptSizeInvalid: "Invalid receipt size",
+        receiptTooLarge: "Receipts must be {megabytes} MB or smaller"
+      },
+      errors: {
+        notFound: "Expense not found",
+        projectNotFound: "Project not found",
+        clientNotFound: "Client not found",
+        clientProjectMismatch: "That client does not own the selected project",
+        alreadyInvoiced: "This expense has already been invoiced and can no longer be changed",
+        updateFailed: "Failed to save the expense",
+        exportFailed: "Failed to export the expenses",
+        invalidFileType: "Receipts must be an image or a PDF",
+        uploadUrlFailed: "Could not prepare the receipt upload",
+        uploadFailed: "Could not upload the receipt"
       }
     },
     proposals: {
