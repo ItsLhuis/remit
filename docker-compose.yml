@@ -95,7 +95,10 @@ services:
     healthcheck:
       # Requires a /api/health endpoint in the application (recommended).
       # Adjust the path if your health endpoint differs.
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      # 127.0.0.1, never `localhost`: the Next standalone server binds the IPv4 wildcard only
+      # (HOSTNAME=0.0.0.0), while `localhost` resolves to ::1 first inside the container, so a
+      # `localhost` probe fails with "connection refused" against a perfectly healthy server.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
