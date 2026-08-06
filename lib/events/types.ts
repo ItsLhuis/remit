@@ -270,6 +270,17 @@ export type EventMap = {
     durationSeconds: number
     billable: boolean
   }
+  // Emitted on creation rather than on some later "ready to bill" moment, because an expense has no
+  // draft state: the row exists and is immediately a cost the instance has borne. It crosses the
+  // boundary because a rebillable one becomes something the next invoice for that project should
+  // carry, which is otherwise only visible by re-querying `expenses.invoiced_in_id IS NULL`.
+  "expense.created": {
+    expenseId: string
+    projectId: string | null
+    clientId: string | null
+    userId: string
+    rebillable: boolean
+  }
   "template.created": {
     templateId: string
     userId: string
