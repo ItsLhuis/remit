@@ -50,6 +50,10 @@ function logoParams() {
   return { params: Promise.resolve({ type: "business-logo" }) }
 }
 
+function receiptParams() {
+  return { params: Promise.resolve({ type: "expense-receipt" }) }
+}
+
 describe("avatar upload route", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -277,5 +281,122 @@ describe("business logo upload route", () => {
 
     expect(response.status).toBe(500)
     expect(body.error).toBe("settings.business.uploadUrlFailed")
+  })
+})
+
+describe("expense receipt upload route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    mocks.headers.mockResolvedValue(new Headers())
+    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
+    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
+  })
+
+  // The prefix is half of a contract `features/expenses/schemas.ts` enforces from the other side:
+  // an expense refuses any receipt key outside it, so a key minted anywhere else cannot be attached.
+  test("mints a receipt key under the expenses prefix", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "ticket.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 24_000
+      }),
+      receiptParams()
+    )
+    const body = (await response.json()) as { uploadUrl: string; objectKey: string }
+
+    expect(response.status).toBe(200)
+    expect(body.objectKey).toMatch(
+      /^expenses\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/
+    )
+  })
+
+  test("accepts a photographed receipt as well as a PDF", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "receipt.jpg",
+        contentType: "image/jpeg",
+        sizeBytes: 400_000
+      }),
+      receiptParams()
+    )
+    const body = (await response.json()) as { objectKey: string }
+
+    expect(response.status).toBe(200)
+    expect(body.objectKey).toMatch(/\.jpg$/)
+  })
+
+  test("rejects an unsupported receipt file type without calling storage", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "receipt.html",
+        contentType: "text/html",
+        sizeBytes: 1024
+      }),
+      receiptParams()
+    )
+    const body = (await response.json()) as { error: string }
+
+    expect(response.status).toBe(400)
+    expect(body.error).toBe("expenses.errors.invalidFileType")
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+
+  test("rejects a receipt larger than the receipt limit without calling storage", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "scan.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 11 * 1024 * 1024
+      }),
+      receiptParams()
+    )
+
+    expect(response.status).toBe(400)
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+
+  test("allows a receipt larger than the image limit the other routes enforce", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "scan.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 8 * 1024 * 1024
+      }),
+      receiptParams()
+    )
+
+    expect(response.status).toBe(200)
+  })
+
+  test("returns unauthorized when the request has no session", async () => {
+    mocks.getSession.mockResolvedValueOnce(null)
+
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/expense-receipt", {
+        filename: "ticket.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 24_000
+      }),
+      receiptParams()
+    )
+    const body = (await response.json()) as { error: string }
+
+    expect(response.status).toBe(401)
+    expect(body.error).toBe("errors.unauthorized")
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
   })
 })

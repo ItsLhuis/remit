@@ -15,18 +15,34 @@ import { auth } from "@/lib/auth"
 
 import { MINIO_BUCKET, s3UploadPresigner } from "@/lib/storage/s3"
 
-const ALLOWED_MIME_TYPES = new Map([
+const IMAGE_MIME_TYPES = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
   ["image/gif", "gif"]
 ])
 
-function buildImageUploadSchema(messages: {
+// A receipt is whatever the supplier handed over, and that is a PDF at least as often as a photo.
+const RECEIPT_MIME_TYPES = new Map([...IMAGE_MIME_TYPES, ["application/pdf", "pdf"]])
+
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+// Deliberately restated here rather than imported from `features/expenses`: this module is reachable
+// from an anonymous request, and the feature barrel pulls its server actions — and `@/database` with
+// them — into the route's graph. `features/expenses/schemas.ts` holds the matching
+// `EXPENSE_RECEIPT_KEY_PREFIX`, `EXPENSE_RECEIPT_MIME_TYPES` and `EXPENSE_RECEIPT_MAX_BYTES`, and
+// refuses any receipt whose key falls outside the prefix minted below. Change one side and the
+// expense's own validation rejects what this route just signed.
+const RECEIPT_KEY_PREFIX = "expenses/"
+
+const RECEIPT_MAX_BYTES = 10 * 1024 * 1024
+
+function buildUploadSchema(messages: {
   filenameRequired: string
   contentTypeRequired: string
   sizeInvalid: string
   tooLarge: string
+  maxBytes: number
 }) {
   return z.object({
     filename: z.string().trim().min(1, messages.filenameRequired),
@@ -35,12 +51,13 @@ function buildImageUploadSchema(messages: {
       .number()
       .int(messages.sizeInvalid)
       .positive(messages.sizeInvalid)
-      .max(5 * 1024 * 1024, messages.tooLarge)
+      .max(messages.maxBytes, messages.tooLarge)
   })
 }
 
 type UploadConfig = {
-  schema: ReturnType<typeof buildImageUploadSchema>
+  schema: ReturnType<typeof buildUploadSchema>
+  mimeTypes: Map<string, string>
   invalidTypeError: string
   uploadFailedError: string
   objectKey: (input: { ext: string; userId?: string }) => string
@@ -50,12 +67,14 @@ function getUploadConfig(type: string): UploadConfig | null {
   switch (type) {
     case "avatar":
       return {
-        schema: buildImageUploadSchema({
+        schema: buildUploadSchema({
           filenameRequired: t("settings.profile.validation.avatarFilenameRequired"),
           contentTypeRequired: t("settings.profile.validation.avatarContentTypeRequired"),
           sizeInvalid: t("settings.profile.validation.avatarSizeInvalid"),
-          tooLarge: t("settings.profile.validation.avatarTooLarge")
+          tooLarge: t("settings.profile.validation.avatarTooLarge"),
+          maxBytes: IMAGE_MAX_BYTES
         }),
+        mimeTypes: IMAGE_MIME_TYPES,
         invalidTypeError: t("settings.profile.invalidAvatarFileType"),
         uploadFailedError: t("settings.profile.uploadUrlFailed"),
         objectKey: ({ ext, userId }) => {
@@ -66,27 +85,47 @@ function getUploadConfig(type: string): UploadConfig | null {
       }
     case "business-logo":
       return {
-        schema: buildImageUploadSchema({
+        schema: buildUploadSchema({
           filenameRequired: t("settings.business.validation.logoFilenameRequired"),
           contentTypeRequired: t("settings.business.validation.logoContentTypeRequired"),
           sizeInvalid: t("settings.business.validation.logoSizeInvalid"),
-          tooLarge: t("settings.business.validation.logoTooLarge")
+          tooLarge: t("settings.business.validation.logoTooLarge"),
+          maxBytes: IMAGE_MAX_BYTES
         }),
+        mimeTypes: IMAGE_MIME_TYPES,
         invalidTypeError: t("settings.business.invalidLogoFileType"),
         uploadFailedError: t("settings.business.uploadUrlFailed"),
         objectKey: ({ ext }) => `logos/${randomUUID()}.${ext}`
       }
     case "template-image":
       return {
-        schema: buildImageUploadSchema({
+        schema: buildUploadSchema({
           filenameRequired: t("templates.validation.imageFilenameRequired"),
           contentTypeRequired: t("templates.validation.imageContentTypeRequired"),
           sizeInvalid: t("templates.validation.imageSizeInvalid"),
-          tooLarge: t("templates.validation.imageTooLarge")
+          tooLarge: t("templates.validation.imageTooLarge"),
+          maxBytes: IMAGE_MAX_BYTES
         }),
+        mimeTypes: IMAGE_MIME_TYPES,
         invalidTypeError: t("templates.validation.imageInvalidFileType"),
         uploadFailedError: t("templates.validation.imageUploadUrlFailed"),
         objectKey: ({ ext }) => `templates/${randomUUID()}.${ext}`
+      }
+    case "expense-receipt":
+      return {
+        schema: buildUploadSchema({
+          filenameRequired: t("expenses.validation.receiptFilenameRequired"),
+          contentTypeRequired: t("expenses.validation.receiptTypeInvalid"),
+          sizeInvalid: t("expenses.validation.receiptSizeInvalid"),
+          tooLarge: t("expenses.validation.receiptTooLarge", {
+            megabytes: RECEIPT_MAX_BYTES / (1024 * 1024)
+          }),
+          maxBytes: RECEIPT_MAX_BYTES
+        }),
+        mimeTypes: RECEIPT_MIME_TYPES,
+        invalidTypeError: t("expenses.errors.invalidFileType"),
+        uploadFailedError: t("expenses.errors.uploadUrlFailed"),
+        objectKey: ({ ext }) => `${RECEIPT_KEY_PREFIX}${randomUUID()}.${ext}`
       }
     default:
       return null
@@ -117,14 +156,15 @@ export async function POST(
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
-  const extension = ALLOWED_MIME_TYPES.get(parsed.data.contentType)
+  const extension = config.mimeTypes.get(parsed.data.contentType)
 
   if (!extension) {
     return NextResponse.json({ error: config.invalidTypeError }, { status: 400 })
   }
 
   // The key is built entirely server-side from a random UUID and an extension looked up in
-  // `ALLOWED_MIME_TYPES`; the client's own filename is validated but never used to name the object.
+  // the route variant's `mimeTypes`; the client's own filename is validated but never used to name
+  // the object.
   // That matters twice over: it keeps a caller from writing outside its prefix or overwriting
   // another object by path, and the bucket grants anonymous reads (see `lib/storage/s3.ts`), so an
   // unguessable key is the only thing keeping one instance's uploads from being enumerable.
