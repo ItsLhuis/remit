@@ -53,8 +53,14 @@ export function formatDate(date: Date, { locale, timeZone }: FormatDateOptions):
   }).format(date)
 }
 
-export function formatDay(date: Date, locale: string): string {
-  return getDateTimeFormatter(`day|${locale}`, locale, { dateStyle: "medium" }).format(date)
+// `timeZone` matters for a value that came from a `date` column: Drizzle reads it back as UTC
+// midnight, so formatting it in the server's local zone prints the previous day anywhere west of
+// Greenwich. Callers holding a calendar day rather than an instant pass "UTC".
+export function formatDay(date: Date, locale: string, timeZone?: string): string {
+  return getDateTimeFormatter(`day|${locale}|${timeZone ?? ""}`, locale, {
+    dateStyle: "medium",
+    timeZone
+  }).format(date)
 }
 
 export function formatIsoDay(date: Date): string {
