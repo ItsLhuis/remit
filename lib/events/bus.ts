@@ -2,7 +2,19 @@ import { type EventMap } from "./types"
 
 type Handler<E extends keyof EventMap> = (payload: EventMap[E]) => Promise<void> | void
 
-const registry = new Map<keyof EventMap, Handler<keyof EventMap>[]>()
+type HandlerRegistry = Map<keyof EventMap, Handler<keyof EventMap>[]>
+
+const REGISTRY_KEY: unique symbol = Symbol.for("remit.events.registry")
+
+type RegistryHolder = { [REGISTRY_KEY]?: HandlerRegistry }
+
+// Held on `globalThis` rather than in this module's scope because the subscriber and the emitter do
+// not always share a module graph. `instrumentation.ts` is the only thing that imports a
+// `features/*/events.ts` subscriber in the Next server runtime, and Next compiles it into its own
+// bundle loaded through a separate `require()` from the one route and server-action modules come
+// from. A module-local Map would hand that bundle a private registry, so every handler registered at
+// boot would be invisible to the actions that emit. One process, one bus.
+const registry: HandlerRegistry = ((globalThis as RegistryHolder)[REGISTRY_KEY] ??= new Map())
 
 export function on<E extends keyof EventMap>(
   event: E,
