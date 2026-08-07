@@ -1,3 +1,4 @@
+export * from "./activityLogs"
 export * from "./blocks"
 export * from "./clients"
 export * from "./contracts"

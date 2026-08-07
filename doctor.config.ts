@@ -123,7 +123,9 @@ const config = {
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",
     "requirePaymentSettingsWrite",
-    "requireTaxRatesWrite"
+    "requireTaxRatesWrite",
+    "requireActivityWrite",
+    "requireActivityDelete"
   ],
   // The repo's eslint.config.mjs is JS/ESM, not JSON, so react-doctor does not actually adopt it; do
   // not rely on dedupe.

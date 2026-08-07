@@ -46,6 +46,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
@@ -73,7 +74,8 @@ const mainNavItems = [
     href: "/recurring-invoices",
     icon: "Repeat" as const
   },
-  { labelKey: "app.navigation.creditNotes", href: "/credit-notes", icon: "ReceiptText" as const }
+  { labelKey: "app.navigation.creditNotes", href: "/credit-notes", icon: "ReceiptText" as const },
+  { labelKey: "app.navigation.activity", href: "/activity", icon: "History" as const }
 ] as const
 
 const configNavItems = [
@@ -162,7 +164,11 @@ const NavUser = ({ name, email, image, initials, onLogout }: NavUserProps) => {
   )
 }
 
-const AppSidebar = () => {
+type AppSidebarProps = {
+  unreadActivityCount: number
+}
+
+const AppSidebar = ({ unreadActivityCount }: AppSidebarProps) => {
   const { t } = useTranslation()
 
   const pathname = usePathname()
@@ -176,6 +182,10 @@ const AppSidebar = () => {
   const [commandOpen, setCommandOpen] = useState(false)
 
   const isCollapsed = state === "collapsed"
+
+  // Keyed by href rather than declared on the nav item, so the nav list stays a static const the
+  // command palette can share; only the activity entry carries a live count today.
+  const navBadges: Record<string, number> = { "/activity": unreadActivityCount }
 
   const user = session?.user
   const initials = user?.name ? getInitials(user.name) : "?"
@@ -245,6 +255,14 @@ const AppSidebar = () => {
                       {t(item.labelKey)}
                     </Link>
                   </SidebarMenuButton>
+                  {navBadges[item.href] ? (
+                    <SidebarMenuBadge>
+                      <span aria-hidden="true">{navBadges[item.href]}</span>
+                      <span className="sr-only">
+                        {t("activity.feed.unread", { count: navBadges[item.href] })}
+                      </span>
+                    </SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

@@ -14,7 +14,11 @@ async function main(): Promise<void> {
   const [{ startWorker, stopWorker }] = await Promise.all([
     import("@/lib/jobs/worker"),
     import("@/features/invoices/jobs"),
-    import("@/features/recurringInvoices/jobs")
+    import("@/features/recurringInvoices/jobs"),
+    // Same reason, on the bus rather than the job registry: the sweeps emit `invoice.overdue` and
+    // `recurring.invoice_generated` from this process, and without this import their activity
+    // entries would only ever be written when a request happened to emit them instead.
+    import("@/features/activityLog/events")
   ])
 
   // Registered before the worker starts so a signal arriving during startup still unwinds cleanly.

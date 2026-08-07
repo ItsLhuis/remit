@@ -18,7 +18,8 @@
     "lib/storage/s3.ts",
     "lib/jobs/worker.ts",
     "features/invoices/jobs.ts",
-    "features/recurringInvoices/jobs.ts"
+    "features/recurringInvoices/jobs.ts",
+    "features/activityLog/events.ts"
   ],
   "rules": {
     "unused-exports": "warn",

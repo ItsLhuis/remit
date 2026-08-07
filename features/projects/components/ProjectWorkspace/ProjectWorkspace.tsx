@@ -11,8 +11,6 @@ import { useTranslation } from "@/lib/i18n"
 import { formatCurrency, formatDay, getInitials } from "@/lib/utils"
 
 import {
-  ActivityTimeline,
-  type ActivityTimelineItem,
   Avatar,
   AvatarFallback,
   Badge,
@@ -35,6 +33,8 @@ import {
   toast
 } from "@/components/ui"
 
+import { EntityActivityTimeline, type EntityActivityPanelData } from "@/features/activityLog"
+
 import { softDeleteProject } from "../../mutations"
 import { type ProjectClientOption, type ProjectDetail, type ProjectFormData } from "../../types"
 import { DeleteProjectDialog } from "../DeleteProjectDialog"
@@ -44,16 +44,21 @@ import { DetailGroup } from "./DetailGroup"
 import { DetailRow } from "./DetailRow"
 import { ProjectStatusSelector } from "./ProjectStatusSelector"
 
-const EMPTY_ACTIVITY: ActivityTimelineItem[] = []
-
 type ProjectWorkspaceProps = {
   project: ProjectDetail
   formData: ProjectFormData
   clients: ProjectClientOption[]
   locale: string
+  activity: EntityActivityPanelData
 }
 
-const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspaceProps) => {
+const ProjectWorkspace = ({
+  project,
+  formData,
+  clients,
+  locale,
+  activity
+}: ProjectWorkspaceProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -72,8 +77,6 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
       : formatCurrency(project.hourlyRateCents, project.currency, locale)
   const startDateText = project.startDate ? formatDay(project.startDate, locale) : ""
   const endDateText = project.endDate ? formatDay(project.endDate, locale) : ""
-
-  const activity = EMPTY_ACTIVITY
 
   const onDelete = () => {
     if (isDeleting) return
@@ -242,11 +245,7 @@ const ProjectWorkspace = ({ project, formData, clients, locale }: ProjectWorkspa
                 <CardTitle>{t("projects.detail.activityTitle")}</CardTitle>
               </CardHeader>
               <CardContent>
-                <ActivityTimeline
-                  items={activity}
-                  emptyTitle={t("projects.detail.activityEmptyTitle")}
-                  emptyDescription={t("projects.detail.activityEmpty")}
-                />
+                <EntityActivityTimeline data={activity} />
               </CardContent>
             </Card>
             <Card size="sm" className="gap-0 py-0">

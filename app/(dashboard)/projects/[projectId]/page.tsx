@@ -4,6 +4,8 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
+import { getEntityActivity } from "@/features/activityLog/server"
+
 import { listClientOptions } from "@/features/clients/server"
 
 import { ProjectDetailPage } from "@/features/projects"
@@ -20,11 +22,12 @@ type ProjectDetailRouteProps = {
 const ProjectDetailRoute = async ({ params }: ProjectDetailRouteProps) => {
   const { projectId } = await params
 
-  const [project, formData, clients, defaults] = await Promise.all([
+  const [project, formData, clients, defaults, activity] = await Promise.all([
     getProjectDetail({ id: projectId }),
     getProjectForEdit({ id: projectId }),
     listClientOptions(),
-    getProjectDefaults()
+    getProjectDefaults(),
+    getEntityActivity({ entityType: "project", entityId: projectId })
   ])
 
   if (!project || !formData) notFound()
@@ -35,6 +38,7 @@ const ProjectDetailRoute = async ({ params }: ProjectDetailRouteProps) => {
       formData={formData}
       clients={clients}
       locale={defaults.defaultLocale}
+      activity={activity}
     />
   )
 }

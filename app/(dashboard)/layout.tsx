@@ -6,8 +6,13 @@ import { SidebarInset, SidebarProvider } from "@/components/ui"
 
 import { AppSidebar } from "@/components/layout"
 
+import { getUnreadActivityCount } from "@/features/activityLog/server"
+
 const DashboardLayout = async ({ children }: { children: ReactNode }) => {
-  const cookieStore = await cookies()
+  const [cookieStore, unreadActivityCount] = await Promise.all([
+    cookies(),
+    getUnreadActivityCount()
+  ])
 
   // A presentation preference, not routing state, so it does not fall under the no-cookie rule in
   // `security.md` and ADR-0001 — that rule governs which route a user is sent to, and `proxy.ts`
@@ -19,7 +24,7 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
 
   return (
     <SidebarProvider defaultOpen={defaultOpen} className="h-svh overflow-hidden">
-      <AppSidebar />
+      <AppSidebar unreadActivityCount={unreadActivityCount} />
       <SidebarInset className="min-w-0">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
