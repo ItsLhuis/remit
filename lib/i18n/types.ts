@@ -409,6 +409,7 @@ export type Translations = {
       invoices: string
       recurringInvoices: string
       creditNotes: string
+      activity: string
       settings: string
       navigation: string
       configuration: string
@@ -893,8 +894,6 @@ export type Translations = {
       emptyValue: string
       overviewTitle: string
       activityTitle: string
-      activityEmptyTitle: string
-      activityEmpty: string
       descriptionTitle: string
       descriptionEmpty: string
       editDetails: string
@@ -2517,6 +2516,79 @@ export type Translations = {
     webhook: {
       rateLimited: string
       rejected: string
+    }
+  }
+  activity: {
+    metadata: {
+      feed: string
+    }
+    feed: {
+      title: string
+      description: string
+      unread: string
+      unreadBadge: string
+      allRead: string
+      markAllRead: string
+      markRead: string
+      open: string
+      delete: string
+      deleteTitle: string
+      deleteDescription: string
+      emptyTitle: string
+      emptyDescription: string
+      noMatchTitle: string
+      noMatchDescription: string
+      pagination: string
+      previous: string
+      next: string
+    }
+    filters: {
+      entityType: string
+      allEntityTypes: string
+      unreadOnly: string
+      reset: string
+    }
+    timeline: {
+      emptyTitle: string
+      emptyDescription: string
+    }
+    entityTypes: {
+      client: string
+      project: string
+      proposal: string
+      invoice: string
+      contract: string
+      task: string
+      timeEntry: string
+      expense: string
+      payment: string
+    }
+    messages: {
+      clientCreated: string
+      projectCreated: string
+      projectStatusChanged: string
+      proposalSent: string
+      proposalAccepted: string
+      proposalRejected: string
+      contractSigned: string
+      invoiceSent: string
+      invoicePaid: string
+      invoiceOverdue: string
+      invoiceGenerated: string
+      paymentReceived: string
+      timeLogged: string
+      expenseCreated: string
+    }
+    success: {
+      markedRead: string
+      markedAllRead: string
+      deleted: string
+    }
+    errors: {
+      notFound: string
+      markReadFailed: string
+      deleteFailed: string
+      idInvalid: string
     }
   }
   templates: {

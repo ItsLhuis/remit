@@ -428,6 +428,7 @@ export const english: Language = {
         invoices: "Invoices",
         recurringInvoices: "Recurring",
         creditNotes: "Credit notes",
+        activity: "Activity",
         settings: "Settings",
         navigation: "Navigation",
         configuration: "Configuration",
@@ -925,8 +926,6 @@ export const english: Language = {
         emptyValue: "Not set",
         overviewTitle: "Overview",
         activityTitle: "Activity",
-        activityEmptyTitle: "No activity yet",
-        activityEmpty: "Status changes and notes for this project will show up here.",
         descriptionTitle: "Description",
         descriptionEmpty: "No description yet",
         editDetails: "Edit details"
@@ -2581,6 +2580,82 @@ export const english: Language = {
       webhook: {
         rateLimited: "Too many requests",
         rejected: "Webhook rejected"
+      }
+    },
+    activity: {
+      metadata: {
+        feed: "Activity"
+      },
+      feed: {
+        title: "Activity",
+        description: "Everything that happened across your business",
+        unread: "{count, plural, =0 {No unread} one {# unread} other {# unread}}",
+        unreadBadge: "Unread",
+        allRead: "All caught up",
+        markAllRead: "Mark all as read",
+        markRead: "Mark as read",
+        open: "Open",
+        delete: "Delete",
+        deleteTitle: "Delete this activity entry?",
+        deleteDescription:
+          "The entry is removed from your activity history. This cannot be undone.",
+        emptyTitle: "No activity yet",
+        emptyDescription:
+          "Actions across clients, projects, invoices and time will show up here as they happen",
+        noMatchTitle: "No matching activity",
+        noMatchDescription: "Try a different filter",
+        pagination: "Page {page, number} of {pageCount, number}",
+        previous: "Previous",
+        next: "Next"
+      },
+      filters: {
+        entityType: "Type",
+        allEntityTypes: "All types",
+        unreadOnly: "Unread only",
+        reset: "Reset"
+      },
+      timeline: {
+        emptyTitle: "No activity yet",
+        emptyDescription: "Activity for this record will show up here"
+      },
+      entityTypes: {
+        client: "Client",
+        project: "Project",
+        proposal: "Proposal",
+        invoice: "Invoice",
+        contract: "Contract",
+        task: "Task",
+        timeEntry: "Time entry",
+        expense: "Expense",
+        payment: "Payment"
+      },
+      messages: {
+        clientCreated: "Client {name} was added",
+        projectCreated: "Project {name} was created",
+        projectStatusChanged:
+          "Project {name} moved to {status, select, active {Active} completed {Completed} on_hold {On hold} cancelled {Cancelled} other {Unknown}}",
+        proposalSent: "Proposal {number} was sent",
+        proposalAccepted: "Proposal {number} was accepted",
+        proposalRejected: "Proposal {number} was declined",
+        contractSigned: "Contract {title} was signed",
+        invoiceSent: "Invoice {number} was sent",
+        invoicePaid: "Invoice {number} was marked as paid",
+        invoiceOverdue: "Invoice {number} is {days, plural, one {# day} other {# days}} overdue",
+        invoiceGenerated: "Invoice {number} was generated automatically (run {occurrence, number})",
+        paymentReceived: "Payment received for invoice {number}",
+        timeLogged: "Logged {hours, number} h on {project}",
+        expenseCreated: "Expense recorded: {category}"
+      },
+      success: {
+        markedRead: "Marked as read",
+        markedAllRead: "All activity marked as read",
+        deleted: "Activity entry deleted"
+      },
+      errors: {
+        notFound: "Activity entry not found",
+        markReadFailed: "Failed to mark activity as read",
+        deleteFailed: "Failed to delete activity entry",
+        idInvalid: "Invalid activity entry"
       }
     },
     templates: {
