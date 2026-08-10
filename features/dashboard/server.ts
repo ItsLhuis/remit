@@ -1,0 +1,1 @@
+export { getDashboardPageData } from "./queries"
