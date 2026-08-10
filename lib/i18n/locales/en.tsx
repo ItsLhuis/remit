@@ -435,6 +435,88 @@ export const english: Language = {
         notifications: "Notifications"
       }
     },
+    dashboard: {
+      title: "Dashboard",
+      description: "What you have earned, what you are owed, and what you have spent.",
+      currencyNote:
+        "Figures are shown in {currency}. {count, plural, one {# other currency is} other {# other currencies are}} recorded and not included.",
+      periods: {
+        label: "Period",
+        month: "This month",
+        quarter: "This quarter",
+        year: "This year",
+        all: "All time"
+      },
+      tiles: {
+        revenue: "Revenue this month",
+        revenueHint: "{amount} year to date",
+        revenueEmptyHint: "No payments recorded yet",
+        revenueAction: "Go to invoices",
+        outstanding: "Outstanding",
+        outstandingHint:
+          "{count, plural, one {# sent invoice} other {# sent invoices}}, net of credit notes",
+        outstandingEmptyHint: "Nothing is waiting to be paid",
+        outstandingAction: "Go to invoices",
+        overdue: "Overdue",
+        overdueHint:
+          "{count, plural, one {# invoice past its due date} other {# invoices past their due date}}",
+        overdueEmptyHint: "Nothing is late",
+        expenses: "Expenses",
+        expensesHint: "{count, plural, one {# expense} other {# expenses}} in this period",
+        expensesEmptyHint: "No expenses recorded in this period",
+        expensesAction: "Go to expenses",
+        profit: "Profit estimate",
+        profitHint: "Revenue minus expenses for this period. An estimate — it excludes tax",
+        profitEmptyHint: "Needs revenue or expenses in this period"
+      },
+      cashflow: {
+        title: "Cashflow",
+        description: "Payments received and expenses recorded, month by month, in {currency}.",
+        revenueSeries: "Revenue",
+        expenseSeries: "Expenses",
+        emptyTitle: "No cashflow yet",
+        emptyDescription:
+          "Once payments and expenses are recorded, the last twelve months appear here.",
+        emptyAction: "Go to invoices",
+        tableCaption: "Revenue and expenses per month for the last twelve months",
+        monthColumn: "Month",
+        revenueColumn: "Revenue",
+        expenseColumn: "Expenses"
+      },
+      upcoming: {
+        title: "Due in the next 30 days",
+        description: "Sent invoices with a due date coming up.",
+        emptyTitle: "Nothing due in the next 30 days",
+        emptyDescription: "Sent invoices with an upcoming due date appear here.",
+        emptyAction: "Go to invoices",
+        viewAll: "All invoices",
+        numberColumn: "Invoice",
+        parentColumn: "Client",
+        dueColumn: "Due",
+        amountColumn: "Amount",
+        noParent: "No client",
+        dueToday: "Today",
+        dueIn: "{days, plural, one {In # day} other {In # days}}"
+      },
+      topClients: {
+        title: "Top clients",
+        description: "By payments received in this period, in {currency}.",
+        emptyTitle: "No client revenue yet",
+        emptyDescription: "Once payments are recorded against a client, the largest appear here.",
+        emptyAction: "Go to clients",
+        nameColumn: "Client",
+        revenueColumn: "Revenue",
+        shareColumn: "Share",
+        share: "{value}%"
+      },
+      activity: {
+        title: "Recent activity",
+        description: "The latest events across this instance.",
+        viewAll: "All activity",
+        emptyTitle: "Nothing has happened yet",
+        emptyDescription: "Client, invoice and payment events appear here as they happen."
+      }
+    },
     clients: {
       metadata: {
         list: "Clients",

@@ -416,6 +416,84 @@ export type Translations = {
       notifications: string
     }
   }
+  dashboard: {
+    title: string
+    description: string
+    currencyNote: string
+    periods: {
+      label: string
+      month: string
+      quarter: string
+      year: string
+      all: string
+    }
+    tiles: {
+      revenue: string
+      revenueHint: string
+      revenueEmptyHint: string
+      revenueAction: string
+      outstanding: string
+      outstandingHint: string
+      outstandingEmptyHint: string
+      outstandingAction: string
+      overdue: string
+      overdueHint: string
+      overdueEmptyHint: string
+      expenses: string
+      expensesHint: string
+      expensesEmptyHint: string
+      expensesAction: string
+      profit: string
+      profitHint: string
+      profitEmptyHint: string
+    }
+    cashflow: {
+      title: string
+      description: string
+      revenueSeries: string
+      expenseSeries: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      tableCaption: string
+      monthColumn: string
+      revenueColumn: string
+      expenseColumn: string
+    }
+    upcoming: {
+      title: string
+      description: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      viewAll: string
+      numberColumn: string
+      parentColumn: string
+      dueColumn: string
+      amountColumn: string
+      noParent: string
+      dueToday: string
+      dueIn: string
+    }
+    topClients: {
+      title: string
+      description: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      nameColumn: string
+      revenueColumn: string
+      shareColumn: string
+      share: string
+    }
+    activity: {
+      title: string
+      description: string
+      viewAll: string
+      emptyTitle: string
+      emptyDescription: string
+    }
+  }
   clients: {
     metadata: {
       list: string
