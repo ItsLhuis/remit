@@ -4,7 +4,7 @@ import { useTransition } from "react"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { SidebarTrigger, Typography } from "@/components/ui"
+import { Icon, SidebarTrigger, Typography } from "@/components/ui"
 
 import { type DashboardPageData } from "../../types"
 
@@ -29,9 +29,16 @@ const DashboardPage = ({ data }: DashboardPageProps) => {
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
       <header className="flex flex-wrap items-center gap-2">
-        <SidebarTrigger className="md:hidden" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <Typography variant="h2">{t("dashboard.title")}</Typography>
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="md:hidden" />
+            <Icon
+              name="LayoutDashboard"
+              className="text-muted-foreground size-6 shrink-0"
+              aria-hidden="true"
+            />
+            <Typography variant="h2">{t("dashboard.title")}</Typography>
+          </div>
           <Typography affects={["muted", "small", "removePMargin"]}>
             {t("dashboard.description")}
           </Typography>
