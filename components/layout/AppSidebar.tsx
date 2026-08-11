@@ -75,6 +75,7 @@ const mainNavItems = [
     icon: "Repeat" as const
   },
   { labelKey: "app.navigation.creditNotes", href: "/credit-notes", icon: "ReceiptText" as const },
+  { labelKey: "app.navigation.reports", href: "/reports", icon: "ChartColumn" as const },
   { labelKey: "app.navigation.activity", href: "/activity", icon: "History" as const }
 ] as const
 
