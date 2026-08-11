@@ -1,5 +1,13 @@
 const DATE_TIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
 
+const SECONDS_PER_HOUR = 3600
+
+// Hundredths of an hour as an integer, so a duration that has to be totalled — a report column, a
+// CSV cell an accountant sums — is rounded once here rather than once per consumer's own float.
+export function toHundredthHours(seconds: number): number {
+  return Math.round((seconds * 100) / SECONDS_PER_HOUR)
+}
+
 // Both helpers deliberately read and write the *browser's* zone, which is why they are only ever
 // called from client components. A `datetime-local` control has no zone of its own, so the instant a
 // user means by "09:00" is only recoverable where they typed it; resolving it on the server would

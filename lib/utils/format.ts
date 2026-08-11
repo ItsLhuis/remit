@@ -1,3 +1,5 @@
+import { toHundredthHours } from "./datetime"
+
 const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const
 
 const COMPACT_CURRENCY_THRESHOLD = 10_000
@@ -86,6 +88,16 @@ export function formatMonthShort(monthKey: string, locale: string): string {
   )
 }
 
+export function formatMonthYear(monthKey: string, locale: string): string {
+  const [year, month] = monthKey.split("-").map(Number)
+
+  return getDateTimeFormatter(`monthYear|${locale}`, locale, {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(new Date(Date.UTC(year, month - 1, 1)))
+}
+
 export function formatCurrency(cents: number, currency: string, locale?: string): string {
   return getNumberFormatter(`currency|${locale ?? ""}|${currency}`, locale, {
     style: "currency",
@@ -112,14 +124,29 @@ export function formatCompactCurrency(cents: number, currency: string, locale?: 
   }).format(value)
 }
 
+export function formatNumber(value: number, locale?: string): string {
+  return getNumberFormatter(`number|${locale ?? ""}`, locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(value)
+}
+
 // Takes a value already expressed in percent (20 means 20%) and returns a bare localized number
 // with no percent sign — `style: "percent"` would divide by 100 and append the symbol. The sign
 // belongs to the caller's translated string, so that ICU controls its placement per locale.
 export function formatPercentage(value: number, locale?: string): string {
-  return getNumberFormatter(`percentage|${locale ?? ""}`, locale, {
-    minimumFractionDigits: 0,
+  return formatNumber(value, locale)
+}
+
+// Decimal hours rather than "3h 30m": the value sits in a report column beside money columns a
+// reader totals, and a mixed unit cannot be summed by eye or by a spreadsheet. The integer
+// hundredths come from `toHundredthHours` so the displayed figure and the exported one round once,
+// in the same place.
+export function formatHours(seconds: number, locale: string): string {
+  return getNumberFormatter(`hours|${locale}`, locale, {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(value)
+  }).format(toHundredthHours(seconds) / 100)
 }
 
 export function formatBytes(bytes: number, locale: string): string {
