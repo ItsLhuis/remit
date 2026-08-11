@@ -409,6 +409,7 @@ export type Translations = {
       invoices: string
       recurringInvoices: string
       creditNotes: string
+      reports: string
       activity: string
       settings: string
       navigation: string
@@ -2667,6 +2668,122 @@ export type Translations = {
       markReadFailed: string
       deleteFailed: string
       idInvalid: string
+    }
+  }
+  reports: {
+    metadata: {
+      list: string
+    }
+    actions: {
+      export: string
+    }
+    kinds: {
+      revenueByClient: {
+        title: string
+        description: string
+      }
+      revenueByProject: {
+        title: string
+        description: string
+      }
+      revenueByMonth: {
+        title: string
+        description: string
+      }
+      revenueByTaxRate: {
+        title: string
+        description: string
+      }
+      timeByProject: {
+        title: string
+        description: string
+      }
+      expensesByCategory: {
+        title: string
+        description: string
+      }
+      taxSummary: {
+        title: string
+        description: string
+      }
+    }
+    filters: {
+      title: string
+      report: string
+      from: string
+      to: string
+      reset: string
+      client: string
+      allClients: string
+      project: string
+      allProjects: string
+      taxRate: string
+      allTaxRates: string
+      projectOption: string
+      taxRateOption: string
+    }
+    dimensions: {
+      client: string
+      project: string
+      month: string
+      taxRate: string
+      category: string
+    }
+    columns: {
+      invoiceCount: string
+      invoiced: string
+      credited: string
+      netRevenue: string
+      paid: string
+      outstanding: string
+      netTaxable: string
+      netTax: string
+      netGross: string
+      entryCount: string
+      hours: string
+      billableValue: string
+      expenseCount: string
+      amount: string
+      rebillableAmount: string
+      taxableBase: string
+      taxAmount: string
+      creditedTaxable: string
+      creditedTax: string
+      netTaxDue: string
+    }
+    rows: {
+      noClient: string
+      noProject: string
+      noTaxRate: string
+      percentage: string
+    }
+    table: {
+      currency: string
+      rowCount: string
+    }
+    summary: {
+      hint: string
+    }
+    time: {
+      billable: string
+      nonBillable: string
+    }
+    export: {
+      exported: string
+      columns: {
+        detail: string
+        currency: string
+        total: string
+      }
+    }
+    empty: {
+      title: string
+      description: string
+      filteredTitle: string
+      filteredDescription: string
+    }
+    errors: {
+      exportFailed: string
     }
   }
   templates: {

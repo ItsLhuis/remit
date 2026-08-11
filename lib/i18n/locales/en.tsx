@@ -428,6 +428,7 @@ export const english: Language = {
         invoices: "Invoices",
         recurringInvoices: "Recurring",
         creditNotes: "Credit notes",
+        reports: "Reports",
         activity: "Activity",
         settings: "Settings",
         navigation: "Navigation",
@@ -2738,6 +2739,124 @@ export const english: Language = {
         markReadFailed: "Failed to mark activity as read",
         deleteFailed: "Failed to delete activity entry",
         idInvalid: "Invalid activity entry"
+      }
+    },
+    reports: {
+      metadata: {
+        list: "Reports"
+      },
+      actions: {
+        export: "Export CSV"
+      },
+      kinds: {
+        revenueByClient: {
+          title: "Revenue by client",
+          description:
+            "What each client was invoiced, net of credit notes, and what is still outstanding."
+        },
+        revenueByProject: {
+          title: "Revenue by project",
+          description:
+            "What each project earned, net of credit notes, and what is still outstanding."
+        },
+        revenueByMonth: {
+          title: "Revenue by month",
+          description: "Invoiced value month by month, net of credit notes."
+        },
+        revenueByTaxRate: {
+          title: "Revenue by tax rate",
+          description: "Taxable value and tax charged at each rate, net of credit notes."
+        },
+        timeByProject: {
+          title: "Time by project",
+          description: "Hours logged per project, split by whether they are billable."
+        },
+        expensesByCategory: {
+          title: "Expenses by category",
+          description: "What was spent in each category and how much of it is rebillable."
+        },
+        taxSummary: {
+          title: "Tax summary",
+          description: "Tax charged, tax credited, and the difference still owed at each rate."
+        }
+      },
+      filters: {
+        title: "Filters",
+        report: "Report",
+        from: "From",
+        to: "To",
+        reset: "Clear filters",
+        client: "Client",
+        allClients: "All clients",
+        project: "Project",
+        allProjects: "All projects",
+        taxRate: "Tax rate",
+        allTaxRates: "All tax rates",
+        projectOption: "{client} — {project}",
+        taxRateOption: "{name} ({percentage, number}%)"
+      },
+      dimensions: {
+        client: "Client",
+        project: "Project",
+        month: "Month",
+        taxRate: "Tax rate",
+        category: "Category"
+      },
+      columns: {
+        invoiceCount: "Invoices",
+        invoiced: "Invoiced",
+        credited: "Credited",
+        netRevenue: "Net revenue",
+        paid: "Paid",
+        outstanding: "Outstanding",
+        netTaxable: "Net taxable",
+        netTax: "Net tax",
+        netGross: "Net gross",
+        entryCount: "Entries",
+        hours: "Hours",
+        billableValue: "Value",
+        expenseCount: "Expenses",
+        amount: "Amount",
+        rebillableAmount: "Rebillable",
+        taxableBase: "Taxable base",
+        taxAmount: "Tax charged",
+        creditedTaxable: "Credited base",
+        creditedTax: "Tax credited",
+        netTaxDue: "Net tax due"
+      },
+      rows: {
+        noClient: "No client",
+        noProject: "No project",
+        noTaxRate: "No tax rate",
+        percentage: "{percentage, number}%"
+      },
+      table: {
+        currency: "Currency",
+        rowCount: "{count, plural, one {# row} other {# rows}}"
+      },
+      summary: {
+        hint: "{column}, over {count, plural, one {# row} other {# rows}}"
+      },
+      time: {
+        billable: "Billable",
+        nonBillable: "Non-billable"
+      },
+      export: {
+        exported: "{count, plural, one {# row exported} other {# rows exported}}",
+        columns: {
+          detail: "Detail",
+          currency: "Currency",
+          total: "Total"
+        }
+      },
+      empty: {
+        title: "Nothing to report yet",
+        description: "This report fills in as you invoice, log time, and record expenses.",
+        filteredTitle: "No rows match these filters",
+        filteredDescription: "Widen the date range or clear the filters to see more."
+      },
+      errors: {
+        exportFailed: "Failed to export the report"
       }
     },
     templates: {
