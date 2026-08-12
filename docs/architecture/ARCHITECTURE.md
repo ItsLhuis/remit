@@ -960,9 +960,10 @@ implicit to the instance. See ADR-0013.
 
 Authorization is implemented as a thin layer in two places:
 
-**Middleware-level (route gating).** Routes under `/settings/security`, `/settings/api`, and any
-endpoint that exposes the encryption key fingerprint are owner-only. Routes that perform sends or
-deletions are blocked for `assistant`. All other routes are accessible to all roles.
+**Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
+`/settings/system`, `/settings/api`, and any endpoint that exposes the encryption key fingerprint
+are owner-only. Routes that perform sends or deletions are blocked for `assistant`. All other routes
+are accessible to all roles.
 
 **Action-level (operation gating).** Every server action gates on the active member's role before it
 writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
@@ -1002,23 +1003,38 @@ visibility is never the authorization — each page refuses the URL on its own.
 
 ### Invitation flow
 
-**Not built yet, and the only part of this section that is not.** There is no `/settings/team`
-surface and no mutation that creates a membership, and `proxy.ts` sends `/register` away once any
-user exists, so an instance today holds exactly one member and that member is the `owner` Better
-Auth created at setup. Everything else in this chapter — the role vocabulary, the plugin
-configuration, the per-operation gates in every feature, and the audit actor role — is implemented
-and enforced ahead of the surface that will create the second member. Building that surface is
-therefore additive: it must not relax an existing gate to make a new role work.
+Implemented in `features/team`. Every organization write goes through a Better Auth organization
+API; nothing in the feature inserts, updates, or deletes `organizations`, `members`, or
+`invitations` directly.
 
-1. Owner invites an email address with a role from `/settings/team`.
-2. Better Auth creates an `invitation` record with the plugin's expected field shape. If SMTP is
-   configured, an invitation email is sent; otherwise, the owner is shown a one-time link to share
-   manually.
-3. Invitee follows the link, registers (or signs in if the email already has an account), and the
-   `member` row is activated.
-4. The invitee enrolls TOTP - mandatory for all roles, no exceptions.
+1. Owner invites an email address with a role from `/settings/team`, guarded by
+   `requireRole("owner")` on the page and an owner comparison in every mutation.
+   `auth.api.createInvitation` writes the `invitation` row.
+2. If email delivery is configured, Remit sends the invitation and records it in `email_logs`.
+   Otherwise the owner is shown a one-time link to `/invite/[invitationId]` to share manually. The
+   invitation id is the bearer credential for that link, so it is never written to `audit_logs`, to
+   an event payload, or to a log line.
+3. Invitee opens the link and `auth.api.acceptInvitation` activates the `member` row. The page
+   resolves which of its shapes to render server-side: sign up when the address has no account,
+   accept when the session is already the invitee's, sign out when it belongs to somebody else, and
+   sign in when the address has an account but no session. That last shape is not hypothetical —
+   removing a member deletes the membership and leaves the `users` row, so re-inviting a removed
+   address always reaches somebody who cannot register. `proxy.ts` lets `/invite/...` through ahead
+   of its other guards — an invitee has no session yet, and immediately after signing up has one
+   that is not setup-complete — under its own rate limit.
+4. The invitee enrolls TOTP - mandatory for all roles, no exceptions. Nothing in the acceptance path
+   redirects past `/setup`; it returns the invitee to `/` and lets the proxy's state machine route
+   them.
 
-Owners can remove memberships at any time. Removal invalidates all sessions for that user.
+Only `accountant` and `assistant` are invitable or assignable, which is what keeps a second owner
+unreachable from this surface; `uq_member_owner_per_org` remains the structural backstop, and Better
+Auth independently refuses to leave the organization without an owner.
+
+Owners can remove memberships at any time. Removal invalidates all sessions for that user through
+Better Auth's internal adapter (`deleteUserSessions`), because the plugin exposes no endpoint that
+revokes another user's sessions without the admin plugin. Revocation failure is reported to the
+owner rather than rolled back: the membership is already gone, so every gate refuses the removed
+user regardless.
 
 ### What multi-user does not change
 

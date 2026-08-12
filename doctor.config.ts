@@ -124,6 +124,7 @@ const config = {
     "requireInvoicingSettingsWrite",
     "requirePaymentSettingsWrite",
     "requireTaxRatesWrite",
+    "requireTeamWrite",
     "requireActivityWrite",
     "requireActivityDelete",
     "requireReportExport"

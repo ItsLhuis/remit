@@ -63,6 +63,10 @@ const navGroups = [
     items: [{ labelKey: "settings.navigation.email", href: "/settings/email", icon: "Mail" }]
   },
   {
+    label: "settings.navigation.team",
+    items: [{ labelKey: "settings.navigation.team", href: "/settings/team", icon: "Users" }]
+  },
+  {
     label: "settings.navigation.system",
     items: [
       {
@@ -74,20 +78,27 @@ const navGroups = [
   }
 ] as const satisfies readonly NavGroup[]
 
+// Visibility only. Both pages call `requireRole("owner")` themselves, so removing a link here never
+// makes a route reachable and adding one never makes it unreachable.
+const ownerOnlyGroupLabels: readonly string[] = [
+  "settings.navigation.team",
+  "settings.navigation.system"
+]
+
 type SettingsSidebarProps = {
-  showSystem: boolean
+  showOwnerSections: boolean
 }
 
-const SettingsSidebar = ({ showSystem }: SettingsSidebarProps) => {
+const SettingsSidebar = ({ showOwnerSections }: SettingsSidebarProps) => {
   const { t } = useTranslation()
 
   const pathname = usePathname()
 
   const [search, setSearch] = useState("")
 
-  const visibleGroups = showSystem
+  const visibleGroups = showOwnerSections
     ? navGroups
-    : navGroups.filter((group) => group.label !== "settings.navigation.system")
+    : navGroups.filter((group) => !ownerOnlyGroupLabels.includes(group.label))
 
   const filteredGroups = visibleGroups.flatMap((group) => {
     const items = group.items.filter((item) =>

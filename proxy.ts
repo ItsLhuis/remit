@@ -11,14 +11,15 @@ import { getIpAddress } from "@/lib/utils"
 import { rateLimitInstance } from "@/lib/rateLimit"
 
 import { database } from "@/database"
-import { settings, users } from "@/database/schema"
+import { members, settings, users } from "@/database/schema"
 
 // The onboarding and authentication state machine below derives every routing decision from the
 // database and the active session, and from nothing else. Storing routing state in a cookie is a
 // violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Routing state rule"
 // (ADR-0001), however tempting it is as a way to avoid the per-request reads here. The guard order
-// is the state machine itself: user existence, then session, then setup completion, then a forced
-// password change; each stage may only be reached once the earlier ones are satisfied.
+// is the state machine itself: user existence, then session, then setup completion, then an
+// organization membership, then a forced password change; each stage may only be reached once the
+// earlier ones are satisfied.
 
 export function buildContentSecurityPolicy(): string {
   const storageOrigin = (() => {
@@ -108,6 +109,32 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next(), true)
   }
 
+  // Deliberately ahead of every guard below, and the only route that sits outside the state machine
+  // while still being part of it. An invitee arrives with no session (so the login redirect would
+  // swallow the invitation id), and immediately after signing up they have a session that is not
+  // setup-complete (so the `/setup` redirect would swallow the server action that accepts the
+  // invitation, since a server action POSTs to the page it was called from). The page itself is
+  // safe to reach anonymously: it reveals only the invited address and organization name, and
+  // `acceptTeamInvitation` refuses any session whose email is not the invited one. Accepting hands
+  // the invitee straight back into the machine, which routes them to `/setup` for TOTP.
+  if (isInvitationRoute(pathname)) {
+    const ipAddress = getIpAddress(request.headers) || "unknown"
+    const rateLimitResult = await rateLimitInstance.consume(`invite:${ipAddress}`, 30, 60000)
+
+    if (!rateLimitResult.allowed) {
+      await writeAudit("auth.rate_limit.tripped", {
+        ipAddress,
+        metadata: { route: "/invite/[invitationId]" }
+      })
+
+      return withNoIndex(
+        applySecurityHeaders(new NextResponse("Too many requests", { status: 429 }), false)
+      )
+    }
+
+    return withNoIndex(applySecurityHeaders(NextResponse.next(), false))
+  }
+
   const existingUser = await database
     .select({ id: users.id })
     .from(users)
@@ -166,6 +193,19 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.redirect(new URL("/", request.url)), false)
   }
 
+  // A session with no membership has no role, so `getCurrentRole` resolves to null and every page
+  // and mutation already refuses it. What survives that is the shell: the user reaches the dashboard
+  // chrome and an empty application. Removing a member deletes the membership and deliberately keeps
+  // the `users` row — `audit_logs.actor_user_id` still references it — so their password goes on
+  // authenticating, and this is what turns that surviving login into a clean refusal.
+  //
+  // Placed after the setup gate on purpose: the first owner has no membership until
+  // `features/setup`'s `saveBusinessProfile` creates the organization, so checking any earlier would
+  // bounce them out of their own registration.
+  if (!(await hasMembership(session.user.id))) {
+    return clearSessionAndRedirectToLogin(request)
+  }
+
   const mustChangePassword = await getMustChangePassword(session.user.id)
 
   if (mustChangePassword) {
@@ -184,6 +224,37 @@ export async function proxy(request: NextRequest) {
   }
 
   return applySecurityHeaders(NextResponse.next(), false)
+}
+
+async function hasMembership(userId: string): Promise<boolean> {
+  const member = await database
+    .select({ id: members.id })
+    .from(members)
+    .where(eq(members.userId, userId))
+    .limit(1)
+    .then((rows) => rows[0] ?? null)
+
+  return member !== null
+}
+
+// The cookie has to go, not just the route: `/login` sends a live session on to `/setup` and then
+// back to `/`, so redirecting a still-authenticated request there loops forever. Clearing it is also
+// what makes the bounce survive the session cookie cache, which would otherwise keep answering with
+// the old session for up to five minutes. The names come from Better Auth so the `__Secure-` prefix
+// it adds in production is not restated here. Revoking the underlying rows is deliberately not done
+// here — a proxy routes, and `removeTeamMember` already revokes at the moment membership ends.
+async function clearSessionAndRedirectToLogin(request: NextRequest): Promise<NextResponse> {
+  const response = applySecurityHeaders(
+    NextResponse.redirect(new URL("/login", request.url)),
+    false
+  )
+
+  const { authCookies } = await auth.$context
+
+  response.cookies.delete(authCookies.sessionToken.name)
+  response.cookies.delete(authCookies.sessionData.name)
+
+  return response
 }
 
 async function getMustChangePassword(userId: string): Promise<boolean> {
@@ -226,6 +297,19 @@ function getPublicTokenRouteLabel(pathname: string): string {
   const [, prefix] = pathname.split("/")
 
   return `/${prefix ?? ""}/[token]`
+}
+
+function isInvitationRoute(pathname: string): boolean {
+  return pathname.startsWith("/invite/")
+}
+
+// Not `applySecurityHeaders(response, true)`: that branch is for the anonymous document routes,
+// which also drop `X-Frame-Options` so an invoice can be embedded. An invitation page must stay
+// unframeable — it carries a sign-up form — and only wants the crawler directive.
+function withNoIndex(response: NextResponse): NextResponse {
+  response.headers.set("X-Robots-Tag", "noindex, nofollow")
+
+  return response
 }
 
 function isPublicTokenRoute(pathname: string): boolean {
