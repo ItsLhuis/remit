@@ -3229,6 +3229,26 @@ export type Translations = {
       goToDashboard: string
     }
   }
+  team: {
+    accept: {
+      metadataTitle: string
+      title: string
+      description: string
+      invalidDescription: string
+      invalidMessage: string
+      goToLogin: string
+      alreadyMemberMessage: string
+      goToDashboard: string
+      hasAccountMessage: string
+      goToSignIn: string
+      signedInMessage: string
+      acceptInvitation: string
+      createAccount: string
+      wrongAccount: string
+      signOut: string
+      signUpFailed: string
+    }
+  }
   settings: {
     metadata: {
       profile: string
@@ -3239,6 +3259,7 @@ export type Translations = {
       invoicing: string
       taxRates: string
       email: string
+      team: string
       system: string
     }
     navigation: {
@@ -3250,6 +3271,7 @@ export type Translations = {
       appearance: string
       payment: string
       taxRates: string
+      team: string
       system: string
     }
     profile: {
@@ -3567,6 +3589,92 @@ export type Translations = {
         percentageRange: string
         percentagePrecision: string
         idInvalid: string
+      }
+    }
+    team: {
+      title: string
+      description: string
+      membersTitle: string
+      membersCount: string
+      invitationsTitle: string
+      invitationsDescription: string
+      invitationsEmptyTitle: string
+      invitationsEmptyDescription: string
+      invitationsEmptyDescriptionNoEmail: string
+      invite: string
+      inviteTitle: string
+      inviteDescription: string
+      emailPlaceholder: string
+      emailWillSend: string
+      emailWillNotSend: string
+      selectRole: string
+      sendInvite: string
+      inviteSent: string
+      inviteCreated: string
+      changeRole: string
+      changeRoleTitle: string
+      changeRoleDescription: string
+      changeRoleDescriptionFallback: string
+      confirmRoleChange: string
+      roleChanged: string
+      removeMember: string
+      removeTitle: string
+      removeDescription: string
+      removeDescriptionFallback: string
+      confirmRemove: string
+      removed: string
+      removedSessionsKept: string
+      cancelInvitation: string
+      cancelInvitationTitle: string
+      cancelInvitationDescription: string
+      cancelInvitationDescriptionFallback: string
+      confirmCancelInvitation: string
+      invitationCanceled: string
+      showLink: string
+      linkTitle: string
+      linkDescription: string
+      linkDescriptionFallback: string
+      linkWarningTitle: string
+      linkWarningDescription: string
+      copyLink: string
+      linkCopied: string
+      tableMember: string
+      tableRole: string
+      tableJoined: string
+      tableInvitee: string
+      tableExpires: string
+      tableActions: string
+      roles: {
+        owner: string
+        accountant: string
+        assistant: string
+      }
+      roleDescriptions: {
+        accountant: string
+        assistant: string
+      }
+      email: {
+        subject: string
+        intro: string
+        cta: string
+        outro: string
+      }
+      errors: {
+        memberNotFound: string
+        invitationNotFound: string
+        alreadyMember: string
+        alreadyInvited: string
+        notInvitee: string
+        ownerImmutable: string
+        selfRemoval: string
+        roleUnchanged: string
+        actionFailed: string
+      }
+      validation: {
+        emailInvalid: string
+        roleInvalid: string
+        memberIdInvalid: string
+        invitationIdInvalid: string
       }
     }
     email: {

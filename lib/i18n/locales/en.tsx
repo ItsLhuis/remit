@@ -3308,6 +3308,29 @@ export const english: Language = {
         goToDashboard: "Go to dashboard"
       }
     },
+    team: {
+      accept: {
+        metadataTitle: "Accept invitation",
+        title: "Join the team",
+        description: "You have been invited to {organization} on Remit.",
+        invalidDescription: "This invitation cannot be used.",
+        invalidMessage:
+          "The invitation link is invalid, has already been used, or has expired. Ask the instance owner to send a new one.",
+        goToLogin: "Go to sign in",
+        alreadyMemberMessage: "You are already a member of this Remit instance.",
+        goToDashboard: "Go to dashboard",
+        hasAccountMessage:
+          "{email} already has an account on this instance. Sign in first, then open this invitation link again to accept it.",
+        goToSignIn: "Go to sign in",
+        signedInMessage: "You are signed in as {email}. Accept the invitation to join.",
+        acceptInvitation: "Accept invitation",
+        createAccount: "Create account and join",
+        wrongAccount:
+          "You are signed in as {current}, but this invitation was sent to {invited}. Sign out and try again.",
+        signOut: "Sign out",
+        signUpFailed: "Could not create your account"
+      }
+    },
     settings: {
       metadata: {
         profile: "Profile",
@@ -3318,6 +3341,7 @@ export const english: Language = {
         invoicing: "Invoicing",
         taxRates: "Tax Rates",
         email: "Email",
+        team: "Team",
         system: "System"
       },
       navigation: {
@@ -3329,6 +3353,7 @@ export const english: Language = {
         appearance: "Appearance",
         payment: "Payment",
         taxRates: "Tax Rates",
+        team: "Team",
         system: "System"
       },
       profile: {
@@ -3666,6 +3691,98 @@ export const english: Language = {
           percentageRange: "Tax rate percentage must be from 0 to 100.",
           percentagePrecision: "Tax rate percentage can use at most two decimal places.",
           idInvalid: "Invalid tax rate."
+        }
+      },
+      team: {
+        title: "Team",
+        description: "Invite people to this Remit instance and manage what they can do.",
+        membersTitle: "Members",
+        membersCount: "{count, plural, one {# member} other {# members}}",
+        invitationsTitle: "Pending invitations",
+        invitationsDescription: "Invitations that have not been accepted yet.",
+        invitationsEmptyTitle: "No pending invitations",
+        invitationsEmptyDescription: "Invite an accountant or an assistant to give them access.",
+        invitationsEmptyDescriptionNoEmail:
+          "Email delivery is not configured, so invitations are shared as a one-time link.",
+        invite: "Invite member",
+        inviteTitle: "Invite a member",
+        inviteDescription:
+          "They join with the role you choose and must set up two-factor authentication.",
+        emailPlaceholder: "name@example.com",
+        emailWillSend: "An invitation email is sent to this address.",
+        emailWillNotSend:
+          "Email delivery is not configured, so you will get a one-time link to share instead.",
+        selectRole: "Select a role",
+        sendInvite: "Send invitation",
+        inviteSent: "Invitation sent to {email}",
+        inviteCreated: "Invitation created for {email}",
+        changeRole: "Change role",
+        changeRoleTitle: "Change role",
+        changeRoleDescription: "Choose the role {name} should have on this instance.",
+        changeRoleDescriptionFallback: "Choose the role this member should have on this instance.",
+        confirmRoleChange: "Save role",
+        roleChanged: "Role updated for {name}",
+        removeMember: "Remove member",
+        removeTitle: "Remove member",
+        removeDescription: "{name} loses access immediately and is signed out of every device.",
+        removeDescriptionFallback: "This member loses access immediately.",
+        confirmRemove: "Remove member",
+        removed: "{name} was removed",
+        removedSessionsKept:
+          "{name} was removed, but their existing sessions could not be signed out. They have no access to any data.",
+        cancelInvitation: "Cancel invitation",
+        cancelInvitationTitle: "Cancel invitation",
+        cancelInvitationDescription: "The invitation sent to {email} stops working immediately.",
+        cancelInvitationDescriptionFallback: "This invitation stops working immediately.",
+        confirmCancelInvitation: "Cancel invitation",
+        invitationCanceled: "Invitation to {email} was canceled",
+        showLink: "Show invitation link",
+        linkTitle: "Invitation link",
+        linkDescription: "Send this link to {email} yourself.",
+        linkDescriptionFallback: "Send this link to the invited address yourself.",
+        linkWarningTitle: "Share it privately",
+        linkWarningDescription:
+          "Anyone who opens this link can create the invited account. It stops working once the invitation is accepted, canceled, or expires.",
+        copyLink: "Copy invitation link",
+        linkCopied: "Invitation link copied",
+        tableMember: "Member",
+        tableRole: "Role",
+        tableJoined: "Joined",
+        tableInvitee: "Invited address",
+        tableExpires: "Expires",
+        tableActions: "Actions",
+        roles: {
+          owner: "Owner",
+          accountant: "Accountant",
+          assistant: "Assistant"
+        },
+        roleDescriptions: {
+          accountant: "Reads everything and exports data. Cannot create, edit, send, or delete.",
+          assistant:
+            "Creates and edits drafts. Cannot send, record payment, delete, or change settings."
+        },
+        email: {
+          subject: "You have been invited to {organization} on Remit",
+          intro: "{inviter} invited you to join {organization} on Remit as {role}.",
+          cta: "Accept invitation",
+          outro: "If you were not expecting this invitation, you can ignore this email."
+        },
+        errors: {
+          memberNotFound: "Member not found",
+          invitationNotFound: "This invitation is no longer valid",
+          alreadyMember: "That email address is already a member",
+          alreadyInvited: "That email address already has a pending invitation",
+          notInvitee: "This invitation was sent to a different email address",
+          ownerImmutable: "The owner role cannot be changed or removed",
+          selfRemoval: "You cannot remove yourself",
+          roleUnchanged: "That member already has this role",
+          actionFailed: "Something went wrong"
+        },
+        validation: {
+          emailInvalid: "Enter a valid email address.",
+          roleInvalid: "Choose either accountant or assistant.",
+          memberIdInvalid: "Invalid member.",
+          invitationIdInvalid: "Invalid invitation."
         }
       },
       email: {
