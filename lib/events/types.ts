@@ -281,6 +281,29 @@ export type EventMap = {
     userId: string
     rebillable: boolean
   }
+  // None of the four membership events carry the invitation id. It is the bearer credential for
+  // `/invite/[invitationId]`, and an event payload reaches every subscriber and any log line one of
+  // them writes; the invited email identifies the invitation for anything that needs to react.
+  "member.invited": {
+    email: string
+    role: string
+    userId: string
+  }
+  "member.accepted": {
+    memberId: string
+    userId: string
+    role: string
+  }
+  "member.removed": {
+    memberId: string
+    userId: string
+    removedByUserId: string
+  }
+  "invitation.canceled": {
+    email: string
+    role: string
+    userId: string
+  }
   "template.created": {
     templateId: string
     userId: string
