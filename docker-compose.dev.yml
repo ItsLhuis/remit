@@ -54,6 +54,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # Development-only mail sink. It accepts every message and delivers none of them, which is what
+  # makes the email-configured half of a flow testable without a real provider or a real inbox:
+  # SMTP on 1025, web UI on 8025. Deliberately has no volume — a restart should start from an empty
+  # mailbox, and nothing here is worth keeping.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_dev_data:
   redis_dev_data:
