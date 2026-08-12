@@ -100,6 +100,14 @@ export const auth = betterAuth({
     }),
     organizationPlugin({
       creatorRole: "owner",
+      // Better Auth turns this on by default whenever `advanced.database.generateId` is customized,
+      // because it can no longer prove the invitation id is opaque and treats it as guessable. The
+      // generator above is `randomUUID`, which is exactly the opaque case the default is protecting
+      // — and leaving it on would make the feature unusable on the instances that need it most: an
+      // instance with no SMTP configured (Stage 3 is optional) can never verify an invitee's
+      // address, so the invitee could never accept. Changing `generateId` to something guessable
+      // means this line has to go back.
+      requireEmailVerificationOnInvitation: false,
       roles: {
         owner: ownerAc,
         accountant: limitedOrganizationRole,

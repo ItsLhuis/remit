@@ -2,6 +2,7 @@ export {
   AuthPanel,
   ChangePasswordForm,
   LoginForm,
+  PasswordRequirements,
   RegisterForm,
   ResetPasswordForm,
   SignOutDialog
