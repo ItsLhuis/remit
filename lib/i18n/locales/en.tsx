@@ -3342,6 +3342,7 @@ export const english: Language = {
         taxRates: "Tax Rates",
         email: "Email",
         team: "Team",
+        data: "Data",
         system: "System"
       },
       navigation: {
@@ -3354,6 +3355,7 @@ export const english: Language = {
         payment: "Payment",
         taxRates: "Tax Rates",
         team: "Team",
+        data: "Data",
         system: "System"
       },
       profile: {
@@ -3847,6 +3849,89 @@ export const english: Language = {
           smtpPasswordRequired: "SMTP password is required.",
           resendApiKeyRequired: "Resend API key is required.",
           recipientInvalid: "Enter a valid recipient email address."
+        }
+      },
+      data: {
+        title: "Data export",
+        description:
+          "Package your business records as a downloadable archive, for the whole instance or for one client.",
+        request: {
+          title: "New export",
+          description:
+            "Exports are assembled in the background. You can leave this page and come back to download the archive.",
+          scopeLabel: "What to export",
+          scopeInstance: "Whole instance",
+          scopeInstanceHelp: "Every business record, uploaded file and generated document.",
+          scopeClient: "One client",
+          scopeClientHelp: "One client and everything attached to them, for offboarding requests.",
+          clientLabel: "Client",
+          clientPlaceholder: "Select a client",
+          noClients: "Add a client before requesting a client export",
+          submit: "Start export",
+          submitted: "Export started. It will appear below when it is ready",
+          activeNotice:
+            "An export is already running. Wait for it to finish before starting another",
+          progressNotice: "{status} — {progress}% complete"
+        },
+        scope: {
+          instance: "Whole instance",
+          client: "One client"
+        },
+        status: {
+          pending: "Queued",
+          running: "Assembling",
+          ready: "Ready",
+          failed: "Failed"
+        },
+        history: {
+          title: "Exports",
+          description: "Every export requested on this instance, newest first.",
+          emptyTitle: "No exports yet",
+          emptyDescription: "Start an export above and it will appear here when it is ready."
+        },
+        table: {
+          scope: "Scope",
+          status: "Status",
+          requested: "Requested",
+          size: "Size",
+          entries: "Files",
+          actions: "Actions"
+        },
+        download: "Download",
+        emptyValue: "—",
+        contents: {
+          title: "What the archive contains",
+          description:
+            "One JSON file per table under data/, the stored files under files/, and an index.json describing both.",
+          includedTitle: "Included",
+          includedRecords:
+            "Clients, leads, projects, tasks, time entries, expenses, proposals, contracts, invoices, payments and credit notes",
+          includedFiles: "Every uploaded file and generated document, plus the business profile",
+          includedActivity: "The activity feed and, for a whole-instance export, the audit log",
+          excludedTitle: "Never included",
+          excludedSecrets:
+            "Email, payment provider and backup configuration, including every stored key and secret",
+          excludedTokens:
+            "Public sharing tokens for invoices, proposals, contracts and the client portal",
+          excludedAuth: "Accounts, sessions, passwords and two-factor secrets"
+        },
+        failureReasons: {
+          clientMissing: "The client was deleted before the export finished",
+          assemblyFailed: "The archive could not be assembled",
+          storageFailed: "The archive could not be stored"
+        },
+        errors: {
+          alreadyRunning: "An export is already running",
+          clientNotFound: "Client not found",
+          requestFailed: "Could not start the export",
+          notReady: "This export is not ready to download",
+          downloadFailed: "Could not download the archive"
+        },
+        validation: {
+          scopeInvalid: "Choose either the whole instance or one client.",
+          clientInvalid: "Invalid client.",
+          clientRequired: "Select the client to export.",
+          exportInvalid: "Invalid export."
         }
       },
       system: {

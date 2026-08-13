@@ -3260,6 +3260,7 @@ export type Translations = {
       taxRates: string
       email: string
       team: string
+      data: string
       system: string
     }
     navigation: {
@@ -3272,6 +3273,7 @@ export type Translations = {
       payment: string
       taxRates: string
       team: string
+      data: string
       system: string
     }
     profile: {
@@ -3738,6 +3740,82 @@ export type Translations = {
         smtpPasswordRequired: string
         resendApiKeyRequired: string
         recipientInvalid: string
+      }
+    }
+    data: {
+      title: string
+      description: string
+      request: {
+        title: string
+        description: string
+        scopeLabel: string
+        scopeInstance: string
+        scopeInstanceHelp: string
+        scopeClient: string
+        scopeClientHelp: string
+        clientLabel: string
+        clientPlaceholder: string
+        noClients: string
+        submit: string
+        submitted: string
+        activeNotice: string
+        progressNotice: string
+      }
+      scope: {
+        instance: string
+        client: string
+      }
+      status: {
+        pending: string
+        running: string
+        ready: string
+        failed: string
+      }
+      history: {
+        title: string
+        description: string
+        emptyTitle: string
+        emptyDescription: string
+      }
+      table: {
+        scope: string
+        status: string
+        requested: string
+        size: string
+        entries: string
+        actions: string
+      }
+      download: string
+      emptyValue: string
+      contents: {
+        title: string
+        description: string
+        includedTitle: string
+        includedRecords: string
+        includedFiles: string
+        includedActivity: string
+        excludedTitle: string
+        excludedSecrets: string
+        excludedTokens: string
+        excludedAuth: string
+      }
+      failureReasons: {
+        clientMissing: string
+        assemblyFailed: string
+        storageFailed: string
+      }
+      errors: {
+        alreadyRunning: string
+        clientNotFound: string
+        requestFailed: string
+        notReady: string
+        downloadFailed: string
+      }
+      validation: {
+        scopeInvalid: string
+        clientInvalid: string
+        clientRequired: string
+        exportInvalid: string
       }
     }
     system: {
