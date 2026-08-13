@@ -5,6 +5,7 @@ import { auditLogs } from "./auditLogs"
 import { users } from "./auth"
 import { clients } from "./clients"
 import { contracts } from "./contracts"
+import { dataExports } from "./dataExports"
 import { emailLogs } from "./emailLogs"
 import { invoices } from "./invoices"
 import { lineItems } from "./lineItems"
@@ -45,6 +46,17 @@ export const contractsRelations = relations(contracts, ({ one }) => ({
   template: one(templates, {
     fields: [contracts.templateId],
     references: [templates.id]
+  })
+}))
+
+export const dataExportsRelations = relations(dataExports, ({ one }) => ({
+  client: one(clients, {
+    fields: [dataExports.clientId],
+    references: [clients.id]
+  }),
+  requestedByUser: one(users, {
+    fields: [dataExports.requestedByUserId],
+    references: [users.id]
   })
 }))
 

@@ -96,3 +96,12 @@ export const emailProvider = pgEnum("email_provider", ["smtp", "resend"])
 export const backupDestination = pgEnum("backup_destination", ["local", "s3", "r2", "b2"])
 
 export const backupCadence = pgEnum("backup_cadence", ["daily", "weekly"])
+
+export const dataExportScope = pgEnum("data_export_scope", ["instance", "client"])
+
+export const dataExportStatus = pgEnum("data_export_status", [
+  "pending",
+  "running",
+  "ready",
+  "failed"
+])
