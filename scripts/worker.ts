@@ -15,6 +15,7 @@ async function main(): Promise<void> {
     import("@/lib/jobs/worker"),
     import("@/features/invoices/jobs"),
     import("@/features/recurringInvoices/jobs"),
+    import("@/features/dataExport/jobs"),
     // Same reason, on the bus rather than the job registry: the sweeps emit `invoice.overdue` and
     // `recurring.invoice_generated` from this process, and without this import their activity
     // entries would only ever be written when a request happened to emit them instead.

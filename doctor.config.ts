@@ -70,6 +70,14 @@ const config = {
         rules: ["react-doctor/async-await-in-loop"]
       },
       {
+        // A zip is a byte stream: every local header, payload and central-directory record has to
+        // reach the output in order, and each `await` is a backpressure pause on that stream. Running
+        // the writes concurrently would interleave the bytes and produce an archive no reader can
+        // open, so the loop is the format, not a missed parallelisation.
+        files: ["lib/archive/zip.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
         // Deliberate hook keys, argued at both call sites and already eslint-disabled inline for
         // react-hooks: CanvasBlock keys its HTML memo on the content/style/type the renderer reads
         // so a block reuses its HTML across gesture frames, and CanvasTextEditor seeds the inline
@@ -127,7 +135,8 @@ const config = {
     "requireTeamWrite",
     "requireActivityWrite",
     "requireActivityDelete",
-    "requireReportExport"
+    "requireReportExport",
+    "requireDataExportWrite"
   ],
   // The repo's eslint.config.mjs is JS/ESM, not JSON, so react-doctor does not actually adopt it; do
   // not rely on dedupe.

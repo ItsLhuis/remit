@@ -39,7 +39,8 @@
 24. [Line items](#25-line-items)
 25. [Payments](#26-payments)
 26. [Credit notes](#27-credit-notes)
-27. [Enum reference](#28-enum-reference)
+27. [Data exports](#27-data-exports)
+28. [Enum reference](#28-enum-reference)
 
 ---
 
@@ -1097,7 +1098,54 @@ Line items section above is the authoritative definition of that three-parent po
 
 ---
 
-## 27. Enum reference
+## 27. Data exports
+
+One row per export requested from `/settings/data`, and the only durable record that an archive
+exists. The archive itself is assembled by the `data_export.assemble` job (ADR-0023) in the worker
+process and stored in the credentialed exports bucket, never in the public runtime bucket.
+
+### `data_exports`
+
+| Column               | Type        | Null | Default             | Notes                                           |
+| -------------------- | ----------- | ---- | ------------------- | ----------------------------------------------- |
+| id                   | uuid        | no   | `gen_random_uuid()` | PK                                              |
+| scope                | enum        | no   |                     | `instance \| client`                            |
+| client_id            | uuid        | yes  |                     | FK → `clients.id` (set null). Client scope only |
+| status               | enum        | no   | `'pending'`         | `pending \| running \| ready \| failed`         |
+| progress             | integer     | no   | `0`                 | 0–100, written by the job                       |
+| started_at           | timestamptz | yes  |                     | Set when the job claims the row                 |
+| completed_at         | timestamptz | yes  |                     | Set on `ready` and on `failed`                  |
+| failure_reason       | text        | yes  |                     | Stable reason code, never a raw error message   |
+| requested_by_user_id | uuid        | yes  |                     | FK → `users.id` (set null)                      |
+| filename             | text        | yes  |                     | ASCII slug, e.g. `remit-export-instance-…​.zip` |
+| storage_key          | text        | yes  |                     | Object key in the exports bucket                |
+| size_bytes           | bigint      | yes  |                     | ≥ 0                                             |
+| entry_count          | integer     | yes  |                     | Files inside the archive                        |
+
+Standard `timestamps`. No `softDelete`: an export either has an archive behind it or it does not,
+and hiding a row would leave its object in the exports bucket with nothing pointing at it.
+
+Constraints:
+
+- `chk_data_exports_progress` — `progress BETWEEN 0 AND 100`.
+- `chk_data_exports_size_bytes` — `size_bytes IS NULL OR size_bytes >= 0`.
+- `chk_data_exports_scope_client` — an `instance` export names no client. The `client` side is
+  deliberately unconstrained because `client_id` goes null when the exported client is deleted.
+
+Indexes: `idx_data_exports_status`, `idx_data_exports_created_at`, `idx_data_exports_client_id`.
+
+`client_id` is `set null` rather than `cascade` because the archive outlives the client it covers —
+that is the point of an offboarding export — and the `data_export.requested` audit entry keeps the
+client id permanently.
+
+Which tables and columns reach an archive is defined by the manifest in
+`features/dataExport/services/exportManifest.ts`; see
+[ARCHITECTURE.md, Data export and deletion](ARCHITECTURE.md#data-export-and-deletion) for the
+inclusion and exclusion policy.
+
+---
+
+## 28. Enum reference
 
 All enum types declared in `database/schema/enums.ts`.
 
@@ -1124,6 +1172,8 @@ All enum types declared in `database/schema/enums.ts`.
 | `template_type`            | `invoice`, `proposal`, `contract`, `credit_note`, `email_invoice_send`, `email_proposal_send`, `email_contract_send`, `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated` |
 | `backup_destination`       | `local`, `s3`, `r2`, `b2`                                                                                                                                                                            |
 | `backup_cadence`           | `daily`, `weekly`                                                                                                                                                                                    |
+| `data_export_scope`        | `instance`, `client`                                                                                                                                                                                 |
+| `data_export_status`       | `pending`, `running`, `ready`, `failed`                                                                                                                                                              |
 
 `overdue` and `partially_paid` for invoices are **computed**, not stored. The stored value remains
 `sent` until the invoice is fully paid; the application surfaces `overdue` when `due_date < now()`

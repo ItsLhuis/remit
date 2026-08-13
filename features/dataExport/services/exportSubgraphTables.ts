@@ -1,0 +1,413 @@
+import { type DataExportScope } from "../schemas"
+
+import { type ExportTableManifest } from "./exportManifest"
+
+const EVERY_SCOPE: readonly DataExportScope[] = ["instance", "client"]
+
+// The tables that travel in both scopes: a client's own record and everything that hangs off it. A
+// whole-instance export carries all their rows; a client-scoped export carries the subset
+// `queries.ts`'s `buildClientScope` selects for one client, and every table here must have a rule
+// there. `exportManifest.ts` holds the inclusion policy, and `exportInstanceTables.ts` the other half.
+export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
+  {
+    table: "clients",
+    file: "data/clients.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "name",
+      "email",
+      "phone",
+      "website",
+      "taxId",
+      "addressLine1",
+      "addressLine2",
+      "city",
+      "state",
+      "postalCode",
+      "country",
+      "currency",
+      "locale",
+      "defaultHourlyRateCents",
+      "notes",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: [{ column: "portalToken", reason: "bearerToken" }]
+  },
+  {
+    table: "leads",
+    file: "data/leads.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "firstName",
+      "lastName",
+      "company",
+      "email",
+      "phone",
+      "source",
+      "status",
+      "notes",
+      "convertedAt",
+      "convertedToClientId",
+      "lostReason",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "projects",
+    file: "data/projects.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "clientId",
+      "name",
+      "description",
+      "status",
+      "currency",
+      "budgetCents",
+      "hourlyRateCents",
+      "startDate",
+      "endDate",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "tasks",
+    file: "data/tasks.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "title",
+      "description",
+      "status",
+      "priority",
+      "dueAt",
+      "completedAt",
+      "position",
+      "hourlyRateCents",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "time_entries",
+    file: "data/time-entries.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "taskId",
+      "userId",
+      "startedAt",
+      "endedAt",
+      "durationSeconds",
+      "billable",
+      "hourlyRateOverrideCents",
+      "hourlyRateSnapshotCents",
+      "description",
+      "source",
+      "invoicedInId",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "expenses",
+    file: "data/expenses.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "clientId",
+      "amountCents",
+      "currency",
+      "category",
+      "description",
+      "spentAt",
+      "receiptUploadId",
+      "rebillable",
+      "markupPercentage",
+      "invoicedInId",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "proposals",
+    file: "data/proposals.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "templateId",
+      "number",
+      "status",
+      "currency",
+      "discountType",
+      "discountPercentage",
+      "discountAmountCents",
+      "subtotalCents",
+      "discountAmountTotalCents",
+      "taxAmountCents",
+      "totalCents",
+      "validUntil",
+      "notes",
+      "firstViewedAt",
+      "lastViewedAt",
+      "viewCount",
+      "issuedAt",
+      "lockedAt",
+      "respondedAt",
+      "respondedIp",
+      "rejectionReason",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: [{ column: "publicToken", reason: "bearerToken" }]
+  },
+  {
+    table: "contracts",
+    file: "data/contracts.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "clientId",
+      "proposalId",
+      "templateId",
+      "number",
+      "title",
+      "status",
+      "blocks",
+      "issuedAt",
+      "effectiveFrom",
+      "effectiveUntil",
+      "terminatedAt",
+      "terminationReason",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: [{ column: "publicToken", reason: "bearerToken" }]
+  },
+  {
+    table: "contract_signatures",
+    file: "data/contract-signatures.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "contractId",
+      "signerName",
+      "signerEmail",
+      "consentText",
+      "ipAddress",
+      "userAgent",
+      "signedPdfUploadId",
+      "signedAt",
+      "createdAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "recurring_invoices",
+    file: "data/recurring-invoices.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "clientId",
+      "projectId",
+      "templateId",
+      "name",
+      "status",
+      "cadence",
+      "cadenceDay",
+      "nextRunAt",
+      "lastRunAt",
+      "endAfterCount",
+      "endByDate",
+      "occurrencesGenerated",
+      "autoSend",
+      "currency",
+      "lineItemsBlueprint",
+      "includedHours",
+      "overageRateCents",
+      "notes",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "invoices",
+    file: "data/invoices.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "projectId",
+      "clientId",
+      "proposalId",
+      "recurringInvoiceId",
+      "templateId",
+      "number",
+      "status",
+      "currency",
+      "exchangeRate",
+      "discountType",
+      "discountPercentage",
+      "discountAmountCents",
+      "subtotalCents",
+      "discountAmountTotalCents",
+      "taxAmountCents",
+      "totalCents",
+      "amountPaidCents",
+      "issueDate",
+      "dueDate",
+      "paidAt",
+      "lateFeeCents",
+      "notes",
+      "firstViewedAt",
+      "lastViewedAt",
+      "viewCount",
+      "lastReminderSentAt",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: [{ column: "publicToken", reason: "bearerToken" }]
+  },
+  {
+    table: "line_items",
+    file: "data/line-items.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "proposalId",
+      "invoiceId",
+      "creditNoteId",
+      "taxRateId",
+      "position",
+      "description",
+      "unit",
+      "quantity",
+      "unitPriceCents",
+      "discountType",
+      "discountPercentage",
+      "discountAmountCents",
+      "taxPercentageSnapshot",
+      "subtotalCents",
+      "taxAmountCents",
+      "totalCents",
+      "sourceTimeEntryId",
+      "sourceExpenseId",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "payments",
+    file: "data/payments.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "invoiceId",
+      "method",
+      "amountCents",
+      "currency",
+      "paidAt",
+      "reference",
+      "stripePaymentIntentId",
+      "notes",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "credit_notes",
+    file: "data/credit-notes.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "invoiceId",
+      "number",
+      "reason",
+      "currency",
+      "subtotalCents",
+      "taxAmountCents",
+      "totalCents",
+      "issuedAt",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "activity_logs",
+    file: "data/activity-logs.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "entityType",
+      "entityId",
+      "action",
+      "messageKey",
+      "messageArgs",
+      "readAt",
+      "createdAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    table: "email_logs",
+    file: "data/email-logs.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "documentType",
+      "documentId",
+      "templateId",
+      "recipientEmail",
+      "recipientName",
+      "subject",
+      "status",
+      "pdfAttached",
+      "provider",
+      "providerMessageId",
+      "sentAt",
+      "errorMessage",
+      "createdAt"
+    ],
+    excludedColumns: []
+  },
+  {
+    // The index of the archive's `files/` directory: every row here has its bytes beside it under
+    // `files/<path>`, which is also how generated PDFs travel once ADR-0022 stores them as uploads.
+    table: "uploads",
+    file: "data/uploads.json",
+    scopes: EVERY_SCOPE,
+    columns: ["id", "filename", "path", "mimeType", "sizeBytes", "createdAt"],
+    excludedColumns: []
+  }
+]

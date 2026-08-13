@@ -33,6 +33,12 @@ export type JobMap = {
     recurringInvoiceId: string
     occurrenceKey: string
   }
+  // Carries only the `data_exports` row id: the scope, the client, and the requester all live on that
+  // row, and re-reading them under a conditional claim is what makes a duplicate delivery a no-op
+  // instead of a second archive.
+  "data_export.assemble": {
+    exportId: string
+  }
   "invoice.overdue.sweep": Record<string, never>
   "invoice.reminder.sweep": Record<string, never>
   "invoice.reminder.send": {

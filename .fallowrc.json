@@ -19,6 +19,7 @@
     "lib/jobs/worker.ts",
     "features/invoices/jobs.ts",
     "features/recurringInvoices/jobs.ts",
+    "features/dataExport/jobs.ts",
     "features/activityLog/events.ts"
   ],
   "rules": {

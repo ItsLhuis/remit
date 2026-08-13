@@ -894,6 +894,58 @@ Two GDPR-aligned features:
 and every generated PDF. Audit-logged. Per-client export is also available for client offboarding or
 right-to-portability requests.
 
+The surface is owner-only (`requireRole("owner")` on the page, `requireDataExportWrite` in the
+mutation, and a role check in the download route). A request enqueues the `data_export.assemble` job
+(ADR-0023); the worker reads the rows, streams every referenced storage object into a zip, uploads
+it, and reports `status`/`progress` on the `data_exports` row, which the page polls. Archives are
+stored in a **separate exports bucket with no anonymous read policy** — unlike the runtime uploads
+bucket — so `GET /api/exports/[id]` is the only path out.
+
+Three audit entries cover an export's life: `data_export.requested` (actor, role, scope, client id,
+IP, user-agent), `data_export.completed` or `data_export.failed` from the worker (no request
+context, so no IP), and `data_export.downloaded` when the bytes actually leave.
+
+The archive layout is `index.json`, one `data/<table>.json` per exported table, and the stored
+objects under `files/<storage key>`. `index.json` carries the exclusion list, so a recipient can
+tell a policy omission from a missing file.
+
+`features/dataExport/services/exportManifest.ts` is the authoritative inclusion list — an allowlist
+of table **and column**, enforced at the SELECT, with a test that fails when a new schema column is
+neither included nor explicitly excluded. Policy:
+
+Included:
+
+- Business records: `clients` (including the encrypted `notes`, decrypted), `leads`, `projects`,
+  `tasks`, `time_entries`, `expenses`, `proposals`, `contracts`, `contract_signatures`,
+  `recurring_invoices`, `invoices`, `line_items`, `payments`, `credit_notes`.
+- `settings` business identity, locale and document-numbering columns, plus `payment_bank_name` and
+  `payment_instructions`.
+- `templates`, `tax_rates`, `activity_logs`, `audit_logs`, `uploads`, `data_exports` — instance
+  scope only.
+- Every `uploads` object's bytes, which is also how ADR-0022 PDFs travel once they are stored as
+  uploads.
+- Soft-deleted rows, with `deleted_at` intact, because they still exist in the instance.
+
+Excluded:
+
+- Public bearer tokens everywhere: `invoices.public_token`, `proposals.public_token`,
+  `contracts.public_token`, `clients.portal_token`.
+- The whole `settings` email, payment-provider and backup configuration surface — every
+  `encryptedColumn()` (SMTP password, Resend key, Stripe secret and webhook secret, backup S3 keys,
+  `payment_iban`) **and** its non-secret halves such as `smtp_host` and `stripe_publishable_key`.
+- Every Better Auth-owned table: `users`, `sessions`, `accounts`, `verifications`, `two_factors`,
+  `organizations`, `members`, `invitations`.
+- `proposal_otps` — single-use acceptance codes.
+- `data_exports.storage_key`, an internal object path.
+
+Two boundaries are deliberately wider than "everything the owner may see". The whole configuration
+surface is excluded rather than filtered field by field, because one auditable boundary does not
+grow a new leak each time a provider setting is added beside a secret; and the Better Auth boundary
+is drawn around the plugin's entire schema rather than around its credential columns, because those
+tables' shape is owned by a dependency that changes across upgrades. A client-scoped export drops
+the instance-wide files (`settings`, `templates`, `tax_rates`, `audit_logs`) and scopes everything
+else to that client's subgraph.
+
 **Soft delete and retention.** Domain entities use `deletedAt` for soft delete and are restorable
 from a trash view. Hard delete is available after a configurable retention period. Hard-deleting a
 client cascades to projects, proposals, and invoices in soft-delete state and requires typed-name

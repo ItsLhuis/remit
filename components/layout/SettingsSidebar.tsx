@@ -67,6 +67,16 @@ const navGroups = [
     items: [{ labelKey: "settings.navigation.team", href: "/settings/team", icon: "Users" }]
   },
   {
+    label: "settings.navigation.data",
+    items: [
+      {
+        labelKey: "settings.navigation.data",
+        href: "/settings/data",
+        icon: "DatabaseBackup"
+      }
+    ]
+  },
+  {
     label: "settings.navigation.system",
     items: [
       {
@@ -78,10 +88,11 @@ const navGroups = [
   }
 ] as const satisfies readonly NavGroup[]
 
-// Visibility only. Both pages call `requireRole("owner")` themselves, so removing a link here never
-// makes a route reachable and adding one never makes it unreachable.
+// Visibility only. Each of these pages calls `requireRole("owner")` itself, so removing a link here
+// never makes a route reachable and adding one never makes it unreachable.
 const ownerOnlyGroupLabels: readonly string[] = [
   "settings.navigation.team",
+  "settings.navigation.data",
   "settings.navigation.system"
 ]
 
