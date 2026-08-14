@@ -34,15 +34,26 @@ export {
 } from "./schemas"
 
 export {
+  buildBusinessMergeValues,
+  buildClientMergeValues,
+  buildDocumentShell,
+  buildPaymentMergeValues,
   buildSampleRenderData,
   getMergeVariables,
   getPageHeight,
   getPageWidth,
   getTemplateCategory,
   normalizePageSettings,
+  renderMergeString,
   renderTemplate,
   MERGE_VARIABLES,
   TEMPLATE_CATEGORIES,
+  mergeDay,
+  mergeText,
+  type DocumentShell,
+  type MergeBusiness,
+  type MergeClient,
+  type MergePayment,
   type TemplateCategory,
   type TemplateRenderData
 } from "./services"

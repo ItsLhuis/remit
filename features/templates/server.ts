@@ -8,11 +8,14 @@ export {
   type TemplateMutationResult
 } from "./mutations"
 
-export {
-  getTemplateForEdit,
-  getTemplatesPageData,
-  resolveTemplateAssets,
-  toTemplateEditorData
-} from "./queries"
+export { getTemplateForEdit, getTemplatesPageData, resolveTemplateAssets } from "./queries"
 
 export { emitTemplateCreated, emitTemplateDeleted, emitTemplateUpdated } from "./events"
+
+export { toTemplateEditorData } from "./services"
+
+export {
+  renderEmailTemplate,
+  type EmailTemplateRender,
+  type RenderEmailTemplateInput
+} from "./emailRendering"
