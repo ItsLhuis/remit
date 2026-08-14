@@ -43,7 +43,7 @@ async function runScheduleSweep(): Promise<void> {
     await enqueueJob(
       "recurring.invoice.generate",
       { recurringInvoiceId: schedule.id, occurrenceKey },
-      { jobId: `recurring.invoice.generate:${schedule.id}:${occurrenceKey}` }
+      { jobId: `recurring.invoice.generate.${schedule.id}.${occurrenceKey}` }
     )
   }
 }
@@ -56,6 +56,9 @@ type GenerationOutcome = {
   clientId: string
   projectId: string | null
   retainer: RetainerUsage | null
+  // Whether this schedule delivers to the client itself. A manual schedule generates a draft the
+  // freelancer reviews first, so the generated-invoice mail is owed only by an auto-sending one.
+  autoSend: boolean
 }
 
 // The money-affecting half, and the one place the exactly-once guarantee lives.
@@ -183,7 +186,8 @@ async function generateRecurringInvoice(payload: {
       occurrence,
       clientId: schedule.clientId,
       projectId: schedule.projectId,
-      retainer
+      retainer,
+      autoSend: schedule.autoSend
     } satisfies GenerationOutcome
   })
 
@@ -233,7 +237,12 @@ async function announceGeneration(
     })
   }
 
-  await enqueueJob("invoice.pdf.render", { invoiceId: outcome.invoiceId })
+  // Only an auto-sent schedule mails its client: a generated draft is the freelancer's to review
+  // first, so it is rendered but not delivered.
+  await enqueueJob("invoice.pdf.render", {
+    invoiceId: outcome.invoiceId,
+    ...(outcome.autoSend ? { email: "recurring_generated" as const } : {})
+  })
 }
 
 type GenerationTransaction = Parameters<Parameters<typeof database.transaction>[0]>[0]

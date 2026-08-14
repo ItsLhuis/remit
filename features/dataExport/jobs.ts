@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger"
 
 import { ZipWriter } from "@/lib/archive"
 import { registerJobHandler } from "@/lib/jobs"
-import { getStorageObjectBytes, putExportObject } from "@/lib/storage/s3"
+import { getStorageObjectBytes, putExportObject, type StorageBucketName } from "@/lib/storage/s3"
 
 import { database } from "@/database"
 import { clients, dataExports } from "@/database/schema"
@@ -233,16 +233,21 @@ async function readExportRows(claimed: ClaimedExport): Promise<ExportRowsByTable
 type UploadRow = {
   id: string
   path: string
+  bucket: StorageBucketName
 }
 
 function toUploadRows(rowsByTable: ExportRowsByTable): UploadRow[] {
   return (rowsByTable.uploads ?? []).flatMap((row) => {
     const id = row.id
     const objectPath = row.path
+    // Generated document PDFs live in the private `documents` bucket, so reading every row from the
+    // public one would skip exactly the invoices and contracts an owner most wants in their archive
+    // — and skip them silently, because `readStorageObject` logs and continues.
+    const bucket = row.bucket === "documents" ? "documents" : "public"
 
     if (typeof id !== "string" || typeof objectPath !== "string") return []
 
-    return [{ id, path: objectPath }]
+    return [{ id, path: objectPath, bucket }]
   })
 }
 
@@ -294,7 +299,7 @@ async function writeUploadEntries({
 // gap is visible — `index.json` lists the files that made it and `data/uploads.json` lists every row.
 async function readStorageObject(upload: UploadRow): Promise<Buffer | null> {
   try {
-    return await getStorageObjectBytes(upload.path)
+    return await getStorageObjectBytes(upload.path, upload.bucket)
   } catch (error) {
     logger.error(
       { action: "assembleDataExport", uploadId: upload.id, err: error },

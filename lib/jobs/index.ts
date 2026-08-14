@@ -1,3 +1,4 @@
 export * from "./enqueue"
+export * from "./jobId"
 export * from "./registry"
-export type * from "./types"
+export * from "./types"

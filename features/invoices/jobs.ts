@@ -12,11 +12,16 @@ import { env } from "@/lib/config/env"
 import { enqueueJob, registerJobHandler } from "@/lib/jobs"
 
 import { database } from "@/database"
-import { auditLogs, clients, emailLogs, invoices, projects } from "@/database/schema"
+import { auditLogs, clients, invoices, projects, uploads } from "@/database/schema"
 
-import { isEmailConfigured, sendTransactionalEmail } from "@/features/email/server"
+import { isEmailConfigured, sendDocumentEmail } from "@/features/email/server"
 
+import { renderEmailTemplate } from "@/features/templates/server"
+
+import { buildInvoiceDocumentData } from "./documentData"
+import { sendInvoiceEmail } from "./emailJob"
 import { emitInvoiceOverdue, emitInvoiceReminderSent } from "./events"
+import { renderInvoicePdf } from "./pdfRenderJob"
 import {
   getReminderWindowDays,
   isInvoiceOverdue,
@@ -29,6 +34,8 @@ const MILLISECONDS_PER_DAY = 86_400_000
 // The invoice module's half of the scheduled work (ADR-0023). Handlers register at module load, the
 // way `features/*/events.ts` register bus subscribers, and `scripts/worker.ts` is what imports this
 // file — nothing under `lib/` reaches into a feature.
+registerJobHandler("invoice.pdf.render", renderInvoicePdf)
+registerJobHandler("invoice.email.send", sendInvoiceEmail)
 registerJobHandler("invoice.overdue.sweep", runOverdueSweep)
 registerJobHandler("invoice.reminder.sweep", runReminderSweep)
 registerJobHandler("invoice.reminder.send", sendInvoiceReminder)
@@ -145,7 +152,7 @@ async function runReminderSweep(): Promise<void> {
     await enqueueJob(
       "invoice.reminder.send",
       { invoiceId: invoice.id, offsetDays: reminder.offsetDays, phase: reminder.phase },
-      { jobId: `invoice.reminder.send:${invoice.id}:${reminder.phase}:${reminder.offsetDays}` }
+      { jobId: `invoice.reminder.send.${invoice.id}.${reminder.phase}.${reminder.offsetDays}` }
     )
   }
 }
@@ -194,52 +201,33 @@ async function sendInvoiceReminder(payload: {
     return
   }
 
-  const subject = renderReminderSubject(target, payload)
-  const text = renderReminderBody(target, payload, instance)
+  // Rendered through the instance's `email_overdue_reminder` template, with the hand-rolled text
+  // below as the fallback. Before this stage the reminder ignored the template entirely, which meant
+  // an operator could design one and never see it used.
+  const document = await buildInvoiceDocumentData(target.id)
 
-  const [log] = await database
-    .insert(emailLogs)
-    .values({
-      documentType: "invoice",
-      documentId: target.id,
-      recipientEmail: target.recipientEmail,
-      recipientName: target.recipientName,
-      subject,
-      status: "pending"
-    })
-    .returning({ id: emailLogs.id })
+  if (!document) return
 
-  try {
-    await sendTransactionalEmail({
-      to: target.recipientEmail,
-      subject,
-      text,
-      // The provider-side guard that pairs with the database claim above: a retry after a timeout
-      // that actually delivered will not send a second copy.
-      idempotencyKey: `invoice-reminder:${target.id}:${payload.phase}:${payload.offsetDays}`
-    })
-  } catch (error) {
-    logger.error(
-      { action: "sendInvoiceReminder", invoiceId: target.id, err: error },
-      "Invoice reminder delivery failed"
-    )
+  const body = await renderEmailTemplate({
+    templateType: "email_overdue_reminder",
+    renderData: document.renderData,
+    fallbackSubject: renderReminderSubject(target, payload),
+    fallbackText: renderReminderBody(target, payload, instance)
+  })
 
-    if (log) {
-      await database
-        .update(emailLogs)
-        .set({ status: "failed", errorMessage: toDeliveryErrorMessage(error) })
-        .where(eq(emailLogs.id, log.id))
-    }
-
-    throw error
-  }
-
-  if (log) {
-    await database
-      .update(emailLogs)
-      .set({ status: "sent", sentAt: new Date() })
-      .where(eq(emailLogs.id, log.id))
-  }
+  await sendDocumentEmail({
+    documentType: "invoice",
+    documentId: target.id,
+    recipientEmail: target.recipientEmail,
+    recipientName: target.recipientName,
+    // The offset and phase are part of the occasion, so a "3 days before" and a "7 days after"
+    // reminder about the same invoice are two different mails rather than one deduplicated away.
+    occasion: `reminder.${payload.phase}.${payload.offsetDays}`,
+    subject: body.subject,
+    text: body.text,
+    html: body.html,
+    attachment: await getInvoicePdfAttachment(target.id)
+  })
 
   await writeAudit("invoice.reminder_sent", {
     actorUserId: null,
@@ -255,6 +243,20 @@ async function sendInvoiceReminder(payload: {
     offsetDays: payload.offsetDays,
     phase: payload.phase
   })
+}
+
+// The stored invoice PDF, when there is one. A reminder about an invoice whose render failed still
+// goes out — chasing payment matters more than the attachment — and `email_logs.pdf_attached`
+// records which of the two happened.
+async function getInvoicePdfAttachment(invoiceId: string) {
+  const [row] = await database
+    .select({ filename: uploads.filename, storageKey: uploads.path })
+    .from(invoices)
+    .innerJoin(uploads, eq(invoices.pdfUploadId, uploads.id))
+    .where(and(eq(invoices.id, invoiceId), isNull(invoices.deletedAt)))
+    .limit(1)
+
+  return row ?? null
 }
 
 async function claimReminder(invoiceId: string): Promise<boolean> {
@@ -402,11 +404,6 @@ function renderReminderBody(
   return payload.phase === "before"
     ? t("invoices.reminders.bodyBefore", values)
     : t("invoices.reminders.bodyAfter", values)
-}
-
-// The provider's own message, never the recipient address or the token in the link.
-function toDeliveryErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "unknown"
 }
 
 function toUtcDay(value: Date): Date {
