@@ -78,3 +78,25 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
+
+# ─── Stage 5: worker ─────────────────────────────────────────────────────────
+# The background job consumer, and the only image that carries Chromium (ADR-0022). It extends the
+# runner rather than duplicating it, so both processes run byte-identical application code.
+#
+# Kept a separate stage on purpose: Chromium and its font and library closure add hundreds of
+# megabytes, and the web application never launches a browser — PDFs are rendered by a job, never in
+# a request. Merging the two would put that weight on every web container and every image pull.
+#
+# `docker-compose.yml` must therefore build `app` with `target: runner`. Without it, Compose builds
+# the last stage in this file and the web image silently gains Chromium again.
+FROM runner AS worker
+
+USER root
+RUN apk add --no-cache chromium
+USER nextjs
+
+# The Alpine package installs the launcher under this name; `lib/pdf/renderPdf.ts` refuses to render
+# when it is unset rather than guessing a path.
+ENV REMIT_CHROMIUM_PATH=/usr/bin/chromium-browser
+
+ENTRYPOINT ["node", "scripts/dist/worker.js"]

@@ -16,6 +16,14 @@ const config = {
     files: [],
     overrides: [
       {
+        // The two awaits are sequential on purpose: `hasAlreadySent` is a guard, and loading a PDF
+        // out of object storage before knowing whether the mail is a duplicate would read bytes the
+        // send then discards. Parallelising them would defeat the deduplication this file exists to
+        // guarantee.
+        files: ["features/email/documentEmail.ts"],
+        rules: ["react-doctor/server-sequential-independent-await"]
+      },
+      {
         // `transition-all` is the design system's own idiom, applied in the shared cva bases
         // (buttonVariants, sidebarMenuButtonVariants, …) and inherited by every consumer. Naming
         // properties per call site cannot be done without dropping animations the UI ships today.

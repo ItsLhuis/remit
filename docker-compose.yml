@@ -54,6 +54,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Explicit, because `worker` is the last stage in the Dockerfile and Compose would otherwise
+      # build it here — handing the web image the Chromium closure that stage exists to keep out.
+      target: runner
       args:
         # NEXT_PUBLIC_* variables are legitimate build args - Next.js embeds
         # them into the client bundle at build time.
@@ -105,13 +108,21 @@ services:
       start_period: 30s
 
   worker:
-    image: ghcr.io/itslhuis/remit:${REMIT_IMAGE_TAG:-latest}
+    image: ghcr.io/itslhuis/remit-worker:${REMIT_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # A separate image from `app`, not the same one running a second process. The `worker` stage
+      # adds Chromium for PDF rendering (ADR-0022) on top of the identical application layers, so the
+      # web image stays free of it. Its own ENTRYPOINT starts the consumer, which is also why
+      # docker-entrypoint.sh is not reached here - that script migrates and then execs the web
+      # server. Waiting on `app` being healthy is what keeps the two containers from migrating
+      # concurrently.
+      target: worker
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
     restart: unless-stopped
-    # The same image as `app`, running a second process. `entrypoint` is overridden rather than
-    # `command` because docker-entrypoint.sh runs migrations and then execs the web server, ignoring
-    # any arguments appended to it - a `command:` here would start a second web server instead.
-    # Waiting on `app` being healthy is what keeps the two containers from migrating concurrently.
-    entrypoint: ["node", "scripts/dist/worker.js"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}

@@ -56,3 +56,6 @@ CLAUDE.local.md
 # ephemeral docs (not versioned)
 docs/superpowers/
 docs/prompts/
+
+# Local Chromium for the PDF worker
+/chrome/

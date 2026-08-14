@@ -20,7 +20,10 @@
     "features/invoices/jobs.ts",
     "features/recurringInvoices/jobs.ts",
     "features/dataExport/jobs.ts",
-    "features/activityLog/events.ts"
+    "features/activityLog/events.ts",
+    "features/proposals/jobs.ts",
+    "features/creditNotes/jobs.ts",
+    "features/contracts/jobs.ts"
   ],
   "rules": {
     "unused-exports": "warn",
