@@ -17,6 +17,7 @@ import { softDelete, timestamps } from "./helpers"
 import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { templates } from "./templates"
+import { uploads } from "./uploads"
 
 export const contracts = pgTable(
   "contracts",
@@ -26,6 +27,11 @@ export const contracts = pgTable(
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
+    // The rendered PDF, and the snapshot of what was sent. Written once by the `contract.pdf.render` job and never
+    // regenerated: re-rendering later would silently restyle a document the client already holds if
+    // the template were edited afterwards, so the stored object *is* the record. See
+    // `database/schema/invoices.ts` for the full reasoning behind this column.
+    pdfUploadId: uuid("pdf_upload_id").references(() => uploads.id, { onDelete: "set null" }),
     number: text("number").notNull().unique(),
     title: text("title").notNull(),
     status: contractStatus("status").notNull().default("draft"),

@@ -21,6 +21,7 @@ import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { recurringInvoices } from "./recurringInvoices"
 import { templates } from "./templates"
+import { uploads } from "./uploads"
 
 export const invoices = pgTable(
   "invoices",
@@ -33,6 +34,12 @@ export const invoices = pgTable(
       onDelete: "set null"
     }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
+    // The rendered PDF, and the snapshot of what was sent. It is written once by the
+    // `invoice.pdf.render` job and never regenerated: re-rendering from `templateId` would silently
+    // restyle an invoice the client already holds if the template were edited afterwards, so the
+    // stored object *is* the record. NULL means "not rendered yet, or the render failed" — the two
+    // are told apart by the audit log, not by a status column here.
+    pdfUploadId: uuid("pdf_upload_id").references(() => uploads.id, { onDelete: "set null" }),
     number: text("number").notNull().unique(),
     status: invoiceStatus("status").notNull().default("draft"),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),

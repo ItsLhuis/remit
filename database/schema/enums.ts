@@ -93,6 +93,13 @@ export const paymentMethod = pgEnum("payment_method", ["bank_transfer", "stripe"
 
 export const emailProvider = pgEnum("email_provider", ["smtp", "resend"])
 
+// Which object store an `uploads` row lives in, and therefore who can read it. `public` is the
+// anonymously-readable bucket `lib/storage/s3.ts` puts a GetObject policy on — avatars and template
+// images, where an unguessable key is the whole access control. `documents` is the private bucket
+// generated PDFs land in: an invoice is a money document, and reachable-by-URL-alone is not an
+// acceptable default for one (ADR-0022, ADR-0019).
+export const storageBucket = pgEnum("storage_bucket", ["public", "documents"])
+
 export const backupDestination = pgEnum("backup_destination", ["local", "s3", "r2", "b2"])
 
 export const backupCadence = pgEnum("backup_cadence", ["daily", "weekly"])

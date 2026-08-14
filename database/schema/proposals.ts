@@ -18,6 +18,7 @@ import { discountType, proposalStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
 import { projects } from "./projects"
 import { templates } from "./templates"
+import { uploads } from "./uploads"
 
 export const proposals = pgTable(
   "proposals",
@@ -27,6 +28,11 @@ export const proposals = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
+    // The rendered PDF, and the snapshot of what was sent. Written once by the `proposal.pdf.render` job and never
+    // regenerated: re-rendering later would silently restyle a document the client already holds if
+    // the template were edited afterwards, so the stored object *is* the record. See
+    // `database/schema/invoices.ts` for the full reasoning behind this column.
+    pdfUploadId: uuid("pdf_upload_id").references(() => uploads.id, { onDelete: "set null" }),
     number: text("number").notNull().unique(),
     status: proposalStatus("status").notNull().default("draft"),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
