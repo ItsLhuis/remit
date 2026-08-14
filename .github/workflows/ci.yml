@@ -99,12 +99,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Start test database
+      - name: Start test services
         run: docker compose -f docker-compose.test.yml up -d
 
-      - name: Wait for test database
+      - name: Wait for test services
         run: |
           until docker compose -f docker-compose.test.yml exec -T database_test pg_isready -U remit_test -d remit_test; do
+            sleep 1
+          done
+          until docker compose -f docker-compose.test.yml exec -T redis_test redis-cli ping; do
             sleep 1
           done
 
