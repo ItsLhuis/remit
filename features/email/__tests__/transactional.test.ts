@@ -241,3 +241,70 @@ describe("mapNodemailerError", () => {
     expect(error.name).toBe("EmailDeliveryError")
   })
 })
+
+describe("sendTransactionalEmail with attachments", () => {
+  const attachment = {
+    filename: "INV-0001.pdf",
+    content: Buffer.from("%PDF-1.4", "latin1"),
+    contentType: "application/pdf"
+  }
+
+  test("passes the attachment bytes to nodemailer", async () => {
+    mocks.findFirst.mockResolvedValue(smtpRow)
+
+    await sendTransactionalEmail({
+      to: "to@example.com",
+      subject: "Invoice",
+      text: "Body",
+      attachments: [attachment]
+    })
+
+    expect(mocks.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [attachment] })
+    )
+  })
+
+  test("passes the attachment bytes to Resend", async () => {
+    mocks.findFirst.mockResolvedValue(resendRow)
+
+    await sendTransactionalEmail({
+      to: "to@example.com",
+      subject: "Invoice",
+      text: "Body",
+      attachments: [attachment]
+    })
+
+    expect(mocks.resendSend).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [attachment] }),
+      expect.anything()
+    )
+  })
+
+  // The key is omitted entirely rather than sent empty, because nodemailer treats an empty array as
+  // a multipart message with no parts and some MTAs reject it.
+  test("omits the attachments key when there are none", async () => {
+    mocks.findFirst.mockResolvedValue(smtpRow)
+
+    await sendTransactionalEmail({ to: "to@example.com", subject: "Hi", text: "Body" })
+
+    expect(mocks.sendMail).toHaveBeenCalledWith(
+      expect.not.objectContaining({ attachments: expect.anything() })
+    )
+  })
+
+  // `email_logs.pdf_attached` may only be written from a send that returned, so a rejected
+  // attachment has to surface as a throw the caller can see rather than a silently dropped part.
+  test("throws a rejection code when the provider refuses the attachment", async () => {
+    mocks.findFirst.mockResolvedValue(resendRow)
+    mocks.resendSend.mockResolvedValue({ data: null, error: { name: "invalid_attachment" } })
+
+    await expect(
+      sendTransactionalEmail({
+        to: "to@example.com",
+        subject: "Invoice",
+        text: "Body",
+        attachments: [attachment]
+      })
+    ).rejects.toMatchObject({ code: "resend_rejected" satisfies EmailDeliveryErrorCode })
+  })
+})

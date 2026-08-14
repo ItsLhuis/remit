@@ -10,11 +10,22 @@ import { database } from "@/database"
 
 import { isEmailConfigured } from "./services/isEmailConfigured"
 
+// One shape for both adapters, because nodemailer and Resend happen to accept the same three fields.
+// `content` is the bytes rather than a path or a URL on purpose: a path would make the mail adapter
+// reach into storage, and a URL would hand the provider a link to fetch — which for a document PDF
+// means publishing it (`security.md`).
+export type EmailAttachment = {
+  filename: string
+  content: Buffer
+  contentType: string
+}
+
 export type TransactionalEmail = {
   to: string
   subject: string
   text: string
   html?: string
+  attachments?: readonly EmailAttachment[]
   idempotencyKey?: string
 }
 
@@ -166,7 +177,8 @@ async function sendWithResend(config: ResendConfig, email: TransactionalEmail): 
         to: email.to,
         subject: email.subject,
         text: email.text,
-        ...(email.html ? { html: email.html } : {})
+        ...(email.html ? { html: email.html } : {}),
+        ...(email.attachments?.length ? { attachments: toProviderAttachments(email) } : {})
       },
       email.idempotencyKey ? { idempotencyKey: email.idempotencyKey } : {}
     ))
@@ -208,7 +220,8 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
       to: email.to,
       subject: email.subject,
       text: email.text,
-      ...(email.html ? { html: email.html } : {})
+      ...(email.html ? { html: email.html } : {}),
+      ...(email.attachments?.length ? { attachments: toProviderAttachments(email) } : {})
     })
   } catch (error) {
     const code = mapNodemailerError(error)
@@ -236,6 +249,9 @@ export function mapResendError(name: string | undefined): EmailDeliveryErrorCode
     case "invalid_parameter":
     case "invalid_from_address":
     case "invalid_to_address":
+    // An attachment over the provider's size limit. It is a rejection of this message rather than a
+    // transport fault, so a retry with the same payload would fail identically.
+    case "invalid_attachment":
       return "resend_rejected"
     case undefined:
       return "provider_failed"
@@ -276,6 +292,20 @@ function getErrorCode(error: unknown): string | null {
   const code = (error as { code: unknown }).code
 
   return typeof code === "string" ? code : null
+}
+
+// Both providers accept the same field names, so this is a widening rather than a translation. It is
+// still a function rather than a spread at each call site: a caller must not be able to pass a
+// `path` or a `contentId` through by accident, and building the array here is what keeps the two
+// adapters sending byte-identical attachments.
+function toProviderAttachments(
+  email: TransactionalEmail
+): { filename: string; content: Buffer; contentType: string }[] {
+  return (email.attachments ?? []).map((attachment) => ({
+    filename: attachment.filename,
+    content: attachment.content,
+    contentType: attachment.contentType
+  }))
 }
 
 function formatAddress(name: string, address: string): string {
