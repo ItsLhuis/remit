@@ -348,7 +348,12 @@ describe("proposal mutations", () => {
     expect(sent?.status).toBe("sent")
     expect(sent?.issuedAt).toBeInstanceOf(Date)
     expect(sent?.lockedAt).toBeNull()
-    expect(mocks.enqueueJob).toHaveBeenCalledWith("proposal.pdf.render", { proposalId: draft?.id })
+    // `email: true` is the chain: the client's copy is enqueued by the render job once the PDF
+    // exists, never alongside it (see the ordering note in `lib/jobs/types.ts`).
+    expect(mocks.enqueueJob).toHaveBeenCalledWith("proposal.pdf.render", {
+      proposalId: draft?.id,
+      email: true
+    })
   })
 
   test("exposes the client path only once the proposal has been sent", async () => {

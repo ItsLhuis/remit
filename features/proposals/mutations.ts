@@ -312,7 +312,9 @@ export async function sendProposal(input: unknown): Promise<SendProposalResult> 
       projectId: sent.projectId,
       userId: context.userId
     })
-    await enqueueJob("proposal.pdf.render", { proposalId: sent.id })
+    // `email: true` chains the client's copy behind the render, so the mail always has a PDF to
+    // attach (see the ordering note in `lib/jobs/types.ts`).
+    await enqueueJob("proposal.pdf.render", { proposalId: sent.id, email: true })
 
     revalidateProposalPaths(sent.projectId, sent.id)
 
