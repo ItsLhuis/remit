@@ -46,16 +46,90 @@ export const MINIO_BUCKET = env.MINIO_BUCKET
 // way out — through the owner-gated download route.
 export const MINIO_EXPORTS_BUCKET = `${env.MINIO_BUCKET}-exports`
 
+// A third bucket, derived the same way and withheld from the anonymous read policy for the same
+// reason as the exports one. Generated document PDFs land here (ADR-0022): an invoice, a proposal
+// and an executed contract are money and legal documents, and the public bucket's guarantee — "any
+// object is readable by anyone holding its key" — is not an acceptable default for one. A client
+// reaches their copy through the tokenized public route or an emailed attachment; the owner reaches
+// it through a credentialed route. Neither hands out a storage URL.
+//
+// `database/schema/uploads.ts`'s `bucket` column is what tells a reader which of the two a given
+// `uploads` row lives in.
+export const MINIO_DOCUMENTS_BUCKET = `${env.MINIO_BUCKET}-documents`
+
+const BUCKET_BY_NAME: Record<StorageBucketName, string> = {
+  public: MINIO_BUCKET,
+  documents: MINIO_DOCUMENTS_BUCKET
+}
+
+export type StorageBucketName = "public" | "documents"
+
 export async function deleteStorageObject(objectKey: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: MINIO_BUCKET, Key: objectKey }))
 }
 
-export async function getStorageObjectBytes(objectKey: string): Promise<Buffer> {
-  const object = await s3.send(new GetObjectCommand({ Bucket: MINIO_BUCKET, Key: objectKey }))
+// Defaults to the public bucket so every existing caller keeps its meaning: every `uploads` row that
+// predates generated PDFs is an avatar or a template image, which is exactly what the column's own
+// default encodes. A caller reading a document PDF has to say so.
+export async function getStorageObjectBytes(
+  objectKey: string,
+  bucket: StorageBucketName = "public"
+): Promise<Buffer> {
+  const object = await s3.send(
+    new GetObjectCommand({ Bucket: BUCKET_BY_NAME[bucket], Key: objectKey })
+  )
 
   if (!object.Body) throw new Error(`Storage object has no body: ${objectKey}`)
 
   return Buffer.from(await object.Body.transformToByteArray())
+}
+
+export type PutDocumentObjectInput = {
+  objectKey: string
+  body: Buffer
+  contentType: string
+}
+
+export async function putDocumentObject(input: PutDocumentObjectInput): Promise<void> {
+  await ensureDocumentsBucket()
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: MINIO_DOCUMENTS_BUCKET,
+      Key: input.objectKey,
+      Body: input.body,
+      ContentLength: input.body.length,
+      ContentType: input.contentType
+    })
+  )
+}
+
+export async function getDocumentObjectStream(objectKey: string): Promise<ExportObjectStream> {
+  const object = await s3.send(
+    new GetObjectCommand({ Bucket: MINIO_DOCUMENTS_BUCKET, Key: objectKey })
+  )
+
+  if (!object.Body) throw new Error(`Document object has no body: ${objectKey}`)
+
+  return {
+    body: object.Body.transformToWebStream(),
+    contentLength: object.ContentLength ?? null
+  }
+}
+
+// Created by the worker on first render, for the same reason `ensureExportsBucket` is created by the
+// export job: the worker is a separate process that never runs the Next.js instrumentation hook, and
+// it is the only writer of this bucket.
+async function ensureDocumentsBucket(): Promise<void> {
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
+  } catch (error) {
+    const serviceError = error as S3ServiceException
+
+    if (serviceError.$metadata?.httpStatusCode !== 404) throw error
+
+    await s3.send(new CreateBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
+  }
 }
 
 export type ExportObjectStream = {

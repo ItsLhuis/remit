@@ -1,25 +1,16 @@
 import { loadCliEnvironment } from "./core/cli/bootstrap"
+import { loadWorkerFeatureModules } from "./core/worker/loadWorkerFeatureModules"
 
 // The background job consumer (ADR-0023). Not a `remit:*` command: the CLI contract covers
 // operator-invoked commands that exit 0 or 1, and this process exits only on a signal. It is
 // packaged the same way `scripts/migrate.ts` is — a tsup entry copied into the runtime image and
 // started by its own Compose service — and carries the same "not a package script" limitation.
-//
-// The feature job modules are imported for their side effect: each registers its handlers with
-// `lib/jobs/registry` at module load, the way `features/*/events.ts` register bus subscribers.
-// Without these two imports the worker starts with an empty registry and every sweep fails.
 async function main(): Promise<void> {
   loadCliEnvironment()
 
   const [{ startWorker, stopWorker }] = await Promise.all([
     import("@/lib/jobs/worker"),
-    import("@/features/invoices/jobs"),
-    import("@/features/recurringInvoices/jobs"),
-    import("@/features/dataExport/jobs"),
-    // Same reason, on the bus rather than the job registry: the sweeps emit `invoice.overdue` and
-    // `recurring.invoice_generated` from this process, and without this import their activity
-    // entries would only ever be written when a request happened to emit them instead.
-    import("@/features/activityLog/events")
+    loadWorkerFeatureModules()
   ])
 
   // Registered before the worker starts so a signal arriving during startup still unwinds cleanly.
