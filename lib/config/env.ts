@@ -47,7 +47,7 @@ const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
 // far cheaper than failing per request. `REDIS_URL` is boot-fatal for the same reason even though
 // only the worker consumes it: server actions enqueue jobs, and an instance that cannot reach its
 // queue silently stops generating recurring invoices and sending reminders (ADR-0023).
-// `SENTRY_DSN` and `REMIT_METRICS_TOKEN` are the only
+// `SENTRY_DSN`, `REMIT_METRICS_TOKEN` and `REMIT_CHROMIUM_PATH` are the
 // optional ones, since their features simply stay off when unset.
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -70,7 +70,11 @@ const schema = z.object({
   MINIO_PUBLIC_URL: z.url(),
   NEXT_PUBLIC_STORAGE_BASE_URL: z.url(),
   SENTRY_DSN: optionalEnvString(z.url()),
-  REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1))
+  REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1)),
+  // Optional rather than boot-fatal because only the worker image ships Chromium (ADR-0022): the web
+  // application never launches a browser, and making this mandatory would stop it starting over a
+  // binary it does not use. `lib/pdf/renderPdf.ts` fails on the render path when it is missing.
+  REMIT_CHROMIUM_PATH: optionalEnvString(z.string().min(1))
 })
 
 // The placeholders below exist so `next build` can run in an image build with no real secrets

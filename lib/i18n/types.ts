@@ -1828,6 +1828,13 @@ export type Translations = {
       terminated: string
       deleted: string
     }
+    pdfSignature: {
+      title: string
+      signerName: string
+      signerEmail: string
+      signedAt: string
+      ipAddress: string
+    }
     public: {
       metadataTitle: string
       fromLabel: string
@@ -1902,6 +1909,28 @@ export type Translations = {
       sendFailed: string
       terminateFailed: string
       deleteFailed: string
+    }
+  }
+  documentEmails: {
+    invoiceSent: {
+      subject: string
+      body: string
+    }
+    proposalSent: {
+      subject: string
+      body: string
+    }
+    contractSent: {
+      subject: string
+      body: string
+    }
+    paymentReceipt: {
+      subject: string
+      body: string
+    }
+    recurringGenerated: {
+      subject: string
+      body: string
     }
   }
   invoices: {

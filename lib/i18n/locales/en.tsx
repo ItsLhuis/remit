@@ -1884,6 +1884,13 @@ export const english: Language = {
         terminated: "Contract terminated",
         deleted: "Contract deleted"
       },
+      pdfSignature: {
+        title: "Electronic signature",
+        signerName: "Signed by",
+        signerEmail: "Email",
+        signedAt: "Signed at",
+        ipAddress: "IP address"
+      },
       public: {
         metadataTitle: "Contract",
         fromLabel: "Sent by",
@@ -1961,6 +1968,28 @@ export const english: Language = {
         sendFailed: "Failed to send contract",
         terminateFailed: "Failed to terminate contract",
         deleteFailed: "Failed to delete contract"
+      }
+    },
+    documentEmails: {
+      invoiceSent: {
+        subject: "Invoice {number} from {businessName}",
+        body: "Hello {clientName},\n\nInvoice {number} for {amount} is attached, due {dueDate}.\n\nYou can also view it online: {url}\n\n{businessName}"
+      },
+      proposalSent: {
+        subject: "Proposal {number} from {businessName}",
+        body: "Hello {clientName},\n\nProposal {number} for {amount} is attached.\n\nYou can review and respond online: {url}\n\n{businessName}"
+      },
+      contractSent: {
+        subject: "Contract {number} from {businessName}",
+        body: "Hello {clientName},\n\nContract {number} is attached for your review.\n\nYou can read and sign it online: {url}\n\n{businessName}"
+      },
+      paymentReceipt: {
+        subject: "Receipt for invoice {number}",
+        body: "Hello {clientName},\n\nThank you. We have recorded your payment for invoice {number}. The invoice is attached.\n\n{businessName}"
+      },
+      recurringGenerated: {
+        subject: "Invoice {number} from {businessName}",
+        body: "Hello {clientName},\n\nYour recurring invoice {number} for {amount} is attached, due {dueDate}.\n\nYou can also view it online: {url}\n\n{businessName}"
       }
     },
     invoices: {
