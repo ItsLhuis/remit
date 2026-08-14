@@ -204,8 +204,11 @@ describe("contract mutations", () => {
 
     expect(stored?.status).toBe("sent")
     expect(stored?.issuedAt).toBeInstanceOf(Date)
+    // `email: true` is the chain: the client's copy is enqueued by the render job once the PDF
+    // exists, never alongside it (see the ordering note in `lib/jobs/types.ts`).
     expect(mocks.enqueueJob).toHaveBeenCalledWith("contract.pdf.render", {
-      contractId: contract.id
+      contractId: contract.id,
+      email: true
     })
   })
 

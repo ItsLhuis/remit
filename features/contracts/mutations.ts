@@ -361,7 +361,9 @@ export async function sendContract(input: unknown): Promise<SendContractResult> 
       blockCount: snapshot.data.length
     })
     await emitContractSent({ contractId: sent.id, userId: context.userId })
-    await enqueueJob("contract.pdf.render", { contractId: sent.id })
+    // `email: true` chains the client's copy behind the render, so the mail always has a PDF to
+    // attach (see the ordering note in `lib/jobs/types.ts`).
+    await enqueueJob("contract.pdf.render", { contractId: sent.id, email: true })
 
     revalidateContractPaths(sent)
 

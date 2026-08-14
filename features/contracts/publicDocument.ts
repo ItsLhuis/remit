@@ -32,6 +32,13 @@ import { type PublicContractDocument } from "./types"
 export type ContractDocumentContext = {
   business: ContractRenderBusiness
   locale: string
+  // An optional last pass over the resolved assets map, and the seam the PDF worker reuses this
+  // builder through. The public HTML route wants storage paths, which the reader's browser fetches
+  // itself; the PDF renderer aborts every request that is not a `data:` URI, so it has to inline the
+  // bytes instead (`lib/pdf/renderPdf.ts`). Everything else about the two documents — blocks, page
+  // settings, merge data — must stay identical, which is why this is a transform rather than a
+  // second builder.
+  transformAssets?: (assets: Record<string, string>) => Promise<Record<string, string>>
 }
 
 type ContractRow = typeof contracts.$inferSelect
@@ -50,10 +57,14 @@ export async function renderContractDocument(
 
   if (!hasContractContent(blocks)) return null
 
-  const [pageSettings, assets] = await Promise.all([
+  const [pageSettings, resolvedAssets] = await Promise.all([
     getContractPageSettings(contract.templateId),
     resolveTemplateAssets(blocks)
   ])
+
+  const assets = context.transformAssets
+    ? await context.transformAssets(resolvedAssets)
+    : resolvedAssets
 
   const html = renderTemplate({
     blocks,
