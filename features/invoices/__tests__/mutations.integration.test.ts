@@ -327,8 +327,11 @@ describe("invoice mutations", () => {
 
     await sendInvoice({ id: created.data.invoice.id })
 
+    // `email: "sent"` is the chain: the client's copy is enqueued by the render job once the PDF
+    // exists, never alongside it (see the ordering note in `lib/jobs/types.ts`).
     expect(mocks.enqueueJob).toHaveBeenCalledWith("invoice.pdf.render", {
-      invoiceId: created.data.invoice.id
+      invoiceId: created.data.invoice.id,
+      email: "sent"
     })
   })
 

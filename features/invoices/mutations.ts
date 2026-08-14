@@ -322,7 +322,9 @@ export async function sendInvoice(input: unknown): Promise<SendInvoiceResult> {
       lineItemCount
     })
     await emitInvoiceSent({ invoiceId: sent.id, userId: context.userId })
-    await enqueueJob("invoice.pdf.render", { invoiceId: sent.id })
+    // `email: "sent"` is what chains the client's copy behind the render, so the mail always has a
+    // PDF to attach (see the ordering note in `lib/jobs/types.ts`).
+    await enqueueJob("invoice.pdf.render", { invoiceId: sent.id, email: "sent" })
 
     revalidateInvoicePaths(sent)
 
