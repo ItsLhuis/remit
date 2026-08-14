@@ -156,6 +156,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
       "id",
       "projectId",
       "templateId",
+      "pdfUploadId",
       "number",
       "status",
       "currency",
@@ -192,6 +193,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
       "clientId",
       "proposalId",
       "templateId",
+      "pdfUploadId",
       "number",
       "title",
       "status",
@@ -266,6 +268,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
       "proposalId",
       "recurringInvoiceId",
       "templateId",
+      "pdfUploadId",
       "number",
       "status",
       "currency",
@@ -359,7 +362,8 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
       "issuedAt",
       "deletedAt",
       "createdAt",
-      "updatedAt"
+      "updatedAt",
+      "pdfUploadId"
     ],
     excludedColumns: []
   },
@@ -407,7 +411,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
     table: "uploads",
     file: "data/uploads.json",
     scopes: EVERY_SCOPE,
-    columns: ["id", "filename", "path", "mimeType", "sizeBytes", "createdAt"],
+    columns: ["id", "filename", "path", "bucket", "mimeType", "sizeBytes", "createdAt"],
     excludedColumns: []
   }
 ]

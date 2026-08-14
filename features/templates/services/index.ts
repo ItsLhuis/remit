@@ -143,6 +143,27 @@ export {
 
 export { renderBlockContent, renderTemplate, BUSINESS_LOGO_ASSET_KEY } from "./renderTemplate"
 
+export { renderMergeString } from "./renderMergeString"
+
+export { toTemplateEditorData } from "./templateEditorData"
+
+// Re-exported from the pure entry so a server module that must avoid the feature barrel (see
+// `features/email/documentEmail.ts`) can still name the type it renders for.
+export { type TemplateType } from "../schemas"
+
+export { buildDocumentShell, type DocumentShell, type DocumentShellInput } from "./documentShell"
+
+export {
+  buildBusinessMergeValues,
+  buildClientMergeValues,
+  buildPaymentMergeValues,
+  mergeDay,
+  mergeText,
+  type MergeBusiness,
+  type MergeClient,
+  type MergePayment
+} from "./mergeFields"
+
 export { reparentBlock, type ReparentResult } from "./reparent"
 
 export {

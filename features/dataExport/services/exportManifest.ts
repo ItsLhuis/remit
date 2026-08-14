@@ -48,6 +48,15 @@ export type ExportTableManifest = {
 //    `/p/[token]`, and `/c/[token]`; an archive that carries them hands anyone holding the zip a
 //    live, unauthenticated route into the instance.
 //
+// Generated document PDFs travel, and travel by default rather than by a rule added here. Each one
+// is an ordinary `uploads` row (in the private `documents` bucket, per ADR-0022), so the file itself
+// is carried by the same loop that carries avatars and template images, and `uploads.bucket` is
+// exported alongside `path` so a restorer knows which store the key belongs to. The `pdfUploadId`
+// pointer on `invoices`, `proposals`, `contracts` and `credit_notes` is included for the same
+// reason the other foreign keys are: an archive whose documents cannot be matched to their rendered
+// copies is less useful and no safer. None of it is a bearer credential — the public token that
+// *is* one stays excluded below.
+//
 // `clients.notes` is the one encrypted column that does travel, in plaintext. It is the owner's own
 // note about their own client — a business record with no credential in it — and it is the reason
 // `queries.ts` selects the column rather than routing around it.

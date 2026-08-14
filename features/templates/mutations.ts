@@ -21,7 +21,6 @@ import { database } from "@/database"
 import { templates, uploads } from "@/database/schema"
 
 import { emitTemplateCreated, emitTemplateDeleted, emitTemplateUpdated } from "./events"
-import { toTemplateEditorData } from "./queries"
 import {
   confirmTemplateImageUploadSchema,
   createTemplateSchema,
@@ -35,6 +34,7 @@ import {
   findUnknownTokens,
   flattenBlocks,
   sanitizeTemplateHtml,
+  toTemplateEditorData,
   validateLayout,
   type CanvasValidationReason
 } from "./services"

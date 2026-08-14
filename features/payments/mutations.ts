@@ -2,6 +2,8 @@
 
 import { t } from "@/lib/i18n/server"
 
+import { enqueueJob } from "@/lib/jobs"
+
 import { emitInvoiceSettled, emitPaymentReceived } from "./events"
 import {
   emptyToNull,
@@ -65,6 +67,12 @@ export async function recordPayment(input: unknown): Promise<PaymentMutationResu
 
     if (payment.settled) {
       await emitInvoiceSettled({ invoiceId: payment.invoiceId, userId: context.userId })
+
+      // The receipt goes out only once the invoice is fully settled, not on every part payment:
+      // `email_payment_receipt` thanks the client for paying, and sending it against a remaining
+      // balance would tell them they are square when they are not. Routed through the render job so
+      // it carries the invoice PDF, and a no-op if that PDF already exists.
+      await enqueueJob("invoice.pdf.render", { invoiceId: payment.invoiceId, email: "receipt" })
     }
 
     revalidatePaymentPaths({

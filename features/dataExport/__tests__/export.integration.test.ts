@@ -201,6 +201,17 @@ describe("instance export", () => {
     expect(archive.toString("binary")).not.toContain("invoice-token-value")
   })
 
+  test("reads a generated document PDF from the private documents bucket", async () => {
+    await makeUpload({ path: "documents/invoice/abc/xyz.pdf", bucket: "documents" })
+
+    await runExport()
+
+    expect(mocks.getStorageObjectBytes).toHaveBeenCalledWith(
+      "documents/invoice/abc/xyz.pdf",
+      "documents"
+    )
+  })
+
   test("includes the stored bytes of every upload", async () => {
     const upload = await makeUpload({ path: "expenses/receipt.png" })
 
@@ -209,7 +220,11 @@ describe("instance export", () => {
     const entries = readZipEntries(readUploadedArchive())
     const fileEntry = entries.find((entry) => entry.path === "files/expenses/receipt.png")
 
-    expect(mocks.getStorageObjectBytes).toHaveBeenCalledWith("expenses/receipt.png")
+    // The bucket travels with the key: generated document PDFs live in the private `documents`
+    // bucket, and reading every upload from the public one would skip exactly the invoices and
+    // contracts an owner most wants in their archive — silently, because an unreadable object is
+    // logged and stepped over.
+    expect(mocks.getStorageObjectBytes).toHaveBeenCalledWith("expenses/receipt.png", "public")
     expect(fileEntry?.content.toString("utf8")).toBe("stored-object-bytes")
     expect(readZipJson(readUploadedArchive(), "index.json")).toEqual(
       expect.objectContaining({

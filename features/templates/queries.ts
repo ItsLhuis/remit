@@ -17,8 +17,6 @@ import { templates, uploads } from "@/database/schema"
 
 import {
   parseTemplateListQuery,
-  storedBlocksSchema,
-  storedPageSettingsSchema,
   templateIdSchema,
   type Block,
   type TemplateListQuery,
@@ -26,11 +24,10 @@ import {
 } from "./schemas"
 import {
   buildSampleRenderData,
+  toTemplateEditorData,
   flattenBlocks,
   getPageHeight,
   getPageWidth,
-  normalizeBlocks,
-  normalizePageSettings,
   renderTemplate,
   summarizeTemplates,
   BUSINESS_LOGO_ASSET_KEY,
@@ -229,26 +226,5 @@ function toTemplateThumbnail(
     }),
     width: getPageWidth(type),
     height: getPageHeight(blocks, type, pageSettings)
-  }
-}
-
-export function toTemplateEditorData(row: typeof templates.$inferSelect): TemplateEditorData {
-  const parsed = storedBlocksSchema.safeParse(row.blocks)
-  const parsedPageSettings = storedPageSettingsSchema.safeParse(row.pageSettings)
-
-  const pageSettings = normalizePageSettings(
-    parsedPageSettings.success ? parsedPageSettings.data : null
-  )
-
-  return {
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    subject: row.subject ?? "",
-    blocks: parsed.success ? normalizeBlocks(parsed.data, row.type, pageSettings) : [],
-    pageSettings,
-    assets: {},
-    isDefault: row.isDefault,
-    isSystem: row.isSystem
   }
 }
