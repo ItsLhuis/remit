@@ -24,6 +24,7 @@ import {
 import { type CashflowPoint } from "../../services"
 
 import { DashboardCardEmpty } from "./DashboardCardEmpty"
+import { DashboardHint } from "./DashboardHint"
 
 const CashflowChart = dynamic(() => import("./charts").then((module) => module.CashflowChart), {
   ssr: false
@@ -41,12 +42,15 @@ const CashflowCard = ({ data, locale, currency }: CashflowCardProps) => {
   const hasCashflow = data.some((point) => point.revenueCents > 0 || point.expenseCents > 0)
 
   return (
-    <Card className="xl:col-span-2">
+    <Card>
       <CardHeader>
-        <CardTitle>{t("dashboard.cashflow.title")}</CardTitle>
+        <CardTitle className="flex items-center gap-1.5">
+          {t("dashboard.cashflow.title")}
+          <DashboardHint label={t("dashboard.periods.fixedWindow")} />
+        </CardTitle>
         <CardDescription>{t("dashboard.cashflow.description", { currency })}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         {hasCashflow ? (
           <CashflowChart
             data={data}
@@ -54,6 +58,7 @@ const CashflowCard = ({ data, locale, currency }: CashflowCardProps) => {
             currency={currency}
             revenueLabel={t("dashboard.cashflow.revenueSeries")}
             expenseLabel={t("dashboard.cashflow.expenseSeries")}
+            netLabel={t("dashboard.cashflow.netSeries")}
           />
         ) : (
           <DashboardCardEmpty
@@ -72,6 +77,7 @@ const CashflowCard = ({ data, locale, currency }: CashflowCardProps) => {
                   <TableHead>{t("dashboard.cashflow.monthColumn")}</TableHead>
                   <TableHead>{t("dashboard.cashflow.revenueColumn")}</TableHead>
                   <TableHead>{t("dashboard.cashflow.expenseColumn")}</TableHead>
+                  <TableHead>{t("dashboard.cashflow.netSeries")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -80,6 +86,9 @@ const CashflowCard = ({ data, locale, currency }: CashflowCardProps) => {
                     <TableCell>{formatMonthShort(point.month, locale)}</TableCell>
                     <TableCell>{formatCurrency(point.revenueCents, currency, locale)}</TableCell>
                     <TableCell>{formatCurrency(point.expenseCents, currency, locale)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(point.revenueCents - point.expenseCents, currency, locale)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
