@@ -441,40 +441,67 @@ export const english: Language = {
       description: "What you have earned, what you are owed, and what you have spent.",
       currencyNote:
         "Figures are shown in {currency}. {count, plural, one {# other currency is} other {# other currencies are}} recorded and not included.",
+      loading: "Loading dashboard",
+      percentage: "{value}%",
       periods: {
         label: "Period",
         month: "This month",
         quarter: "This quarter",
         year: "This year",
-        all: "All time"
+        all: "All time",
+        fixedWindow: "This section has its own window and does not follow the period above."
       },
-      tiles: {
-        revenue: "Revenue this month",
-        revenueHint: "{amount} year to date",
-        revenueEmptyHint: "No payments recorded yet",
-        revenueAction: "Go to invoices",
-        outstanding: "Outstanding",
-        outstandingHint:
-          "{count, plural, one {# sent invoice} other {# sent invoices}}, net of credit notes",
-        outstandingEmptyHint: "Nothing is waiting to be paid",
-        outstandingAction: "Go to invoices",
-        overdue: "Overdue",
-        overdueHint:
-          "{count, plural, one {# invoice past its due date} other {# invoices past their due date}}",
-        overdueEmptyHint: "Nothing is late",
-        expenses: "Expenses",
-        expensesHint: "{count, plural, one {# expense} other {# expenses}} in this period",
-        expensesEmptyHint: "No expenses recorded in this period",
-        expensesAction: "Go to expenses",
-        profit: "Profit estimate",
-        profitHint: "Revenue minus expenses for this period. An estimate — it excludes tax",
-        profitEmptyHint: "Needs revenue or expenses in this period"
+      position: {
+        label: "Awaiting payment",
+        hint: "{count, plural, one {Across # sent invoice} other {Across # sent invoices}}, net of credit notes",
+        emptyTitle: "Nothing is waiting to be paid",
+        emptyDescription: "Sent invoices that are not yet settled appear here.",
+        emptyAction: "Go to invoices",
+        overdueLabel: "Past due",
+        overdueHint: "{count, plural, one {# invoice} other {# invoices}}",
+        overdueNone: "Nothing is late",
+        oldest: "{days, plural, one {Oldest is # day late} other {Oldest is # days late}}",
+        viewAll: "All invoices",
+        agingTitle: "How old the money is",
+        agingHint:
+          "Measured from each invoice due date. Invoices with no due date count as current.",
+        meterLabel: "Outstanding receivable by age"
+      },
+      aging: {
+        notDue: "Current",
+        days1To30: "1 to 30 days",
+        days31To60: "31 to 60 days",
+        days61Plus: "Over 60 days",
+        count: "{count, plural, one {# invoice} other {# invoices}}"
+      },
+      metrics: {
+        revenue: "Paid in",
+        revenueHint: "Payments banked in this period",
+        expenses: "Spent",
+        expensesHint: "Expenses recorded in this period",
+        net: "Net estimate",
+        netHint: "Paid in minus spent. An estimate: it excludes tax and unrecorded costs",
+        unbilled: "Ready to invoice",
+        unbilledHint: "Billable work not yet put on an invoice",
+        unbilledSplit:
+          "{hours} of time · {count, plural, one {# rebillable expense} other {# rebillable expenses}}",
+        unbilledEmptyHint: "Nothing is waiting to be billed",
+        unbilledAction: "Go to time",
+        emptyHint: "Nothing recorded in this period",
+        trendLabel: "Last twelve months",
+        comparison: "vs {amount} in the period before",
+        comparisonNone: "No earlier period to compare with",
+        up: "Up {value}%",
+        down: "Down {value}%",
+        flat: "Unchanged",
+        upFromNothing: "Up from nothing"
       },
       cashflow: {
         title: "Cashflow",
         description: "Payments received and expenses recorded, month by month, in {currency}.",
         revenueSeries: "Revenue",
         expenseSeries: "Expenses",
+        netSeries: "Net",
         emptyTitle: "No cashflow yet",
         emptyDescription:
           "Once payments and expenses are recorded, the last twelve months appear here.",
@@ -484,13 +511,111 @@ export const english: Language = {
         revenueColumn: "Revenue",
         expenseColumn: "Expenses"
       },
+      lifecycle: {
+        title: "Where the invoices sit",
+        description:
+          "Every live invoice in {currency}, counted at each stage. Viewed and past due are both cuts of sent, so the counts overlap.",
+        unviewedNote:
+          "{count, plural, one {# issued invoice has never been opened} other {# issued invoices have never been opened}}",
+        allViewedNote: "Every issued invoice has been opened at least once",
+        emptyTitle: "No invoices yet",
+        emptyDescription: "Draft, sent and paid invoices are counted here once they exist.",
+        emptyAction: "Go to invoices",
+        countColumn: "Invoices",
+        stages: {
+          draft: "Draft",
+          sent: "Sent",
+          viewed: "Viewed",
+          overdue: "Past due",
+          paid: "Paid"
+        },
+        hints: {
+          draft: "Written but not issued to anyone",
+          sent: "Issued and not yet settled",
+          viewed: "Sent invoices the client has opened at least once",
+          overdue: "Sent invoices past their due date",
+          paid: "Settled in full"
+        }
+      },
+      attention: {
+        title: "Needs you",
+        description: "Ranked by urgency across invoices, proposals, contracts and tasks.",
+        emptyTitle: "Nothing needs you",
+        emptyDescription: "Late invoices, unopened documents and due tasks are collected here.",
+        more: "{count, plural, one {# more item} other {# more items}}",
+        contextDetail: "{parent} · {detail}",
+        kindLabels: {
+          invoiceOverdue: "Overdue invoice",
+          invoiceUnviewed: "Unopened invoice",
+          proposalExpiring: "Expiring proposal",
+          proposalStale: "Unopened proposal",
+          contractUnsigned: "Unsigned contract",
+          taskDue: "Task"
+        },
+        details: {
+          invoiceOverdue: "{days, plural, one {# day late} other {# days late}}",
+          invoiceUnviewed: "Issued {days, plural, one {# day} other {# days}} ago, never opened",
+          proposalExpiring: "Expires {days, plural, =0 {today} one {in # day} other {in # days}}",
+          proposalExpired: "Expired {days, plural, one {# day} other {# days}} ago",
+          proposalStale: "Sent {days, plural, one {# day} other {# days}} ago, never opened",
+          contractUnsigned: "Awaiting signature for {days, plural, one {# day} other {# days}}",
+          taskDue: "Due {days, plural, =0 {today} one {in # day} other {in # days}}",
+          taskOverdue: "Overdue by {days, plural, one {# day} other {# days}}"
+        }
+      },
+      pipeline: {
+        title: "Lead pipeline",
+        description: "Every lead on the instance, by the stage it has reached.",
+        meterLabel: "Leads by pipeline stage",
+        openLeads: "{count, plural, one {# lead still open} other {# leads still open}}",
+        winRate: "{value}% won",
+        winRateHint: "Won as a share of leads that reached a decision. Open leads are excluded.",
+        winRateNone: "No decided leads yet",
+        emptyTitle: "No leads yet",
+        emptyDescription: "Leads appear here as soon as the first one is recorded.",
+        emptyAction: "Go to leads",
+        stages: {
+          new: "New",
+          contacted: "Contacted",
+          qualified: "Qualified",
+          proposal_sent: "Proposal sent",
+          won: "Won",
+          lost: "Lost"
+        }
+      },
+      detail: {
+        title: "Coming up",
+        tabs: {
+          due: "Due soon",
+          schedules: "Recurring",
+          clients: "Top clients"
+        }
+      },
+      schedules: {
+        description: "Active recurring invoices and when they next generate.",
+        emptyTitle: "No recurring invoices",
+        emptyDescription: "Active schedules and their next run date appear here.",
+        emptyAction: "Go to recurring invoices",
+        nameColumn: "Schedule",
+        clientColumn: "Client",
+        cadenceColumn: "Cadence",
+        nextRunColumn: "Next run",
+        runsToday: "Today",
+        runsIn: "{days, plural, one {In # day} other {In # days}}",
+        runsPending: "Pending",
+        cadence: {
+          weekly: "Weekly",
+          monthly: "Monthly",
+          quarterly: "Quarterly",
+          yearly: "Yearly"
+        }
+      },
       upcoming: {
         title: "Due in the next 30 days",
         description: "Sent invoices with a due date coming up.",
         emptyTitle: "Nothing due in the next 30 days",
         emptyDescription: "Sent invoices with an upcoming due date appear here.",
         emptyAction: "Go to invoices",
-        viewAll: "All invoices",
         numberColumn: "Invoice",
         parentColumn: "Client",
         dueColumn: "Due",
@@ -501,7 +626,6 @@ export const english: Language = {
       },
       topClients: {
         title: "Top clients",
-        description: "By payments received in this period, in {currency}.",
         emptyTitle: "No client revenue yet",
         emptyDescription: "Once payments are recorded against a client, the largest appear here.",
         emptyAction: "Go to clients",

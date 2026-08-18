@@ -1,61 +1,99 @@
 "use client"
 
-import { useTransition } from "react"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { Icon, SidebarTrigger, Typography } from "@/components/ui"
+import { Typography } from "@/components/ui"
 
 import { type DashboardPageData } from "../../types"
 
+import { AttentionRail } from "./AttentionRail"
 import { CashflowCard } from "./CashflowCard"
-import { DashboardPeriodSelect } from "./DashboardPeriodSelect"
-import { DashboardSummaryBand } from "./DashboardSummaryBand"
+import { DetailTabsCard } from "./DetailTabsCard"
+import { LifecycleCard } from "./LifecycleCard"
+import { MetricRow } from "./MetricRow"
+import { PipelineCard } from "./PipelineCard"
+import { PositionPanel } from "./PositionPanel"
 import { RecentActivityCard } from "./RecentActivityCard"
-import { TopClientsCard } from "./TopClientsCard"
-import { UpcomingInvoicesCard } from "./UpcomingInvoicesCard"
 
 type DashboardPageProps = {
   data: DashboardPageData
 }
 
+// Five tiers, and the tiers are the design. Every grid here carries `items-start` on purpose: a
+// card's height must be governed by its own content, and the previous version's `xl:grid-cols-3`
+// stretched an empty list to match a full activity feed beside it, which read as a rendering fault
+// rather than as a state. Column spans are deliberately uneven (2/1, 3/2, 1/1) so the eye reads a
+// hierarchy down the page instead of a wall of equal boxes.
+//
+// Every grid child is wrapped in `min-w-0`. A grid item defaults to `min-width: auto`, which is the
+// intrinsic width of its contents, so a chart or a table inside a column can push that column wider
+// than its track and force the whole page sideways. The wrapper is what lets each card's own
+// `overflow-x-auto` do its job instead.
 const DashboardPage = ({ data }: DashboardPageProps) => {
   const { t } = useTranslation()
-
-  const [isPending, startTransition] = useTransition()
 
   const locale = data.defaults.defaultLocale
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8">
-      <header className="flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="md:hidden" />
-            <Icon
-              name="LayoutDashboard"
-              className="text-muted-foreground size-6 shrink-0"
-              aria-hidden="true"
-            />
-            <Typography variant="h2">{t("dashboard.title")}</Typography>
-          </div>
-          <Typography affects={["muted", "small", "removePMargin"]}>
-            {t("dashboard.description")}
-          </Typography>
+    <div className="flex flex-col gap-6 md:gap-8">
+      <PositionPanel
+        receivables={data.receivables}
+        aging={data.aging}
+        currency={data.currency}
+        locale={locale}
+      />
+      <MetricRow
+        metrics={data.metrics}
+        unbilled={data.unbilled}
+        currency={data.currency}
+        locale={locale}
+      />
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div className="min-w-0 lg:col-span-2">
+          <CashflowCard data={data.cashflow} locale={locale} currency={data.currency} />
         </div>
-        <DashboardPeriodSelect isPending={isPending} startTransition={startTransition} />
-      </header>
-      <DashboardSummaryBand data={data} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <CashflowCard data={data.cashflow} locale={locale} currency={data.currency} />
-        <UpcomingInvoicesCard invoices={data.upcomingInvoices} locale={locale} />
-        <TopClientsCard clients={data.topClients} locale={locale} currency={data.currency} />
-        <RecentActivityCard
-          entries={data.activity}
-          locale={locale}
-          timeZone={data.defaults.defaultTimezone}
-        />
+        <div className="min-w-0">
+          <AttentionRail
+            items={data.attention}
+            totalCount={data.attentionTotalCount}
+            locale={locale}
+          />
+        </div>
       </div>
+      <div className="grid items-start gap-4 lg:grid-cols-5">
+        <div className="min-w-0 lg:col-span-3">
+          <LifecycleCard lifecycle={data.lifecycle} currency={data.currency} locale={locale} />
+        </div>
+        <div className="min-w-0 lg:col-span-2">
+          <PipelineCard pipeline={data.pipeline} locale={locale} />
+        </div>
+      </div>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="min-w-0">
+          <DetailTabsCard
+            invoices={data.upcomingInvoices}
+            schedules={data.schedules}
+            clients={data.topClients}
+            currency={data.currency}
+            locale={locale}
+          />
+        </div>
+        <div className="min-w-0">
+          <RecentActivityCard
+            entries={data.activity}
+            locale={locale}
+            timeZone={data.defaults.defaultTimezone}
+          />
+        </div>
+      </div>
+      {data.otherCurrencyCount > 0 ? (
+        <Typography affects={["muted", "small"]}>
+          {t("dashboard.currencyNote", {
+            currency: data.currency,
+            count: data.otherCurrencyCount
+          })}
+        </Typography>
+      ) : null}
     </div>
   )
 }

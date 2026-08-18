@@ -421,38 +421,65 @@ export type Translations = {
     title: string
     description: string
     currencyNote: string
+    loading: string
+    percentage: string
     periods: {
       label: string
       month: string
       quarter: string
       year: string
       all: string
+      fixedWindow: string
     }
-    tiles: {
+    position: {
+      label: string
+      hint: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      overdueLabel: string
+      overdueHint: string
+      overdueNone: string
+      oldest: string
+      viewAll: string
+      agingTitle: string
+      agingHint: string
+      meterLabel: string
+    }
+    aging: {
+      notDue: string
+      days1To30: string
+      days31To60: string
+      days61Plus: string
+      count: string
+    }
+    metrics: {
       revenue: string
       revenueHint: string
-      revenueEmptyHint: string
-      revenueAction: string
-      outstanding: string
-      outstandingHint: string
-      outstandingEmptyHint: string
-      outstandingAction: string
-      overdue: string
-      overdueHint: string
-      overdueEmptyHint: string
       expenses: string
       expensesHint: string
-      expensesEmptyHint: string
-      expensesAction: string
-      profit: string
-      profitHint: string
-      profitEmptyHint: string
+      net: string
+      netHint: string
+      unbilled: string
+      unbilledHint: string
+      unbilledSplit: string
+      unbilledEmptyHint: string
+      unbilledAction: string
+      emptyHint: string
+      trendLabel: string
+      comparison: string
+      comparisonNone: string
+      up: string
+      down: string
+      flat: string
+      upFromNothing: string
     }
     cashflow: {
       title: string
       description: string
       revenueSeries: string
       expenseSeries: string
+      netSeries: string
       emptyTitle: string
       emptyDescription: string
       emptyAction: string
@@ -461,13 +488,109 @@ export type Translations = {
       revenueColumn: string
       expenseColumn: string
     }
+    lifecycle: {
+      title: string
+      description: string
+      unviewedNote: string
+      allViewedNote: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      countColumn: string
+      stages: {
+        draft: string
+        sent: string
+        viewed: string
+        overdue: string
+        paid: string
+      }
+      hints: {
+        draft: string
+        sent: string
+        viewed: string
+        overdue: string
+        paid: string
+      }
+    }
+    attention: {
+      title: string
+      description: string
+      emptyTitle: string
+      emptyDescription: string
+      more: string
+      contextDetail: string
+      kindLabels: {
+        invoiceOverdue: string
+        invoiceUnviewed: string
+        proposalExpiring: string
+        proposalStale: string
+        contractUnsigned: string
+        taskDue: string
+      }
+      details: {
+        invoiceOverdue: string
+        invoiceUnviewed: string
+        proposalExpiring: string
+        proposalExpired: string
+        proposalStale: string
+        contractUnsigned: string
+        taskDue: string
+        taskOverdue: string
+      }
+    }
+    pipeline: {
+      title: string
+      description: string
+      meterLabel: string
+      openLeads: string
+      winRate: string
+      winRateHint: string
+      winRateNone: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      stages: {
+        new: string
+        contacted: string
+        qualified: string
+        proposal_sent: string
+        won: string
+        lost: string
+      }
+    }
+    detail: {
+      title: string
+      tabs: {
+        due: string
+        schedules: string
+        clients: string
+      }
+    }
+    schedules: {
+      description: string
+      emptyTitle: string
+      emptyDescription: string
+      emptyAction: string
+      nameColumn: string
+      clientColumn: string
+      cadenceColumn: string
+      nextRunColumn: string
+      runsToday: string
+      runsIn: string
+      runsPending: string
+      cadence: {
+        weekly: string
+        monthly: string
+        quarterly: string
+        yearly: string
+      }
+    }
     upcoming: {
       title: string
       description: string
       emptyTitle: string
       emptyDescription: string
       emptyAction: string
-      viewAll: string
       numberColumn: string
       parentColumn: string
       dueColumn: string
@@ -478,7 +601,6 @@ export type Translations = {
     }
     topClients: {
       title: string
-      description: string
       emptyTitle: string
       emptyDescription: string
       emptyAction: string
