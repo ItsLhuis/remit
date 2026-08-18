@@ -31,6 +31,7 @@ Shipped in-container operational commands:
 - `remit:restore`
 - `remit:rotate-encryption-key`
 - `remit:seed-demo`
+- `remit:reset-data`
 
 ## Execution context
 
@@ -120,6 +121,7 @@ implemented command.
 | Upgrade flow                  | Shipped | Host-side    | `scripts/host/upgrade.sh`; runbook in `docs/operations/UPGRADE.md`. No `remit:upgrade`.  |
 | `remit:rotate-encryption-key` | Shipped | In-container | ADR-0021. Rotates registered encrypted columns and `.remitbak` archive encryption.       |
 | `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.                    |
+| `remit:reset-data`            | Shipped | In-container | ADR-0025. Empties domain data; account, organization, and instance configuration stay.   |
 
 ## Operator command reference
 
@@ -154,6 +156,27 @@ implemented command.
 - **Limitations:** refuses to proceed when seedable rows already exist unless `--reseed` is
   supplied; does not seed or mutate Better Auth-owned auth tables, organization tables, uploads,
   email logs, audit logs, or activity logs.
+
+### `pnpm remit:reset-data`
+
+- **Runs in:** the application container or an equivalent runtime environment with database access.
+- **Required configuration:** database environment. A reachable Redis is optional; an unreachable
+  one degrades to a warning.
+- **Destructive scope:** destructive and unrecoverable short of a restore. Deletes every domain row
+  in the instance.
+- **Confirmation:** a typed confirmation, not a yes/no — the operator types the business name from
+  `settings`, or `DELETE` when the instance has no business name. `--yes` skips it for scripted use.
+- **Flags:** `--dry-run`, `--yes`, and `--help`.
+- **Effects:** deletes leads, clients, projects, tasks, time entries, expenses, proposals, invoices,
+  line items, payments, credit notes, contracts, recurring invoice schedules, the runtime artifacts
+  of those rows (activity logs, email logs, data exports, proposal OTPs, contract signatures), and
+  the `uploads` rows those documents referenced — all in one transaction. Writes
+  `instance.reset_data.completed` with per-table deleted counts and `userAgent: "cli/reset-data"`,
+  then drains the BullMQ queue on a best-effort basis.
+- **Limitations:** never touches Better Auth-owned tables, the `settings` row, `tax_rates`,
+  `templates`, or `audit_logs`. Document numbering counters are not rewound. Objects in the
+  configured store are not deleted, only the database rows that pointed at them. The scope
+  classification is [ADR-0025](../adr/0025-instance-data-reset-scope.md).
 
 ### `pnpm remit:backup`
 

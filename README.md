@@ -20,8 +20,9 @@ first-class deployment model.**
 The target self-hosting experience is a single command, everything in Docker, and nothing to
 configure manually beyond the basics. Today the repository ships Docker Compose assets, the
 password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe local and
-remote restores, encryption key rotation, deterministic demo-data seeding, and the host-side upgrade
-runbook; the full installer and scheduled backups are still planned work.
+remote restores, encryption key rotation, deterministic demo-data seeding and its matching instance
+data reset, and the host-side upgrade runbook; the full installer and scheduled backups are still
+planned work.
 
 ## Principles
 
@@ -172,6 +173,10 @@ Current operational support:
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
     demo deployments, with presets and capped numeric overrides.
+  - `pnpm remit:reset-data` is its inverse: it empties the instance's domain data in one transaction
+    while the account, organization, settings, tax rates, templates, and audit trail survive. The
+    scope is documented in
+    [`docs/architecture/adr/0025-instance-data-reset-scope.md`](./docs/architecture/adr/0025-instance-data-reset-scope.md).
 - **Host-side upgrades** - `bash scripts/host/upgrade.sh` snapshots a backup, pulls images, restarts
   the compose project, and waits for `/api/health`. The operator runbook is
   [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Per ADR-0020, upgrade is host-side:

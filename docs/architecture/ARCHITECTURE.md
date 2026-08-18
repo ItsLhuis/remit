@@ -1256,8 +1256,9 @@ Current implementation status: the repository ships Docker Compose files, an ent
 script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
 `pnpm remit:backup` for encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for
 destructive-safe local and remote restores, `pnpm remit:seed-demo` for deterministic local/demo
-data, `pnpm remit:rotate-encryption-key` for operational master-key rotation, and the host-side
-`scripts/host/upgrade.sh` upgrade flow documented in
+data, `pnpm remit:reset-data` for returning a demoed instance to zero domain data without losing the
+account or its configuration, `pnpm remit:rotate-encryption-key` for operational master-key
+rotation, and the host-side `scripts/host/upgrade.sh` upgrade flow documented in
 [`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). The one-command installer, scheduled
 backup job, and platform-specific deployment guides remain planned operational work and are not
 shipped as package scripts today.
@@ -1324,6 +1325,22 @@ Host-side scripts live under `scripts/host/` and are not copied into the runtime
 `remit:upgrade` is the explicit exception: upgrade is host-side only, there is no `remit:upgrade`
 package script, and the name is not reserved. See the detailed
 [Operational CLI contract](operations/CLI-CONTRACT.md) and ADR-0020.
+
+### Instance data reset
+
+Demo seeding is only safe to run on a real installation if it can be undone. `pnpm remit:reset-data`
+is that inverse: it returns a configured instance to zero domain data while the operator's account,
+organization, TOTP enrolment, `settings`, tax rates, templates, and audit trail survive verbatim.
+
+The operation rests on one classification of every table in the schema as either domain data or
+instance state, held once in `scripts/core/domainData/inventory.ts` and shared with the seed command
+so a table can never be deleted by one and missed by the other. A table with no explicit decision
+fails a test. The full scope — including why document numbering is not rewound, why `audit_logs` is
+deletable by no flag, why object storage is left untouched, and why the queue drain is best-effort —
+is recorded in [ADR-0025](adr/0025-instance-data-reset-scope.md).
+
+The delete and its audit entry share one transaction, and confirmation is a typed phrase rather than
+a yes/no, because unlike a reseed the operation leaves nothing in place of what it removed.
 
 ### Backup and restore
 
@@ -1681,6 +1698,7 @@ the standard template: **Context**, **Decision**, **Consequences**, **Alternativ
 | [0022](adr/0022-pdf-rendering-engine.md)         | Headless-browser PDF rendering (Puppeteer/Playwright)                       | Accepted |
 | [0023](adr/0023-job-scheduling-bullmq-redis.md)  | Background jobs and scheduling via BullMQ + Redis                           | Accepted |
 | [0024](adr/0024-template-editor-canvas.md)       | Template editor — free collision-aware page-clamped canvas                  | Accepted |
+| [0025](adr/0025-instance-data-reset-scope.md)    | Instance data reset — domain data versus instance state                     | Accepted |
 
 ---
 
