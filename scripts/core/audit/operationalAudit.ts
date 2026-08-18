@@ -2,7 +2,9 @@ type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
 
 export type WriteOperationalAuditInput = {
-  database: Database
+  // Narrowed to the one method used, so a transaction satisfies it and an operational entry can be
+  // written inside the same transaction as the writes it records.
+  database: Pick<Database, "insert">
   schema: Schema
   event: string
   metadata: Record<string, unknown>

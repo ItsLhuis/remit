@@ -61,6 +61,7 @@
     "database:test:down": "docker compose -f docker-compose.test.yml down -v",
     "database:test:migrate": "drizzle-kit migrate --config drizzle.test.config.ts",
     "remit:backup": "node ./scripts/dist/backup.js",
+    "remit:reset-data": "node ./scripts/dist/reset-data.js",
     "remit:reset-password": "node ./scripts/dist/reset-password.js",
     "remit:restore": "node ./scripts/dist/restore.js",
     "remit:rotate-encryption-key": "node ./scripts/dist/rotate-encryption-key.js",

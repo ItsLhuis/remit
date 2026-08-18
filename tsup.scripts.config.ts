@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     backup: "scripts/backup.ts",
     migrate: "scripts/migrate.ts",
+    "reset-data": "scripts/reset-data.ts",
     "reset-password": "scripts/reset-password.ts",
     restore: "scripts/restore.ts",
     "rotate-encryption-key": "scripts/rotate-encryption-key.ts",
