@@ -1,7 +1,7 @@
-import { type DEMO_SEED_SIZES, type RESEED_CHECK_TABLES, type SEEDED_TABLES } from "./inventory"
+import { type ReseedCheckTableName, type SeededTableName } from "../domainData/inventory"
 
-export type SeededTableName = (typeof SEEDED_TABLES)[number]
-export type ReseedCheckTableName = (typeof RESEED_CHECK_TABLES)[number]
+import { type DEMO_SEED_SIZES } from "./inventory"
+
 export type DemoSeedSize = (typeof DEMO_SEED_SIZES)[number]
 
 export type DemoSeedCountOverrides = {

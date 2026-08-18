@@ -3,7 +3,15 @@ import { count } from "drizzle-orm"
 import { expect, test } from "vitest"
 
 import * as schema from "@/database/schema"
-import { clients, members, organizations, settings, taxRates, users } from "@/database/schema"
+import {
+  clients,
+  contractSignatures,
+  members,
+  organizations,
+  settings,
+  taxRates,
+  users
+} from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
 
@@ -60,6 +68,47 @@ test("refuses to seed over existing domain rows without reseed", async () => {
   expect(await tableCount(settings)).toBe(1)
 })
 
+test("replaces domain data with reseed even when a contract has been signed", async () => {
+  await createOwner()
+
+  await runSeedDemo(database, schema, {
+    countOverrides: {},
+    dryRun: false,
+    help: false,
+    reseed: false,
+    seed: 42,
+    size: "small",
+    yes: true
+  })
+
+  const contract = await database.query.contracts.findFirst()
+
+  if (!contract) throw new Error("Expected the first seed run to create a contract")
+
+  await database.insert(contractSignatures).values({
+    contractId: contract.id,
+    signerName: "Signer",
+    signerEmail: "signer@example.test",
+    consentText: "I agree",
+    ipAddress: "203.0.113.10",
+    userAgent: "vitest"
+  })
+
+  const result = await runSeedDemo(database, schema, {
+    countOverrides: {},
+    dryRun: false,
+    help: false,
+    reseed: true,
+    seed: 42,
+    size: "small",
+    yes: true
+  })
+
+  expect(result.wrote).toBe(true)
+  expect(await tableCount(contractSignatures)).toBe(0)
+  expect(await tableCount(clients)).toBe(6)
+})
+
 async function createOwner(): Promise<void> {
   await database.insert(users).values({
     id: ownerUserId,
@@ -84,7 +133,7 @@ async function createOwner(): Promise<void> {
 }
 
 async function tableCount(
-  table: typeof clients | typeof settings | typeof taxRates
+  table: typeof clients | typeof contractSignatures | typeof settings | typeof taxRates
 ): Promise<number> {
   const [row] = await database.select({ value: count() }).from(table)
 

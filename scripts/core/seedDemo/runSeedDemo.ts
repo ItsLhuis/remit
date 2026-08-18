@@ -5,6 +5,9 @@ import chalk from "chalk"
 import { count, eq } from "drizzle-orm"
 import { type PgTable } from "drizzle-orm/pg-core"
 
+import { deleteDomainRows } from "../domainData/deleteDomainRows"
+import { DOMAIN_DATA_INVENTORY } from "../domainData/inventory"
+
 import { parseSeedDemoArgs } from "./args"
 import {
   DEFAULT_DEMO_SEED,
@@ -12,8 +15,7 @@ import {
   DEMO_SEED_SIZES,
   MAX_DEMO_SEED_CLIENTS,
   MAX_DEMO_SEED_INVOICES,
-  MAX_DEMO_SEED_PROJECTS,
-  SEED_INVENTORY
+  MAX_DEMO_SEED_PROJECTS
 } from "./inventory"
 import { buildDemoSeedPlan, hasExistingSeedableRows } from "./plan"
 import {
@@ -27,7 +29,7 @@ export { parseSeedDemoArgs }
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
-type SeedDatabase = Pick<Database, "delete" | "insert" | "query" | "select" | "update">
+type SeedDatabase = Pick<Database, "insert" | "query" | "select" | "update">
 
 type SettingsAction = "created" | "updated" | "unchanged"
 
@@ -109,7 +111,7 @@ export async function runSeedDemo(
   try {
     const counts = await database.transaction(async (transaction) => {
       if (options.reseed) {
-        await deleteSeedableRows(transaction, schema)
+        await deleteDomainRows(transaction, schema, "reseed")
       }
 
       return insertDemoRows(transaction, schema, plan)
@@ -184,25 +186,6 @@ async function countTable(database: SeedDatabase, table: PgTable): Promise<numbe
   const [row] = await database.select({ value: count() }).from(table)
 
   return row?.value ?? 0
-}
-
-async function deleteSeedableRows(database: SeedDatabase, schema: Schema): Promise<void> {
-  await database.delete(schema.contractSignatures)
-  await database.delete(schema.proposalOtps)
-  await database.delete(schema.lineItems)
-  await database.delete(schema.payments)
-  await database.delete(schema.creditNotes)
-  await database.delete(schema.contracts)
-  await database.delete(schema.invoices)
-  await database.delete(schema.proposals)
-  await database.delete(schema.recurringInvoices)
-  await database.delete(schema.expenses)
-  await database.delete(schema.timeEntries)
-  await database.delete(schema.tasks)
-  await database.delete(schema.projects)
-  await database.delete(schema.leads)
-  await database.delete(schema.clients)
-  await database.delete(schema.taxRates)
 }
 
 async function insertDemoRows(
@@ -390,9 +373,9 @@ export function getSeedDemoHelpText(): string {
 }
 
 function formatSeedInventoryHelp(): string {
-  const seeded = SEED_INVENTORY.filter((item) => item.decision === "seed")
-  const skipped = SEED_INVENTORY.filter((item) => item.decision === "skip")
-  const deferred = SEED_INVENTORY.filter((item) => item.decision === "wait-for-feature")
+  const seeded = DOMAIN_DATA_INVENTORY.filter((item) => item.seed === "seed")
+  const skipped = DOMAIN_DATA_INVENTORY.filter((item) => item.seed === "skip")
+  const deferred = DOMAIN_DATA_INVENTORY.filter((item) => item.seed === "wait-for-feature")
 
   return [
     `  ${chalk.green("seed")}`,
@@ -406,34 +389,8 @@ function formatSeedInventoryHelp(): string {
   ].join("\n")
 }
 
-function formatSeedInventoryItem(item: (typeof SEED_INVENTORY)[number]): string {
-  const label = formatSeedInventoryLabel(item.table)
-
-  return `    ${chalk.bold(label.padEnd(24))} ${formatSeedInventoryReason(item)}`
-}
-
-function formatSeedInventoryLabel(table: string): string {
-  if (table === "users/accounts/sessions/verifications/two_factors") {
-    return "auth tables"
-  }
-
-  if (table === "organizations/members/invitations") {
-    return "organization tables"
-  }
-
-  return table
-}
-
-function formatSeedInventoryReason(item: (typeof SEED_INVENTORY)[number]): string {
-  if (item.table === "users/accounts/sessions/verifications/two_factors") {
-    return "Better Auth-owned: users, accounts, sessions, verifications, two_factors"
-  }
-
-  if (item.table === "organizations/members/invitations") {
-    return "Better Auth-owned: organizations, members, invitations"
-  }
-
-  return item.reason
+function formatSeedInventoryItem(item: (typeof DOMAIN_DATA_INVENTORY)[number]): string {
+  return `    ${chalk.bold(item.table.padEnd(24))} ${item.reason}`
 }
 
 export function formatSettingsStatus(action: SettingsAction): string {
