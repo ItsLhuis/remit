@@ -18,6 +18,35 @@ export function resolveDashboardWindow(period: DashboardPeriod, now: Date): Dash
   return { start: null }
 }
 
+// A bounded slice, unlike `DashboardWindow`, because a comparison period has already ended and
+// therefore has a top as well as a bottom. `null` means the period has no comparable predecessor.
+export type DashboardRange = {
+  start: Date
+  endExclusive: Date
+}
+
+// The same elapsed slice of the previous period, not the whole of it. Nine days into a month, the
+// honest comparison is the first nine days of the month before; comparing against a complete
+// previous month would report a fall every time a period begins, which is arithmetic, not news.
+// The all-time period has no predecessor to compare against and returns null rather than inventing
+// one, and the surface renders no delta at all when it does.
+export function resolveComparisonRange(period: DashboardPeriod, now: Date): DashboardRange | null {
+  const currentStart = resolveDashboardWindow(period, now).start
+
+  if (!currentStart) return null
+
+  const elapsedMilliseconds = now.getTime() - currentStart.getTime()
+  const start = shiftBackOnePeriod(period, currentStart)
+
+  return { start, endExclusive: new Date(start.getTime() + elapsedMilliseconds) }
+}
+
+export function isWithinRange(value: Date, range: DashboardRange): boolean {
+  const time = value.getTime()
+
+  return time >= range.start.getTime() && time < range.endExclusive.getTime()
+}
+
 export function startOfUtcMonth(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
 }
@@ -50,4 +79,16 @@ export function resolveEarliestWindowStart(windows: readonly DashboardWindow[]):
 
 function startOfUtcQuarter(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), Math.floor(now.getUTCMonth() / 3) * 3, 1))
+}
+
+// Steps the calendar unit rather than subtracting a fixed number of days, so a 28-day February and
+// a 92-day quarter each land on their own predecessor's first instant.
+function shiftBackOnePeriod(period: DashboardPeriod, start: Date): Date {
+  const year = start.getUTCFullYear()
+  const month = start.getUTCMonth()
+
+  if (period === "month") return new Date(Date.UTC(year, month - 1, 1))
+  if (period === "quarter") return new Date(Date.UTC(year, month - 3, 1))
+
+  return new Date(Date.UTC(year - 1, 0, 1))
 }
