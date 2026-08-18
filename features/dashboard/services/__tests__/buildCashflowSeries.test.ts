@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { buildCashflowSeries } from "../buildCashflowSeries"
+import { buildCashflowSeries, toCashflowNetSeries } from "../buildCashflowSeries"
 
 const NOW = new Date("2026-08-10T13:45:12.000Z")
 
@@ -76,5 +76,20 @@ describe("buildCashflowSeries", () => {
 
     expect(series[0]?.month).toBe("2025-02")
     expect(series[11]?.month).toBe("2026-01")
+  })
+})
+
+describe("toCashflowNetSeries", () => {
+  test("subtracts each month's expenses from its revenue", () => {
+    const points = [
+      { month: "2026-07", revenueCents: 100_000, expenseCents: 30_000 },
+      { month: "2026-08", revenueCents: 20_000, expenseCents: 50_000 }
+    ]
+
+    expect(toCashflowNetSeries(points)).toEqual([70_000, -30_000])
+  })
+
+  test("returns an empty series for an empty set of months", () => {
+    expect(toCashflowNetSeries([])).toEqual([])
   })
 })

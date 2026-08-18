@@ -53,6 +53,12 @@ export function buildCashflowSeries(
   return buckets
 }
 
+// The same twelve buckets read as one net line rather than two bars, so the composed chart and the
+// net metric tile's sparkline are the same arithmetic and cannot disagree about a month.
+export function toCashflowNetSeries(points: readonly CashflowPoint[]): number[] {
+  return points.map((point) => point.revenueCents - point.expenseCents)
+}
+
 function sumInRange(rows: readonly CashflowRow[], start: number, end: number): number {
   let total = 0
 

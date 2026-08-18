@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest"
 
 import {
+  isWithinRange,
   isWithinWindow,
+  resolveComparisonRange,
   resolveDashboardWindow,
   resolveEarliestWindowStart,
   startOfUtcMonth,
@@ -80,5 +82,49 @@ describe("resolveEarliestWindowStart", () => {
 
   test("returns null when no windows are provided", () => {
     expect(resolveEarliestWindowStart([])).toBeNull()
+  })
+})
+
+describe("resolveComparisonRange", () => {
+  test("has no predecessor for the all-time period", () => {
+    expect(resolveComparisonRange("all", NOW)).toBeNull()
+  })
+
+  test("compares only the elapsed part of the previous month", () => {
+    const range = resolveComparisonRange("month", NOW)
+
+    expect(range?.start).toEqual(new Date("2026-07-01T00:00:00.000Z"))
+    expect(range?.endExclusive).toEqual(new Date("2026-07-10T13:45:12.000Z"))
+  })
+
+  test("steps back a whole quarter rather than a fixed number of days", () => {
+    expect(resolveComparisonRange("quarter", NOW)?.start).toEqual(
+      new Date("2026-04-01T00:00:00.000Z")
+    )
+  })
+
+  test("steps back to the first of the previous year", () => {
+    expect(resolveComparisonRange("year", NOW)?.start).toEqual(new Date("2025-01-01T00:00:00.000Z"))
+  })
+
+  test("crosses the year boundary when the current month is January", () => {
+    const range = resolveComparisonRange("month", new Date("2026-01-05T00:00:00.000Z"))
+
+    expect(range?.start).toEqual(new Date("2025-12-01T00:00:00.000Z"))
+  })
+})
+
+describe("isWithinRange", () => {
+  const RANGE = {
+    start: new Date("2026-07-01T00:00:00.000Z"),
+    endExclusive: new Date("2026-08-01T00:00:00.000Z")
+  }
+
+  test("includes an instant exactly at the start", () => {
+    expect(isWithinRange(new Date("2026-07-01T00:00:00.000Z"), RANGE)).toBe(true)
+  })
+
+  test("excludes an instant exactly at the end", () => {
+    expect(isWithinRange(new Date("2026-08-01T00:00:00.000Z"), RANGE)).toBe(false)
   })
 })
