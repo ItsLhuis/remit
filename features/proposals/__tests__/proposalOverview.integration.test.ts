@@ -30,50 +30,79 @@ async function makeOverviewFixture() {
   })
   await makeProposal({ projectId: deletedProject.id, number: "PROP-DEAD-PROJECT" })
   await makeProposal({ projectId: orphanedProject.id, number: "PROP-DEAD-CLIENT" })
+  await makeProposal({ projectId: null, clientId: liveClient.id, number: "PROP-CLIENT-LEVEL" })
 
-  return { liveClient, liveProject }
+  return { liveClient, deletedClient, liveProject }
 }
 
 describe("getProposalOverviewPageData", () => {
-  test("lists only proposals whose own record, project, and client are all live", async () => {
+  // Only the proposal's own soft delete hides it. A soft-deleted project or client no longer does,
+  // because since stage 29 a proposal outlives both parents and `/proposals/[proposalId]` resolves
+  // it on its own id — the same rule the contract list already follows.
+  test("lists every live proposal regardless of what happened to its parents", async () => {
     await makeOverviewFixture()
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const data = await getProposalOverviewPageData({})
 
-    expect(data.proposals.map((proposal) => proposal.number)).toEqual(["PROP-LIVE"])
-    expect(data.rowCount).toBe(1)
+    expect(data.proposals.map((proposal) => proposal.number).toSorted()).toEqual([
+      "PROP-CLIENT-LEVEL",
+      "PROP-DEAD-CLIENT",
+      "PROP-DEAD-PROJECT",
+      "PROP-LIVE"
+    ])
+    expect(data.rowCount).toBe(4)
+  })
+
+  test("lists a proposal that hangs off a client with no project at all", async () => {
+    const { liveClient } = await makeOverviewFixture()
+
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
+
+    const data = await getProposalOverviewPageData({})
+    const clientLevel = data.proposals.find((proposal) => proposal.number === "PROP-CLIENT-LEVEL")
+
+    expect(clientLevel).toMatchObject({
+      projectId: null,
+      projectName: null,
+      clientId: liveClient.id,
+      clientName: liveClient.name
+    })
   })
 
   test("summarizes exactly the population the table pages through", async () => {
     await makeOverviewFixture()
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const data = await getProposalOverviewPageData({})
 
-    expect(data.summary.total).toBe(1)
+    expect(data.summary.total).toBe(4)
     expect(data.summary.awaiting).toBe(1)
-    expect(data.summary.draft).toBe(0)
+    expect(data.summary.draft).toBe(3)
   })
 
-  test("offers filter options only for clients that still have a visible proposal", async () => {
-    const { liveClient } = await makeOverviewFixture()
+  test("offers a filter option for every client a listed proposal resolves to", async () => {
+    const { liveClient, deletedClient } = await makeOverviewFixture()
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const data = await getProposalOverviewPageData({})
 
-    expect(data.filterOptions.clients).toEqual([{ id: liveClient.id, name: liveClient.name }])
+    expect(data.filterOptions.clients.toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
+      { id: deletedClient.id, name: deletedClient.name },
+      { id: liveClient.id, name: liveClient.name }
+    ])
   })
 
   test("carries the project and client of each row so the list reads out of project scope", async () => {
     const { liveClient, liveProject } = await makeOverviewFixture()
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
-    const [proposal] = (await getProposalOverviewPageData({})).proposals
+    const data = await getProposalOverviewPageData({})
+    const proposal = data.proposals.find((row) => row.number === "PROP-LIVE")
 
     expect(proposal).toMatchObject({
       projectId: liveProject.id,
@@ -100,7 +129,7 @@ describe("getProposalOverviewPageData", () => {
       validUntil: new Date("2026-08-01T00:00:00.000Z")
     })
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const data = await getProposalOverviewPageData({})
 
@@ -123,7 +152,7 @@ describe("getProposalOverviewPageData", () => {
     await makeProposal({ projectId: targetProject.id, number: "PROP-DRAFT", status: "draft" })
     await makeProposal({ projectId: otherProject.id, number: "PROP-OTHER", status: "sent" })
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const data = await getProposalOverviewPageData({
       status: "sent",
@@ -142,7 +171,7 @@ describe("getProposalOverviewPageData", () => {
 
     await makeProposal({ projectId: project.id, number: "PROP-AAA" })
 
-    const { getProposalOverviewPageData } = await import("../queries")
+    const { getProposalOverviewPageData } = await import("../overviewQueries")
 
     const byClient = await getProposalOverviewPageData({ search: "northwind" })
     const byProject = await getProposalOverviewPageData({ search: "rebrand" })

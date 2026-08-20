@@ -115,32 +115,36 @@ export type EventMap = {
   }
   "proposal.created": {
     proposalId: string
-    projectId: string
+    projectId: string | null
+    clientId: string | null
     userId: string
   }
   "proposal.updated": {
     proposalId: string
-    projectId: string
+    projectId: string | null
+    clientId: string | null
     userId: string
     changedFields: string[]
   }
   "proposal.sent": {
     proposalId: string
-    projectId: string
+    projectId: string | null
+    clientId: string | null
     userId: string
   }
   "proposal.deleted": {
     proposalId: string
-    projectId: string
+    projectId: string | null
+    clientId: string | null
     userId: string
   }
   "proposal.accepted": {
     proposalId: string
-    projectId: string
+    projectId: string | null
   }
   "proposal.rejected": {
     proposalId: string
-    projectId: string
+    projectId: string | null
   }
   "contract.created": {
     contractId: string

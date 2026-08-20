@@ -47,7 +47,12 @@ const ProposalDetailPage = ({ proposal }: ProposalDetailPageProps) => {
 
   const isEditable = isProposalEditable(proposal.status)
 
-  const listHref = `/projects/${proposal.projectId}/proposals`
+  // The project-scoped list when the proposal has a project, the instance-wide one otherwise: a
+  // client-level proposal has no project page to go back to.
+  const listHref = proposal.projectId ? `/projects/${proposal.projectId}/proposals` : "/proposals"
+  const editHref = proposal.projectId
+    ? `/projects/${proposal.projectId}/proposals/${proposal.id}/edit`
+    : `/proposals/${proposal.id}/edit`
 
   const onConfirmSend = () => {
     if (isSending) return
@@ -115,7 +120,7 @@ const ProposalDetailPage = ({ proposal }: ProposalDetailPageProps) => {
           <div className="flex flex-wrap items-center gap-2">
             {isEditable ? (
               <Button variant="outline" asChild>
-                <Link href={`${listHref}/${proposal.id}/edit`}>
+                <Link href={editHref}>
                   <Icon name="Pencil" aria-hidden="true" />
                   {t("proposals.actions.edit")}
                 </Link>

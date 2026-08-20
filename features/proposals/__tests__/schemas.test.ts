@@ -15,6 +15,8 @@ const TAX_RATE_ID = "00000000-0000-4000-8000-000000000003"
 // `validUntil` empty strings are the path the transform turns into `null`, which is exactly what a
 // re-parse built from the string-input shape rejects.
 const formInput: ProposalFormInputValues = {
+  projectId: PROJECT_ID,
+  clientId: "",
   currency: "eur",
   templateId: "",
   validUntil: "",

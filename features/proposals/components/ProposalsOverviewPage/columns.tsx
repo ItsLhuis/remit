@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment } from "react"
+
 import Link from "next/link"
 
 import { type TFunction } from "@/lib/i18n"
@@ -54,7 +56,7 @@ export function getProposalOverviewColumns({
       ),
       cell: ({ row }) => (
         <Link
-          href={`/projects/${row.original.projectId}/proposals/${row.original.id}`}
+          href={`/proposals/${row.original.id}`}
           className="font-mono text-sm font-medium hover:underline"
         >
           {row.original.number}
@@ -71,14 +73,26 @@ export function getProposalOverviewColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t("proposals.overview.projectColumn")} />
       ),
-      cell: ({ row }) => (
-        <Link
-          href={`/projects/${row.original.projectId}`}
-          className="truncate text-sm font-medium hover:underline"
-        >
-          {row.original.projectName}
-        </Link>
-      )
+      cell: ({ row }) => {
+        const proposal = row.original
+
+        if (!proposal.projectId) {
+          return (
+            <span className="text-muted-foreground text-sm">
+              {t("proposals.overview.noProject")}
+            </span>
+          )
+        }
+
+        return (
+          <Link
+            href={`/projects/${proposal.projectId}`}
+            className="truncate text-sm font-medium hover:underline"
+          >
+            {proposal.projectName}
+          </Link>
+        )
+      }
     },
     {
       id: "client",
@@ -93,14 +107,26 @@ export function getProposalOverviewColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t("proposals.overview.clientColumn")} />
       ),
-      cell: ({ row }) => (
-        <Link
-          href={`/clients/${row.original.clientId}`}
-          className="text-muted-foreground truncate text-sm hover:underline"
-        >
-          {row.original.clientName}
-        </Link>
-      )
+      cell: ({ row }) => {
+        const proposal = row.original
+
+        if (!proposal.clientId) {
+          return (
+            <span className="text-muted-foreground text-sm">
+              {t("proposals.overview.noClient")}
+            </span>
+          )
+        }
+
+        return (
+          <Link
+            href={`/clients/${proposal.clientId}`}
+            className="text-muted-foreground truncate text-sm hover:underline"
+          >
+            {proposal.clientName}
+          </Link>
+        )
+      }
     },
     getProposalStatusColumn<ProposalOverviewItem>(t),
     getProposalValidUntilColumn<ProposalOverviewItem>(t, locale),
@@ -127,26 +153,30 @@ export function getProposalOverviewColumns({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem asChild>
-                <Link href={`/projects/${proposal.projectId}/proposals/${proposal.id}`}>
+                <Link href={`/proposals/${proposal.id}`}>
                   <Icon name="ArrowRight" aria-hidden="true" />
                   {t("proposals.actions.view")}
                 </Link>
               </DropdownMenuItem>
               {isProposalEditable(proposal.status) ? (
                 <DropdownMenuItem asChild>
-                  <Link href={`/projects/${proposal.projectId}/proposals/${proposal.id}/edit`}>
+                  <Link href={`/proposals/${proposal.id}/edit`}>
                     <Icon name="Pencil" aria-hidden="true" />
                     {t("proposals.actions.edit")}
                   </Link>
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={`/projects/${proposal.projectId}`}>
-                  <Icon name="FolderOpen" aria-hidden="true" />
-                  {t("proposals.overview.openProject")}
-                </Link>
-              </DropdownMenuItem>
+              {proposal.projectId ? (
+                <Fragment>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/projects/${proposal.projectId}`}>
+                      <Icon name="FolderOpen" aria-hidden="true" />
+                      {t("proposals.overview.openProject")}
+                    </Link>
+                  </DropdownMenuItem>
+                </Fragment>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         )

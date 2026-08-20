@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, lineItems, proposals, settings, taxRates } from "@/database/schema"
 
-import { makeProject, makeProposal, makeSettings, makeUser } from "@/tests/factories"
+import { makeClient, makeProject, makeProposal, makeSettings, makeUser } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
@@ -73,6 +73,8 @@ function makeLineItemInput(overrides?: Record<string, unknown>) {
 
 function makeProposalInput(overrides?: Record<string, unknown>) {
   return {
+    projectId: "",
+    clientId: "",
     currency: "EUR",
     templateId: "",
     validUntil: "",
@@ -115,7 +117,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    const result = await createProposal({ projectId: project.id, ...makeProposalInput() })
+    const result = await createProposal(makeProposalInput({ projectId: project.id }))
 
     expect(result).toEqual({ data: { proposal: expect.objectContaining({ number: "PROP-0001" }) } })
 
@@ -129,7 +131,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    const result = await createProposal({ projectId: project.id, ...makeProposalInput() })
+    const result = await createProposal(makeProposalInput({ projectId: project.id }))
 
     expect("data" in result).toBe(true)
 
@@ -149,8 +151,10 @@ describe("proposal mutations", () => {
       .returning()
 
     const result = await createProposal({
-      projectId: project.id,
-      ...makeProposalInput({ lineItems: [makeLineItemInput({ taxRateId: taxRate?.id })] })
+      ...makeProposalInput({
+        projectId: project.id,
+        lineItems: [makeLineItemInput({ taxRateId: taxRate?.id })]
+      })
     })
 
     expect("data" in result).toBe(true)
@@ -192,8 +196,8 @@ describe("proposal mutations", () => {
     const expectedLines = calculateProposalLineTotals(serviceLines, documentDiscount)
 
     await createProposal({
-      projectId: project.id,
       ...makeProposalInput({
+        projectId: project.id,
         discountKind: "fixed",
         discountAmount: "50.00",
         lineItems: [
@@ -240,8 +244,10 @@ describe("proposal mutations", () => {
       .returning()
 
     await createProposal({
-      projectId: project.id,
-      ...makeProposalInput({ lineItems: [makeLineItemInput({ taxRateId: taxRate?.id })] })
+      ...makeProposalInput({
+        projectId: project.id,
+        lineItems: [makeLineItemInput({ taxRateId: taxRate?.id })]
+      })
     })
 
     await database
@@ -262,7 +268,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    await createProposal({ projectId: project.id, ...makeProposalInput() })
+    await createProposal(makeProposalInput({ projectId: project.id }))
 
     const [stored] = await database.select().from(proposals)
 
@@ -279,8 +285,8 @@ describe("proposal mutations", () => {
     const project = await makeProject()
 
     const result = await createProposal({
-      projectId: project.id,
       ...makeProposalInput({
+        projectId: project.id,
         lineItems: [makeLineItemInput({ taxRateId: "00000000-0000-4000-8000-0000000000ff" })]
       })
     })
@@ -288,18 +294,72 @@ describe("proposal mutations", () => {
     expect("error" in result).toBe(true)
   })
 
+  test("creates a client-level proposal when no project is given", async () => {
+    const { createProposal } = await import("../mutations")
+
+    const client = await makeClient()
+
+    const result = await createProposal(makeProposalInput({ clientId: client.id }))
+
+    expect(result).toEqual({
+      data: { proposal: expect.objectContaining({ projectId: "", clientId: client.id }) }
+    })
+
+    const [stored] = await database.select().from(proposals)
+
+    expect(stored).toMatchObject({ projectId: null, clientId: client.id })
+  })
+
+  test("copies the project's client onto a proposal created from a project alone", async () => {
+    const { createProposal } = await import("../mutations")
+
+    const project = await makeProject()
+
+    await createProposal(makeProposalInput({ projectId: project.id }))
+
+    const [stored] = await database.select().from(proposals)
+
+    expect(stored).toMatchObject({ projectId: project.id, clientId: project.clientId })
+  })
+
+  test("refuses a proposal with neither a project nor a client", async () => {
+    const { createProposal } = await import("../mutations")
+
+    const result = await createProposal(makeProposalInput())
+
+    expect(result).toEqual({ error: "Pick a project or a client for this proposal." })
+    expect(await database.select().from(proposals)).toHaveLength(0)
+  })
+
+  test("refuses a proposal naming a project and a client that does not own it", async () => {
+    const { createProposal } = await import("../mutations")
+
+    const project = await makeProject()
+    const otherClient = await makeClient()
+
+    const result = await createProposal(
+      makeProposalInput({ projectId: project.id, clientId: otherClient.id })
+    )
+
+    expect(result).toEqual({
+      error: "The selected client does not own the selected project"
+    })
+    expect(await database.select().from(proposals)).toHaveLength(0)
+  })
+
   test("replaces the line items of a draft on update", async () => {
     const { createProposal, updateProposal } = await import("../mutations")
 
     const project = await makeProject()
 
-    await createProposal({ projectId: project.id, ...makeProposalInput() })
+    await createProposal(makeProposalInput({ projectId: project.id }))
 
     const [stored] = await database.select().from(proposals)
 
     const result = await updateProposal({
       id: stored?.id,
       ...makeProposalInput({
+        projectId: project.id,
         lineItems: [
           makeLineItemInput({ description: "Build", quantity: "1", unitPrice: "250.00" }),
           makeLineItemInput({ description: "Support", quantity: "1", unitPrice: "100.00" })
@@ -321,7 +381,10 @@ describe("proposal mutations", () => {
     const project = await makeProject()
     const proposal = await makeProposal({ projectId: project.id, status: "sent" })
 
-    const result = await updateProposal({ id: proposal.id, ...makeProposalInput() })
+    const result = await updateProposal({
+      id: proposal.id,
+      ...makeProposalInput({ projectId: project.id })
+    })
 
     expect(result).toEqual({ error: expect.any(String) })
 
@@ -335,7 +398,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    await createProposal({ projectId: project.id, ...makeProposalInput() })
+    await createProposal(makeProposalInput({ projectId: project.id }))
 
     const [draft] = await database.select().from(proposals)
 
@@ -362,7 +425,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    await createProposal({ projectId: project.id, ...makeProposalInput() })
+    await createProposal(makeProposalInput({ projectId: project.id }))
 
     const [draft] = await database.select().from(proposals)
 
@@ -378,7 +441,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    await createProposal({ projectId: project.id, ...makeProposalInput() })
+    await createProposal(makeProposalInput({ projectId: project.id }))
 
     const [draft] = await database.select().from(proposals)
 
@@ -441,7 +504,7 @@ describe("proposal mutations", () => {
     const project = await makeProject()
     const proposal = await makeProposal({ projectId: project.id })
 
-    expect(await createProposal({ projectId: project.id, ...makeProposalInput() })).toEqual({
+    expect(await createProposal(makeProposalInput({ projectId: project.id }))).toEqual({
       error: expect.any(String)
     })
     expect(await sendProposal({ id: proposal.id })).toEqual({ error: expect.any(String) })
@@ -455,7 +518,7 @@ describe("proposal mutations", () => {
 
     const project = await makeProject()
 
-    const created = await createProposal({ projectId: project.id, ...makeProposalInput() })
+    const created = await createProposal(makeProposalInput({ projectId: project.id }))
 
     expect("data" in created).toBe(true)
 

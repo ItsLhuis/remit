@@ -2,27 +2,16 @@
 
 import { revalidatePath } from "next/cache"
 
-import { headers } from "next/headers"
-
 import { randomBytes } from "node:crypto"
 
 import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
-import { auth } from "@/lib/auth"
-import { getCurrentRole, type Role } from "@/lib/auth/session"
-
-import { writeAudit } from "@/lib/audit"
-
-import { logger } from "@/lib/logger"
-
-import { getIpAddress } from "@/lib/utils"
-
 import { enqueueJob } from "@/lib/jobs"
 
 import { database } from "@/database"
-import { lineItems, projects, proposals, settings, taxRates } from "@/database/schema"
+import { clients, lineItems, projects, proposals, settings, taxRates } from "@/database/schema"
 
 import {
   emitProposalCreated,
@@ -30,6 +19,14 @@ import {
   emitProposalSent,
   emitProposalUpdated
 } from "./events"
+import {
+  handleProposalActionError,
+  requireProposalDelete,
+  requireProposalSend,
+  requireProposalWrite,
+  writeProposalAudit,
+  ExpectedProposalError
+} from "./mutationContext"
 import { getProposalForEdit } from "./queries"
 import {
   createProposalSchema,
@@ -57,21 +54,6 @@ export type SendProposalResult = { data: { id: string } } | { error: string }
 
 export type DeleteProposalResult = { data: { id: string } } | { error: string }
 
-type ProposalWriteContext = {
-  userId: string
-  role: Role
-  ipAddress: string | null
-  userAgent: string | null
-}
-
-type ProposalWriteGate = { context: ProposalWriteContext } | { error: string }
-
-type ProposalAuditEvent =
-  | "proposal.created"
-  | "proposal.updated"
-  | "proposal.sent"
-  | "proposal.deleted"
-
 type ProposalDiscountColumns = {
   discountType: "percentage" | "fixed" | null
   discountPercentage: string | null
@@ -86,7 +68,20 @@ type DiscountValues = {
 
 type ProposalWriteValues = CreateProposalValues | UpdateProposalValues
 
-const AUDIT_FIELDS = ["currency", "templateId", "validUntil", "notes", "discountKind"] as const
+type ProposalScope = {
+  projectId: string | null
+  clientId: string | null
+}
+
+const AUDIT_FIELDS = [
+  "projectId",
+  "clientId",
+  "currency",
+  "templateId",
+  "validUntil",
+  "notes",
+  "discountKind"
+] as const
 
 export async function createProposal(input: unknown): Promise<ProposalMutationResult> {
   const gate = await requireProposalWrite()
@@ -100,12 +95,7 @@ export async function createProposal(input: unknown): Promise<ProposalMutationRe
   const { context } = gate
 
   try {
-    const project = await database.query.projects.findFirst({
-      where: and(eq(projects.id, parsed.data.projectId), isNull(projects.deletedAt)),
-      columns: { id: true }
-    })
-
-    if (!project) throw new ExpectedProposalError(t("proposals.errors.projectNotFound"))
+    const scope = await resolveProposalScope(parsed.data)
 
     const taxPercentages = await getTaxPercentages(parsed.data)
     const totals = calculateProposalTotal(
@@ -119,7 +109,8 @@ export async function createProposal(input: unknown): Promise<ProposalMutationRe
       const [created] = await transaction
         .insert(proposals)
         .values({
-          projectId: project.id,
+          projectId: scope.projectId,
+          clientId: scope.clientId,
           templateId: parsed.data.templateId,
           number,
           status: "draft",
@@ -146,13 +137,19 @@ export async function createProposal(input: unknown): Promise<ProposalMutationRe
     })
 
     await writeProposalAudit(context, "proposal.created", proposalId, {
-      projectId: project.id,
+      projectId: scope.projectId,
+      clientId: scope.clientId,
       totalCents: totals.totalCents,
       lineItemCount: parsed.data.lineItems.length
     })
-    await emitProposalCreated({ proposalId, projectId: project.id, userId: context.userId })
+    await emitProposalCreated({
+      proposalId,
+      projectId: scope.projectId,
+      clientId: scope.clientId,
+      userId: context.userId
+    })
 
-    revalidateProposalPaths(project.id, proposalId)
+    revalidateProposalPaths(scope, proposalId)
 
     return await loadProposalResult(proposalId)
   } catch (error) {
@@ -182,6 +179,8 @@ export async function updateProposal(input: unknown): Promise<ProposalMutationRe
       throw new ExpectedProposalError(t("proposals.errors.notDraft"))
     }
 
+    const scope = await resolveProposalScope(parsed.data)
+
     const taxPercentages = await getTaxPercentages(parsed.data)
     const totals = calculateProposalTotal(
       toLineItemInputs(parsed.data, taxPercentages),
@@ -192,6 +191,8 @@ export async function updateProposal(input: unknown): Promise<ProposalMutationRe
       const [updated] = await transaction
         .update(proposals)
         .set({
+          projectId: scope.projectId,
+          clientId: scope.clientId,
           templateId: parsed.data.templateId,
           currency: parsed.data.currency,
           ...toDiscountColumns(parsed.data),
@@ -221,21 +222,29 @@ export async function updateProposal(input: unknown): Promise<ProposalMutationRe
       await writeProposalLineItems(transaction, parsed.data.id, parsed.data, taxPercentages)
     })
 
-    const changedFields = getChangedProposalFields(existing, parsed.data)
+    const changedFields = getChangedProposalFields(existing, parsed.data, scope)
 
     await writeProposalAudit(context, "proposal.updated", existing.id, {
-      projectId: existing.projectId,
+      projectId: scope.projectId,
+      clientId: scope.clientId,
       changedFields,
       totalCents: totals.totalCents
     })
     await emitProposalUpdated({
       proposalId: existing.id,
-      projectId: existing.projectId,
+      projectId: scope.projectId,
+      clientId: scope.clientId,
       userId: context.userId,
       changedFields
     })
 
-    revalidateProposalPaths(existing.projectId, existing.id)
+    // Both the old and the new parent, because an edit may have moved the proposal between them and
+    // the page it left has to stop listing it.
+    revalidateProposalPaths(
+      { projectId: existing.projectId, clientId: existing.clientId },
+      existing.id
+    )
+    revalidateProposalPaths(scope, existing.id)
 
     return await loadProposalResult(existing.id)
   } catch (error) {
@@ -296,7 +305,11 @@ export async function sendProposal(input: unknown): Promise<SendProposalResult> 
           isNull(proposals.deletedAt)
         )
       )
-      .returning({ id: proposals.id, projectId: proposals.projectId })
+      .returning({
+        id: proposals.id,
+        projectId: proposals.projectId,
+        clientId: proposals.clientId
+      })
 
     if (!sent) throw new ExpectedProposalError(t("proposals.errors.invalidTransition"))
 
@@ -304,19 +317,21 @@ export async function sendProposal(input: unknown): Promise<SendProposalResult> 
     // the token is a bearer credential for the public route (`security.md`).
     await writeProposalAudit(context, "proposal.sent", sent.id, {
       projectId: sent.projectId,
+      clientId: sent.clientId,
       issuedAt: issuedAt.toISOString(),
       lineItemCount
     })
     await emitProposalSent({
       proposalId: sent.id,
       projectId: sent.projectId,
+      clientId: sent.clientId,
       userId: context.userId
     })
     // `email: true` chains the client's copy behind the render, so the mail always has a PDF to
     // attach (see the ordering note in `lib/jobs/types.ts`).
     await enqueueJob("proposal.pdf.render", { proposalId: sent.id, email: true })
 
-    revalidateProposalPaths(sent.projectId, sent.id)
+    revalidateProposalPaths(sent, sent.id)
 
     return { data: { id: sent.id } }
   } catch (error) {
@@ -345,22 +360,29 @@ export async function softDeleteProposal(input: unknown): Promise<DeleteProposal
       .update(proposals)
       .set({ deletedAt: new Date() })
       .where(and(eq(proposals.id, parsed.data.id), isNull(proposals.deletedAt)))
-      .returning({ id: proposals.id, projectId: proposals.projectId, status: proposals.status })
+      .returning({
+        id: proposals.id,
+        projectId: proposals.projectId,
+        clientId: proposals.clientId,
+        status: proposals.status
+      })
 
     if (!deleted) throw new ExpectedProposalError(t("proposals.errors.notFound"))
 
     await writeProposalAudit(context, "proposal.deleted", deleted.id, {
       projectId: deleted.projectId,
+      clientId: deleted.clientId,
       status: deleted.status,
       softDeleted: true
     })
     await emitProposalDeleted({
       proposalId: deleted.id,
       projectId: deleted.projectId,
+      clientId: deleted.clientId,
       userId: context.userId
     })
 
-    revalidateProposalPaths(deleted.projectId, deleted.id)
+    revalidateProposalPaths(deleted, deleted.id)
 
     return { data: { id: deleted.id } }
   } catch (error) {
@@ -428,6 +450,43 @@ async function writeProposalLineItems(
   )
 }
 
+// A proposal hangs off a project or off a client, and when it names both the client has to be the
+// project's own: `fk_proposals_project_client` refuses any other pairing, and a raw foreign-key
+// error is not something a user may ever see. The project's client is copied onto the row rather
+// than left to a join, for the reason `invoices.client_id` gives — the invoice outlives the project.
+async function resolveProposalScope(values: ProposalWriteValues): Promise<ProposalScope> {
+  const project = values.projectId
+    ? await database.query.projects.findFirst({
+        where: and(eq(projects.id, values.projectId), isNull(projects.deletedAt)),
+        columns: { id: true, clientId: true }
+      })
+    : null
+
+  if (values.projectId && !project) {
+    throw new ExpectedProposalError(t("proposals.errors.projectNotFound"))
+  }
+
+  const client = values.clientId
+    ? await database.query.clients.findFirst({
+        where: and(eq(clients.id, values.clientId), isNull(clients.deletedAt)),
+        columns: { id: true }
+      })
+    : null
+
+  if (values.clientId && !client) {
+    throw new ExpectedProposalError(t("proposals.errors.clientNotFound"))
+  }
+
+  if (project && client && project.clientId !== client.id) {
+    throw new ExpectedProposalError(t("proposals.errors.clientProjectMismatch"))
+  }
+
+  return {
+    projectId: project?.id ?? null,
+    clientId: project?.clientId ?? client?.id ?? null
+  }
+}
+
 async function getTaxPercentages(values: ProposalWriteValues): Promise<Map<string, number>> {
   const ids = [
     ...new Set(
@@ -474,68 +533,6 @@ async function loadProposalResult(proposalId: string): Promise<ProposalMutationR
   if (!proposal) throw new ExpectedProposalError(t("proposals.errors.notFound"))
 
   return { data: { proposal } }
-}
-
-// Three named gates over one implementation: an assistant may draft and revise a proposal, but
-// issuing it to a client and destroying it are owner-only. The names are what `doctor.config.ts`
-// registers as server auth functions, so each call site stays greppable to its privilege level.
-function requireProposalWrite(): Promise<ProposalWriteGate> {
-  return requireProposalRole(["owner", "assistant"])
-}
-
-function requireProposalSend(): Promise<ProposalWriteGate> {
-  return requireProposalRole(["owner"])
-}
-
-function requireProposalDelete(): Promise<ProposalWriteGate> {
-  return requireProposalRole(["owner"])
-}
-
-async function requireProposalRole(allowed: Role[]): Promise<ProposalWriteGate> {
-  const gate = await getProposalActionContext()
-
-  if ("error" in gate) return gate
-
-  if (!allowed.includes(gate.context.role)) return { error: t("errors.forbidden") }
-
-  return gate
-}
-
-async function getProposalActionContext(): Promise<ProposalWriteGate> {
-  const requestHeaders = await headers()
-  const session = await auth.api.getSession({ headers: requestHeaders })
-
-  if (!session) return { error: t("errors.unauthorized") }
-
-  const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
-
-  if (!isRole(role)) return { error: t("errors.forbidden") }
-
-  return {
-    context: {
-      userId: session.user.id,
-      role,
-      ipAddress: getIpAddress(requestHeaders),
-      userAgent: requestHeaders.get("user-agent")
-    }
-  }
-}
-
-async function writeProposalAudit(
-  context: ProposalWriteContext,
-  event: ProposalAuditEvent,
-  proposalId: string,
-  metadata: Record<string, unknown>
-): Promise<void> {
-  await writeAudit(event, {
-    actorUserId: context.userId,
-    actorRole: context.role,
-    targetEntityType: "proposal",
-    targetEntityId: proposalId,
-    metadata,
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent
-  })
 }
 
 function toLineItemInputs(
@@ -588,9 +585,12 @@ function getTaxPercentage(taxRateId: string | null, taxPercentages: Map<string, 
 
 function getChangedProposalFields(
   existing: typeof proposals.$inferSelect,
-  next: ProposalWriteValues
+  next: ProposalWriteValues,
+  scope: ProposalScope
 ): string[] {
   const existingValues = {
+    projectId: existing.projectId,
+    clientId: existing.clientId,
     currency: existing.currency,
     templateId: existing.templateId,
     validUntil: existing.validUntil,
@@ -599,6 +599,8 @@ function getChangedProposalFields(
   }
 
   const nextValues = {
+    projectId: scope.projectId,
+    clientId: scope.clientId,
     currency: next.currency,
     templateId: next.templateId,
     validUntil: next.validUntil,
@@ -623,32 +625,15 @@ function emptyToNull(value: string): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function revalidateProposalPaths(projectId: string, proposalId: string): void {
-  revalidatePath(`/projects/${projectId}/proposals/${proposalId}`)
-  revalidatePath(`/projects/${projectId}/proposals`)
-  revalidatePath(`/projects/${projectId}`)
+function revalidateProposalPaths(scope: ProposalScope, proposalId: string): void {
+  revalidatePath(`/proposals/${proposalId}`)
+  revalidatePath("/proposals")
+
+  if (scope.projectId) {
+    revalidatePath(`/projects/${scope.projectId}/proposals/${proposalId}`)
+    revalidatePath(`/projects/${scope.projectId}/proposals`)
+    revalidatePath(`/projects/${scope.projectId}`)
+  }
+
+  if (scope.clientId) revalidatePath(`/clients/${scope.clientId}`)
 }
-
-type ProposalActionErrorContext = {
-  action: string
-  userId: string | null
-  proposalId?: string
-  fallbackMessage?: string
-}
-
-function handleProposalActionError(
-  error: unknown,
-  { action, userId, proposalId, fallbackMessage }: ProposalActionErrorContext
-): { error: string } {
-  if (error instanceof ExpectedProposalError) return { error: error.message }
-
-  logger.error({ action, userId, proposalId, err: error }, "Proposal action failed")
-
-  return { error: fallbackMessage ?? t("proposals.errors.updateFailed") }
-}
-
-function isRole(value: string | null | undefined): value is Role {
-  return value === "owner" || value === "accountant" || value === "assistant"
-}
-
-class ExpectedProposalError extends Error {}

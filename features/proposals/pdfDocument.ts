@@ -39,7 +39,7 @@ export async function buildProposalPdfDocument(proposalId: string): Promise<Docu
 
   const [instance, client, items, template] = await Promise.all([
     database.query.settings.findFirst(),
-    getProposalClient(proposal.projectId),
+    getProposalClient(proposal.projectId, proposal.clientId),
     getProposalLineItems(proposalId),
     getProposalTemplate(proposal.templateId)
   ])
@@ -97,18 +97,19 @@ export async function buildProposalPdfDocument(proposalId: string): Promise<Docu
   })
 }
 
-// Always through the project: `proposals.project_id` is NOT NULL, so unlike an invoice there is no
-// direct-to-client shape to fall back to.
-async function getProposalClient(projectId: string): Promise<ProposalRenderClient | null> {
-  const project = await database.query.projects.findFirst({
-    columns: { clientId: true },
-    where: eq(projects.id, projectId)
-  })
+// Either parent resolves to the same client — `fk_proposals_project_client` keeps the pair in
+// agreement — so the stored `client_id` answers directly and the project is only consulted for a
+// row written before stage 29's backfill ran.
+async function getProposalClient(
+  projectId: string | null,
+  clientId: string | null
+): Promise<ProposalRenderClient | null> {
+  const resolvedClientId = clientId ?? (await getProjectClientId(projectId))
 
-  if (!project?.clientId) return null
+  if (!resolvedClientId) return null
 
   const client = await database.query.clients.findFirst({
-    where: and(eq(clients.id, project.clientId), isNull(clients.deletedAt))
+    where: and(eq(clients.id, resolvedClientId), isNull(clients.deletedAt))
   })
 
   if (!client) return null
@@ -127,6 +128,17 @@ async function getProposalClient(projectId: string): Promise<ProposalRenderClien
     country: client.country,
     currency: client.currency
   }
+}
+
+async function getProjectClientId(projectId: string | null): Promise<string | null> {
+  if (!projectId) return null
+
+  const project = await database.query.projects.findFirst({
+    columns: { clientId: true },
+    where: eq(projects.id, projectId)
+  })
+
+  return project?.clientId ?? null
 }
 
 async function getProposalLineItems(proposalId: string): Promise<ProposalRenderLineItem[]> {

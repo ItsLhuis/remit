@@ -28,6 +28,7 @@ import { type ProposalEditorData, type ProposalFormData } from "../../types"
 import { EMPTY_LINE_ITEM } from "./emptyLineItem"
 import { FormSection } from "./FormSection"
 import { ProposalDetailsFields } from "./ProposalDetailsFields"
+import { ProposalParentFields } from "./ProposalParentFields"
 import { ProposalPricingSection } from "./ProposalPricingSection"
 
 type ProposalFormProps = {
@@ -49,6 +50,8 @@ const ProposalForm = ({ editor, proposal }: ProposalFormProps) => {
     const defaultTaxRate = editor.taxRates.find((taxRate) => taxRate.isDefault)
 
     return {
+      projectId: editor.projectId ?? "",
+      clientId: "",
       currency: editor.defaults.defaultCurrency,
       templateId: "",
       validUntil: "",
@@ -58,7 +61,7 @@ const ProposalForm = ({ editor, proposal }: ProposalFormProps) => {
       discountAmount: "",
       lineItems: [{ ...EMPTY_LINE_ITEM, taxRateId: defaultTaxRate?.id ?? "" }]
     }
-  }, [proposal, editor.taxRates, editor.defaults])
+  }, [proposal, editor.projectId, editor.taxRates, editor.defaults])
 
   const form = useForm<ProposalFormInputValues>({
     // `raw: true`, so the values that reach `onSubmit` are the strings the controls hold rather
@@ -87,7 +90,7 @@ const ProposalForm = ({ editor, proposal }: ProposalFormProps) => {
     startSaving(async () => {
       const result = proposal
         ? await updateProposal({ id: proposal.id, ...values })
-        : await createProposal({ projectId: editor.projectId, ...values })
+        : await createProposal(values)
 
       if ("error" in result) {
         setServerError(result.error)
@@ -99,7 +102,7 @@ const ProposalForm = ({ editor, proposal }: ProposalFormProps) => {
         isEdit ? t("proposals.notifications.updated") : t("proposals.notifications.created")
       )
 
-      router.push(`/projects/${editor.projectId}/proposals/${result.data.proposal.id}`)
+      router.push(`/proposals/${result.data.proposal.id}`)
       router.refresh()
     })
   }
@@ -113,6 +116,18 @@ const ProposalForm = ({ editor, proposal }: ProposalFormProps) => {
         <ProposalDetailsFields
           control={form.control}
           templates={editor.templates}
+          disabled={isSaving}
+        />
+      </FormSection>
+      <Separator />
+      <FormSection
+        title={t("proposals.form.parentSection")}
+        description={t("proposals.form.parentDescription")}
+      >
+        <ProposalParentFields
+          control={form.control}
+          projects={editor.parentOptions.projects}
+          clients={editor.parentOptions.clients}
           disabled={isSaving}
         />
       </FormSection>

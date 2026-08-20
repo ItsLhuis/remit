@@ -1,18 +1,4 @@
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNull,
-  lte,
-  or,
-  type AnyColumn,
-  type SQL
-} from "drizzle-orm"
+import { and, asc, desc, eq, isNull } from "drizzle-orm"
 
 import { formatCentsForInput } from "@/lib/utils"
 
@@ -30,15 +16,12 @@ import {
 import { blocksSchema } from "@/features/templates"
 
 import {
-  parseProposalListQuery,
+  proposalEditorParamsSchema,
   proposalIdSchema,
   proposalListParamsSchema,
-  PROPOSAL_DEFAULT_SORT,
-  type ProposalDiscountKind,
-  type ProposalListQuery,
-  type ProposalSortField
+  type ProposalDiscountKind
 } from "./schemas"
-import { summarizeProposals, type ProposalsSummaryResult } from "./services"
+import { summarizeProposals } from "./services"
 import {
   type AcceptedProposalForContract,
   type ProposalDefaults,
@@ -48,9 +31,7 @@ import {
   type ProposalFormData,
   type ProposalListItem,
   type ProposalListPageData,
-  type ProposalOverviewFilterOptions,
-  type ProposalOverviewItem,
-  type ProposalOverviewPageData,
+  type ProposalParentOptions,
   type ProposalTaxRateOption,
   type ProposalTemplateOption
 } from "./types"
@@ -69,7 +50,7 @@ const proposalListColumns = {
 
 type ProposalListRow = {
   id: string
-  projectId: string
+  projectId: string | null
   number: string
   status: ProposalListItem["status"]
   currency: string
@@ -77,27 +58,6 @@ type ProposalListRow = {
   validUntil: Date | null
   issuedAt: Date | null
   createdAt: Date
-}
-
-const proposalOverviewColumns = {
-  id: proposals.id,
-  number: proposals.number,
-  status: proposals.status,
-  currency: proposals.currency,
-  totalCents: proposals.totalCents,
-  validUntil: proposals.validUntil,
-  issuedAt: proposals.issuedAt,
-  createdAt: proposals.createdAt,
-  projectId: proposals.projectId,
-  projectName: projects.name,
-  clientId: projects.clientId,
-  clientName: clients.name
-}
-
-type ProposalOverviewRow = ProposalListRow & {
-  projectName: string
-  clientId: string
-  clientName: string
 }
 
 type LineItemRow = typeof lineItems.$inferSelect
@@ -161,71 +121,6 @@ export async function getProposalsPageData(input: unknown): Promise<ProposalList
   }
 }
 
-export async function getProposalOverviewPageData(
-  input: unknown
-): Promise<ProposalOverviewPageData> {
-  const query = parseProposalListQuery(input)
-  const defaults = await getProposalDefaults()
-  const [list, summary, filterOptions] = await Promise.all([
-    listProposalOverview(query, defaults.defaultCurrency),
-    getProposalOverviewSummary(defaults.defaultCurrency),
-    getProposalOverviewFilterOptions()
-  ])
-
-  return {
-    proposals: list.rows,
-    rowCount: list.rowCount,
-    summary,
-    filterOptions,
-    defaults
-  }
-}
-
-export async function listProposalOverview(
-  query: ProposalListQuery,
-  defaultCurrency = "EUR"
-): Promise<{ rows: ProposalOverviewItem[]; rowCount: number }> {
-  const whereClause = getProposalOverviewWhereClause(query)
-
-  const sortColumns: Record<ProposalSortField, AnyColumn | SQL> = {
-    number: proposals.number,
-    project: projects.name,
-    client: clients.name,
-    validUntil: proposals.validUntil,
-    total: proposals.totalCents,
-    created: proposals.createdAt
-  }
-
-  const sort = query.sort.length > 0 ? query.sort : [...PROPOSAL_DEFAULT_SORT]
-  const orderBy = [
-    ...sort.map((item) => (item.desc ? desc(sortColumns[item.id]) : asc(sortColumns[item.id]))),
-    desc(proposals.createdAt)
-  ]
-
-  const [rows, totalRows] = await Promise.all([
-    database
-      .select(proposalOverviewColumns)
-      .from(proposals)
-      .innerJoin(projects, eq(projects.id, proposals.projectId))
-      .innerJoin(clients, eq(clients.id, projects.clientId))
-      .where(whereClause)
-      .orderBy(...orderBy)
-      .limit(query.perPage)
-      .offset((query.page - 1) * query.perPage),
-    database
-      .select({ value: count() })
-      .from(proposals)
-      .innerJoin(projects, eq(projects.id, proposals.projectId))
-      .innerJoin(clients, eq(clients.id, projects.clientId))
-      .where(whereClause)
-  ])
-
-  return {
-    rows: rows.map((row) => toProposalOverviewItem(row, defaultCurrency)),
-    rowCount: totalRows[0]?.value ?? 0
-  }
-}
-
 export async function getProposalDetail(input: unknown): Promise<ProposalDetail | null> {
   const parsed = proposalIdSchema.safeParse(input)
 
@@ -237,11 +132,8 @@ export async function getProposalDetail(input: unknown): Promise<ProposalDetail 
 
   if (!proposal) return null
 
-  const [project, template, rows, defaults] = await Promise.all([
-    database.query.projects.findFirst({
-      where: eq(projects.id, proposal.projectId),
-      columns: { name: true }
-    }),
+  const [parent, template, rows, defaults] = await Promise.all([
+    findProposalParent(proposal.projectId, proposal.clientId),
     proposal.templateId
       ? database.query.templates.findFirst({
           where: eq(templates.id, proposal.templateId),
@@ -255,7 +147,9 @@ export async function getProposalDetail(input: unknown): Promise<ProposalDetail 
   return {
     id: proposal.id,
     projectId: proposal.projectId,
-    projectName: project?.name ?? "",
+    projectName: parent.projectName,
+    clientId: proposal.clientId ?? parent.clientId,
+    clientName: parent.clientName,
     number: proposal.number,
     status: proposal.status,
     currency: proposal.currency,
@@ -297,6 +191,8 @@ export async function getProposalForEdit(input: unknown): Promise<ProposalFormDa
     id: proposal.id,
     number: proposal.number,
     status: proposal.status,
+    projectId: proposal.projectId ?? "",
+    clientId: proposal.clientId ?? "",
     currency: proposal.currency,
     templateId: proposal.templateId ?? "",
     validUntil: toDateInput(proposal.validUntil),
@@ -338,16 +234,13 @@ export async function getAcceptedProposalForContract(
       eq(proposals.status, "accepted"),
       isNull(proposals.deletedAt)
     ),
-    columns: { id: true, projectId: true, templateId: true, number: true }
+    columns: { id: true, projectId: true, clientId: true, templateId: true, number: true }
   })
 
   if (!proposal) return null
 
-  const [project, template, existingContract] = await Promise.all([
-    database.query.projects.findFirst({
-      where: eq(projects.id, proposal.projectId),
-      columns: { name: true }
-    }),
+  const [parent, template, existingContract] = await Promise.all([
+    findProposalParent(proposal.projectId, proposal.clientId),
     proposal.templateId
       ? database.query.templates.findFirst({
           where: eq(templates.id, proposal.templateId),
@@ -365,113 +258,94 @@ export async function getAcceptedProposalForContract(
 
   const blocks = blocksSchema.safeParse(template?.blocks ?? [])
 
+  const parentName = parent.projectName ?? parent.clientName
+
   return {
     id: proposal.id,
     projectId: proposal.projectId,
+    clientId: proposal.clientId ?? parent.clientId,
     templateId: proposal.templateId,
     blocks: blocks.success ? blocks.data : [],
-    title: project ? `${proposal.number} - ${project.name}` : proposal.number
+    title: parentName ? `${proposal.number} - ${parentName}` : proposal.number
   }
 }
 
 export async function getProposalEditorData(input: unknown): Promise<ProposalEditorData | null> {
-  const parsed = proposalListParamsSchema.safeParse(input)
+  const parsed = proposalEditorParamsSchema.safeParse(input)
 
   if (!parsed.success) return null
 
-  const project = await database.query.projects.findFirst({
-    where: and(eq(projects.id, parsed.data.projectId), isNull(projects.deletedAt)),
-    columns: { id: true, name: true }
-  })
+  const project = parsed.data.projectId
+    ? await database.query.projects.findFirst({
+        where: and(eq(projects.id, parsed.data.projectId), isNull(projects.deletedAt)),
+        columns: { id: true, name: true }
+      })
+    : null
 
-  if (!project) return null
+  if (parsed.data.projectId && !project) return null
 
-  const [defaults, taxRateOptions, templateOptions] = await Promise.all([
+  const [defaults, taxRateOptions, templateOptions, parentOptions] = await Promise.all([
     getProposalDefaults(),
     listProposalTaxRates(),
-    listProposalTemplates()
+    listProposalTemplates(),
+    getProposalParentOptions()
   ])
 
   return {
-    projectId: project.id,
-    projectName: project.name,
+    projectId: project?.id ?? null,
+    projectName: project?.name ?? null,
     defaults,
     taxRates: taxRateOptions,
-    templates: templateOptions
+    templates: templateOptions,
+    parentOptions
   }
 }
 
-async function getProposalOverviewSummary(
-  defaultCurrency: string
-): Promise<ProposalsSummaryResult> {
-  const rows = await database
-    .select({
-      status: proposals.status,
-      currency: proposals.currency,
-      totalCents: proposals.totalCents
-    })
-    .from(proposals)
-    .innerJoin(projects, eq(projects.id, proposals.projectId))
-    .innerJoin(clients, eq(clients.id, projects.clientId))
-    .where(getProposalOverviewBaseCondition())
+// The label pair a read model shows for whichever parent the proposal has. A project-level
+// proposal reaches its client through the project rather than through `proposals.client_id`; the
+// two agree by `fk_proposals_project_client`, so either source answers the same question.
+async function findProposalParent(
+  projectId: string | null,
+  clientId: string | null
+): Promise<{ projectName: string | null; clientId: string | null; clientName: string | null }> {
+  if (projectId) {
+    const rows = await database
+      .select({ projectName: projects.name, clientId: clients.id, clientName: clients.name })
+      .from(projects)
+      .leftJoin(clients, eq(clients.id, projects.clientId))
+      .where(eq(projects.id, projectId))
+      .limit(1)
 
-  return summarizeProposals(
-    rows.map((row) => ({
-      status: row.status,
-      currency: row.currency ?? defaultCurrency,
-      totalCents: Number(row.totalCents)
-    }))
-  )
-}
+    const row = rows[0]
 
-async function getProposalOverviewFilterOptions(): Promise<ProposalOverviewFilterOptions> {
-  const rows = await database
-    .select({ id: clients.id, name: clients.name })
-    .from(proposals)
-    .innerJoin(projects, eq(projects.id, proposals.projectId))
-    .innerJoin(clients, eq(clients.id, projects.clientId))
-    .where(getProposalOverviewBaseCondition())
-    .groupBy(clients.id, clients.name)
-    .orderBy(asc(clients.name))
-
-  return { clients: rows }
-}
-
-// A proposal is only reachable through its project (`/projects/[projectId]/proposals/[proposalId]`),
-// and both that route and the project and client detail routes resolve live records only. Listing a
-// proposal whose project or client has been soft-deleted would therefore render a row whose every
-// link and row-click lands on a 404, so the whole parent chain has to be live. The summary counters
-// and the client filter options run against this same condition, so the band always describes the
-// population the table is paging through.
-function getProposalOverviewBaseCondition(): SQL | undefined {
-  return and(isNull(proposals.deletedAt), isNull(projects.deletedAt), isNull(clients.deletedAt))
-}
-
-function getProposalOverviewWhereClause(query: ProposalListQuery): SQL | undefined {
-  const baseCondition = getProposalOverviewBaseCondition()
-  const conditions: SQL[] = baseCondition ? [baseCondition] : []
-
-  if (query.search) {
-    const searchPattern = `%${query.search}%`
-    const searchCondition = or(
-      ilike(proposals.number, searchPattern),
-      ilike(projects.name, searchPattern),
-      ilike(clients.name, searchPattern)
-    )
-
-    if (searchCondition) conditions.push(searchCondition)
+    if (row) return row
   }
 
-  if (query.statuses.length > 0) conditions.push(inArray(proposals.status, query.statuses))
-  if (query.clientIds.length > 0) conditions.push(inArray(projects.clientId, query.clientIds))
+  if (!clientId) return { projectName: null, clientId: null, clientName: null }
 
-  if (query.totalMin !== null) conditions.push(gte(proposals.totalCents, query.totalMin))
-  if (query.totalMax !== null) conditions.push(lte(proposals.totalCents, query.totalMax))
+  const client = await database.query.clients.findFirst({
+    where: eq(clients.id, clientId),
+    columns: { id: true, name: true }
+  })
 
-  if (query.validUntilFrom) conditions.push(gte(proposals.validUntil, query.validUntilFrom))
-  if (query.validUntilTo) conditions.push(lte(proposals.validUntil, query.validUntilTo))
+  return { projectName: null, clientId: client?.id ?? null, clientName: client?.name ?? null }
+}
 
-  return and(...conditions)
+async function getProposalParentOptions(): Promise<ProposalParentOptions> {
+  const [projectRows, clientRows] = await Promise.all([
+    database
+      .select({ id: projects.id, name: projects.name })
+      .from(projects)
+      .where(isNull(projects.deletedAt))
+      .orderBy(asc(projects.name)),
+    database
+      .select({ id: clients.id, name: clients.name })
+      .from(clients)
+      .where(isNull(clients.deletedAt))
+      .orderBy(asc(clients.name))
+  ])
+
+  return { projects: projectRows, clients: clientRows }
 }
 
 async function listProposalTaxRates(): Promise<ProposalTaxRateOption[]> {
@@ -523,26 +397,6 @@ function toProposalListItem(row: ProposalListRow, defaultCurrency: string): Prop
     validUntil: row.validUntil,
     issuedAt: row.issuedAt,
     createdAt: row.createdAt
-  }
-}
-
-function toProposalOverviewItem(
-  row: ProposalOverviewRow,
-  defaultCurrency: string
-): ProposalOverviewItem {
-  return {
-    id: row.id,
-    number: row.number,
-    status: row.status,
-    currency: row.currency ?? defaultCurrency,
-    totalCents: Number(row.totalCents),
-    validUntil: row.validUntil,
-    issuedAt: row.issuedAt,
-    createdAt: row.createdAt,
-    projectId: row.projectId,
-    projectName: row.projectName,
-    clientId: row.clientId,
-    clientName: row.clientName
   }
 }
 

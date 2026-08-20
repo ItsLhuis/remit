@@ -12,15 +12,15 @@ export { getPublicProposal } from "./publicQueries"
 
 export { requestProposalOtp, verifyProposalOtp } from "./publicResponse"
 
+export { getProposalOverviewPageData, listProposalOverview } from "./overviewQueries"
+
 export {
   getAcceptedProposalForContract,
   getProposalDefaults,
   getProposalDetail,
   getProposalEditorData,
   getProposalForEdit,
-  getProposalOverviewPageData,
   getProposalsPageData,
-  listProposalOverview,
   listProposalsByProject
 } from "./queries"
 

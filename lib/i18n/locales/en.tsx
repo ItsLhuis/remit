@@ -1150,6 +1150,8 @@ export const english: Language = {
       errors: {
         notFound: "Project not found",
         clientNotFound: "Client not found",
+        clientChangeBlocked:
+          "This project already has invoices, expenses, contracts, recurring schedules, or proposals, so it cannot be moved to another client",
         updateFailed: "Failed to update project",
         invalidTransition: "That status change is not allowed"
       },
@@ -1616,6 +1618,9 @@ export const english: Language = {
         totalHint: "Across all projects",
         projectColumn: "Project",
         clientColumn: "Client",
+        noProject: "No project",
+        noClient: "No client",
+        newProposal: "New proposal",
         openProject: "Open project",
         browseProjects: "Browse projects",
         searchPlaceholder: "Search by number, project, or client",
@@ -1655,6 +1660,8 @@ export const english: Language = {
       fields: {
         number: "Number",
         status: "Status",
+        project: "Project",
+        client: "Client",
         template: "Template",
         currency: "Currency",
         validUntil: "Valid until",
@@ -1717,6 +1724,10 @@ export const english: Language = {
         detailsDescription: "Numbering, currency, and validity are taken from your settings.",
         lineItemsSection: "Line items",
         lineItemsDescription: "Tax rates are captured on each line when you save.",
+        parentSection: "Belongs to",
+        parentDescription: "Pick a project or a client this proposal is for",
+        noProject: "No project",
+        noClient: "No client",
         notesSection: "Notes",
         notesDescription: "Shown to the client on the proposal."
       },
@@ -1776,6 +1787,8 @@ export const english: Language = {
         dateInvalid: "Enter a valid date.",
         idInvalid: "Invalid proposal.",
         projectRequired: "Select a project.",
+        parentRequired: "Pick a project or a client for this proposal.",
+        parentInvalid: "The selected project or client is invalid.",
         lineItemsRequired: "Add at least one line item.",
         notesTooLong:
           "Notes must be {count, plural, one {# character} other {# characters}} or fewer.",
@@ -1789,7 +1802,7 @@ export const english: Language = {
       public: {
         metadataTitle: "Proposal",
         fromLabel: "From",
-        preparedFor: "Prepared for {project}",
+        preparedFor: "Prepared for {name}",
         unavailable: {
           title: "This proposal is not available",
           description:
@@ -1868,6 +1881,8 @@ export const english: Language = {
       errors: {
         notFound: "Proposal not found",
         projectNotFound: "Project not found",
+        clientNotFound: "Client not found",
+        clientProjectMismatch: "The selected client does not own the selected project",
         notDraft: "Only draft proposals can be changed",
         invalidTransition: "That status change is not allowed",
         updateFailed: "Failed to update proposal",
@@ -2085,6 +2100,7 @@ export const english: Language = {
         notDraft: "Only draft contracts can be changed",
         invalidTransition: "That status change is not allowed",
         parentNotFound: "The selected project or client was not found",
+        clientProjectMismatch: "The selected client does not own the selected project",
         proposalNotConvertible: "That proposal cannot be turned into a contract",
         proposalAlreadyConverted: "That proposal already has a contract",
         createFailed: "Failed to create contract",

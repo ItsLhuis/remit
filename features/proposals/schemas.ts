@@ -84,6 +84,14 @@ const optionalUuidSchema = z
   })
   .transform((value) => (value === "" ? null : value))
 
+const optionalParentIdSchema = z
+  .string()
+  .trim()
+  .refine((value) => value === "" || z.uuid().safeParse(value).success, {
+    message: i18n.t("proposals.validation.parentInvalid")
+  })
+  .transform((value) => (value === "" ? null : value))
+
 const discountKindSchema = z.enum(PROPOSAL_DISCOUNT_KINDS)
 
 // `chk_line_items_discount_shape` and `chk_proposals_discount_shape` demand that exactly the columns
@@ -144,7 +152,40 @@ export const proposalLineItemSchema = z
 export type ProposalLineItemInputValues = z.input<typeof proposalLineItemSchema>
 export type ProposalLineItemValues = z.infer<typeof proposalLineItemSchema>
 
+// `chk_proposals_parent` restated at the trust boundary, so a proposal with neither parent is a
+// field error rather than a database exception. The agreement half of the rule —
+// `chk_proposals_project_requires_client` and `fk_proposals_project_client` — cannot be checked
+// here because it needs the project's own client; `mutations.ts`'s `resolveProposalScope` owns it.
+function refineProposalParent(
+  values: { projectId: string | null; clientId: string | null },
+  context: z.RefinementCtx
+): void {
+  if (!values.projectId && !values.clientId) {
+    context.addIssue({
+      code: "custom",
+      path: ["clientId"],
+      message: i18n.t("proposals.validation.parentRequired")
+    })
+  }
+}
+
+function refineProposalFields(
+  values: {
+    discountKind: ProposalDiscountKind
+    discountPercentage: number | null
+    discountAmount: number | null
+    projectId: string | null
+    clientId: string | null
+  },
+  context: z.RefinementCtx
+): void {
+  refineDiscountShape(values, context)
+  refineProposalParent(values, context)
+}
+
 const proposalFieldsShape = {
+  projectId: optionalParentIdSchema,
+  clientId: optionalParentIdSchema,
   currency: z
     .string()
     .trim()
@@ -167,17 +208,14 @@ const proposalFieldsShape = {
     .min(1, i18n.t("proposals.validation.lineItemsRequired"))
 }
 
-export const proposalFormSchema = z.object(proposalFieldsShape).superRefine(refineDiscountShape)
+export const proposalFormSchema = z.object(proposalFieldsShape).superRefine(refineProposalFields)
 
 export type ProposalFormInputValues = z.input<typeof proposalFormSchema>
 export type ProposalFormValues = z.infer<typeof proposalFormSchema>
 
-export const createProposalSchema = z
-  .object({
-    ...proposalFieldsShape,
-    projectId: z.uuid(i18n.t("proposals.validation.projectRequired"))
-  })
-  .superRefine(refineDiscountShape)
+// The same shape the form holds, not a second definition of it: the form resolves with `raw: true`
+// (`forms.md`), so the strings the controls carry are exactly what this action re-parses.
+export const createProposalSchema = proposalFormSchema
 
 export type CreateProposalValues = z.infer<typeof createProposalSchema>
 
@@ -186,7 +224,7 @@ export const updateProposalSchema = z
     ...proposalFieldsShape,
     id: z.uuid(i18n.t("proposals.validation.idInvalid"))
   })
-  .superRefine(refineDiscountShape)
+  .superRefine(refineProposalFields)
 
 export type UpdateProposalValues = z.infer<typeof updateProposalSchema>
 
@@ -287,6 +325,14 @@ export const proposalListParamsSchema = z.object({
 })
 
 export type ProposalListParams = z.infer<typeof proposalListParamsSchema>
+
+// Null is the top-level `/proposals/new` route, where no project is chosen yet and the form's own
+// parent selector picks one; a uuid is the project-scoped route the editor was opened from.
+export const proposalEditorParamsSchema = z.object({
+  projectId: z.uuid(i18n.t("proposals.validation.projectRequired")).nullable()
+})
+
+export type ProposalEditorParams = z.infer<typeof proposalEditorParamsSchema>
 
 export const PROPOSAL_SORT_FIELDS = [
   "number",

@@ -87,13 +87,19 @@ const editor: ProposalEditorData = {
   taxRates: [
     { id: "00000000-0000-4000-8000-000000000c02", name: "VAT 23", percentage: 23, isDefault: false }
   ],
-  templates: []
+  templates: [],
+  parentOptions: {
+    projects: [{ id: "00000000-0000-4000-8000-000000000c01", name: "Marketing site" }],
+    clients: [{ id: "00000000-0000-4000-8000-000000000c04", name: "Acme" }]
+  }
 }
 
 const draft: ProposalFormData = {
   id: "00000000-0000-4000-8000-000000000c03",
   number: "PROP-0001",
   status: "draft",
+  projectId: "00000000-0000-4000-8000-000000000c01",
+  clientId: "",
   currency: "EUR",
   templateId: "",
   validUntil: "",
@@ -180,7 +186,7 @@ describe("ProposalForm", () => {
         lineItems: [expect.objectContaining({ description: "Workshop", unitPrice: "100.00" })]
       })
     )
-    expect(mocks.push).toHaveBeenCalledWith(`/projects/${editor.projectId}/proposals/${draft.id}`)
+    expect(mocks.push).toHaveBeenCalledWith(`/proposals/${draft.id}`)
   })
 
   test("surfaces a server error instead of navigating away", async () => {

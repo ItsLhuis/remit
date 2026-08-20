@@ -1112,6 +1112,7 @@ export type Translations = {
     errors: {
       notFound: string
       clientNotFound: string
+      clientChangeBlocked: string
       updateFailed: string
       invalidTransition: string
     }
@@ -1570,6 +1571,9 @@ export type Translations = {
       totalHint: string
       projectColumn: string
       clientColumn: string
+      noProject: string
+      noClient: string
+      newProposal: string
       openProject: string
       browseProjects: string
       searchPlaceholder: string
@@ -1609,6 +1613,8 @@ export type Translations = {
     fields: {
       number: string
       status: string
+      project: string
+      client: string
       template: string
       currency: string
       validUntil: string
@@ -1673,6 +1679,10 @@ export type Translations = {
       lineItemsDescription: string
       notesSection: string
       notesDescription: string
+      parentSection: string
+      parentDescription: string
+      noProject: string
+      noClient: string
     }
     detail: {
       backToList: string
@@ -1728,6 +1738,8 @@ export type Translations = {
       dateInvalid: string
       idInvalid: string
       projectRequired: string
+      parentRequired: string
+      parentInvalid: string
       lineItemsRequired: string
       notesTooLong: string
       unitTooLong: string
@@ -1811,6 +1823,8 @@ export type Translations = {
     errors: {
       notFound: string
       projectNotFound: string
+      clientNotFound: string
+      clientProjectMismatch: string
       notDraft: string
       invalidTransition: string
       updateFailed: string
@@ -2024,6 +2038,7 @@ export type Translations = {
       notDraft: string
       invalidTransition: string
       parentNotFound: string
+      clientProjectMismatch: string
       proposalNotConvertible: string
       proposalAlreadyConverted: string
       createFailed: string

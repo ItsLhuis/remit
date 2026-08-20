@@ -93,12 +93,20 @@ const ProposalsOverviewPage = ({ data }: ProposalsOverviewPageProps) => {
               {t("proposals.overview.description")}
             </Typography>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/projects">
-              <Icon name="FolderOpen" aria-hidden="true" />
-              {t("proposals.overview.browseProjects")}
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/projects">
+                <Icon name="FolderOpen" aria-hidden="true" />
+                {t("proposals.overview.browseProjects")}
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/proposals/new">
+                <Icon name="Plus" aria-hidden="true" />
+                {t("proposals.overview.newProposal")}
+              </Link>
+            </Button>
+          </div>
         </header>
         <ProposalsSummaryBand
           summary={data.summary}
@@ -109,9 +117,7 @@ const ProposalsOverviewPage = ({ data }: ProposalsOverviewPageProps) => {
         <DataTable
           table={table}
           caption={t("proposals.overview.tableTitle")}
-          onRowClick={(proposal) =>
-            router.push(`/projects/${proposal.projectId}/proposals/${proposal.id}`)
-          }
+          onRowClick={(proposal) => router.push(`/proposals/${proposal.id}`)}
           isLoading={isPending}
           empty={
             hasNoProposals ? (
@@ -125,9 +131,9 @@ const ProposalsOverviewPage = ({ data }: ProposalsOverviewPageProps) => {
                 </EmptyHeader>
                 <EmptyContent>
                   <Button asChild>
-                    <Link href="/projects">
-                      <Icon name="FolderOpen" aria-hidden="true" />
-                      {t("proposals.overview.browseProjects")}
+                    <Link href="/proposals/new">
+                      <Icon name="Plus" aria-hidden="true" />
+                      {t("proposals.overview.newProposal")}
                     </Link>
                   </Button>
                 </EmptyContent>

@@ -431,11 +431,15 @@ function toDeliveryErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "unknown"
 }
 
-function revalidateProposalResponsePaths(projectId: string, proposalId: string): void {
+function revalidateProposalResponsePaths(projectId: string | null, proposalId: string): void {
+  revalidatePath(`/proposals/${proposalId}`)
+  revalidatePath("/proposals")
+
+  if (!projectId) return
+
   revalidatePath(`/projects/${projectId}/proposals/${proposalId}`)
   revalidatePath(`/projects/${projectId}/proposals`)
   revalidatePath(`/projects/${projectId}`)
-  revalidatePath("/proposals")
 }
 
 class ExpectedResponseError extends Error {}

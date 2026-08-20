@@ -56,7 +56,7 @@ describe("getPublicProposal", () => {
         number: proposal.number,
         status: "sent",
         totalCents: 123400,
-        projectName: "Website rebuild",
+        preparedForLabel: "Website rebuild",
         canRespond: true
       })
     )

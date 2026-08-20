@@ -33,7 +33,7 @@ const PublicProposalPage = ({ proposal, token }: PublicProposalPageProps) => {
           <ProposalStatusBadge status={proposal.status} />
         </div>
         <Typography variant="p" affects={["muted", "removePMargin"]}>
-          {t("proposals.public.preparedFor", { project: proposal.projectName })}
+          {t("proposals.public.preparedFor", { name: proposal.preparedForLabel })}
         </Typography>
       </header>
       <div className="grid gap-6 lg:grid-cols-3">

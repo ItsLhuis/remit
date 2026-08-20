@@ -6,6 +6,7 @@ export {
   proposalFormSchema,
   proposalIdSchema,
   proposalLineItemSchema,
+  proposalEditorParamsSchema,
   proposalListParamsSchema,
   proposalListQuerySchema,
   proposalStatusSchema,
@@ -15,6 +16,7 @@ export {
   PROPOSAL_STATUS_VALUES,
   type CreateProposalValues,
   type ProposalDiscountKind,
+  type ProposalEditorParams,
   type ProposalFormInputValues,
   type ProposalFormValues,
   type ProposalIdValues,
@@ -56,6 +58,8 @@ export {
   type ProposalOverviewFilterOptions,
   type ProposalOverviewItem,
   type ProposalOverviewPageData,
+  type ProposalParentOption,
+  type ProposalParentOptions,
   type ProposalTaxRateOption,
   type ProposalTemplateOption
 } from "./types"

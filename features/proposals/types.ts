@@ -25,7 +25,7 @@ export type ProposalTemplateOption = {
 
 export type ProposalListItem = {
   id: string
-  projectId: string
+  projectId: string | null
   number: string
   status: ProposalStatus
   currency: string
@@ -45,8 +45,9 @@ export type ProposalListPageData = {
 }
 
 // The instance-wide row carries the parent chain a project-scoped row can leave implicit: the
-// project it belongs to and the client that project is worked for, both resolved in the query so a
-// row is readable and navigable without a second lookup.
+// project it belongs to and the client it is for, both resolved in the query so a row is readable
+// and navigable without a second lookup. Either may be absent — a proposal hangs off a project or
+// off a client (`chk_proposals_parent`), and a hard-deleted project leaves only the client behind.
 export type ProposalOverviewItem = {
   id: string
   number: string
@@ -56,10 +57,12 @@ export type ProposalOverviewItem = {
   validUntil: Date | null
   issuedAt: Date | null
   createdAt: Date
-  projectId: string
-  projectName: string
-  clientId: string
-  clientName: string
+  projectId: string | null
+  projectName: string | null
+  // For a project-level proposal this is the project's client, resolved through the project rather
+  // than read from `proposals.client_id`; the two agree by `fk_proposals_project_client`.
+  clientId: string | null
+  clientName: string | null
 }
 
 export type ProposalOverviewClientOption = {
@@ -96,8 +99,10 @@ export type ProposalDetailLineItem = {
 
 export type ProposalDetail = {
   id: string
-  projectId: string
-  projectName: string
+  projectId: string | null
+  projectName: string | null
+  clientId: string | null
+  clientName: string | null
   number: string
   status: ProposalStatus
   currency: string
@@ -141,7 +146,9 @@ export type PublicProposal = {
   issuedAt: Date
   respondedAt: Date | null
   rejectionReason: string
-  projectName: string
+  // The project name when the proposal has one, the client's name otherwise: a client-level
+  // proposal still has to say who it was prepared for.
+  preparedForLabel: string
   issuer: PublicProposalIssuer
   locale: string
   timeZone: string
@@ -154,7 +161,7 @@ export type PublicProposal = {
 // out of `index.ts` exactly as `getProposalResponseTarget` stays out of `server.ts`.
 export type ProposalResponseTarget = {
   id: string
-  projectId: string
+  projectId: string | null
   number: string
   status: ProposalStatus
   currency: string
@@ -171,19 +178,33 @@ export type ProposalFormData = ProposalFormInputValues & {
   status: ProposalStatus
 }
 
+export type ProposalParentOption = {
+  id: string
+  name: string
+}
+
+export type ProposalParentOptions = {
+  projects: ProposalParentOption[]
+  clients: ProposalParentOption[]
+}
+
+// `projectId` and `projectName` are the project the editor was opened from, null on the top-level
+// `/proposals/new` route where the parent is picked in the form instead.
 export type ProposalEditorData = {
-  projectId: string
-  projectName: string
+  projectId: string | null
+  projectName: string | null
   defaults: ProposalDefaults
   taxRates: ProposalTaxRateOption[]
   templates: ProposalTemplateOption[]
+  parentOptions: ProposalParentOptions
 }
 
 // `title` is a suggested contract title derived from the proposal number and its project name, not
 // a stored proposal field; the conversion form may replace it.
 export type AcceptedProposalForContract = {
   id: string
-  projectId: string
+  projectId: string | null
+  clientId: string | null
   templateId: string | null
   blocks: Blocks
   title: string
