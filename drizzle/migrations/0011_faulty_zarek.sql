@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "contracts_proposal_id_unique_idx" ON "contracts" USING btree ("proposal_id") WHERE "contracts"."proposal_id" IS NOT NULL AND "contracts"."deleted_at" IS NULL;

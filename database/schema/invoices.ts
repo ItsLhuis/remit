@@ -17,7 +17,6 @@ import {
 import { clients } from "./clients"
 import { discountType, invoiceStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { recurringInvoices } from "./recurringInvoices"
 import { templates } from "./templates"
@@ -27,7 +26,11 @@ export const invoices = pgTable(
   "invoices",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    // No `.references(...)`: the link is the composite `fk_invoices_project_client` added in migration
+    // `0002_document_parent_agreement.sql`. Its `(project_id, client_id)` reference to
+    // `projects (id, client_id)` is what stops this row naming a project and a different client, and
+    // its `ON DELETE SET NULL (project_id) ON UPDATE RESTRICT` is not expressible through Drizzle.
+    projectId: uuid("project_id"),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     recurringInvoiceId: uuid("recurring_invoice_id").references(() => recurringInvoices.id, {
@@ -73,6 +76,7 @@ export const invoices = pgTable(
     index("invoices_proposal_id_idx").on(table.proposalId),
     index("invoices_recurring_invoice_id_idx").on(table.recurringInvoiceId),
     index("invoices_template_id_idx").on(table.templateId),
+    index("invoices_pdf_upload_id_idx").on(table.pdfUploadId),
     index("invoices_status_idx").on(table.status),
     index("invoices_due_date_idx").on(table.dueDate),
     uniqueIndex("invoices_public_token_idx").on(table.publicToken),
@@ -83,6 +87,10 @@ export const invoices = pgTable(
     check(
       "chk_invoices_parent",
       sql`${table.projectId} IS NOT NULL OR ${table.clientId} IS NOT NULL`
+    ),
+    check(
+      "chk_invoices_project_requires_client",
+      sql`${table.projectId} IS NULL OR ${table.clientId} IS NOT NULL`
     ),
     check(
       "chk_invoices_discount_percentage",

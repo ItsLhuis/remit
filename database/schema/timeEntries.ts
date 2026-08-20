@@ -49,6 +49,7 @@ export const timeEntries = pgTable(
     index("time_entries_task_id_idx").on(table.taskId),
     index("time_entries_user_id_idx").on(table.userId),
     index("time_entries_started_at_idx").on(table.startedAt.desc()),
+    index("time_entries_invoiced_in_id_idx").on(table.invoicedInId),
     index("time_entries_unbilled_idx")
       .on(table.projectId)
       .where(sql`${table.invoicedInId} IS NULL AND ${table.billable} = true`),

@@ -1,5 +1,15 @@
 import { sql } from "drizzle-orm"
-import { bigint, check, date, index, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core"
+import {
+  bigint,
+  check,
+  date,
+  index,
+  pgTable,
+  text,
+  uniqueIndex,
+  uuid,
+  varchar
+} from "drizzle-orm/pg-core"
 
 import { clients } from "./clients"
 import { projectStatus } from "./enums"
@@ -29,6 +39,11 @@ export const projects = pgTable(
   },
   (table) => [
     index("projects_client_id_idx").on(table.clientId),
+    // Not a domain rule of its own — `id` is already unique. It exists because the composite
+    // `fk_<table>_project_client` foreign keys added in migration
+    // `0002_document_parent_agreement.sql` reference this pair, and Postgres requires a unique
+    // index on a referenced column list.
+    uniqueIndex("uq_projects_id_client_id").on(table.id, table.clientId),
     index("projects_status_idx").on(table.status),
     index("projects_active_idx")
       .on(table.id)

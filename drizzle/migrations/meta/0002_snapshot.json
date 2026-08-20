@@ -1,6 +1,6 @@
 {
-  "id": "b45ef3d0-ac86-4e3e-8927-75ef4b779574",
-  "prevId": "845cf07c-8ca1-466a-ba8a-df15e5abdea4",
+  "id": "03c381df-82ec-4eec-add2-80ef5913398b",
+  "prevId": "bb3ad7f9-5f85-4f46-8ec2-cad8c04e0019",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -72,9 +72,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "activity_logs_entity_idx": {
           "name": "activity_logs_entity_idx",
@@ -93,9 +93,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "activity_logs_unread_idx": {
           "name": "activity_logs_unread_idx",
@@ -108,10 +108,10 @@
             }
           ],
           "isUnique": false,
-          "where": "\"activity_logs\".\"read_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"activity_logs\".\"read_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -207,9 +207,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "audit_logs_actor_idx": {
           "name": "audit_logs_actor_idx",
@@ -222,9 +222,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "audit_logs_target_idx": {
           "name": "audit_logs_target_idx",
@@ -243,20 +243,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "audit_logs_actor_user_id_users_id_fk": {
           "name": "audit_logs_actor_user_id_users_id_fk",
           "tableFrom": "audit_logs",
-          "tableTo": "users",
           "columnsFrom": ["actor_user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -362,20 +362,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "accounts_user_id_users_id_fk": {
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -457,37 +457,28 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
-        "sessions_active_organization_id_organizations_id_fk": {
-          "name": "sessions_active_organization_id_organizations_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "organizations",
-          "columnsFrom": ["active_organization_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sessions_token_unique": {
           "name": "sessions_token_unique",
-          "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": ["token"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -521,6 +512,26 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "failed_verification_count": {
+          "name": "failed_verification_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -535,9 +546,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "two_factors_secret_idx": {
           "name": "two_factors_secret_idx",
@@ -550,20 +561,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "two_factors_user_id_users_id_fk": {
           "name": "two_factors_user_id_users_id_fk",
           "tableFrom": "two_factors",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -643,8 +654,8 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": ["email"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -706,12 +717,146 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.client_contacts": {
+      "name": "client_contacts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "client_contacts_client_id_idx": {
+          "name": "client_contacts_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "client_contacts_email_idx": {
+          "name": "client_contacts_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "uq_client_contacts_primary": {
+          "name": "uq_client_contacts_primary",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"client_contacts\".\"is_primary\" = true AND \"client_contacts\".\"deleted_at\" IS NULL",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "client_contacts_client_id_clients_id_fk": {
+          "name": "client_contacts_client_id_clients_id_fk",
+          "tableFrom": "client_contacts",
+          "columnsFrom": ["client_id"],
+          "tableTo": "clients",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -801,6 +946,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_hourly_rate_cents": {
+          "name": "default_hourly_rate_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
         "notes": {
           "name": "notes",
           "type": "text",
@@ -846,9 +1003,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "clients_email_idx": {
           "name": "clients_email_idx",
@@ -861,9 +1018,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "clients_active_idx": {
           "name": "clients_active_idx",
@@ -876,10 +1033,10 @@
             }
           ],
           "isUnique": false,
-          "where": "\"clients\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"clients\".\"deleted_at\" IS NULL",
+          "concurrently": false
         },
         "clients_portal_token_idx": {
           "name": "clients_portal_token_idx",
@@ -892,17 +1049,22 @@
             }
           ],
           "isUnique": true,
-          "where": "\"clients\".\"portal_token\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"clients\".\"portal_token\" IS NOT NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chk_clients_default_hourly_rate": {
+          "name": "chk_clients_default_hourly_rate",
+          "value": "\"clients\".\"default_hourly_rate_cents\" IS NULL OR \"clients\".\"default_hourly_rate_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.email_logs": {
@@ -1019,9 +1181,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "email_logs_template_id_idx": {
+          "name": "email_logs_template_id_idx",
+          "columns": [
+            {
+              "expression": "template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "email_logs_status_idx": {
           "name": "email_logs_status_idx",
@@ -1034,9 +1211,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "email_logs_created_at_idx": {
           "name": "email_logs_created_at_idx",
@@ -1049,20 +1226,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "email_logs_template_id_templates_id_fk": {
           "name": "email_logs_template_id_templates_id_fk",
           "tableFrom": "email_logs",
-          "tableTo": "templates",
           "columnsFrom": ["template_id"],
+          "tableTo": "templates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1108,6 +1285,12 @@
         },
         "template_id": {
           "name": "template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_upload_id": {
+          "name": "pdf_upload_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1287,9 +1470,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_client_id_idx": {
           "name": "invoices_client_id_idx",
@@ -1302,9 +1485,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_proposal_id_idx": {
           "name": "invoices_proposal_id_idx",
@@ -1317,9 +1500,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_recurring_invoice_id_idx": {
           "name": "invoices_recurring_invoice_id_idx",
@@ -1332,9 +1515,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_template_id_idx": {
           "name": "invoices_template_id_idx",
@@ -1347,9 +1530,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "invoices_pdf_upload_id_idx": {
+          "name": "invoices_pdf_upload_id_idx",
+          "columns": [
+            {
+              "expression": "pdf_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "invoices_status_idx": {
           "name": "invoices_status_idx",
@@ -1362,9 +1560,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_due_date_idx": {
           "name": "invoices_due_date_idx",
@@ -1377,9 +1575,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_public_token_idx": {
           "name": "invoices_public_token_idx",
@@ -1392,64 +1590,64 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
-        "invoices_project_id_projects_id_fk": {
-          "name": "invoices_project_id_projects_id_fk",
-          "tableFrom": "invoices",
-          "tableTo": "projects",
-          "columnsFrom": ["project_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "invoices_client_id_clients_id_fk": {
           "name": "invoices_client_id_clients_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "clients",
           "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "invoices_proposal_id_proposals_id_fk": {
           "name": "invoices_proposal_id_proposals_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "proposals",
           "columnsFrom": ["proposal_id"],
+          "tableTo": "proposals",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "invoices_recurring_invoice_id_recurring_invoices_id_fk": {
           "name": "invoices_recurring_invoice_id_recurring_invoices_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "recurring_invoices",
           "columnsFrom": ["recurring_invoice_id"],
+          "tableTo": "recurring_invoices",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "invoices_template_id_templates_id_fk": {
           "name": "invoices_template_id_templates_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "templates",
           "columnsFrom": ["template_id"],
+          "tableTo": "templates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "invoices_pdf_upload_id_uploads_id_fk": {
+          "name": "invoices_pdf_upload_id_uploads_id_fk",
+          "tableFrom": "invoices",
+          "columnsFrom": ["pdf_upload_id"],
+          "tableTo": "uploads",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "invoices_number_unique": {
           "name": "invoices_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["number"]
+          "columns": ["number"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1457,6 +1655,10 @@
         "chk_invoices_parent": {
           "name": "chk_invoices_parent",
           "value": "\"invoices\".\"project_id\" IS NOT NULL OR \"invoices\".\"client_id\" IS NOT NULL"
+        },
+        "chk_invoices_project_requires_client": {
+          "name": "chk_invoices_project_requires_client",
+          "value": "\"invoices\".\"project_id\" IS NULL OR \"invoices\".\"client_id\" IS NOT NULL"
         },
         "chk_invoices_discount_percentage": {
           "name": "chk_invoices_discount_percentage",
@@ -1650,9 +1852,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "line_items_invoice_id_idx": {
           "name": "line_items_invoice_id_idx",
@@ -1665,9 +1867,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "idx_line_items_credit_note_id": {
           "name": "idx_line_items_credit_note_id",
@@ -1680,9 +1882,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "line_items_tax_rate_id_idx": {
           "name": "line_items_tax_rate_id_idx",
@@ -1695,9 +1897,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "line_items_source_time_entry_id_idx": {
           "name": "line_items_source_time_entry_id_idx",
@@ -1710,9 +1912,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "line_items_source_expense_id_idx": {
           "name": "line_items_source_expense_id_idx",
@@ -1725,9 +1927,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "uq_line_items_proposal_position": {
           "name": "uq_line_items_proposal_position",
@@ -1746,10 +1948,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"line_items\".\"proposal_id\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"line_items\".\"proposal_id\" IS NOT NULL",
+          "concurrently": false
         },
         "uq_line_items_invoice_position": {
           "name": "uq_line_items_invoice_position",
@@ -1768,10 +1970,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"line_items\".\"invoice_id\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"line_items\".\"invoice_id\" IS NOT NULL",
+          "concurrently": false
         },
         "uq_line_items_credit_note_position": {
           "name": "uq_line_items_credit_note_position",
@@ -1790,66 +1992,66 @@
             }
           ],
           "isUnique": true,
-          "where": "\"line_items\".\"credit_note_id\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"line_items\".\"credit_note_id\" IS NOT NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "line_items_proposal_id_proposals_id_fk": {
           "name": "line_items_proposal_id_proposals_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "proposals",
           "columnsFrom": ["proposal_id"],
+          "tableTo": "proposals",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "line_items_invoice_id_invoices_id_fk": {
           "name": "line_items_invoice_id_invoices_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "line_items_credit_note_id_credit_notes_id_fk": {
           "name": "line_items_credit_note_id_credit_notes_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "credit_notes",
           "columnsFrom": ["credit_note_id"],
+          "tableTo": "credit_notes",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "line_items_tax_rate_id_tax_rates_id_fk": {
           "name": "line_items_tax_rate_id_tax_rates_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "tax_rates",
           "columnsFrom": ["tax_rate_id"],
+          "tableTo": "tax_rates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "line_items_source_time_entry_id_time_entries_id_fk": {
           "name": "line_items_source_time_entry_id_time_entries_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "time_entries",
           "columnsFrom": ["source_time_entry_id"],
+          "tableTo": "time_entries",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "line_items_source_expense_id_expenses_id_fk": {
           "name": "line_items_source_expense_id_expenses_id_fk",
           "tableFrom": "line_items",
-          "tableTo": "expenses",
           "columnsFrom": ["source_expense_id"],
+          "tableTo": "expenses",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1991,9 +2193,30 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "uq_projects_id_client_id": {
+          "name": "uq_projects_id_client_id",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "projects_status_idx": {
           "name": "projects_status_idx",
@@ -2006,9 +2229,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "projects_active_idx": {
           "name": "projects_active_idx",
@@ -2021,21 +2244,21 @@
             }
           ],
           "isUnique": false,
-          "where": "\"projects\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"projects\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "projects_client_id_clients_id_fk": {
           "name": "projects_client_id_clients_id_fk",
           "tableFrom": "projects",
-          "tableTo": "clients",
           "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2138,9 +2361,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "proposal_otps_active_idx": {
           "name": "proposal_otps_active_idx",
@@ -2153,21 +2376,21 @@
             }
           ],
           "isUnique": false,
-          "where": "\"proposal_otps\".\"used_at\" IS NULL AND \"proposal_otps\".\"invalidated_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"proposal_otps\".\"used_at\" IS NULL AND \"proposal_otps\".\"invalidated_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "proposal_otps_proposal_id_proposals_id_fk": {
           "name": "proposal_otps_proposal_id_proposals_id_fk",
           "tableFrom": "proposal_otps",
-          "tableTo": "proposals",
           "columnsFrom": ["proposal_id"],
+          "tableTo": "proposals",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2200,10 +2423,22 @@
           "name": "project_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "template_id": {
           "name": "template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_upload_id": {
+          "name": "pdf_upload_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -2343,18 +2578,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "converted_to_invoice_id": {
-          "name": "converted_to_invoice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "converted_to_contract_id": {
-          "name": "converted_to_contract_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
@@ -2388,9 +2611,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "proposals_client_id_idx": {
+          "name": "proposals_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "proposals_template_id_idx": {
           "name": "proposals_template_id_idx",
@@ -2403,9 +2641,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "proposals_pdf_upload_id_idx": {
+          "name": "proposals_pdf_upload_id_idx",
+          "columns": [
+            {
+              "expression": "pdf_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "proposals_status_idx": {
           "name": "proposals_status_idx",
@@ -2418,9 +2671,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "proposals_public_token_idx": {
           "name": "proposals_public_token_idx",
@@ -2433,59 +2686,58 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
-        "proposals_project_id_projects_id_fk": {
-          "name": "proposals_project_id_projects_id_fk",
+        "proposals_client_id_clients_id_fk": {
+          "name": "proposals_client_id_clients_id_fk",
           "tableFrom": "proposals",
-          "tableTo": "projects",
-          "columnsFrom": ["project_id"],
+          "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "proposals_template_id_templates_id_fk": {
           "name": "proposals_template_id_templates_id_fk",
           "tableFrom": "proposals",
-          "tableTo": "templates",
           "columnsFrom": ["template_id"],
+          "tableTo": "templates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
-        "proposals_converted_to_invoice_id_invoices_id_fk": {
-          "name": "proposals_converted_to_invoice_id_invoices_id_fk",
+        "proposals_pdf_upload_id_uploads_id_fk": {
+          "name": "proposals_pdf_upload_id_uploads_id_fk",
           "tableFrom": "proposals",
-          "tableTo": "invoices",
-          "columnsFrom": ["converted_to_invoice_id"],
+          "columnsFrom": ["pdf_upload_id"],
+          "tableTo": "uploads",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "proposals_converted_to_contract_id_contracts_id_fk": {
-          "name": "proposals_converted_to_contract_id_contracts_id_fk",
-          "tableFrom": "proposals",
-          "tableTo": "contracts",
-          "columnsFrom": ["converted_to_contract_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "proposals_number_unique": {
           "name": "proposals_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["number"]
+          "columns": ["number"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
       "checkConstraints": {
+        "chk_proposals_parent": {
+          "name": "chk_proposals_parent",
+          "value": "\"proposals\".\"project_id\" IS NOT NULL OR \"proposals\".\"client_id\" IS NOT NULL"
+        },
+        "chk_proposals_project_requires_client": {
+          "name": "chk_proposals_project_requires_client",
+          "value": "\"proposals\".\"project_id\" IS NULL OR \"proposals\".\"client_id\" IS NOT NULL"
+        },
         "chk_proposals_discount_percentage": {
           "name": "chk_proposals_discount_percentage",
           "value": "\"proposals\".\"discount_percentage\" IS NULL OR (\"proposals\".\"discount_percentage\" >= 0 AND \"proposals\".\"discount_percentage\" <= 100)"
@@ -2637,6 +2889,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "default_invoice_footer": {
+          "name": "default_invoice_footer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "default_notes_proposal": {
           "name": "default_notes_proposal",
           "type": "text",
@@ -2656,6 +2914,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'PROP-'"
+        },
+        "contract_prefix": {
+          "name": "contract_prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'CTR-'"
         },
         "credit_note_prefix": {
           "name": "credit_note_prefix",
@@ -2678,6 +2943,13 @@
           "notNull": true,
           "default": 1
         },
+        "next_contract_number": {
+          "name": "next_contract_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "next_credit_note_number": {
           "name": "next_credit_note_number",
           "type": "integer",
@@ -2691,6 +2963,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 4
+        },
+        "default_hourly_rate_cents": {
+          "name": "default_hourly_rate_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         },
         "payment_iban": {
           "name": "payment_iban",
@@ -2810,31 +3088,6 @@
           "notNull": true,
           "default": "ARRAY[7, 14, 30]"
         },
-        "base_url": {
-          "name": "base_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sentry_dsn": {
-          "name": "sentry_dsn",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metrics_token": {
-          "name": "metrics_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hosted_mode": {
-          "name": "hosted_mode",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "backup_destination": {
           "name": "backup_destination",
           "type": "backup_destination",
@@ -2940,11 +3193,11 @@
         "settings_business_logo_upload_id_uploads_id_fk": {
           "name": "settings_business_logo_upload_id_uploads_id_fk",
           "tableFrom": "settings",
-          "tableTo": "uploads",
           "columnsFrom": ["business_logo_upload_id"],
+          "tableTo": "uploads",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -2957,11 +3210,15 @@
         },
         "chk_settings_payment_terms_days": {
           "name": "chk_settings_payment_terms_days",
-          "value": "\"settings\".\"payment_terms_days\" >= 0"
+          "value": "\"settings\".\"payment_terms_days\" >= 0 AND \"settings\".\"payment_terms_days\" <= 365"
         },
         "chk_settings_proposal_validity_days": {
           "name": "chk_settings_proposal_validity_days",
           "value": "\"settings\".\"proposal_validity_days\" >= 0"
+        },
+        "chk_settings_invoice_prefix": {
+          "name": "chk_settings_invoice_prefix",
+          "value": "length(\"settings\".\"invoice_prefix\") <= 24 AND \"settings\".\"invoice_prefix\" ~ '^[ -~]*$'"
         },
         "chk_settings_next_invoice_number": {
           "name": "chk_settings_next_invoice_number",
@@ -2971,6 +3228,10 @@
           "name": "chk_settings_next_proposal_number",
           "value": "\"settings\".\"next_proposal_number\" >= 1"
         },
+        "chk_settings_next_contract_number": {
+          "name": "chk_settings_next_contract_number",
+          "value": "\"settings\".\"next_contract_number\" >= 1"
+        },
         "chk_settings_next_credit_note_number": {
           "name": "chk_settings_next_credit_note_number",
           "value": "\"settings\".\"next_credit_note_number\" >= 1"
@@ -2978,6 +3239,10 @@
         "chk_settings_number_padding_width": {
           "name": "chk_settings_number_padding_width",
           "value": "\"settings\".\"number_padding_width\" >= 1 AND \"settings\".\"number_padding_width\" <= 10"
+        },
+        "chk_settings_default_hourly_rate": {
+          "name": "chk_settings_default_hourly_rate",
+          "value": "\"settings\".\"default_hourly_rate_cents\" IS NULL OR \"settings\".\"default_hourly_rate_cents\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -3045,10 +3310,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"tax_rates\".\"is_default\" = true AND \"tax_rates\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"tax_rates\".\"is_default\" = true AND \"tax_rates\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -3106,6 +3371,13 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
+        "page_settings": {
+          "name": "page_settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
         "is_default": {
           "name": "is_default",
           "type": "boolean",
@@ -3153,9 +3425,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "uq_templates_default_per_type": {
           "name": "uq_templates_default_per_type",
@@ -3168,10 +3440,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"templates\".\"is_default\" = true AND \"templates\".\"deleted_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"templates\".\"is_default\" = true AND \"templates\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -3204,6 +3476,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "bucket": {
+          "name": "bucket",
+          "type": "storage_bucket",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'public'"
+        },
         "mime_type": {
           "name": "mime_type",
           "type": "text",
@@ -3230,8 +3510,8 @@
       "uniqueConstraints": {
         "uploads_path_unique": {
           "name": "uploads_path_unique",
-          "nullsNotDistinct": false,
-          "columns": ["path"]
+          "columns": ["path"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -3311,9 +3591,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invitation_organization_id_idx": {
           "name": "invitation_organization_id_idx",
@@ -3326,9 +3606,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invitation_status_idx": {
           "name": "invitation_status_idx",
@@ -3341,29 +3621,29 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "invitations_organization_id_organizations_id_fk": {
           "name": "invitations_organization_id_organizations_id_fk",
           "tableFrom": "invitations",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "invitations_inviter_id_users_id_fk": {
           "name": "invitations_inviter_id_users_id_fk",
           "tableFrom": "invitations",
-          "tableTo": "users",
           "columnsFrom": ["inviter_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -3421,9 +3701,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "member_organization_id_idx": {
           "name": "member_organization_id_idx",
@@ -3436,9 +3716,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "member_user_organization_idx": {
           "name": "member_user_organization_idx",
@@ -3457,9 +3737,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "uq_member_owner_per_org": {
           "name": "uq_member_owner_per_org",
@@ -3472,30 +3752,30 @@
             }
           ],
           "isUnique": true,
-          "where": "\"members\".\"role\" = 'owner'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"members\".\"role\" = 'owner'",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "members_user_id_users_id_fk": {
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "members_organization_id_organizations_id_fk": {
           "name": "members_organization_id_organizations_id_fk",
           "tableFrom": "members",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -3559,9 +3839,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -3683,9 +3963,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "leads_status_idx": {
           "name": "leads_status_idx",
@@ -3698,9 +3978,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "leads_converted_to_client_id_idx": {
+          "name": "leads_converted_to_client_id_idx",
+          "columns": [
+            {
+              "expression": "converted_to_client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "leads_created_at_idx": {
           "name": "leads_created_at_idx",
@@ -3713,20 +4008,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "leads_converted_to_client_id_clients_id_fk": {
           "name": "leads_converted_to_client_id_clients_id_fk",
           "tableFrom": "leads",
-          "tableTo": "clients",
           "columnsFrom": ["converted_to_client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -3838,9 +4133,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "tasks_status_idx": {
           "name": "tasks_status_idx",
@@ -3853,9 +4148,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "tasks_due_at_idx": {
           "name": "tasks_due_at_idx",
@@ -3868,27 +4163,32 @@
             }
           ],
           "isUnique": false,
-          "where": "\"tasks\".\"due_at\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"tasks\".\"due_at\" IS NOT NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "tasks_project_id_projects_id_fk": {
           "name": "tasks_project_id_projects_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "projects",
           "columnsFrom": ["project_id"],
+          "tableTo": "projects",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chk_tasks_hourly_rate": {
+          "name": "chk_tasks_hourly_rate",
+          "value": "\"tasks\".\"hourly_rate_cents\" IS NULL OR \"tasks\".\"hourly_rate_cents\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.time_entries": {
@@ -3944,6 +4244,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "hourly_rate_override_cents": {
+          "name": "hourly_rate_override_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         },
         "hourly_rate_snapshot_cents": {
           "name": "hourly_rate_snapshot_cents",
@@ -4004,9 +4310,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "time_entries_task_id_idx": {
           "name": "time_entries_task_id_idx",
@@ -4019,9 +4325,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "time_entries_user_id_idx": {
           "name": "time_entries_user_id_idx",
@@ -4034,9 +4340,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "time_entries_started_at_idx": {
           "name": "time_entries_started_at_idx",
@@ -4049,9 +4355,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "time_entries_invoiced_in_id_idx": {
+          "name": "time_entries_invoiced_in_id_idx",
+          "columns": [
+            {
+              "expression": "invoiced_in_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "time_entries_unbilled_idx": {
           "name": "time_entries_unbilled_idx",
@@ -4064,48 +4385,64 @@
             }
           ],
           "isUnique": false,
-          "where": "\"time_entries\".\"invoiced_in_id\" IS NULL AND \"time_entries\".\"billable\" = true",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"time_entries\".\"invoiced_in_id\" IS NULL AND \"time_entries\".\"billable\" = true",
+          "concurrently": false
+        },
+        "time_entries_running_timer_idx": {
+          "name": "time_entries_running_timer_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"time_entries\".\"ended_at\" IS NULL AND \"time_entries\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "time_entries_project_id_projects_id_fk": {
           "name": "time_entries_project_id_projects_id_fk",
           "tableFrom": "time_entries",
-          "tableTo": "projects",
           "columnsFrom": ["project_id"],
+          "tableTo": "projects",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "time_entries_task_id_tasks_id_fk": {
           "name": "time_entries_task_id_tasks_id_fk",
           "tableFrom": "time_entries",
-          "tableTo": "tasks",
           "columnsFrom": ["task_id"],
+          "tableTo": "tasks",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "time_entries_user_id_users_id_fk": {
           "name": "time_entries_user_id_users_id_fk",
           "tableFrom": "time_entries",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "time_entries_invoiced_in_id_invoices_id_fk": {
           "name": "time_entries_invoiced_in_id_invoices_id_fk",
           "tableFrom": "time_entries",
-          "tableTo": "invoices",
           "columnsFrom": ["invoiced_in_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -4123,6 +4460,10 @@
         "chk_time_entries_rate": {
           "name": "chk_time_entries_rate",
           "value": "\"time_entries\".\"hourly_rate_snapshot_cents\" >= 0"
+        },
+        "chk_time_entries_rate_override": {
+          "name": "chk_time_entries_rate_override",
+          "value": "\"time_entries\".\"hourly_rate_override_cents\" IS NULL OR \"time_entries\".\"hourly_rate_override_cents\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -4238,9 +4579,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "expenses_client_id_idx": {
           "name": "expenses_client_id_idx",
@@ -4253,9 +4594,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "expenses_spent_at_idx": {
           "name": "expenses_spent_at_idx",
@@ -4268,9 +4609,39 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "expenses_receipt_upload_id_idx": {
+          "name": "expenses_receipt_upload_id_idx",
+          "columns": [
+            {
+              "expression": "receipt_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "expenses_invoiced_in_id_idx": {
+          "name": "expenses_invoiced_in_id_idx",
+          "columns": [
+            {
+              "expression": "invoiced_in_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "expenses_unbilled_rebillable_idx": {
           "name": "expenses_unbilled_rebillable_idx",
@@ -4283,54 +4654,49 @@
             }
           ],
           "isUnique": false,
-          "where": "\"expenses\".\"invoiced_in_id\" IS NULL AND \"expenses\".\"rebillable\" = true",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"expenses\".\"invoiced_in_id\" IS NULL AND \"expenses\".\"rebillable\" = true",
+          "concurrently": false
         }
       },
       "foreignKeys": {
-        "expenses_project_id_projects_id_fk": {
-          "name": "expenses_project_id_projects_id_fk",
-          "tableFrom": "expenses",
-          "tableTo": "projects",
-          "columnsFrom": ["project_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "expenses_client_id_clients_id_fk": {
           "name": "expenses_client_id_clients_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "clients",
           "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "expenses_receipt_upload_id_uploads_id_fk": {
           "name": "expenses_receipt_upload_id_uploads_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "uploads",
           "columnsFrom": ["receipt_upload_id"],
+          "tableTo": "uploads",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "expenses_invoiced_in_id_invoices_id_fk": {
           "name": "expenses_invoiced_in_id_invoices_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "invoices",
           "columnsFrom": ["invoiced_in_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "chk_expenses_project_requires_client": {
+          "name": "chk_expenses_project_requires_client",
+          "value": "\"expenses\".\"project_id\" IS NULL OR \"expenses\".\"client_id\" IS NOT NULL"
+        },
         "chk_expenses_amount": {
           "name": "chk_expenses_amount",
           "value": "\"expenses\".\"amount_cents\" >= 0"
@@ -4373,6 +4739,12 @@
         },
         "template_id": {
           "name": "template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_upload_id": {
+          "name": "pdf_upload_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -4473,9 +4845,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "contracts_client_id_idx": {
           "name": "contracts_client_id_idx",
@@ -4488,9 +4860,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "contracts_proposal_id_idx": {
           "name": "contracts_proposal_id_idx",
@@ -4503,9 +4875,39 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "contracts_template_id_idx": {
+          "name": "contracts_template_id_idx",
+          "columns": [
+            {
+              "expression": "template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "contracts_pdf_upload_id_idx": {
+          "name": "contracts_pdf_upload_id_idx",
+          "columns": [
+            {
+              "expression": "pdf_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "contracts_status_idx": {
           "name": "contracts_status_idx",
@@ -4518,9 +4920,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "contracts_public_token_idx": {
           "name": "contracts_public_token_idx",
@@ -4533,55 +4935,71 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "contracts_proposal_id_unique_idx": {
+          "name": "contracts_proposal_id_unique_idx",
+          "columns": [
+            {
+              "expression": "proposal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"contracts\".\"proposal_id\" IS NOT NULL AND \"contracts\".\"deleted_at\" IS NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
-        "contracts_project_id_projects_id_fk": {
-          "name": "contracts_project_id_projects_id_fk",
-          "tableFrom": "contracts",
-          "tableTo": "projects",
-          "columnsFrom": ["project_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "contracts_client_id_clients_id_fk": {
           "name": "contracts_client_id_clients_id_fk",
           "tableFrom": "contracts",
-          "tableTo": "clients",
           "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "contracts_proposal_id_proposals_id_fk": {
           "name": "contracts_proposal_id_proposals_id_fk",
           "tableFrom": "contracts",
-          "tableTo": "proposals",
           "columnsFrom": ["proposal_id"],
+          "tableTo": "proposals",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "contracts_template_id_templates_id_fk": {
           "name": "contracts_template_id_templates_id_fk",
           "tableFrom": "contracts",
-          "tableTo": "templates",
           "columnsFrom": ["template_id"],
+          "tableTo": "templates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "contracts_pdf_upload_id_uploads_id_fk": {
+          "name": "contracts_pdf_upload_id_uploads_id_fk",
+          "tableFrom": "contracts",
+          "columnsFrom": ["pdf_upload_id"],
+          "tableTo": "uploads",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "contracts_number_unique": {
           "name": "contracts_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["number"]
+          "columns": ["number"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -4589,6 +5007,10 @@
         "chk_contracts_parent": {
           "name": "chk_contracts_parent",
           "value": "\"contracts\".\"project_id\" IS NOT NULL OR \"contracts\".\"client_id\" IS NOT NULL"
+        },
+        "chk_contracts_project_requires_client": {
+          "name": "chk_contracts_project_requires_client",
+          "value": "\"contracts\".\"project_id\" IS NULL OR \"contracts\".\"client_id\" IS NOT NULL"
         },
         "chk_contracts_dates": {
           "name": "chk_contracts_dates",
@@ -4677,29 +5099,44 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "contract_signatures_signed_pdf_upload_id_idx": {
+          "name": "contract_signatures_signed_pdf_upload_id_idx",
+          "columns": [
+            {
+              "expression": "signed_pdf_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "contract_signatures_contract_id_contracts_id_fk": {
           "name": "contract_signatures_contract_id_contracts_id_fk",
           "tableFrom": "contract_signatures",
-          "tableTo": "contracts",
           "columnsFrom": ["contract_id"],
+          "tableTo": "contracts",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "contract_signatures_signed_pdf_upload_id_uploads_id_fk": {
           "name": "contract_signatures_signed_pdf_upload_id_uploads_id_fk",
           "tableFrom": "contract_signatures",
-          "tableTo": "uploads",
           "columnsFrom": ["signed_pdf_upload_id"],
+          "tableTo": "uploads",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -4867,9 +5304,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "recurring_invoices_template_id_idx": {
+          "name": "recurring_invoices_template_id_idx",
+          "columns": [
+            {
+              "expression": "template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "recurring_invoices_status_idx": {
           "name": "recurring_invoices_status_idx",
@@ -4882,9 +5334,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "recurring_invoices_next_run_at_idx": {
           "name": "recurring_invoices_next_run_at_idx",
@@ -4897,45 +5349,40 @@
             }
           ],
           "isUnique": false,
-          "where": "\"recurring_invoices\".\"status\" = 'active'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"recurring_invoices\".\"status\" = 'active'",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "recurring_invoices_client_id_clients_id_fk": {
           "name": "recurring_invoices_client_id_clients_id_fk",
           "tableFrom": "recurring_invoices",
-          "tableTo": "clients",
           "columnsFrom": ["client_id"],
+          "tableTo": "clients",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "recurring_invoices_project_id_projects_id_fk": {
-          "name": "recurring_invoices_project_id_projects_id_fk",
-          "tableFrom": "recurring_invoices",
-          "tableTo": "projects",
-          "columnsFrom": ["project_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "recurring_invoices_template_id_templates_id_fk": {
           "name": "recurring_invoices_template_id_templates_id_fk",
           "tableFrom": "recurring_invoices",
-          "tableTo": "templates",
           "columnsFrom": ["template_id"],
+          "tableTo": "templates",
           "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "chk_recurring_invoices_project_requires_client": {
+          "name": "chk_recurring_invoices_project_requires_client",
+          "value": "\"recurring_invoices\".\"project_id\" IS NULL OR \"recurring_invoices\".\"client_id\" IS NOT NULL"
+        },
         "chk_recurring_invoices_end_condition": {
           "name": "chk_recurring_invoices_end_condition",
           "value": "\"recurring_invoices\".\"end_after_count\" IS NULL OR \"recurring_invoices\".\"end_by_date\" IS NULL"
@@ -5041,9 +5488,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_paid_at_idx": {
           "name": "payments_paid_at_idx",
@@ -5056,9 +5503,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_stripe_payment_intent_idx": {
           "name": "payments_stripe_payment_intent_idx",
@@ -5071,21 +5518,21 @@
             }
           ],
           "isUnique": true,
-          "where": "\"payments\".\"stripe_payment_intent_id\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"payments\".\"stripe_payment_intent_id\" IS NOT NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "payments_invoice_id_invoices_id_fk": {
           "name": "payments_invoice_id_invoices_id_fk",
           "tableFrom": "payments",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -5115,6 +5562,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "pdf_upload_id": {
+          "name": "pdf_upload_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "number": {
           "name": "number",
@@ -5195,9 +5648,24 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
+        },
+        "credit_notes_pdf_upload_id_idx": {
+          "name": "credit_notes_pdf_upload_id_idx",
+          "columns": [
+            {
+              "expression": "pdf_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
         },
         "credit_notes_number_idx": {
           "name": "credit_notes_number_idx",
@@ -5210,20 +5678,29 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "credit_notes_invoice_id_invoices_id_fk": {
           "name": "credit_notes_invoice_id_invoices_id_fk",
           "tableFrom": "credit_notes",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "credit_notes_pdf_upload_id_uploads_id_fk": {
+          "name": "credit_notes_pdf_upload_id_uploads_id_fk",
+          "tableFrom": "credit_notes",
+          "columnsFrom": ["pdf_upload_id"],
+          "tableTo": "uploads",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -5233,6 +5710,194 @@
         "chk_credit_notes_totals": {
           "name": "chk_credit_notes_totals",
           "value": "\"credit_notes\".\"subtotal_cents\" >= 0 AND \"credit_notes\".\"tax_amount_cents\" >= 0 AND \"credit_notes\".\"total_cents\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.data_exports": {
+      "name": "data_exports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "scope": {
+          "name": "scope",
+          "type": "data_export_scope",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "data_export_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "progress": {
+          "name": "progress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_reason": {
+          "name": "failure_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_by_user_id": {
+          "name": "requested_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filename": {
+          "name": "filename",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entry_count": {
+          "name": "entry_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_data_exports_status": {
+          "name": "idx_data_exports_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "idx_data_exports_created_at": {
+          "name": "idx_data_exports_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "idx_data_exports_client_id": {
+          "name": "idx_data_exports_client_id",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "data_exports_client_id_clients_id_fk": {
+          "name": "data_exports_client_id_clients_id_fk",
+          "tableFrom": "data_exports",
+          "columnsFrom": ["client_id"],
+          "tableTo": "clients",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "data_exports_requested_by_user_id_users_id_fk": {
+          "name": "data_exports_requested_by_user_id_users_id_fk",
+          "tableFrom": "data_exports",
+          "columnsFrom": ["requested_by_user_id"],
+          "tableTo": "users",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_data_exports_progress": {
+          "name": "chk_data_exports_progress",
+          "value": "\"data_exports\".\"progress\" BETWEEN 0 AND 100"
+        },
+        "chk_data_exports_size_bytes": {
+          "name": "chk_data_exports_size_bytes",
+          "value": "\"data_exports\".\"size_bytes\" IS NULL OR \"data_exports\".\"size_bytes\" >= 0"
+        },
+        "chk_data_exports_scope_client": {
+          "name": "chk_data_exports_scope_client",
+          "value": "(\"data_exports\".\"scope\" = 'instance' AND \"data_exports\".\"client_id\" IS NULL) OR \"data_exports\".\"scope\" = 'client'"
         }
       },
       "isRLSEnabled": false
@@ -5253,6 +5918,16 @@
       "name": "contract_status",
       "schema": "public",
       "values": ["draft", "sent", "signed", "expired", "terminated"]
+    },
+    "public.data_export_scope": {
+      "name": "data_export_scope",
+      "schema": "public",
+      "values": ["instance", "client"]
+    },
+    "public.data_export_status": {
+      "name": "data_export_status",
+      "schema": "public",
+      "values": ["pending", "running", "ready", "failed"]
     },
     "public.discount_type": {
       "name": "discount_type",
@@ -5334,6 +6009,11 @@
       "schema": "public",
       "values": ["active", "paused", "completed", "cancelled"]
     },
+    "public.storage_bucket": {
+      "name": "storage_bucket",
+      "schema": "public",
+      "values": ["public", "documents"]
+    },
     "public.task_priority": {
       "name": "task_priority",
       "schema": "public",
@@ -5342,7 +6022,7 @@
     "public.task_status": {
       "name": "task_status",
       "schema": "public",
-      "values": ["todo", "doing", "done"]
+      "values": ["backlog", "todo", "in_progress", "done", "cancelled"]
     },
     "public.template_type": {
       "name": "template_type",
@@ -5367,10 +6047,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

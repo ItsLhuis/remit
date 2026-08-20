@@ -14,7 +14,6 @@ import {
 import { clients } from "./clients"
 import { contractStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { projects } from "./projects"
 import { proposals } from "./proposals"
 import { templates } from "./templates"
 import { uploads } from "./uploads"
@@ -23,7 +22,11 @@ export const contracts = pgTable(
   "contracts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    // No `.references(...)`: the link is the composite `fk_contracts_project_client` added in migration
+    // `0002_document_parent_agreement.sql`. Its `(project_id, client_id)` reference to
+    // `projects (id, client_id)` is what stops this row naming a project and a different client, and
+    // its `ON DELETE SET NULL (project_id) ON UPDATE RESTRICT` is not expressible through Drizzle.
+    projectId: uuid("project_id"),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     proposalId: uuid("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
@@ -51,10 +54,13 @@ export const contracts = pgTable(
     index("contracts_project_id_idx").on(table.projectId),
     index("contracts_client_id_idx").on(table.clientId),
     index("contracts_proposal_id_idx").on(table.proposalId),
+    index("contracts_template_id_idx").on(table.templateId),
+    index("contracts_pdf_upload_id_idx").on(table.pdfUploadId),
     index("contracts_status_idx").on(table.status),
     uniqueIndex("contracts_public_token_idx").on(table.publicToken),
-    // One live contract per proposal. The reverse link `proposals.converted_to_contract_id` was
-    // dropped in migration 0009, so this index is what makes "a proposal converts once" structural:
+    // One live contract per proposal. A conversion is recorded only here, on the produced document
+    // — `proposals` carries no `converted_to_contract_id` back-pointer — so this index is what makes
+    // "a proposal converts once" structural:
     // two concurrent conversions of the same proposal cannot both commit, the loser's transaction
     // rolls back, and the contract number it claimed is never consumed. Partial so that soft-deleted
     // contracts free their proposal for a fresh conversion.
@@ -64,6 +70,10 @@ export const contracts = pgTable(
     check(
       "chk_contracts_parent",
       sql`${table.projectId} IS NOT NULL OR ${table.clientId} IS NOT NULL`
+    ),
+    check(
+      "chk_contracts_project_requires_client",
+      sql`${table.projectId} IS NULL OR ${table.clientId} IS NOT NULL`
     ),
     check(
       "chk_contracts_dates",

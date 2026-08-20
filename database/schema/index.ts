@@ -1,6 +1,7 @@
 export * from "./activityLogs"
 export * from "./auditLogs"
 export * from "./auth"
+export * from "./clientContacts"
 export * from "./clients"
 export * from "./emailLogs"
 export * from "./enums"

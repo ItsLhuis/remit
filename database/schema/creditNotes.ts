@@ -39,6 +39,7 @@ export const creditNotes = pgTable(
   },
   (table) => [
     index("credit_notes_invoice_id_idx").on(table.invoiceId),
+    index("credit_notes_pdf_upload_id_idx").on(table.pdfUploadId),
     uniqueIndex("credit_notes_number_idx").on(table.number),
     check(
       "chk_credit_notes_totals",

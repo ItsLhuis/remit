@@ -1,6 +1,8 @@
 CREATE TYPE "public"."backup_cadence" AS ENUM('daily', 'weekly');--> statement-breakpoint
 CREATE TYPE "public"."backup_destination" AS ENUM('local', 's3', 'r2', 'b2');--> statement-breakpoint
 CREATE TYPE "public"."contract_status" AS ENUM('draft', 'sent', 'signed', 'expired', 'terminated');--> statement-breakpoint
+CREATE TYPE "public"."data_export_scope" AS ENUM('instance', 'client');--> statement-breakpoint
+CREATE TYPE "public"."data_export_status" AS ENUM('pending', 'running', 'ready', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."discount_type" AS ENUM('percentage', 'fixed');--> statement-breakpoint
 CREATE TYPE "public"."document_type" AS ENUM('proposal', 'invoice', 'contract');--> statement-breakpoint
 CREATE TYPE "public"."email_provider" AS ENUM('smtp', 'resend');--> statement-breakpoint
@@ -15,8 +17,9 @@ CREATE TYPE "public"."proposal_action" AS ENUM('accept', 'reject');--> statement
 CREATE TYPE "public"."proposal_status" AS ENUM('draft', 'sent', 'accepted', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."recurring_cadence" AS ENUM('weekly', 'monthly', 'quarterly', 'yearly');--> statement-breakpoint
 CREATE TYPE "public"."recurring_invoice_status" AS ENUM('active', 'paused', 'completed', 'cancelled');--> statement-breakpoint
+CREATE TYPE "public"."storage_bucket" AS ENUM('public', 'documents');--> statement-breakpoint
 CREATE TYPE "public"."task_priority" AS ENUM('low', 'normal', 'high', 'urgent');--> statement-breakpoint
-CREATE TYPE "public"."task_status" AS ENUM('todo', 'doing', 'done');--> statement-breakpoint
+CREATE TYPE "public"."task_status" AS ENUM('backlog', 'todo', 'in_progress', 'done', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."template_type" AS ENUM('invoice', 'proposal', 'contract', 'credit_note', 'email_invoice_send', 'email_proposal_send', 'email_contract_send', 'email_payment_receipt', 'email_overdue_reminder', 'email_recurring_generated');--> statement-breakpoint
 CREATE TYPE "public"."time_entry_source" AS ENUM('timer', 'manual');--> statement-breakpoint
 CREATE TABLE "activity_logs" (
@@ -76,7 +79,10 @@ CREATE TABLE "two_factors" (
 	"id" text PRIMARY KEY NOT NULL,
 	"secret" text NOT NULL,
 	"backup_codes" text NOT NULL,
-	"user_id" uuid NOT NULL
+	"user_id" uuid NOT NULL,
+	"verified" boolean DEFAULT true,
+	"failed_verification_count" integer DEFAULT 0,
+	"locked_until" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -86,6 +92,7 @@ CREATE TABLE "users" (
 	"email_verified" boolean DEFAULT false NOT NULL,
 	"image" text,
 	"two_factor_enabled" boolean DEFAULT false,
+	"must_change_password" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
@@ -96,6 +103,19 @@ CREATE TABLE "verifications" (
 	"identifier" text NOT NULL,
 	"value" text NOT NULL,
 	"expires_at" timestamp with time zone NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "client_contacts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"client_id" uuid NOT NULL,
+	"name" text NOT NULL,
+	"email" text NOT NULL,
+	"phone" text,
+	"role" text,
+	"is_primary" boolean DEFAULT false NOT NULL,
+	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -114,11 +134,14 @@ CREATE TABLE "clients" (
 	"postal_code" text,
 	"country" text,
 	"currency" varchar(3),
+	"locale" text,
+	"default_hourly_rate_cents" bigint,
 	"notes" text,
 	"portal_token" text,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_clients_default_hourly_rate" CHECK ("clients"."default_hourly_rate_cents" IS NULL OR "clients"."default_hourly_rate_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "email_logs" (
@@ -145,6 +168,7 @@ CREATE TABLE "invoices" (
 	"proposal_id" uuid,
 	"recurring_invoice_id" uuid,
 	"template_id" uuid,
+	"pdf_upload_id" uuid,
 	"number" text NOT NULL,
 	"status" "invoice_status" DEFAULT 'draft' NOT NULL,
 	"currency" varchar(3) DEFAULT 'EUR' NOT NULL,
@@ -172,6 +196,7 @@ CREATE TABLE "invoices" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "invoices_number_unique" UNIQUE("number"),
 	CONSTRAINT "chk_invoices_parent" CHECK ("invoices"."project_id" IS NOT NULL OR "invoices"."client_id" IS NOT NULL),
+	CONSTRAINT "chk_invoices_project_requires_client" CHECK ("invoices"."project_id" IS NULL OR "invoices"."client_id" IS NOT NULL),
 	CONSTRAINT "chk_invoices_discount_percentage" CHECK ("invoices"."discount_percentage" IS NULL OR ("invoices"."discount_percentage" >= 0 AND "invoices"."discount_percentage" <= 100)),
 	CONSTRAINT "chk_invoices_discount_amount" CHECK ("invoices"."discount_amount_cents" IS NULL OR "invoices"."discount_amount_cents" >= 0),
 	CONSTRAINT "chk_invoices_discount_shape" CHECK (("invoices"."discount_type" IS NULL AND "invoices"."discount_percentage" IS NULL AND "invoices"."discount_amount_cents" IS NULL) OR ("invoices"."discount_type" = 'percentage' AND "invoices"."discount_percentage" IS NOT NULL AND "invoices"."discount_amount_cents" IS NULL) OR ("invoices"."discount_type" = 'fixed' AND "invoices"."discount_amount_cents" IS NOT NULL AND "invoices"."discount_percentage" IS NULL)),
@@ -255,8 +280,10 @@ CREATE TABLE "proposal_otps" (
 --> statement-breakpoint
 CREATE TABLE "proposals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"project_id" uuid NOT NULL,
+	"project_id" uuid,
+	"client_id" uuid,
 	"template_id" uuid,
+	"pdf_upload_id" uuid,
 	"number" text NOT NULL,
 	"status" "proposal_status" DEFAULT 'draft' NOT NULL,
 	"currency" varchar(3) DEFAULT 'EUR' NOT NULL,
@@ -278,12 +305,12 @@ CREATE TABLE "proposals" (
 	"responded_at" timestamp with time zone,
 	"responded_ip" text,
 	"rejection_reason" text,
-	"converted_to_invoice_id" uuid,
-	"converted_to_contract_id" uuid,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "proposals_number_unique" UNIQUE("number"),
+	CONSTRAINT "chk_proposals_parent" CHECK ("proposals"."project_id" IS NOT NULL OR "proposals"."client_id" IS NOT NULL),
+	CONSTRAINT "chk_proposals_project_requires_client" CHECK ("proposals"."project_id" IS NULL OR "proposals"."client_id" IS NOT NULL),
 	CONSTRAINT "chk_proposals_discount_percentage" CHECK ("proposals"."discount_percentage" IS NULL OR ("proposals"."discount_percentage" >= 0 AND "proposals"."discount_percentage" <= 100)),
 	CONSTRAINT "chk_proposals_discount_amount" CHECK ("proposals"."discount_amount_cents" IS NULL OR "proposals"."discount_amount_cents" >= 0),
 	CONSTRAINT "chk_proposals_discount_shape" CHECK (("proposals"."discount_type" IS NULL AND "proposals"."discount_percentage" IS NULL AND "proposals"."discount_amount_cents" IS NULL) OR ("proposals"."discount_type" = 'percentage' AND "proposals"."discount_percentage" IS NOT NULL AND "proposals"."discount_amount_cents" IS NULL) OR ("proposals"."discount_type" = 'fixed' AND "proposals"."discount_amount_cents" IS NOT NULL AND "proposals"."discount_percentage" IS NULL)),
@@ -312,14 +339,18 @@ CREATE TABLE "settings" (
 	"payment_terms_days" integer DEFAULT 30 NOT NULL,
 	"proposal_validity_days" integer DEFAULT 30 NOT NULL,
 	"default_notes_invoice" text,
+	"default_invoice_footer" text,
 	"default_notes_proposal" text,
 	"invoice_prefix" text DEFAULT 'INV-' NOT NULL,
 	"proposal_prefix" text DEFAULT 'PROP-' NOT NULL,
+	"contract_prefix" text DEFAULT 'CTR-' NOT NULL,
 	"credit_note_prefix" text DEFAULT 'CN-' NOT NULL,
 	"next_invoice_number" integer DEFAULT 1 NOT NULL,
 	"next_proposal_number" integer DEFAULT 1 NOT NULL,
+	"next_contract_number" integer DEFAULT 1 NOT NULL,
 	"next_credit_note_number" integer DEFAULT 1 NOT NULL,
 	"number_padding_width" integer DEFAULT 4 NOT NULL,
+	"default_hourly_rate_cents" bigint,
 	"payment_iban" text,
 	"payment_bank_name" text,
 	"payment_instructions" text,
@@ -339,10 +370,6 @@ CREATE TABLE "settings" (
 	"email_test_send_at" timestamp with time zone,
 	"reminder_before_due_days" integer[] DEFAULT ARRAY[3, 0] NOT NULL,
 	"reminder_after_due_days" integer[] DEFAULT ARRAY[7, 14, 30] NOT NULL,
-	"base_url" text,
-	"sentry_dsn" text,
-	"metrics_token" text,
-	"hosted_mode" boolean DEFAULT false NOT NULL,
 	"backup_destination" "backup_destination" DEFAULT 'local' NOT NULL,
 	"backup_cadence" "backup_cadence" DEFAULT 'daily' NOT NULL,
 	"backup_retention_daily" integer DEFAULT 7 NOT NULL,
@@ -359,12 +386,15 @@ CREATE TABLE "settings" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "chk_settings_email_provider" CHECK ("settings"."email_provider" IS NULL OR "settings"."email_provider" IN ('smtp', 'resend')),
-	CONSTRAINT "chk_settings_payment_terms_days" CHECK ("settings"."payment_terms_days" >= 0),
+	CONSTRAINT "chk_settings_payment_terms_days" CHECK ("settings"."payment_terms_days" >= 0 AND "settings"."payment_terms_days" <= 365),
 	CONSTRAINT "chk_settings_proposal_validity_days" CHECK ("settings"."proposal_validity_days" >= 0),
+	CONSTRAINT "chk_settings_invoice_prefix" CHECK (length("settings"."invoice_prefix") <= 24 AND "settings"."invoice_prefix" ~ '^[ -~]*$'),
 	CONSTRAINT "chk_settings_next_invoice_number" CHECK ("settings"."next_invoice_number" >= 1),
 	CONSTRAINT "chk_settings_next_proposal_number" CHECK ("settings"."next_proposal_number" >= 1),
+	CONSTRAINT "chk_settings_next_contract_number" CHECK ("settings"."next_contract_number" >= 1),
 	CONSTRAINT "chk_settings_next_credit_note_number" CHECK ("settings"."next_credit_note_number" >= 1),
-	CONSTRAINT "chk_settings_number_padding_width" CHECK ("settings"."number_padding_width" >= 1 AND "settings"."number_padding_width" <= 10)
+	CONSTRAINT "chk_settings_number_padding_width" CHECK ("settings"."number_padding_width" >= 1 AND "settings"."number_padding_width" <= 10),
+	CONSTRAINT "chk_settings_default_hourly_rate" CHECK ("settings"."default_hourly_rate_cents" IS NULL OR "settings"."default_hourly_rate_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "tax_rates" (
@@ -385,6 +415,7 @@ CREATE TABLE "templates" (
 	"description" text,
 	"subject" text,
 	"blocks" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"page_settings" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"is_default" boolean DEFAULT false NOT NULL,
 	"is_system" boolean DEFAULT false NOT NULL,
 	"deleted_at" timestamp with time zone,
@@ -396,6 +427,7 @@ CREATE TABLE "uploads" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"filename" text NOT NULL,
 	"path" text NOT NULL,
+	"bucket" "storage_bucket" DEFAULT 'public' NOT NULL,
 	"mime_type" text NOT NULL,
 	"size_bytes" bigint NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -462,7 +494,8 @@ CREATE TABLE "tasks" (
 	"hourly_rate_cents" bigint,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_tasks_hourly_rate" CHECK ("tasks"."hourly_rate_cents" IS NULL OR "tasks"."hourly_rate_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "time_entries" (
@@ -474,6 +507,7 @@ CREATE TABLE "time_entries" (
 	"ended_at" timestamp with time zone,
 	"duration_seconds" integer,
 	"billable" boolean DEFAULT true NOT NULL,
+	"hourly_rate_override_cents" bigint,
 	"hourly_rate_snapshot_cents" bigint NOT NULL,
 	"description" text,
 	"source" time_entry_source DEFAULT 'timer' NOT NULL,
@@ -483,7 +517,8 @@ CREATE TABLE "time_entries" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "chk_time_entries_duration" CHECK ("time_entries"."duration_seconds" IS NULL OR "time_entries"."duration_seconds" >= 0),
 	CONSTRAINT "chk_time_entries_ended" CHECK (("time_entries"."ended_at" IS NULL AND "time_entries"."duration_seconds" IS NULL) OR ("time_entries"."ended_at" IS NOT NULL AND "time_entries"."duration_seconds" IS NOT NULL AND "time_entries"."ended_at" >= "time_entries"."started_at")),
-	CONSTRAINT "chk_time_entries_rate" CHECK ("time_entries"."hourly_rate_snapshot_cents" >= 0)
+	CONSTRAINT "chk_time_entries_rate" CHECK ("time_entries"."hourly_rate_snapshot_cents" >= 0),
+	CONSTRAINT "chk_time_entries_rate_override" CHECK ("time_entries"."hourly_rate_override_cents" IS NULL OR "time_entries"."hourly_rate_override_cents" >= 0)
 );
 --> statement-breakpoint
 CREATE TABLE "expenses" (
@@ -502,6 +537,7 @@ CREATE TABLE "expenses" (
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_expenses_project_requires_client" CHECK ("expenses"."project_id" IS NULL OR "expenses"."client_id" IS NOT NULL),
 	CONSTRAINT "chk_expenses_amount" CHECK ("expenses"."amount_cents" >= 0),
 	CONSTRAINT "chk_expenses_markup" CHECK ("expenses"."markup_percentage" IS NULL OR ("expenses"."markup_percentage" >= 0 AND "expenses"."markup_percentage" <= 1000))
 );
@@ -512,6 +548,7 @@ CREATE TABLE "contracts" (
 	"client_id" uuid,
 	"proposal_id" uuid,
 	"template_id" uuid,
+	"pdf_upload_id" uuid,
 	"number" text NOT NULL,
 	"title" text NOT NULL,
 	"status" "contract_status" DEFAULT 'draft' NOT NULL,
@@ -527,6 +564,7 @@ CREATE TABLE "contracts" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "contracts_number_unique" UNIQUE("number"),
 	CONSTRAINT "chk_contracts_parent" CHECK ("contracts"."project_id" IS NOT NULL OR "contracts"."client_id" IS NOT NULL),
+	CONSTRAINT "chk_contracts_project_requires_client" CHECK ("contracts"."project_id" IS NULL OR "contracts"."client_id" IS NOT NULL),
 	CONSTRAINT "chk_contracts_dates" CHECK ("contracts"."effective_until" IS NULL OR "contracts"."effective_from" IS NULL OR "contracts"."effective_until" >= "contracts"."effective_from")
 );
 --> statement-breakpoint
@@ -566,6 +604,7 @@ CREATE TABLE "recurring_invoices" (
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_recurring_invoices_project_requires_client" CHECK ("recurring_invoices"."project_id" IS NULL OR "recurring_invoices"."client_id" IS NOT NULL),
 	CONSTRAINT "chk_recurring_invoices_end_condition" CHECK ("recurring_invoices"."end_after_count" IS NULL OR "recurring_invoices"."end_by_date" IS NULL),
 	CONSTRAINT "chk_recurring_invoices_retainer" CHECK (("recurring_invoices"."included_hours" IS NULL AND "recurring_invoices"."overage_rate_cents" IS NULL) OR ("recurring_invoices"."included_hours" >= 0 AND "recurring_invoices"."overage_rate_cents" >= 0))
 );
@@ -589,6 +628,7 @@ CREATE TABLE "payments" (
 CREATE TABLE "credit_notes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"invoice_id" uuid NOT NULL,
+	"pdf_upload_id" uuid,
 	"number" text NOT NULL,
 	"reason" text,
 	"currency" varchar(3) NOT NULL,
@@ -602,17 +642,38 @@ CREATE TABLE "credit_notes" (
 	CONSTRAINT "chk_credit_notes_totals" CHECK ("credit_notes"."subtotal_cents" >= 0 AND "credit_notes"."tax_amount_cents" >= 0 AND "credit_notes"."total_cents" >= 0)
 );
 --> statement-breakpoint
+CREATE TABLE "data_exports" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"scope" "data_export_scope" NOT NULL,
+	"client_id" uuid,
+	"status" "data_export_status" DEFAULT 'pending' NOT NULL,
+	"progress" integer DEFAULT 0 NOT NULL,
+	"started_at" timestamp with time zone,
+	"completed_at" timestamp with time zone,
+	"failure_reason" text,
+	"requested_by_user_id" uuid,
+	"filename" text,
+	"storage_key" text,
+	"size_bytes" bigint,
+	"entry_count" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_data_exports_progress" CHECK ("data_exports"."progress" BETWEEN 0 AND 100),
+	CONSTRAINT "chk_data_exports_size_bytes" CHECK ("data_exports"."size_bytes" IS NULL OR "data_exports"."size_bytes" >= 0),
+	CONSTRAINT "chk_data_exports_scope_client" CHECK (("data_exports"."scope" = 'instance' AND "data_exports"."client_id" IS NULL) OR "data_exports"."scope" = 'client')
+);
+--> statement-breakpoint
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_user_id_users_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_active_organization_id_organizations_id_fk" FOREIGN KEY ("active_organization_id") REFERENCES "public"."organizations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "two_factors" ADD CONSTRAINT "two_factors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "client_contacts" ADD CONSTRAINT "client_contacts_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "email_logs" ADD CONSTRAINT "email_logs_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "invoices" ADD CONSTRAINT "invoices_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_proposal_id_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."proposals"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_recurring_invoice_id_recurring_invoices_id_fk" FOREIGN KEY ("recurring_invoice_id") REFERENCES "public"."recurring_invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_pdf_upload_id_uploads_id_fk" FOREIGN KEY ("pdf_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "line_items" ADD CONSTRAINT "line_items_proposal_id_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."proposals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "line_items" ADD CONSTRAINT "line_items_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "line_items" ADD CONSTRAINT "line_items_credit_note_id_credit_notes_id_fk" FOREIGN KEY ("credit_note_id") REFERENCES "public"."credit_notes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -621,10 +682,9 @@ ALTER TABLE "line_items" ADD CONSTRAINT "line_items_source_time_entry_id_time_en
 ALTER TABLE "line_items" ADD CONSTRAINT "line_items_source_expense_id_expenses_id_fk" FOREIGN KEY ("source_expense_id") REFERENCES "public"."expenses"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proposal_otps" ADD CONSTRAINT "proposal_otps_proposal_id_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."proposals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "proposals" ADD CONSTRAINT "proposals_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "proposals" ADD CONSTRAINT "proposals_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proposals" ADD CONSTRAINT "proposals_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "proposals" ADD CONSTRAINT "proposals_converted_to_invoice_id_invoices_id_fk" FOREIGN KEY ("converted_to_invoice_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "proposals" ADD CONSTRAINT "proposals_converted_to_contract_id_contracts_id_fk" FOREIGN KEY ("converted_to_contract_id") REFERENCES "public"."contracts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "proposals" ADD CONSTRAINT "proposals_pdf_upload_id_uploads_id_fk" FOREIGN KEY ("pdf_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "settings" ADD CONSTRAINT "settings_business_logo_upload_id_uploads_id_fk" FOREIGN KEY ("business_logo_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_inviter_id_users_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -636,21 +696,22 @@ ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_project_id_projects_id_f
 ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "time_entries" ADD CONSTRAINT "time_entries_invoiced_in_id_invoices_id_fk" FOREIGN KEY ("invoiced_in_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "expenses" ADD CONSTRAINT "expenses_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_receipt_upload_id_uploads_id_fk" FOREIGN KEY ("receipt_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_invoiced_in_id_invoices_id_fk" FOREIGN KEY ("invoiced_in_id") REFERENCES "public"."invoices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "contracts" ADD CONSTRAINT "contracts_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contracts" ADD CONSTRAINT "contracts_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contracts" ADD CONSTRAINT "contracts_proposal_id_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."proposals"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contracts" ADD CONSTRAINT "contracts_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "contracts" ADD CONSTRAINT "contracts_pdf_upload_id_uploads_id_fk" FOREIGN KEY ("pdf_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contract_signatures" ADD CONSTRAINT "contract_signatures_contract_id_contracts_id_fk" FOREIGN KEY ("contract_id") REFERENCES "public"."contracts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contract_signatures" ADD CONSTRAINT "contract_signatures_signed_pdf_upload_id_uploads_id_fk" FOREIGN KEY ("signed_pdf_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "recurring_invoices" ADD CONSTRAINT "recurring_invoices_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "recurring_invoices" ADD CONSTRAINT "recurring_invoices_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "recurring_invoices" ADD CONSTRAINT "recurring_invoices_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_notes" ADD CONSTRAINT "credit_notes_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credit_notes" ADD CONSTRAINT "credit_notes_pdf_upload_id_uploads_id_fk" FOREIGN KEY ("pdf_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "data_exports" ADD CONSTRAINT "data_exports_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "data_exports" ADD CONSTRAINT "data_exports_requested_by_user_id_users_id_fk" FOREIGN KEY ("requested_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "activity_logs_created_at_idx" ON "activity_logs" USING btree ("created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "activity_logs_entity_idx" ON "activity_logs" USING btree ("entity_type","entity_id");--> statement-breakpoint
 CREATE INDEX "activity_logs_unread_idx" ON "activity_logs" USING btree ("id") WHERE "activity_logs"."read_at" IS NULL;--> statement-breakpoint
@@ -662,11 +723,15 @@ CREATE INDEX "sessions_user_id_idx" ON "sessions" USING btree ("user_id");--> st
 CREATE INDEX "two_factors_user_id_idx" ON "two_factors" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "two_factors_secret_idx" ON "two_factors" USING btree ("secret");--> statement-breakpoint
 CREATE INDEX "verifications_identifier_idx" ON "verifications" USING btree ("identifier");--> statement-breakpoint
+CREATE INDEX "client_contacts_client_id_idx" ON "client_contacts" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX "client_contacts_email_idx" ON "client_contacts" USING btree ("email");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_client_contacts_primary" ON "client_contacts" USING btree ("client_id") WHERE "client_contacts"."is_primary" = true AND "client_contacts"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "clients_name_idx" ON "clients" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "clients_email_idx" ON "clients" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "clients_active_idx" ON "clients" USING btree ("id") WHERE "clients"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "clients_portal_token_idx" ON "clients" USING btree ("portal_token") WHERE "clients"."portal_token" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "email_logs_document_idx" ON "email_logs" USING btree ("document_type","document_id");--> statement-breakpoint
+CREATE INDEX "email_logs_template_id_idx" ON "email_logs" USING btree ("template_id");--> statement-breakpoint
 CREATE INDEX "email_logs_status_idx" ON "email_logs" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "email_logs_created_at_idx" ON "email_logs" USING btree ("created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "invoices_project_id_idx" ON "invoices" USING btree ("project_id");--> statement-breakpoint
@@ -674,6 +739,7 @@ CREATE INDEX "invoices_client_id_idx" ON "invoices" USING btree ("client_id");--
 CREATE INDEX "invoices_proposal_id_idx" ON "invoices" USING btree ("proposal_id");--> statement-breakpoint
 CREATE INDEX "invoices_recurring_invoice_id_idx" ON "invoices" USING btree ("recurring_invoice_id");--> statement-breakpoint
 CREATE INDEX "invoices_template_id_idx" ON "invoices" USING btree ("template_id");--> statement-breakpoint
+CREATE INDEX "invoices_pdf_upload_id_idx" ON "invoices" USING btree ("pdf_upload_id");--> statement-breakpoint
 CREATE INDEX "invoices_status_idx" ON "invoices" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "invoices_due_date_idx" ON "invoices" USING btree ("due_date");--> statement-breakpoint
 CREATE UNIQUE INDEX "invoices_public_token_idx" ON "invoices" USING btree ("public_token");--> statement-breakpoint
@@ -687,12 +753,15 @@ CREATE UNIQUE INDEX "uq_line_items_proposal_position" ON "line_items" USING btre
 CREATE UNIQUE INDEX "uq_line_items_invoice_position" ON "line_items" USING btree ("invoice_id","position") WHERE "line_items"."invoice_id" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_line_items_credit_note_position" ON "line_items" USING btree ("credit_note_id","position") WHERE "line_items"."credit_note_id" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "projects_client_id_idx" ON "projects" USING btree ("client_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_projects_id_client_id" ON "projects" USING btree ("id","client_id");--> statement-breakpoint
 CREATE INDEX "projects_status_idx" ON "projects" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "projects_active_idx" ON "projects" USING btree ("id") WHERE "projects"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "proposal_otps_proposal_id_idx" ON "proposal_otps" USING btree ("proposal_id");--> statement-breakpoint
 CREATE INDEX "proposal_otps_active_idx" ON "proposal_otps" USING btree ("proposal_id") WHERE "proposal_otps"."used_at" IS NULL AND "proposal_otps"."invalidated_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "proposals_project_id_idx" ON "proposals" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "proposals_client_id_idx" ON "proposals" USING btree ("client_id");--> statement-breakpoint
 CREATE INDEX "proposals_template_id_idx" ON "proposals" USING btree ("template_id");--> statement-breakpoint
+CREATE INDEX "proposals_pdf_upload_id_idx" ON "proposals" USING btree ("pdf_upload_id");--> statement-breakpoint
 CREATE INDEX "proposals_status_idx" ON "proposals" USING btree ("status");--> statement-breakpoint
 CREATE UNIQUE INDEX "proposals_public_token_idx" ON "proposals" USING btree ("public_token");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_tax_rates_default" ON "tax_rates" USING btree ("is_default") WHERE "tax_rates"."is_default" = true AND "tax_rates"."deleted_at" IS NULL;--> statement-breakpoint
@@ -708,6 +777,7 @@ CREATE UNIQUE INDEX "uq_member_owner_per_org" ON "members" USING btree ("organiz
 CREATE UNIQUE INDEX "organization_slug_idx" ON "organizations" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "leads_email_idx" ON "leads" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "leads_status_idx" ON "leads" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "leads_converted_to_client_id_idx" ON "leads" USING btree ("converted_to_client_id");--> statement-breakpoint
 CREATE INDEX "leads_created_at_idx" ON "leads" USING btree ("created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "tasks_project_id_idx" ON "tasks" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "tasks_status_idx" ON "tasks" USING btree ("status");--> statement-breakpoint
@@ -716,22 +786,35 @@ CREATE INDEX "time_entries_project_id_idx" ON "time_entries" USING btree ("proje
 CREATE INDEX "time_entries_task_id_idx" ON "time_entries" USING btree ("task_id");--> statement-breakpoint
 CREATE INDEX "time_entries_user_id_idx" ON "time_entries" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "time_entries_started_at_idx" ON "time_entries" USING btree ("started_at" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "time_entries_invoiced_in_id_idx" ON "time_entries" USING btree ("invoiced_in_id");--> statement-breakpoint
 CREATE INDEX "time_entries_unbilled_idx" ON "time_entries" USING btree ("project_id") WHERE "time_entries"."invoiced_in_id" IS NULL AND "time_entries"."billable" = true;--> statement-breakpoint
+CREATE UNIQUE INDEX "time_entries_running_timer_idx" ON "time_entries" USING btree ("user_id") WHERE "time_entries"."ended_at" IS NULL AND "time_entries"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "expenses_project_id_idx" ON "expenses" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "expenses_client_id_idx" ON "expenses" USING btree ("client_id");--> statement-breakpoint
 CREATE INDEX "expenses_spent_at_idx" ON "expenses" USING btree ("spent_at" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "expenses_receipt_upload_id_idx" ON "expenses" USING btree ("receipt_upload_id");--> statement-breakpoint
+CREATE INDEX "expenses_invoiced_in_id_idx" ON "expenses" USING btree ("invoiced_in_id");--> statement-breakpoint
 CREATE INDEX "expenses_unbilled_rebillable_idx" ON "expenses" USING btree ("project_id") WHERE "expenses"."invoiced_in_id" IS NULL AND "expenses"."rebillable" = true;--> statement-breakpoint
 CREATE INDEX "contracts_project_id_idx" ON "contracts" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "contracts_client_id_idx" ON "contracts" USING btree ("client_id");--> statement-breakpoint
 CREATE INDEX "contracts_proposal_id_idx" ON "contracts" USING btree ("proposal_id");--> statement-breakpoint
+CREATE INDEX "contracts_template_id_idx" ON "contracts" USING btree ("template_id");--> statement-breakpoint
+CREATE INDEX "contracts_pdf_upload_id_idx" ON "contracts" USING btree ("pdf_upload_id");--> statement-breakpoint
 CREATE INDEX "contracts_status_idx" ON "contracts" USING btree ("status");--> statement-breakpoint
 CREATE UNIQUE INDEX "contracts_public_token_idx" ON "contracts" USING btree ("public_token");--> statement-breakpoint
+CREATE UNIQUE INDEX "contracts_proposal_id_unique_idx" ON "contracts" USING btree ("proposal_id") WHERE "contracts"."proposal_id" IS NOT NULL AND "contracts"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "contract_signatures_contract_id_idx" ON "contract_signatures" USING btree ("contract_id");--> statement-breakpoint
+CREATE INDEX "contract_signatures_signed_pdf_upload_id_idx" ON "contract_signatures" USING btree ("signed_pdf_upload_id");--> statement-breakpoint
 CREATE INDEX "recurring_invoices_client_id_idx" ON "recurring_invoices" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX "recurring_invoices_template_id_idx" ON "recurring_invoices" USING btree ("template_id");--> statement-breakpoint
 CREATE INDEX "recurring_invoices_status_idx" ON "recurring_invoices" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "recurring_invoices_next_run_at_idx" ON "recurring_invoices" USING btree ("next_run_at") WHERE "recurring_invoices"."status" = 'active';--> statement-breakpoint
 CREATE INDEX "payments_invoice_id_idx" ON "payments" USING btree ("invoice_id");--> statement-breakpoint
 CREATE INDEX "payments_paid_at_idx" ON "payments" USING btree ("paid_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE UNIQUE INDEX "payments_stripe_payment_intent_idx" ON "payments" USING btree ("stripe_payment_intent_id") WHERE "payments"."stripe_payment_intent_id" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "credit_notes_invoice_id_idx" ON "credit_notes" USING btree ("invoice_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "credit_notes_number_idx" ON "credit_notes" USING btree ("number");
+CREATE INDEX "credit_notes_pdf_upload_id_idx" ON "credit_notes" USING btree ("pdf_upload_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "credit_notes_number_idx" ON "credit_notes" USING btree ("number");--> statement-breakpoint
+CREATE INDEX "idx_data_exports_status" ON "data_exports" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "idx_data_exports_created_at" ON "data_exports" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "idx_data_exports_client_id" ON "data_exports" USING btree ("client_id");

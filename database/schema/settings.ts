@@ -26,6 +26,8 @@ export const settings = pgTable(
     businessPhone: text("business_phone"),
     businessWebsite: text("business_website"),
     businessTaxId: text("business_tax_id"),
+    // Deliberately unindexed where its seven sibling upload references are not: `settings` holds a
+    // single row, so the scan an upload delete triggers here reads one row.
     businessLogoUploadId: uuid("business_logo_upload_id").references(() => uploads.id, {
       onDelete: "set null"
     }),

@@ -27,6 +27,7 @@ export const leads = pgTable(
   (table) => [
     index("leads_email_idx").on(table.email),
     index("leads_status_idx").on(table.status),
+    index("leads_converted_to_client_id_idx").on(table.convertedToClientId),
     index("leads_created_at_idx").on(table.createdAt.desc())
   ]
 )

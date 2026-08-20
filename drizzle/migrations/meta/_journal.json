@@ -5,113 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1777580643354,
-      "tag": "0000_flat_mister_sinister",
+      "when": 1787229307642,
+      "tag": "0000_initial_schema",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1777580759949,
-      "tag": "0001_pale_the_enforcers",
+      "when": 1787229327059,
+      "tag": "0001_insert_only_guards",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1778234093071,
-      "tag": "0002_dapper_ronan",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778680700573,
-      "tag": "0003_numerous_zaran",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1778753731456,
-      "tag": "0004_yellow_mockingbird",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1780389912898,
-      "tag": "0005_free_justice",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1782151102389,
-      "tag": "0006_glamorous_tag",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1782996394013,
-      "tag": "0007_parallel_runaways",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1784740115422,
-      "tag": "0008_tidy_machine_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1785244943087,
-      "tag": "0009_clean_arachne",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1785507425906,
-      "tag": "0010_outgoing_microchip",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1785519210656,
-      "tag": "0011_faulty_zarek",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1785955310542,
-      "tag": "0012_amazing_randall_flagg",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1786543481234,
-      "tag": "0013_big_hellcat",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1786632700522,
-      "tag": "0014_ambitious_marvex",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1786632718685,
-      "tag": "0015_contract_signature_pdf_guard",
+      "when": 1787229328738,
+      "tag": "0002_document_parent_agreement",
       "breakpoints": true
     }
   ]

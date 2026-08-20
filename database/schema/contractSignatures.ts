@@ -3,12 +3,13 @@ import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { contracts } from "./contracts"
 import { uploads } from "./uploads"
 
-// Insert-only, and enforced as such by the database rather than by convention: migration 0001 puts
-// BEFORE UPDATE / DELETE / TRUNCATE triggers on this table that raise instead of applying the
-// statement. Nothing in the schema below shows that, so a write path added here fails at runtime,
-// not at compile time — `signedPdfUploadId` in particular cannot be filled in after the row lands.
-// A signature is the legal record of what a counterparty agreed to, so it carries no `deletedAt`
-// and no `updatedAt` either.
+// Insert-only, and enforced as such by the database rather than by convention: migration
+// `0001_insert_only_guards.sql` puts BEFORE UPDATE / DELETE / TRUNCATE triggers on this table that
+// raise instead of applying the statement. Nothing in the schema below shows that, so a write path
+// added here fails at runtime, not at compile time. The single exception the UPDATE guard allows is
+// `signedPdfUploadId` going from null to set, once, which is how the render job attaches the
+// executed PDF. A signature is the legal record of what a counterparty agreed to, so it carries no
+// `deletedAt` and no `updatedAt` either.
 export const contractSignatures = pgTable(
   "contract_signatures",
   {
@@ -27,5 +28,8 @@ export const contractSignatures = pgTable(
     signedAt: timestamp("signed_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow()
   },
-  (table) => [index("contract_signatures_contract_id_idx").on(table.contractId)]
+  (table) => [
+    index("contract_signatures_contract_id_idx").on(table.contractId),
+    index("contract_signatures_signed_pdf_upload_id_idx").on(table.signedPdfUploadId)
+  ]
 )

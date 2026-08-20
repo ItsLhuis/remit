@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { bigint, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { bigint, check, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
 import { taskPriority, taskStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
@@ -28,6 +28,10 @@ export const tasks = pgTable(
     index("tasks_status_idx").on(table.status),
     index("tasks_due_at_idx")
       .on(table.dueAt)
-      .where(sql`${table.dueAt} IS NOT NULL`)
+      .where(sql`${table.dueAt} IS NOT NULL`),
+    check(
+      "chk_tasks_hourly_rate",
+      sql`${table.hourlyRateCents} IS NULL OR ${table.hourlyRateCents} >= 0`
+    )
   ]
 )

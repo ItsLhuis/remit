@@ -16,7 +16,6 @@ import {
 import { clients } from "./clients"
 import { recurringCadence, recurringInvoiceStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { projects } from "./projects"
 import { templates } from "./templates"
 
 export const recurringInvoices = pgTable(
@@ -26,7 +25,11 @@ export const recurringInvoices = pgTable(
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    // No `.references(...)`: the link is the composite `fk_recurring_invoices_project_client` added in migration
+    // `0002_document_parent_agreement.sql`. Its `(project_id, client_id)` reference to
+    // `projects (id, client_id)` is what stops this row naming a project and a different client, and
+    // its `ON DELETE SET NULL (project_id) ON UPDATE RESTRICT` is not expressible through Drizzle.
+    projectId: uuid("project_id"),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     status: recurringInvoiceStatus("status").notNull().default("active"),
@@ -50,10 +53,15 @@ export const recurringInvoices = pgTable(
   },
   (table) => [
     index("recurring_invoices_client_id_idx").on(table.clientId),
+    index("recurring_invoices_template_id_idx").on(table.templateId),
     index("recurring_invoices_status_idx").on(table.status),
     index("recurring_invoices_next_run_at_idx")
       .on(table.nextRunAt)
       .where(sql`${table.status} = 'active'`),
+    check(
+      "chk_recurring_invoices_project_requires_client",
+      sql`${table.projectId} IS NULL OR ${table.clientId} IS NOT NULL`
+    ),
     check(
       "chk_recurring_invoices_end_condition",
       sql`${table.endAfterCount} IS NULL OR ${table.endByDate} IS NULL`

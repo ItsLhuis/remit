@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm"
 import { activityLogs } from "./activityLogs"
 import { auditLogs } from "./auditLogs"
 import { users } from "./auth"
+import { clientContacts } from "./clientContacts"
 import { clients } from "./clients"
 import { contracts } from "./contracts"
 import { dataExports } from "./dataExports"
@@ -26,7 +27,15 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   })
 }))
 
+export const clientContactsRelations = relations(clientContacts, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientContacts.clientId],
+    references: [clients.id]
+  })
+}))
+
 export const clientsRelations = relations(clients, ({ many }) => ({
+  contacts: many(clientContacts),
   projects: many(projects)
 }))
 
@@ -126,6 +135,10 @@ export const proposalsRelations = relations(proposals, ({ one, many }) => ({
   project: one(projects, {
     fields: [proposals.projectId],
     references: [projects.id]
+  }),
+  client: one(clients, {
+    fields: [proposals.clientId],
+    references: [clients.id]
   }),
   template: one(templates, {
     fields: [proposals.templateId],

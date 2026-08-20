@@ -14,9 +14,9 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
+import { clients } from "./clients"
 import { discountType, proposalStatus } from "./enums"
 import { softDelete, timestamps } from "./helpers"
-import { projects } from "./projects"
 import { templates } from "./templates"
 import { uploads } from "./uploads"
 
@@ -24,9 +24,13 @@ export const proposals = pgTable(
   "proposals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id")
-      .notNull()
-      .references(() => projects.id, { onDelete: "cascade" }),
+    // No `.references(...)`: the relationship is the composite `fk_proposals_project_client` added
+    // in migration `0002_document_parent_agreement.sql`, which points at `(projects.id,
+    // projects.client_id)` so the pair below can never name a project and someone else's client.
+    // `ON DELETE SET NULL (project_id) ON UPDATE RESTRICT` is not expressible through
+    // `foreignKey().onDelete()`, so the TypeScript schema no longer states this link on its own.
+    projectId: uuid("project_id"),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
     // The rendered PDF, and the snapshot of what was sent. Written once by the `proposal.pdf.render` job and never
     // regenerated: re-rendering later would silently restyle a document the client already holds if
@@ -61,9 +65,19 @@ export const proposals = pgTable(
   },
   (table) => [
     index("proposals_project_id_idx").on(table.projectId),
+    index("proposals_client_id_idx").on(table.clientId),
     index("proposals_template_id_idx").on(table.templateId),
+    index("proposals_pdf_upload_id_idx").on(table.pdfUploadId),
     index("proposals_status_idx").on(table.status),
     uniqueIndex("proposals_public_token_idx").on(table.publicToken),
+    check(
+      "chk_proposals_parent",
+      sql`${table.projectId} IS NOT NULL OR ${table.clientId} IS NOT NULL`
+    ),
+    check(
+      "chk_proposals_project_requires_client",
+      sql`${table.projectId} IS NULL OR ${table.clientId} IS NOT NULL`
+    ),
     check(
       "chk_proposals_discount_percentage",
       sql`${table.discountPercentage} IS NULL OR (${table.discountPercentage} >= 0 AND ${table.discountPercentage} <= 100)`

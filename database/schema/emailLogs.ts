@@ -23,6 +23,7 @@ export const emailLogs = pgTable(
   },
   (table) => [
     index("email_logs_document_idx").on(table.documentType, table.documentId),
+    index("email_logs_template_id_idx").on(table.templateId),
     index("email_logs_status_idx").on(table.status),
     index("email_logs_created_at_idx").on(table.createdAt.desc())
   ]
