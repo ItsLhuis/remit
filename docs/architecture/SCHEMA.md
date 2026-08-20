@@ -310,9 +310,11 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | default_notes_proposal     | text             | yes  |                                                                                                                                                                                          |
 |                  | invoice_prefix             | text             | no   | Default `'INV-'`. Printable ASCII, max 24 characters.                                                                                                                                    |
 |                  | proposal_prefix            | text             | no   | Default `'PROP-'`                                                                                                                                                                        |
+|                  | contract_prefix            | text             | no   | Default `'CTR-'`                                                                                                                                                                         |
 |                  | credit_note_prefix         | text             | no   | Default `'CN-'`                                                                                                                                                                          |
 |                  | next_invoice_number        | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
 |                  | next_proposal_number       | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
+|                  | next_contract_number       | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
 |                  | next_credit_note_number    | integer          | no   | Default `1`. ≥ 1                                                                                                                                                                         |
 |                  | number_padding_width       | integer          | no   | Default `4`. 1–10                                                                                                                                                                        |
 | Time tracking    | default_hourly_rate_cents  | bigint           | yes  | Last rung of the time-entry rate precedence ladder. Null = no instance rate configured; deliberately not defaulted. ≥ 0 if not null.                                                     |
@@ -358,6 +360,7 @@ Constraints (named):
 - `chk_settings_invoice_prefix` — printable ASCII and length `<= 24`.
 - `chk_settings_next_invoice_number` — `>= 1`.
 - `chk_settings_next_proposal_number` — `>= 1`.
+- `chk_settings_next_contract_number` — `>= 1`.
 - `chk_settings_next_credit_note_number` — `>= 1`.
 - `chk_settings_number_padding_width` — `>= 1 AND <= 10`.
 - `chk_settings_default_hourly_rate` —
@@ -604,6 +607,34 @@ Constraints:
 - `chk_clients_default_hourly_rate` —
   `default_hourly_rate_cents IS NULL OR default_hourly_rate_cents >= 0`.
 
+### `client_contacts`
+
+The people at a client. A sub-record of `clients`, not a navigable entity of its own: no route, no
+feature module, no top-level list, and no other table carries a `contact_id`. `clients.email` and
+`clients.phone` remain the billing default and the address every send path uses; these rows exist
+because when the freelancer bills a company, the person who approves the proposal, the person who
+signs the contract, and the person in finance who pays are three different people.
+
+| Column     | Type    | Null | Default             | Notes                                                            |
+| ---------- | ------- | ---- | ------------------- | ---------------------------------------------------------------- |
+| id         | uuid    | no   | `gen_random_uuid()` | PK                                                               |
+| client_id  | uuid    | no   |                     | FK → `clients.id` (cascade)                                      |
+| name       | text    | no   |                     |                                                                  |
+| email      | text    | no   |                     | Mirrors `clients.email`: a contact exists to be written to       |
+| phone      | text    | yes  |                     |                                                                  |
+| role       | text    | yes  |                     | Free text, e.g. `Finance`, `Signatory`. Deliberately not an enum |
+| is_primary | boolean | no   | `false`             |                                                                  |
+
+Standard `timestamps` and `softDelete`.
+
+Indexes: `client_contacts_client_id_idx`, `client_contacts_email_idx`, unique
+`uq_client_contacts_primary` on `client_id` where `is_primary = true AND deleted_at IS NULL` — the
+structural form of "at most one primary contact per client", in the same shape as
+`time_entries_running_timer_idx`. Soft-deleting the primary frees the slot for its replacement.
+
+A contact is not an acceptance identity: the proposal OTP flow still matches against `clients.email`
+(`features/proposals/publicResponse.ts`'s `matchesProposalRecipient`).
+
 ---
 
 ## 14. Projects
@@ -632,7 +663,18 @@ Constraints:
 - `chk_projects_hourly_rate` — `hourly_rate_cents IS NULL OR hourly_rate_cents >= 0`.
 
 Indexes: `projects_client_id_idx`, `projects_status_idx`, `projects_active_idx` on `id` where
-`deleted_at IS NULL`.
+`deleted_at IS NULL`, unique `uq_projects_id_client_id` on `(id, client_id)`.
+
+`uq_projects_id_client_id` is not a domain rule of its own — `id` is already unique. It exists
+because the five `fk_<table>_project_client` composite foreign keys reference that pair, and
+Postgres requires a unique index on a referenced column list. See
+[ADR-0026](adr/0026-document-parentage.md).
+
+**A project cannot be re-parented once it has financial records.** Every composite key carries
+`ON UPDATE RESTRICT`, so changing `projects.client_id` while an invoice, expense, contract,
+recurring schedule, or proposal points at the project is refused by the database.
+`features/projects/mutations.ts`'s `updateProject` refuses it first, with a translated message, so
+the raw foreign-key error never reaches a user.
 
 ---
 
@@ -656,6 +698,12 @@ Lightweight task system inside projects.
 | hourly_rate_cents | bigint      | yes  |                     | Override for time entries on this task                |
 
 Standard `timestamps` and `softDelete`.
+
+Constraints:
+
+- `chk_tasks_hourly_rate` — `hourly_rate_cents IS NULL OR hourly_rate_cents >= 0`. The second rung
+  of the rate-precedence ladder in `features/timeTracking/services/resolveHourlyRate.ts`, bounded
+  like `clients`, `projects`, and `time_entries` are.
 
 Indexes: `tasks_project_id_idx`, `tasks_status_idx`, `tasks_due_at_idx` on `due_at` where
 `due_at IS NOT NULL`.
@@ -699,6 +747,14 @@ Rate precedence: `entry → task → project → client → settings`, resolved 
 fallthrough; only `NULL` falls through. When no level carries a rate the snapshot is `0` and the
 resolved source is `"none"` — no default is invented.
 
+**`invoiced_in_id` is the canonical "this was billed, on that invoice" link**, and the one the
+`time_entries_unbilled_idx` and `expenses_unbilled_rebillable_idx` partial indexes rely on.
+`line_items.source_time_entry_id` and `line_items.source_expense_id` are optional per-line
+provenance, not a mirror of it: `features/recurringInvoices/jobs.ts` writes the first and not the
+second, so the two are not interchangeable and neither may be derived from the other. Nothing
+enforces this — there is no constraint and no trigger, because the flow that would write both does
+not exist yet.
+
 Indexes: `time_entries_project_id_idx`, `time_entries_task_id_idx`, `time_entries_user_id_idx`,
 `time_entries_started_at_idx` on `started_at DESC`, `time_entries_unbilled_idx` on `project_id`
 where `invoiced_in_id IS NULL AND billable = true`, unique `time_entries_running_timer_idx` on
@@ -714,8 +770,8 @@ one-running-timer-per-user rule.
 | Column            | Type          | Null | Default             | Notes                                                     |
 | ----------------- | ------------- | ---- | ------------------- | --------------------------------------------------------- |
 | id                | uuid          | no   | `gen_random_uuid()` | PK                                                        |
-| project_id        | uuid          | yes  |                     | FK → `projects.id` (set null)                             |
-| client_id         | uuid          | yes  |                     | FK → `clients.id` (set null) — when not tied to a project |
+| project_id        | uuid          | yes  |                     | Part of `fk_expenses_project_client` (see below)          |
+| client_id         | uuid          | yes  |                     | FK → `clients.id` (set null); required when project_id is |
 | amount_cents      | bigint        | no   |                     | ≥ 0                                                       |
 | currency          | varchar(3)    | no   |                     | ISO 4217                                                  |
 | category          | text          | no   |                     | Free-form category, with sensible defaults proposed in UI |
@@ -730,9 +786,20 @@ Standard `timestamps` and `softDelete`.
 
 Constraints:
 
+- `chk_expenses_project_requires_client` — `project_id IS NULL OR client_id IS NOT NULL`.
 - `chk_expenses_amount` — `amount_cents >= 0`.
 - `chk_expenses_markup` —
   `markup_percentage IS NULL OR (markup_percentage >= 0 AND markup_percentage <= 1000)`.
+
+`expenses` deliberately has **no** parent check to pair with `chk_expenses_project_requires_client`:
+both columns null is legitimate here — a bank fee belongs to nobody — which is why there is no
+`chk_expenses_parent` sibling to `chk_invoices_parent`. `features/expenses/mutations.ts`'s
+`resolveExpenseScope` keeps its own agreement check because it produces a better message than the
+database can.
+
+Foreign key: `fk_expenses_project_client` on `(project_id, client_id)` →
+`projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
+`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
 
 Indexes: `expenses_project_id_idx`, `expenses_client_id_idx`, `expenses_spent_at_idx` on
 `spent_at DESC`, `expenses_unbilled_rebillable_idx` on `project_id` where
@@ -747,8 +814,10 @@ Indexes: `expenses_project_id_idx`, `expenses_client_id_idx`, `expenses_spent_at
 | Column                      | Type          | Null | Default             | Notes                                                                                                                                                                                                    |
 | --------------------------- | ------------- | ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | id                          | uuid          | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                       |
-| project_id                  | uuid          | no   |                     | FK → `projects.id` (cascade)                                                                                                                                                                             |
+| project_id                  | uuid          | yes  |                     | Part of `fk_proposals_project_client` (see below) — null for client-level proposals                                                                                                                      |
+| client_id                   | uuid          | yes  |                     | FK → `clients.id` (set null). Required whenever project_id is set                                                                                                                                        |
 | template_id                 | uuid          | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                           |
+| pdf_upload_id               | uuid          | yes  |                     | FK → `uploads.id` (set null). Written once by the `proposal.pdf.render` job and never regenerated: the stored object _is_ the record of what the client was sent                                         |
 | number                      | text          | no   |                     | Unique. E.g. `PROP-0001`                                                                                                                                                                                 |
 | status                      | enum          | no   | `'draft'`           | See enum reference                                                                                                                                                                                       |
 | currency                    | varchar(3)    | no   | `'EUR'`             |                                                                                                                                                                                                          |
@@ -778,8 +847,17 @@ Conversion to an invoice or a contract is recorded on the produced document, not
 from that proposal". A mirrored `converted_to_*_id` column on `proposals` would store the same fact
 twice, with nothing keeping the two sides in agreement.
 
+A proposal hangs off a project or off a client, exactly as a contract does — it is the earliest
+document a freelancer produces, so requiring the later entity to exist first contradicted
+[Architecture: What Remit is](ARCHITECTURE.md#1-what-remit-is). `project_id` was `NOT NULL` with
+`ON DELETE CASCADE` until [ADR-0026](adr/0026-document-parentage.md), so deleting a project
+destroyed the accepted proposal a signed contract and an issued invoice both pointed at.
+
 Constraints:
 
+- `chk_proposals_parent` — `project_id IS NOT NULL OR client_id IS NOT NULL`. Worded identically to
+  `chk_contracts_parent`.
+- `chk_proposals_project_requires_client` — `project_id IS NULL OR client_id IS NOT NULL`.
 - `chk_proposals_discount_shape` — exactly one of `discount_percentage` / `discount_amount_cents` is
   set when `discount_type` is set; both null when `discount_type` is null.
 - `chk_proposals_discount_percentage` — null or `>= 0 AND <= 100`.
@@ -789,8 +867,12 @@ Constraints:
 - `chk_proposals_response` — when `status` is `accepted` or `rejected`, `responded_at` and
   `responded_ip` are non-null.
 
-Indexes: `proposals_project_id_idx`, `proposals_template_id_idx`, `proposals_status_idx`, unique
-`proposals_public_token_idx` on `public_token`.
+Foreign key: `fk_proposals_project_client` on `(project_id, client_id)` →
+`projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
+`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+
+Indexes: `proposals_project_id_idx`, `proposals_client_id_idx`, `proposals_template_id_idx`,
+`proposals_status_idx`, unique `proposals_public_token_idx` on `public_token`.
 
 ---
 
@@ -834,10 +916,11 @@ Vinculative documents distinct from proposals, with e-signature.
 | Column             | Type        | Null | Default             | Notes                                                           |
 | ------------------ | ----------- | ---- | ------------------- | --------------------------------------------------------------- |
 | id                 | uuid        | no   | `gen_random_uuid()` | PK                                                              |
-| project_id         | uuid        | yes  |                     | FK → `projects.id` (set null) — null for client-level contracts |
-| client_id          | uuid        | yes  |                     | FK → `clients.id` (set null) — for client-level contracts       |
+| project_id         | uuid        | yes  |                     | Part of `fk_contracts_project_client` — null for client-level   |
+| client_id          | uuid        | yes  |                     | FK → `clients.id` (set null). Required when project_id is set   |
 | proposal_id        | uuid        | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal |
 | template_id        | uuid        | yes  |                     | FK → `templates.id` (set null)                                  |
+| pdf_upload_id      | uuid        | yes  |                     | FK → `uploads.id` (set null). Written once, never regenerated   |
 | number             | text        | no   |                     | Unique                                                          |
 | title              | text        | no   |                     |                                                                 |
 | status             | enum        | no   | `'draft'`           | See enum reference                                              |
@@ -854,11 +937,18 @@ Standard `timestamps` and `softDelete`.
 Constraints:
 
 - `chk_contracts_parent` — at least one of `project_id` or `client_id` is set.
+- `chk_contracts_project_requires_client` — `project_id IS NULL OR client_id IS NOT NULL`.
 - `chk_contracts_dates` —
   `effective_until IS NULL OR effective_from IS NULL OR effective_until >= effective_from`.
 
+Foreign key: `fk_contracts_project_client` on `(project_id, client_id)` →
+`projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
+`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+
 Indexes: `contracts_project_id_idx`, `contracts_client_id_idx`, `contracts_proposal_id_idx`,
-`contracts_status_idx`, unique `contracts_public_token_idx`.
+`contracts_status_idx`, unique `contracts_public_token_idx`, unique
+`contracts_proposal_id_unique_idx` on `proposal_id` where
+`proposal_id IS NOT NULL AND deleted_at IS NULL`.
 
 ---
 
@@ -897,7 +987,7 @@ Schedules that auto-generate invoices.
 | --------------------- | ---------- | ---- | ------------------- | --------------------------------------------------------------- |
 | id                    | uuid       | no   | `gen_random_uuid()` | PK                                                              |
 | client_id             | uuid       | no   |                     | FK → `clients.id` (cascade)                                     |
-| project_id            | uuid       | yes  |                     | FK → `projects.id` (set null)                                   |
+| project_id            | uuid       | yes  |                     | Part of `fk_recurring_invoices_project_client` (see below)      |
 | template_id           | uuid       | yes  |                     | FK → `templates.id` (set null)                                  |
 | name                  | text       | no   |                     |                                                                 |
 | status                | enum       | no   | `'active'`          | `active \| paused \| completed \| cancelled`                    |
@@ -919,10 +1009,17 @@ Standard `timestamps` and `softDelete`.
 
 Constraints:
 
+- `chk_recurring_invoices_project_requires_client` — `project_id IS NULL OR client_id IS NOT NULL`.
+  Redundant against the `NOT NULL` on `client_id` today, and declared anyway so every dual-parent
+  table states the same rule rather than one of them relying on a column that could be relaxed.
 - `chk_recurring_invoices_end_condition` — at most one of `end_after_count` and `end_by_date` is
   set.
 - `chk_recurring_invoices_retainer` —
   `(included_hours IS NULL AND overage_rate_cents IS NULL) OR (included_hours >= 0 AND overage_rate_cents >= 0)`.
+
+Foreign key: `fk_recurring_invoices_project_client` on `(project_id, client_id)` →
+`projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
+`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
 
 Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 `recurring_invoices_next_run_at_idx` on `next_run_at` where `status = 'active'`.
@@ -936,11 +1033,12 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 | Column                      | Type            | Null | Default             | Notes                                                                    |
 | --------------------------- | --------------- | ---- | ------------------- | ------------------------------------------------------------------------ |
 | id                          | uuid            | no   | `gen_random_uuid()` | PK                                                                       |
-| project_id                  | uuid            | yes  |                     | FK → `projects.id` (set null) — null for ad-hoc client invoices          |
-| client_id                   | uuid            | yes  |                     | FK → `clients.id` (set null) — required if project_id is null            |
+| project_id                  | uuid            | yes  |                     | Part of `fk_invoices_project_client` — null for ad-hoc client invoices   |
+| client_id                   | uuid            | yes  |                     | FK → `clients.id` (set null). Always required when project_id is set     |
 | proposal_id                 | uuid            | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal          |
 | recurring_invoice_id        | uuid            | yes  |                     | FK → `recurring_invoices.id` (set null) — when generated from a schedule |
 | template_id                 | uuid            | yes  |                     | FK → `templates.id` (set null)                                           |
+| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written once, never regenerated            |
 | number                      | text            | no   |                     | Unique. E.g. `INV-0042`                                                  |
 | status                      | enum            | no   | `'draft'`           | See enum reference                                                       |
 | currency                    | varchar(3)      | no   | `'EUR'`             |                                                                          |
@@ -969,6 +1067,7 @@ Standard `timestamps` and `softDelete`.
 Constraints:
 
 - `chk_invoices_parent` — `project_id IS NOT NULL OR client_id IS NOT NULL`.
+- `chk_invoices_project_requires_client` — `project_id IS NULL OR client_id IS NOT NULL`.
 - `chk_invoices_discount_shape` — same shape as proposals.
 - `chk_invoices_discount_percentage` — null or `>= 0 AND <= 100`.
 - `chk_invoices_discount_amount` — null or `>= 0`.
@@ -977,6 +1076,20 @@ Constraints:
 - `chk_invoices_dates` — `due_date IS NULL OR issue_date IS NULL OR due_date >= issue_date`.
 - `chk_invoices_view_count` — `>= 0`.
 - `chk_invoices_late_fee` — `late_fee_cents IS NULL OR late_fee_cents >= 0`.
+
+`invoices.client_id` is a deliberate denormalisation, not a value to be derived by joining through
+`project_id`: an invoice is a financial record that must survive its project, and a join would lose
+the client the moment the project row went away.
+
+Foreign key: `fk_invoices_project_client` on `(project_id, client_id)` →
+`projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
+`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+
+**Note for whoever builds the retention purge (ADR-0010).** A client hard delete cascades its
+projects away and nulls `invoices.client_id`, which leaves an ad-hoc invoice with both parents null
+and fails `chk_invoices_parent`. This is pre-existing — it is true of the schema before stage 29 as
+well — and no hard-delete path exists in the codebase yet. The purge has to order its writes so the
+invoices go before the client, or resolve the parent first.
 
 Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal_id_idx`,
 `invoices_recurring_invoice_id_idx`, `invoices_template_id_idx`, `invoices_status_idx`,
@@ -987,7 +1100,7 @@ Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal
 ## 24. Line items
 
 Polymorphic — belongs to a proposal, invoice, or credit note via mutually-exclusive FKs (see
-ADR-0014).
+[ADR-0017](adr/0017-polymorphic-line-items.md)).
 
 ### `line_items`
 
@@ -1077,6 +1190,7 @@ Adjustments against an existing invoice. Own numbering sequence.
 | ---------------- | ----------- | ---- | ------------------- | ---------------------------- |
 | id               | uuid        | no   | `gen_random_uuid()` | PK                           |
 | invoice_id       | uuid        | no   |                     | FK → `invoices.id` (cascade) |
+| pdf_upload_id    | uuid        | yes  |                     | FK → `uploads.id` (set null) |
 | number           | text        | no   |                     | Unique. E.g. `CN-0001`       |
 | reason           | text        | yes  |                     |                              |
 | currency         | varchar(3)  | no   |                     |                              |

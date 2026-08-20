@@ -53,7 +53,7 @@ point at entities which no longer exist is worse than deleting them.
   an exported PDF or an email a client received is never re-issued; a cosmetically odd `INV-0148` is
   preferable to a second, different `INV-0042`.
 - **`audit_logs` is never deletable, by any flag.** An audit trail a maintenance command can erase
-  is not an audit trail. The insert-only trigger from migration `0001` is lifted for
+  is not an audit trail. The insert-only triggers from `0001_insert_only_guards.sql` are lifted for
   `contract_signatures` and never for `audit_logs`.
 - **Object storage is untouched.** Only the `uploads` rows are deleted, leaving the objects behind
   them orphaned. Deleting objects cannot join the database transaction, so a later failure would
