@@ -167,6 +167,14 @@ export const DOMAIN_DATA_INVENTORY = [
     reason: "lead pipeline domain"
   },
   {
+    key: "clientContacts",
+    table: "client_contacts",
+    seed: "seed",
+    reseed: "delete",
+    reset: "delete",
+    reason: "sub-records of a client, deleted with the clients they belong to"
+  },
+  {
     key: "clients",
     table: "clients",
     seed: "seed",

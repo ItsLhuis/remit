@@ -102,7 +102,8 @@ export async function renderContractPdf(payload: {
 // contract's own pointer: the two are different documents, and a contract that already has an
 // as-sent PDF must still get a signed one.
 //
-// That column is write-once and enforced by a database trigger (migration 0015): the row is
+// That column is write-once and enforced by a database trigger (`0001_insert_only_guards.sql`):
+// the row is
 // otherwise insert-only, because a signature is the legal record of what a counterparty agreed to.
 // The conditional `IS NULL` below is what keeps a re-delivery from reaching the trigger at all — a
 // second write would raise rather than be ignored, and the guard exists so a retry is a no-op

@@ -79,6 +79,18 @@ export type DemoClientRow = {
   updatedAt: Date
 }
 
+export type DemoClientContactRow = {
+  id: string
+  clientId: string
+  name: string
+  email: string
+  phone: string
+  role: string
+  isPrimary: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type DemoProjectRow = {
   id: string
   clientId: string
@@ -169,6 +181,7 @@ export type DemoTaxRateRow = {
 export type DemoProposalRow = {
   id: string
   projectId: string
+  clientId: string
   number: string
   status: "draft" | "sent" | "accepted" | "rejected"
   currency: string
@@ -307,6 +320,7 @@ export type DemoSeedPlan = {
   taxRates: DemoTaxRateRow[]
   leads: DemoLeadRow[]
   clients: DemoClientRow[]
+  clientContacts: DemoClientContactRow[]
   projects: DemoProjectRow[]
   tasks: DemoTaskRow[]
   timeEntries: DemoTimeEntryRow[]

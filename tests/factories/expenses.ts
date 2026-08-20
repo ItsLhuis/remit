@@ -6,7 +6,11 @@ import { expenses } from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
 
+import { resolveProjectClientId } from "./projectParent"
+
 export async function makeExpense(overrides?: Partial<InferInsertModel<typeof expenses>>) {
+  const clientId = await resolveProjectClientId(overrides?.projectId, overrides?.clientId)
+
   const [expense] = await database
     .insert(expenses)
     .values({
@@ -15,7 +19,8 @@ export async function makeExpense(overrides?: Partial<InferInsertModel<typeof ex
       category: faker.commerce.department(),
       description: faker.commerce.productDescription(),
       spentAt: new Date("2026-08-06T00:00:00.000Z"),
-      ...overrides
+      ...overrides,
+      clientId
     })
     .returning()
 

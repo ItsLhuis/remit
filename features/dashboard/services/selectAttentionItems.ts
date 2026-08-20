@@ -53,7 +53,6 @@ export type AttentionInvoiceRow = {
 export type AttentionProposalRow = {
   id: string
   number: string
-  projectId: string
   parentName: string
   currency: string
   totalCents: number
@@ -155,7 +154,9 @@ function buildProposalAttention(
   today: number
 ): AttentionItem[] {
   return rows.flatMap((row): AttentionItem[] => {
-    const href = `/projects/${row.projectId}/proposals/${row.id}`
+    // The top-level route, not the project-scoped one: a proposal may hang off a client with no
+    // project at all (`chk_proposals_parent`), and `/proposals/[proposalId]` resolves either shape.
+    const href = `/proposals/${row.id}`
     const daysRemaining = row.validUntil ? -daysBetween(today, row.validUntil) : null
 
     if (daysRemaining !== null && daysRemaining <= EXPIRING_PROPOSAL_DAYS) {

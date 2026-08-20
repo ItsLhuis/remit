@@ -29,8 +29,8 @@ export async function deleteDomainRows(
   // the pointers are gone by the time the rows they belonged to are.
   const uploadIds = deletesUploads ? await collectDeletableUploadIds(database) : []
 
-  // contract_signatures is insert-only at the database level: migration 0001 puts BEFORE
-  // DELETE/TRUNCATE triggers on it that raise. That guard also fires on the cascade from
+  // contract_signatures is insert-only at the database level: migration
+  // `0001_insert_only_guards.sql` puts BEFORE DELETE/TRUNCATE triggers on it that raise. That guard also fires on the cascade from
   // `contracts`, so it has to be lifted for the whole delete sequence, not just the explicit
   // delete of its own rows. Both callers are an explicit operator instruction, and this runs
   // inside their transaction, so a rollback restores the trigger with everything else and no

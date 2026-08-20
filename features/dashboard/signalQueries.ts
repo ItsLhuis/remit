@@ -41,7 +41,6 @@ export async function listOpenProposals(): Promise<AttentionProposalRow[]> {
     .select({
       id: proposals.id,
       number: proposals.number,
-      projectId: proposals.projectId,
       currency: proposals.currency,
       totalCents: proposals.totalCents,
       validUntil: proposals.validUntil,
@@ -50,14 +49,13 @@ export async function listOpenProposals(): Promise<AttentionProposalRow[]> {
       parentName: sql<string | null>`coalesce(${clients.name}, ${projects.name})`
     })
     .from(proposals)
-    .innerJoin(projects, eq(projects.id, proposals.projectId))
-    .leftJoin(clients, eq(clients.id, projects.clientId))
+    .leftJoin(projects, eq(projects.id, proposals.projectId))
+    .leftJoin(clients, eq(clients.id, proposals.clientId))
     .where(and(eq(proposals.status, "sent"), isNull(proposals.deletedAt)))
 
   return rows.map((row) => ({
     id: row.id,
     number: row.number,
-    projectId: row.projectId,
     parentName: row.parentName ?? "",
     currency: row.currency,
     totalCents: Number(row.totalCents),

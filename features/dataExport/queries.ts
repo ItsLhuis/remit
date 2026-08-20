@@ -5,6 +5,7 @@ import { database } from "@/database"
 import {
   activityLogs,
   auditLogs,
+  clientContacts,
   clients,
   contracts,
   contractSignatures,
@@ -51,6 +52,7 @@ const DATA_EXPORT_HISTORY_LIMIT = 20
 const EXPORT_TABLE_SOURCES: Record<string, PgTable> = {
   activity_logs: activityLogs,
   audit_logs: auditLogs,
+  client_contacts: clientContacts,
   clients,
   contract_signatures: contractSignatures,
   contracts,
@@ -344,6 +346,8 @@ function buildClientScope(
   switch (manifest.table) {
     case "clients":
       return eq(clients.id, clientId)
+    case "client_contacts":
+      return eq(clientContacts.clientId, clientId)
     case "leads":
       return eq(leads.convertedToClientId, clientId)
     case "projects":

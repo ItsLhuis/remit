@@ -37,6 +37,24 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
     excludedColumns: [{ column: "portalToken", reason: "bearerToken" }]
   },
   {
+    table: "client_contacts",
+    file: "data/client_contacts.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "clientId",
+      "name",
+      "email",
+      "phone",
+      "role",
+      "isPrimary",
+      "deletedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
+  },
+  {
     table: "leads",
     file: "data/leads.json",
     scopes: EVERY_SCOPE,
@@ -155,6 +173,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
     columns: [
       "id",
       "projectId",
+      "clientId",
       "templateId",
       "pdfUploadId",
       "number",

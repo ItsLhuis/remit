@@ -302,7 +302,8 @@ test("renders the signed contract PDF and fills the write-once signature pointer
 
   const rendersBeforeRedelivery = mocks.renderHtmlToPdf.mock.calls.length
 
-  // The column is write-once and the row is otherwise insert-only (migration 0015), so a re-delivery
+  // The column is write-once and the row is otherwise insert-only
+  // (`0001_insert_only_guards.sql`), so a re-delivery
   // must be turned away by the handler's own `IS NULL` guard before it ever reaches the trigger —
   // the trigger would raise, and a retry has to be a no-op rather than a failed job.
   await enqueueJob(

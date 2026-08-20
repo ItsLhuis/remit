@@ -33,7 +33,6 @@ function makeProposal(overrides: Partial<AttentionProposalRow> = {}): AttentionP
   return {
     id: "proposal-1",
     number: "PROP-0001",
-    projectId: "project-1",
     parentName: "Acme",
     currency: "EUR",
     totalCents: 200_000,

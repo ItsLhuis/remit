@@ -86,7 +86,7 @@ export async function createContract(input: unknown): Promise<ContractMutationRe
   const { context } = gate
 
   try {
-    await assertContractParentsExist(parsed.data)
+    const parents = await resolveContractParents(parsed.data)
 
     const contractId = await database.transaction(async (transaction) => {
       const number = await claimContractNumber(transaction)
@@ -94,8 +94,8 @@ export async function createContract(input: unknown): Promise<ContractMutationRe
       const [created] = await transaction
         .insert(contracts)
         .values({
-          projectId: parsed.data.projectId,
-          clientId: parsed.data.clientId,
+          projectId: parents.projectId,
+          clientId: parents.clientId,
           templateId: parsed.data.templateId,
           number,
           title: parsed.data.title,
@@ -117,22 +117,18 @@ export async function createContract(input: unknown): Promise<ContractMutationRe
     })
 
     await writeContractAudit(context, "contract.created", contractId, {
-      projectId: parsed.data.projectId,
-      clientId: parsed.data.clientId,
+      projectId: parents.projectId,
+      clientId: parents.clientId,
       blockCount: parsed.data.blocks.length
     })
     await emitContractCreated({
       contractId,
-      projectId: parsed.data.projectId,
-      clientId: parsed.data.clientId,
+      projectId: parents.projectId,
+      clientId: parents.clientId,
       userId: context.userId
     })
 
-    revalidateContractPaths({
-      id: contractId,
-      projectId: parsed.data.projectId,
-      clientId: parsed.data.clientId
-    })
+    revalidateContractPaths({ id: contractId, ...parents })
 
     return await loadContractResult(contractId)
   } catch (error) {
@@ -183,6 +179,7 @@ export async function createContractFromProposal(input: unknown): Promise<Contra
         .insert(contracts)
         .values({
           projectId: proposal.projectId,
+          clientId: proposal.clientId,
           proposalId: proposal.id,
           templateId: template?.id ?? null,
           number,
@@ -201,17 +198,22 @@ export async function createContractFromProposal(input: unknown): Promise<Contra
     await writeContractAudit(context, "contract.created", contractId, {
       proposalId: proposal.id,
       projectId: proposal.projectId,
+      clientId: proposal.clientId,
       blockCount: blocks.length
     })
     await emitContractCreated({
       contractId,
       projectId: proposal.projectId,
-      clientId: null,
+      clientId: proposal.clientId,
       userId: context.userId
     })
 
-    revalidateContractPaths({ id: contractId, projectId: proposal.projectId, clientId: null })
-    revalidatePath(`/projects/${proposal.projectId}/proposals/${proposal.id}`)
+    revalidateContractPaths({
+      id: contractId,
+      projectId: proposal.projectId,
+      clientId: proposal.clientId
+    })
+    revalidatePath(`/proposals/${proposal.id}`)
 
     return await loadContractResult(contractId)
   } catch (error) {
@@ -245,7 +247,7 @@ export async function updateContract(input: unknown): Promise<ContractMutationRe
       throw new ExpectedContractError(t("contracts.errors.notDraft"))
     }
 
-    await assertContractParentsExist(parsed.data)
+    const parents = await resolveContractParents(parsed.data)
 
     // The status is re-checked in the WHERE rather than trusted from the read above: a concurrent
     // send between the two statements would otherwise let an issued contract be rewritten.
@@ -253,8 +255,8 @@ export async function updateContract(input: unknown): Promise<ContractMutationRe
       .update(contracts)
       .set({
         title: parsed.data.title,
-        projectId: parsed.data.projectId,
-        clientId: parsed.data.clientId,
+        projectId: parents.projectId,
+        clientId: parents.clientId,
         templateId: parsed.data.templateId,
         blocks: parsed.data.blocks,
         effectiveFrom: parsed.data.effectiveFrom,
@@ -271,11 +273,11 @@ export async function updateContract(input: unknown): Promise<ContractMutationRe
 
     if (!updated) throw new ExpectedContractError(t("contracts.errors.notDraft"))
 
-    const changedFields = getChangedContractFields(existing, parsed.data)
+    const changedFields = getChangedContractFields(existing, { ...parsed.data, ...parents })
 
     await writeContractAudit(context, "contract.updated", existing.id, {
-      projectId: parsed.data.projectId,
-      clientId: parsed.data.clientId,
+      projectId: parents.projectId,
+      clientId: parents.clientId,
       changedFields
     })
     await emitContractUpdated({
@@ -284,11 +286,7 @@ export async function updateContract(input: unknown): Promise<ContractMutationRe
       changedFields
     })
 
-    revalidateContractPaths({
-      id: existing.id,
-      projectId: parsed.data.projectId,
-      clientId: parsed.data.clientId
-    })
+    revalidateContractPaths({ id: existing.id, ...parents })
 
     return await loadContractResult(existing.id)
   } catch (error) {
@@ -538,12 +536,17 @@ async function getConversionRejection(proposalId: string): Promise<string> {
 // The schema already guarantees at least one parent id is present; this checks the ids point at
 // records that still exist, so a stale form never writes a contract whose parent link is dead on
 // arrival. `chk_contracts_parent` remains the backstop, not the first line of defence.
-async function assertContractParentsExist(values: ContractParentIds): Promise<void> {
+//
+// It also resolves the pair the way `fk_contracts_project_client` requires: a contract that names a
+// project must name that project's own client, so the client is copied off the project rather than
+// taken from the form, and a form that names both a project and a foreign client is refused here
+// instead of by a raw foreign-key error.
+async function resolveContractParents(values: ContractParentIds): Promise<ContractParentIds> {
   const [project, client] = await Promise.all([
     values.projectId
       ? database.query.projects.findFirst({
           where: and(eq(projects.id, values.projectId), isNull(projects.deletedAt)),
-          columns: { id: true }
+          columns: { id: true, clientId: true }
         })
       : Promise.resolve(undefined),
     values.clientId
@@ -560,6 +563,15 @@ async function assertContractParentsExist(values: ContractParentIds): Promise<vo
 
   if (values.clientId && !client) {
     throw new ExpectedContractError(t("contracts.errors.parentNotFound"))
+  }
+
+  if (project && client && project.clientId !== client.id) {
+    throw new ExpectedContractError(t("contracts.errors.clientProjectMismatch"))
+  }
+
+  return {
+    projectId: project?.id ?? null,
+    clientId: project?.clientId ?? client?.id ?? null
   }
 }
 

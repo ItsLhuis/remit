@@ -1,5 +1,6 @@
 export * from "./activityLogs"
 export * from "./blocks"
+export * from "./clientContacts"
 export * from "./clients"
 export * from "./contracts"
 export * from "./creditNotes"

@@ -18,7 +18,14 @@ import { logger } from "@/lib/logger"
 import { getIpAddress } from "@/lib/utils"
 
 import { database } from "@/database"
-import { projects } from "@/database/schema"
+import {
+  contracts,
+  expenses,
+  invoices,
+  projects,
+  proposals,
+  recurringInvoices
+} from "@/database/schema"
 
 import { getClient } from "@/features/clients/server"
 
@@ -145,6 +152,10 @@ export async function updateProject(input: unknown): Promise<ProjectMutationResu
 
     if (!client) throw new ExpectedProjectError(t("projects.errors.clientNotFound"))
 
+    if (existingProject.clientId !== client.id && (await hasFinancialRecords(existingProject.id))) {
+      throw new ExpectedProjectError(t("projects.errors.clientChangeBlocked"))
+    }
+
     const writeValues = toProjectWriteValues(parsed.data)
 
     const [updatedProject] = await database
@@ -255,6 +266,37 @@ export async function softDeleteProject(input: unknown): Promise<DeleteProjectRe
   } catch (error) {
     return handleProjectActionError(error, "softDeleteProject", context.userId, parsed.data.id)
   }
+}
+
+// The user-facing half of the re-parent rule. `fk_<table>_project_client`'s `ON UPDATE RESTRICT`
+// already refuses the write, but a raw foreign-key error is not something a user may ever see
+// (`errors.md`), and the database cannot say which records are in the way. Soft-deleted rows count:
+// they still hold the old `client_id` and would be restored pointing at the wrong client.
+async function hasFinancialRecords(projectId: string): Promise<boolean> {
+  const [invoiceRow, expenseRow, contractRow, scheduleRow, proposalRow] = await Promise.all([
+    database.query.invoices.findFirst({
+      columns: { id: true },
+      where: eq(invoices.projectId, projectId)
+    }),
+    database.query.expenses.findFirst({
+      columns: { id: true },
+      where: eq(expenses.projectId, projectId)
+    }),
+    database.query.contracts.findFirst({
+      columns: { id: true },
+      where: eq(contracts.projectId, projectId)
+    }),
+    database.query.recurringInvoices.findFirst({
+      columns: { id: true },
+      where: eq(recurringInvoices.projectId, projectId)
+    }),
+    database.query.proposals.findFirst({
+      columns: { id: true },
+      where: eq(proposals.projectId, projectId)
+    })
+  ])
+
+  return Boolean(invoiceRow ?? expenseRow ?? contractRow ?? scheduleRow ?? proposalRow)
 }
 
 async function loadProjectResult(projectId: string): Promise<ProjectMutationResult> {

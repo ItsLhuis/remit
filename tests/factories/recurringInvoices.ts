@@ -7,6 +7,7 @@ import { recurringInvoices } from "@/database/schema"
 import { database } from "@/tests/integration/database"
 
 import { makeClient } from "./clients"
+import { resolveProjectClientId } from "./projectParent"
 
 // `clientId` is NOT NULL with a cascading delete, so a schedule cannot exist without a client; the
 // factory creates one rather than making every caller do it. Watch the two check constraints when
@@ -16,7 +17,9 @@ import { makeClient } from "./clients"
 export async function makeRecurringInvoice(
   overrides?: Partial<InferInsertModel<typeof recurringInvoices>>
 ) {
-  const clientId = overrides?.clientId ?? (await makeClient()).id
+  const clientId =
+    (await resolveProjectClientId(overrides?.projectId, overrides?.clientId)) ??
+    (await makeClient()).id
 
   const [schedule] = await database
     .insert(recurringInvoices)

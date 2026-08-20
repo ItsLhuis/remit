@@ -11,6 +11,7 @@ import {
   type DemoSeedSizeProfile
 } from "./profile"
 import {
+  type DemoClientContactRow,
   type DemoClientRow,
   type DemoContractRow,
   type DemoCreditNoteRow,
@@ -54,6 +55,7 @@ export function buildDemoSeedPlan(
   const settings = buildSettings(seed, createdAt, updatedAt, profile)
   const taxRates = buildTaxRates(seed, createdAt, updatedAt)
   const clients = buildClients(seed, createdAt, updatedAt, profile)
+  const clientContacts = buildClientContacts(seed, clients, createdAt, updatedAt)
   const projects = buildProjects(seed, clients, baseDate, createdAt, updatedAt, profile)
   const tasks = buildTasks(seed, projects, baseDate, createdAt, updatedAt, profile)
   const timeEntries = buildTimeEntries(
@@ -121,6 +123,7 @@ export function buildDemoSeedPlan(
     taxRates,
     leads,
     clients,
+    clientContacts,
     projects,
     tasks,
     timeEntries,
@@ -137,6 +140,7 @@ export function buildDemoSeedPlan(
       tax_rates: taxRates.length,
       leads: leads.length,
       clients: clients.length,
+      client_contacts: clientContacts.length,
       projects: projects.length,
       tasks: tasks.length,
       time_entries: timeEntries.length,
@@ -262,6 +266,42 @@ function buildClients(
       updatedAt
     }
   })
+}
+
+// Three per client: the person who approves, the person who signs, and the person in finance who
+// pays. Only the first is primary, so `uq_client_contacts_primary` is exercised by the seed rather
+// than only by a test.
+const CONTACT_ROLES = ["Primary", "Signatory", "Finance"] as const
+
+function buildClientContacts(
+  seed: number,
+  clients: DemoClientRow[],
+  createdAt: Date,
+  updatedAt: Date
+): DemoClientContactRow[] {
+  return clients.flatMap((client, clientIndex) =>
+    CONTACT_ROLES.map((role, roleIndex) => {
+      const domain = client.email.split("@")[1] ?? "example.com"
+      const firstName = faker.person.firstName()
+      const lastName = faker.person.lastName()
+
+      return {
+        id: deterministicUuid(
+          seed,
+          "client-contact",
+          clientIndex * CONTACT_ROLES.length + roleIndex
+        ),
+        clientId: client.id,
+        name: `${firstName} ${lastName}`,
+        email: `${firstName}.${lastName}@${domain}`.toLowerCase(),
+        phone: client.phone,
+        role,
+        isPrimary: roleIndex === 0,
+        createdAt: timestamp(createdAt, clientIndex),
+        updatedAt
+      }
+    })
+  )
 }
 
 function buildProjects(
@@ -490,6 +530,7 @@ function buildProposals(
     return {
       id: deterministicUuid(seed, "proposal", index),
       projectId: project.id,
+      clientId: project.clientId,
       number: `PROP-${String(index + 1).padStart(4, "0")}`,
       status,
       currency: project.currency,

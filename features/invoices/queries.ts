@@ -314,22 +314,19 @@ export async function getProposalInvoiceSnapshot(
 
   if (!proposal) return null
 
-  const [project, rows] = await Promise.all([
-    database.query.projects.findFirst({
-      where: eq(projects.id, proposal.projectId),
-      columns: { clientId: true }
-    }),
-    database
-      .select()
-      .from(lineItems)
-      .where(and(eq(lineItems.proposalId, proposal.id), isNull(lineItems.deletedAt)))
-      .orderBy(asc(lineItems.position))
-  ])
+  const rows = await database
+    .select()
+    .from(lineItems)
+    .where(and(eq(lineItems.proposalId, proposal.id), isNull(lineItems.deletedAt)))
+    .orderBy(asc(lineItems.position))
 
   return {
     id: proposal.id,
     projectId: proposal.projectId,
-    clientId: project?.clientId ?? null,
+    // Read straight off the proposal rather than joined through its project: since stage 29 the
+    // proposal carries its own `client_id`, and `fk_proposals_project_client` keeps the two in
+    // agreement, so the join would only re-derive what the column already says.
+    clientId: proposal.clientId,
     currency: proposal.currency,
     notes: proposal.notes,
     discountType: proposal.discountType,

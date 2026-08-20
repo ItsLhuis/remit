@@ -17,6 +17,22 @@ test("builds byte-identical plans when the same seed is used", () => {
   expect(first.timeEntries[0]?.userId).toBe(OWNER_ID)
 })
 
+test("gives every seeded client its contacts, one of them primary", () => {
+  const plan = buildDemoSeedPlan(42, OWNER_ID)
+
+  const perClient = new Map<string, typeof plan.clientContacts>()
+
+  for (const contact of plan.clientContacts) {
+    perClient.set(contact.clientId, [...(perClient.get(contact.clientId) ?? []), contact])
+  }
+
+  expect(perClient.size).toBe(plan.counts.clients)
+
+  for (const contacts of perClient.values()) {
+    expect(contacts.filter((contact) => contact.isPrimary)).toHaveLength(1)
+  }
+})
+
 test("scales deterministic plans when a larger seed size is used", () => {
   const medium = buildDemoSeedPlan(42, OWNER_ID, "medium")
   const large = buildDemoSeedPlan(42, OWNER_ID, "large")

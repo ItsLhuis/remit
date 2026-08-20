@@ -7,11 +7,12 @@ import { contractSignatures, uploads } from "@/database/schema"
 import { makeContract } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
-// The guard installed by migration 0015. It is the enforcement half of the artifact-pointer
-// decision: the signature row is written the instant a counterparty signs, and the PDF recording
-// what they signed is rendered afterwards by a job, so the column has to be fillable exactly once
-// without the rest of the row ever becoming mutable. Migration 0001's blanket UPDATE trigger made
-// that impossible, which is why `signed_pdf_upload_id` was NULL on every signature ever stored.
+// The `contract_signatures_set_signed_pdf` guard from `0001_insert_only_guards.sql`. It is the
+// enforcement half of the artifact-pointer decision: the signature row is written the instant a
+// counterparty signs, and the PDF recording what they signed is rendered afterwards by a job, so
+// the column has to be fillable exactly once without the rest of the row ever becoming mutable. A
+// blanket BEFORE UPDATE trigger, which is what the other insert-only table carries, would make that
+// impossible and leave `signed_pdf_upload_id` null on every signature ever stored.
 async function makeSignature(): Promise<string> {
   const contract = await makeContract()
 

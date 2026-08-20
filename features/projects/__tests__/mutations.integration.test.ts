@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, projects } from "@/database/schema"
 
-import { makeClient, makeProject, makeUser } from "@/tests/factories"
+import { makeClient, makeInvoice, makeProject, makeUser } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
@@ -130,6 +130,63 @@ describe("project mutations", () => {
     expect(projectRow?.name).toBe("New name")
     expect(projectRow?.budgetCents).toBe(200000)
     expect(projectRow?.currency).toBe("EUR")
+  })
+
+  test("refuses to move a project with financial records to another client", async () => {
+    const { updateProject } = await import("../mutations")
+
+    const client = await makeClient({ email: "owner-of-project@example.com" })
+    const otherClient = await makeClient({ email: "poacher@example.com" })
+    const project = await makeProject({ clientId: client.id, name: "Booked" })
+
+    await makeInvoice({ projectId: project.id })
+
+    const result = await updateProject({
+      id: project.id,
+      clientId: otherClient.id,
+      name: "Booked",
+      budget: "",
+      hourlyRate: "",
+      startDate: "",
+      endDate: "",
+      description: ""
+    })
+
+    // The action's translated message, never the `fk_invoices_project_client` violation the write
+    // would have raised one statement later.
+    expect(result).toEqual({
+      error:
+        "This project already has invoices, expenses, contracts, recurring schedules, or proposals, so it cannot be moved to another client"
+    })
+
+    const [projectRow] = await database.select().from(projects).where(eq(projects.id, project.id))
+
+    expect(projectRow?.clientId).toBe(client.id)
+  })
+
+  test("moves a project with no financial records to another client", async () => {
+    const { updateProject } = await import("../mutations")
+
+    const client = await makeClient({ email: "before@example.com" })
+    const otherClient = await makeClient({ currency: "USD", email: "after@example.com" })
+    const project = await makeProject({ clientId: client.id, name: "Unbooked" })
+
+    const result = await updateProject({
+      id: project.id,
+      clientId: otherClient.id,
+      name: "Unbooked",
+      budget: "",
+      hourlyRate: "",
+      startDate: "",
+      endDate: "",
+      description: ""
+    })
+
+    expect("data" in result).toBe(true)
+
+    const [projectRow] = await database.select().from(projects).where(eq(projects.id, project.id))
+
+    expect(projectRow?.clientId).toBe(otherClient.id)
   })
 
   test("advances a project through an allowed status transition", async () => {

@@ -5,6 +5,7 @@ import { expect, test, vi } from "vitest"
 import * as schema from "@/database/schema"
 import {
   auditLogs,
+  clientContacts,
   clients,
   contractSignatures,
   contracts,
@@ -37,6 +38,7 @@ const organizationId = "22222222-2222-4222-8222-222222222222"
 
 type CountableTable =
   | typeof auditLogs
+  | typeof clientContacts
   | typeof clients
   | typeof contractSignatures
   | typeof contracts
@@ -60,10 +62,13 @@ test("empties domain data while leaving the account and configuration intact", a
   const logoUploadId = await attachBusinessLogo()
   const invoicePdfUploadId = await attachInvoicePdf()
   const settingsBefore = await getSettings()
+  const seededContacts = await tableCount(clientContacts)
 
   const result = await runResetData(database, schema, { dryRun: false, help: false, yes: true })
 
   expect(result.wrote).toBe(true)
+  expect(seededContacts).toBeGreaterThan(0)
+  expect(await tableCount(clientContacts)).toBe(0)
   expect(await tableCount(clients)).toBe(0)
   expect(await tableCount(contracts)).toBe(0)
   expect(await tableCount(contractSignatures)).toBe(0)

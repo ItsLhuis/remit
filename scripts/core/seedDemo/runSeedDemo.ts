@@ -168,6 +168,7 @@ async function countExistingSeedableRows(
     tax_rates: await countTable(database, schema.taxRates),
     leads: await countTable(database, schema.leads),
     clients: await countTable(database, schema.clients),
+    client_contacts: await countTable(database, schema.clientContacts),
     projects: await countTable(database, schema.projects),
     tasks: await countTable(database, schema.tasks),
     time_entries: await countTable(database, schema.timeEntries),
@@ -224,6 +225,9 @@ async function insertDemoRows(
   for (const rows of chunkRows(plan.clients)) {
     await database.insert(schema.clients).values(rows)
   }
+  for (const rows of chunkRows(plan.clientContacts)) {
+    await database.insert(schema.clientContacts).values(rows)
+  }
   for (const rows of chunkRows(plan.projects)) {
     await database.insert(schema.projects).values(rows)
   }
@@ -264,6 +268,7 @@ async function insertDemoRows(
   counts.tax_rates = plan.taxRates.length
   counts.leads = plan.leads.length
   counts.clients = plan.clients.length
+  counts.client_contacts = plan.clientContacts.length
   counts.projects = plan.projects.length
   counts.tasks = plan.tasks.length
   counts.time_entries = plan.timeEntries.length
@@ -322,6 +327,7 @@ function zeroCounts(): SeedDemoRowCounts {
     tax_rates: 0,
     leads: 0,
     clients: 0,
+    client_contacts: 0,
     projects: 0,
     tasks: 0,
     time_entries: 0,

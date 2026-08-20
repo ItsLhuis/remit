@@ -104,7 +104,7 @@ describe("contract mutations", () => {
     expect(settingsRow[0]?.nextContractNumber).toBe(2)
   })
 
-  test("creates a project-level contract when only a project is given", async () => {
+  test("copies the project's client onto a contract created from a project alone", async () => {
     const { createContract } = await import("../mutations")
 
     const project = await makeProject()
@@ -113,7 +113,7 @@ describe("contract mutations", () => {
 
     expect(result).toEqual({
       data: {
-        contract: expect.objectContaining({ projectId: project.id, clientId: null })
+        contract: expect.objectContaining({ projectId: project.id, clientId: project.clientId })
       }
     })
   })

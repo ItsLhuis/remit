@@ -219,7 +219,7 @@ export type ProposalInvoiceSnapshotLine = {
 
 export type ProposalInvoiceSnapshot = {
   id: string
-  projectId: string
+  projectId: string | null
   clientId: string | null
   currency: string
   notes: string | null

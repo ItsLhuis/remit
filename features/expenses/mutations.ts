@@ -363,6 +363,11 @@ async function getExpenseActionContext(): Promise<ExpenseWriteGate> {
 // An expense may hang off a project, off a client, off both, or off neither — a bank fee belongs to
 // nobody. When it carries both, the client has to be the project's own: any other pairing would put
 // one expense on two different ledgers and make the two filters disagree about who owes it.
+//
+// `fk_expenses_project_client` now refuses that pairing outright, but this check stays because it
+// names which of the two the user picked wrongly, and the database can only say the pair is
+// invalid. The project's client is copied onto the row rather than left null, because
+// `chk_expenses_project_requires_client` demands it.
 async function resolveExpenseScope(values: ExpenseFormValues | UpdateExpenseValues) {
   const project = values.projectId
     ? await database.query.projects.findFirst({
@@ -390,7 +395,7 @@ async function resolveExpenseScope(values: ExpenseFormValues | UpdateExpenseValu
     throw new ExpectedExpenseError(t("expenses.errors.clientProjectMismatch"))
   }
 
-  return { projectId: project?.id ?? null, clientId: client?.id ?? null }
+  return { projectId: project?.id ?? null, clientId: project?.clientId ?? client?.id ?? null }
 }
 
 function toExpenseColumns(values: ExpenseFormValues | UpdateExpenseValues, scope: ExpenseScope) {
