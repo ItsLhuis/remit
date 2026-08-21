@@ -511,6 +511,22 @@ describe("proposal mutations", () => {
     expect(await softDeleteProposal({ id: proposal.id })).toEqual({ error: expect.any(String) })
   })
 
+  test("refuses every write when no session is present", async () => {
+    const { createProposal, sendProposal, softDeleteProposal } = await import("../mutations")
+
+    mocks.getSession.mockResolvedValue(null)
+
+    const project = await makeProject()
+    const proposal = await makeProposal({ projectId: project.id })
+
+    expect(await createProposal(makeProposalInput({ projectId: project.id }))).toEqual({
+      error: expect.any(String)
+    })
+    expect(await sendProposal({ id: proposal.id })).toEqual({ error: expect.any(String) })
+    expect(await softDeleteProposal({ id: proposal.id })).toEqual({ error: expect.any(String) })
+    expect(mocks.getCurrentRole).not.toHaveBeenCalled()
+  })
+
   test("lets an assistant draft a proposal but not send or delete it", async () => {
     const { createProposal, sendProposal, softDeleteProposal } = await import("../mutations")
 

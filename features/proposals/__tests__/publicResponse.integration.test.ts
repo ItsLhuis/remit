@@ -10,6 +10,7 @@ import { auditLogs, emailLogs, proposalOtps, proposals } from "@/database/schema
 
 import {
   makeClient,
+  makeClientContact,
   makeLineItem,
   makeProject,
   makeProposal,
@@ -174,6 +175,74 @@ describe("requestProposalOtp", () => {
     expect(rows).toHaveLength(0)
   })
 
+  test("issues the code to a contact of the client and to that address only", async () => {
+    const { client, proposal } = await makeSentProposal()
+
+    await makeClientContact({ clientId: client.id, email: "finance@example.com", isPrimary: true })
+
+    const result = await requestProposalOtp(
+      { action: "accept", email: "finance@example.com" },
+      requestContext(proposal.publicToken)
+    )
+
+    const [otp] = await database
+      .select()
+      .from(proposalOtps)
+      .where(eq(proposalOtps.proposalId, proposal.id))
+
+    expect(result).toEqual({ data: { expiresInMinutes: 10 } })
+    expect(mocks.sendTransactionalEmail).toHaveBeenCalledTimes(1)
+    expect(mocks.sendTransactionalEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "finance@example.com" })
+    )
+    expect(otp?.email).toBe("finance@example.com")
+  })
+
+  test("answers identically and sends nothing for a contact of a different client", async () => {
+    const { proposal } = await makeSentProposal()
+    const stranger = await makeClient({ email: "other@example.com" })
+
+    await makeClientContact({ clientId: stranger.id, email: "intruder@example.com" })
+
+    const result = await requestProposalOtp(
+      { action: "accept", email: "intruder@example.com" },
+      requestContext(proposal.publicToken)
+    )
+
+    const rows = await database
+      .select()
+      .from(proposalOtps)
+      .where(eq(proposalOtps.proposalId, proposal.id))
+
+    expect(result).toEqual({ data: { expiresInMinutes: 10 } })
+    expect(mocks.sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(rows).toHaveLength(0)
+  })
+
+  test("answers identically and sends nothing for a soft-deleted contact", async () => {
+    const { client, proposal } = await makeSentProposal()
+
+    await makeClientContact({
+      clientId: client.id,
+      email: "former@example.com",
+      deletedAt: new Date("2026-07-02T10:00:00.000Z")
+    })
+
+    const result = await requestProposalOtp(
+      { action: "accept", email: "former@example.com" },
+      requestContext(proposal.publicToken)
+    )
+
+    const rows = await database
+      .select()
+      .from(proposalOtps)
+      .where(eq(proposalOtps.proposalId, proposal.id))
+
+    expect(result).toEqual({ data: { expiresInMinutes: 10 } })
+    expect(mocks.sendTransactionalEmail).not.toHaveBeenCalled()
+    expect(rows).toHaveLength(0)
+  })
+
   test("refuses a proposal that has already been responded to", async () => {
     const { proposal } = await makeSentProposal({
       status: "accepted",
@@ -258,6 +327,53 @@ describe("verifyProposalOtp", () => {
     expect(row?.respondedAt).not.toBeNull()
     expect(row?.respondedIp).toBe("203.0.113.7")
     expect(row?.rejectionReason).toBeNull()
+  })
+
+  test("accepts the proposal when the contact who received the code answers", async () => {
+    const { client, proposal } = await makeSentProposal()
+
+    await makeClientContact({ clientId: client.id, email: "signatory@example.com" })
+
+    await requestProposalOtp(
+      { action: "accept", email: "signatory@example.com" },
+      requestContext(proposal.publicToken)
+    )
+
+    const result = await verifyProposalOtp(
+      {
+        action: "accept",
+        email: "signatory@example.com",
+        code: readSentCode(),
+        rejectionReason: ""
+      },
+      requestContext(proposal.publicToken)
+    )
+
+    const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
+
+    expect(result).toEqual({ data: { status: "accepted" } })
+    expect(row?.status).toBe("accepted")
+  })
+
+  test("refuses a code issued to one identity when another submits it", async () => {
+    const { client, proposal } = await makeSentProposal()
+
+    await makeClientContact({ clientId: client.id, email: "signatory@example.com" })
+
+    await requestProposalOtp(
+      { action: "accept", email: "signatory@example.com" },
+      requestContext(proposal.publicToken)
+    )
+
+    const result = await verifyProposalOtp(
+      { action: "accept", email: clientEmail, code: readSentCode(), rejectionReason: "" },
+      requestContext(proposal.publicToken)
+    )
+
+    const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
+
+    expect(result).toEqual({ error: expect.any(String) })
+    expect(row?.status).toBe("sent")
   })
 
   test("marks the code used so it cannot be replayed", async () => {
