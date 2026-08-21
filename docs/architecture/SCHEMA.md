@@ -611,9 +611,9 @@ Constraints:
 
 The people at a client. A sub-record of `clients`, not a navigable entity of its own: no route, no
 feature module, no top-level list, and no other table carries a `contact_id`. `clients.email` and
-`clients.phone` remain the billing default and the address every send path uses; these rows exist
-because when the freelancer bills a company, the person who approves the proposal, the person who
-signs the contract, and the person in finance who pays are three different people.
+`clients.phone` remain the billing default and the fallback; these rows exist because when the
+freelancer bills a company, the person who approves the proposal, the person who signs the contract,
+and the person in finance who pays are three different people.
 
 | Column     | Type    | Null | Default             | Notes                                                            |
 | ---------- | ------- | ---- | ------------------- | ---------------------------------------------------------------- |
@@ -632,8 +632,20 @@ Indexes: `client_contacts_client_id_idx`, `client_contacts_email_idx`, unique
 structural form of "at most one primary contact per client", in the same shape as
 `time_entries_running_timer_idx`. Soft-deleting the primary frees the slot for its replacement.
 
-A contact is not an acceptance identity: the proposal OTP flow still matches against `clients.email`
-(`features/proposals/publicResponse.ts`'s `matchesProposalRecipient`).
+CRUD lives in `features/clients` — reads in `contactQueries.ts`, writes in `mutations.ts` — and is
+surfaced by the Contacts tab of the client workspace. Promotion is demote-then-promote inside one
+transaction, so the losing side of two concurrent promotions arrives as a unique violation on
+`uq_client_contacts_primary` and leaves as a translated message rather than a driver error.
+
+A contact carries two capabilities over its own client's documents and no others
+([ADR-0027](adr/0027-contact-identity.md)). It is the **delivery target**: every send path resolves
+the recipient through `getClientDocumentRecipient`, which returns the live primary contact when
+there is one and `clients.email` otherwise, and stores nothing on the document —
+`email_logs.recipient_email` is the record of where each send actually went. It is also an
+**acceptance identity**: the proposal OTP flow matches against `clients.email` plus every live
+contact of that same client (`features/proposals/publicResponse.ts`'s `matchProposalRespondent`),
+issues the code to the matched address alone, and never admits a soft-deleted contact or a contact
+of a different client.
 
 ---
 

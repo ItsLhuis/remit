@@ -104,7 +104,11 @@ These are explicit out-of-scope areas that define the product's boundaries as mu
   with Linear, ClickUp, or Notion on project management depth.
 - **Not a contact manager.** The people at a client are sub-records of that client
   (`client_contacts`), never a top-level Contact or Person entity. Nothing else in the schema
-  references a contact, and no surface navigates to one.
+  references a contact, and no surface navigates to one: they are created, edited, and given the
+  primary slot from a tab inside the client workspace. A contact does carry two capabilities over
+  its own client's documents — it receives them when it holds the primary slot, and it may accept a
+  proposal addressed to that client ([ADR-0027](adr/0027-contact-identity.md)) — but a capability is
+  not an entity, and neither one gives a contact a route, a module, or a foreign key pointing at it.
 
 ---
 
@@ -1737,6 +1741,7 @@ the standard template: **Context**, **Decision**, **Consequences**, **Alternativ
 | [0024](adr/0024-template-editor-canvas.md)       | Template editor — free collision-aware page-clamped canvas                  | Accepted |
 | [0025](adr/0025-instance-data-reset-scope.md)    | Instance data reset — domain data versus instance state                     | Accepted |
 | [0026](adr/0026-document-parentage.md)           | Document parentage — optional project, agreeing client, composite key       | Accepted |
+| [0027](adr/0027-contact-identity.md)             | Contact identity — delivery target and acceptance identity, never an entity | Accepted |
 
 ---
 
