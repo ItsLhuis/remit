@@ -818,13 +818,8 @@ export const english: Language = {
         billingDescription: "Currency and tax details used on documents.",
         updatedLabel: "Last updated",
         editDetails: "Edit details",
-        invoicesEmptyTitle: "No invoices yet",
-        invoicesEmptyDescription: "Invoices you raise for this client will appear here.",
         projectsEmptyTitle: "No projects yet",
-        projectsEmptyDescription: "Projects you create for this client will appear here.",
-        activityEmptyTitle: "No activity yet",
-        activityEmptyDescription:
-          "Updates, invoices, and payments for this client will appear here."
+        projectsEmptyDescription: "Projects you create for this client will appear here."
       },
       related: {
         projects: "Projects",
@@ -2242,6 +2237,12 @@ export const english: Language = {
         totalColumn: "Total",
         notIssued: "Not issued",
         noDueDate: "No due date"
+      },
+      clientPanel: {
+        title: "Invoices",
+        outstandingColumn: "Outstanding",
+        emptyTitle: "No invoices yet",
+        emptyDescription: "Invoices you raise for this client will appear here."
       },
       fields: {
         currency: "Currency",

@@ -4,6 +4,8 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
+import { getEntityActivity } from "@/features/activityLog/server"
+
 import { ClientDetailPage } from "@/features/clients"
 import {
   getClientDefaults,
@@ -11,6 +13,8 @@ import {
   getClientForEdit,
   listClientContacts
 } from "@/features/clients/server"
+
+import { listInvoicesByClient } from "@/features/invoices/server"
 
 import { listProjectsByClient } from "@/features/projects/server"
 
@@ -25,22 +29,28 @@ type ClientDetailRouteProps = {
 const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
   const { clientId } = await params
 
-  const [client, formData, defaults, contacts] = await Promise.all([
+  const [client, formData, defaults, contacts, activity] = await Promise.all([
     getClientDetail({ id: clientId }),
     getClientForEdit({ id: clientId }),
     getClientDefaults(),
-    listClientContacts({ id: clientId })
+    listClientContacts({ id: clientId }),
+    getEntityActivity({ entityType: "client", entityId: clientId })
   ])
 
   if (!client || !formData) notFound()
 
-  const projects = await listProjectsByClient(clientId, client.currency)
+  const [projects, invoices] = await Promise.all([
+    listProjectsByClient(clientId, client.currency),
+    listInvoicesByClient(clientId, client.currency)
+  ])
 
   return (
     <ClientDetailPage
       client={client}
       projects={projects}
+      invoices={invoices}
       contacts={contacts}
+      activity={activity}
       formData={formData}
       locale={defaults.defaultLocale}
     />

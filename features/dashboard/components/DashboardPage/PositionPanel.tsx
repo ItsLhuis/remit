@@ -6,7 +6,7 @@ import { useTranslation } from "@/lib/i18n"
 
 import { formatCurrency } from "@/lib/utils"
 
-import { Badge, Button, Card, CardContent, Icon, Separator, Typography } from "@/components/ui"
+import { Badge, Button, Card, CardContent, Icon, Typography } from "@/components/ui"
 
 import { type ReceivablesAging } from "../../services"
 import { type DashboardReceivables } from "../../types"
@@ -58,7 +58,7 @@ const PositionPanel = ({ receivables, aging, currency, locale }: PositionPanelPr
               {t("dashboard.position.label")}
             </Typography>
             <span
-              className="font-mono text-3xl leading-none font-semibold tracking-tight break-words tabular-nums @xs/position:text-4xl"
+              className="font-mono text-3xl leading-none font-semibold tracking-tight wrap-break-word tabular-nums @xs/position:text-4xl"
               title={formatCurrency(receivables.outstandingCents, currency, locale)}
             >
               {formatCurrency(receivables.outstandingCents, currency, locale)}
@@ -99,10 +99,6 @@ const PositionPanel = ({ receivables, aging, currency, locale }: PositionPanelPr
             <Link href="/invoices">{t("dashboard.position.viewAll")}</Link>
           </Button>
         </div>
-        <Separator
-          orientation="vertical"
-          className="hidden h-full @3xl/position:block @3xl/position:justify-self-center"
-        />
         <div className="min-w-0 @3xl/position:col-span-6">
           <AgingBar aging={aging} currency={currency} locale={locale} />
         </div>

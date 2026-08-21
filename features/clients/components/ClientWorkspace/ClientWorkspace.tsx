@@ -37,6 +37,10 @@ import {
   toast
 } from "@/components/ui"
 
+import { EntityActivityTimeline, type EntityActivityPanelData } from "@/features/activityLog"
+
+import { ClientInvoicesPanel, type InvoiceListItem } from "@/features/invoices"
+
 import { ClientProjectsPanel, type ProjectListItem } from "@/features/projects"
 
 import { softDeleteClient } from "../../mutations"
@@ -49,7 +53,6 @@ import { DeleteClientDialog } from "../DeleteClientDialog"
 import { ClientSummaryCard } from "./ClientSummaryCard"
 import { ContactRow } from "./ContactRow"
 import { DetailGroup } from "./DetailGroup"
-import { TeachingEmpty } from "./TeachingEmpty"
 
 const BilledAreaChart = dynamic(() => import("./charts").then((m) => m.BilledAreaChart), {
   ssr: false
@@ -67,7 +70,9 @@ const RecurringBarChart = dynamic(() => import("./charts").then((m) => m.Recurri
 type ClientWorkspaceProps = {
   client: ClientDetail
   projects: ProjectListItem[]
+  invoices: InvoiceListItem[]
   contacts: ClientContact[]
+  activity: EntityActivityPanelData
   formData: ClientFormData
   locale: string
 }
@@ -75,7 +80,9 @@ type ClientWorkspaceProps = {
 const ClientWorkspace = ({
   client,
   projects,
+  invoices,
   contacts,
+  activity,
   formData,
   locale
 }: ClientWorkspaceProps) => {
@@ -235,11 +242,7 @@ const ClientWorkspace = ({
                 </Card>
               </TabsContent>
               <TabsContent value="financials">
-                <TeachingEmpty
-                  icon="ReceiptText"
-                  title={t("clients.detail.invoicesEmptyTitle")}
-                  description={t("clients.detail.invoicesEmptyDescription")}
-                />
+                <ClientInvoicesPanel invoices={invoices} locale={locale} />
               </TabsContent>
               <TabsContent value="projects">
                 <ClientProjectsPanel
@@ -251,11 +254,14 @@ const ClientWorkspace = ({
                 />
               </TabsContent>
               <TabsContent value="activity">
-                <TeachingEmpty
-                  icon="Activity"
-                  title={t("clients.detail.activityEmptyTitle")}
-                  description={t("clients.detail.activityEmptyDescription")}
-                />
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle>{t("clients.detail.tabs.activity")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EntityActivityTimeline data={activity} />
+                  </CardContent>
+                </Card>
               </TabsContent>
               <TabsContent value="contacts">
                 <ClientContactsPanel

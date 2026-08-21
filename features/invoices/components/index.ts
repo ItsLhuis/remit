@@ -1,3 +1,4 @@
+export * from "./ClientInvoicesPanel"
 export * from "./ConvertProposalDialog"
 export * from "./DeleteInvoiceDialog"
 export * from "./InvoiceDetailPage"

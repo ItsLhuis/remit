@@ -791,12 +791,8 @@ export type Translations = {
       billingDescription: string
       updatedLabel: string
       editDetails: string
-      invoicesEmptyTitle: string
-      invoicesEmptyDescription: string
       projectsEmptyTitle: string
       projectsEmptyDescription: string
-      activityEmptyTitle: string
-      activityEmptyDescription: string
     }
     related: {
       projects: string
@@ -2173,6 +2169,12 @@ export type Translations = {
       totalColumn: string
       notIssued: string
       noDueDate: string
+    }
+    clientPanel: {
+      title: string
+      outstandingColumn: string
+      emptyTitle: string
+      emptyDescription: string
     }
     fields: {
       currency: string
