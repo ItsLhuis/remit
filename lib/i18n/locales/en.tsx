@@ -788,6 +788,7 @@ export const english: Language = {
           financials: "Financials",
           projects: "Projects",
           activity: "Activity",
+          contacts: "Contacts",
           details: "Details"
         },
         quick: {
@@ -834,9 +835,42 @@ export const english: Language = {
         recurringInvoicesCount:
           "{count, plural, one {# recurring invoice} other {# recurring invoices}}"
       },
+      contacts: {
+        title: "Contacts",
+        add: "Add contact",
+        createTitle: "Add contact",
+        createDescription: "Add a person at this client.",
+        editTitle: "Edit contact",
+        editDescription: "Update this person's details.",
+        save: "Save contact",
+        created: "Contact added",
+        updated: "Contact updated",
+        deleted: "Contact deleted",
+        promoted: "Primary contact updated",
+        role: "Role",
+        rolePlaceholder: "Finance, signatory, project lead",
+        namePlaceholder: "Jordan Ellis",
+        primaryBadge: "Primary",
+        primaryToggle: "Primary contact for this client",
+        makePrimary: "Make primary",
+        actionsLabel: "Actions for {name}",
+        recipientNote: "Documents go to {email}.",
+        noPrimaryNote: "No primary contact, so documents go to {email}, the client's own address.",
+        emptyTitle: "No contacts yet",
+        emptyDescription:
+          "Add the people at this client who approve, sign, and pay. The first one becomes the primary contact and receives their documents.",
+        deleteTitle: "Delete contact",
+        deleteDescription:
+          "Delete {name}? They stop receiving documents for this client and can no longer respond to them.",
+        deleteConfirm: "Delete contact"
+      },
       errors: {
         notFound: "Client not found",
-        updateFailed: "Failed to update client"
+        updateFailed: "Failed to update client",
+        contactNotFound: "Contact not found",
+        contactUpdateFailed: "Failed to update contact",
+        contactPrimaryConflict:
+          "Another contact was made primary at the same time. Reload and try again"
       },
       validation: {
         nameRequired: "Client name is required.",
@@ -851,7 +885,11 @@ export const english: Language = {
         currencyInvalid: "Select a valid ISO 4217 currency.",
         countryInvalid: "Select a valid country.",
         hourlyRateInvalid: "Enter a valid hourly rate.",
-        idInvalid: "Invalid client."
+        idInvalid: "Invalid client.",
+        contactNameRequired: "Contact name is required.",
+        contactNameTooLong:
+          "Contact name must be {count, plural, one {# character} other {# characters}} or fewer.",
+        contactIdInvalid: "Invalid contact."
       }
     },
     leads: {

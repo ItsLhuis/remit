@@ -761,6 +761,7 @@ export type Translations = {
         financials: string
         projects: string
         activity: string
+        contacts: string
         details: string
       }
       quick: {
@@ -805,9 +806,39 @@ export type Translations = {
       recurringInvoices: string
       recurringInvoicesCount: string
     }
+    contacts: {
+      title: string
+      add: string
+      createTitle: string
+      createDescription: string
+      editTitle: string
+      editDescription: string
+      save: string
+      created: string
+      updated: string
+      deleted: string
+      promoted: string
+      role: string
+      rolePlaceholder: string
+      namePlaceholder: string
+      primaryBadge: string
+      primaryToggle: string
+      makePrimary: string
+      actionsLabel: string
+      recipientNote: string
+      noPrimaryNote: string
+      emptyTitle: string
+      emptyDescription: string
+      deleteTitle: string
+      deleteDescription: string
+      deleteConfirm: string
+    }
     errors: {
       notFound: string
       updateFailed: string
+      contactNotFound: string
+      contactUpdateFailed: string
+      contactPrimaryConflict: string
     }
     validation: {
       nameRequired: string
@@ -820,6 +851,9 @@ export type Translations = {
       countryInvalid: string
       hourlyRateInvalid: string
       idInvalid: string
+      contactNameRequired: string
+      contactNameTooLong: string
+      contactIdInvalid: string
     }
   }
   leads: {
