@@ -9,6 +9,14 @@ export {
 export { getClientHealth, type ClientHealth, type ClientHealthInput } from "./clientHealth"
 
 export {
+  listRecipientIdentities,
+  resolveDocumentRecipient,
+  type ClientRecipient,
+  type RecipientClient,
+  type RecipientContact
+} from "./clientRecipients"
+
+export {
   summarizeClients,
   type ClientsSummary,
   type ClientSummaryRow,
