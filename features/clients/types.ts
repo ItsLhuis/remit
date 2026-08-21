@@ -13,6 +13,17 @@ export type ClientListItem = {
   deletedAt: Date | null
 }
 
+export type ClientContact = {
+  id: string
+  clientId: string
+  name: string
+  email: string
+  phone: string
+  role: string
+  isPrimary: boolean
+  createdAt: Date
+}
+
 export type ClientFilterOptions = {
   currencies: string[]
 }

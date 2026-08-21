@@ -119,6 +119,39 @@ export const clientIdSchema = z.object({
 
 export type ClientIdValues = z.infer<typeof clientIdSchema>
 
+const clientContactFieldsShape = {
+  name: z
+    .string()
+    .trim()
+    .min(1, i18n.t("clients.validation.contactNameRequired"))
+    .max(
+      CLIENT_NAME_MAX_LENGTH,
+      i18n.t("clients.validation.contactNameTooLong", { count: CLIENT_NAME_MAX_LENGTH })
+    ),
+  email: optionalEmailSchema,
+  phone: optionalTextSchema(),
+  role: optionalTextSchema(),
+  isPrimary: z.boolean()
+}
+
+export const clientContactFormSchema = z.object(clientContactFieldsShape)
+
+export type ClientContactFormValues = z.infer<typeof clientContactFormSchema>
+
+export const createClientContactSchema = z.object({
+  ...clientContactFieldsShape,
+  clientId: z.uuid(i18n.t("clients.validation.idInvalid"))
+})
+
+export const updateClientContactSchema = z.object({
+  ...clientContactFieldsShape,
+  id: z.uuid(i18n.t("clients.validation.contactIdInvalid"))
+})
+
+export const clientContactIdSchema = z.object({
+  id: z.uuid(i18n.t("clients.validation.contactIdInvalid"))
+})
+
 export const CLIENT_HEALTH_VALUES = ["owing", "settled", "dormant"] as const
 export const CLIENT_SORT_FIELDS = ["name", "currency", "joined", "outstanding"] as const
 
