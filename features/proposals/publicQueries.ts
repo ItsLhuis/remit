@@ -5,6 +5,8 @@ import { matchesPublicToken } from "@/lib/publicToken"
 import { database } from "@/database"
 import { clients, projects, proposals } from "@/database/schema"
 
+import { listClientRecipientIdentities } from "@/features/clients/server"
+
 import { listProposalLineItems, toProposalDetailLineItem } from "./queries"
 import { publicProposalTokenSchema } from "./schemas"
 import { canTransitionProposalStatus, isProposalExpired } from "./services"
@@ -25,8 +27,7 @@ type ProposalRow = typeof proposals.$inferSelect
 // project's name for a project-level proposal and the client's for a client-level one.
 type ProposalRecipientContext = {
   preparedForLabel: string
-  clientName: string
-  clientEmail: string
+  clientId: string
 }
 
 type ProposalIssuerContext = {
@@ -108,8 +109,7 @@ export async function getProposalResponseTarget(
     status: proposal.status,
     currency: proposal.currency,
     totalCents: Number(proposal.totalCents),
-    recipientEmail: recipient.clientEmail,
-    recipientName: recipient.clientName,
+    respondents: await listClientRecipientIdentities(recipient.clientId),
     issuerName: issuer.issuer.name,
     locale: issuer.locale
   }
@@ -133,9 +133,10 @@ async function findProposalByPublicToken(token: string): Promise<ProposalRow | n
 }
 
 // A public proposal needs a live client behind it: the OTP flow checks the responder's address
-// against `clients.email`, so a proposal whose client has been soft-deleted has nobody who may
-// answer it and its link goes down. A project-level proposal additionally needs its project live —
-// soft-deleting the project retires the work, and the client must not keep a working URL to it.
+// against that client's own address and its live contacts, so a proposal whose client has been
+// soft-deleted has nobody who may answer it and its link goes down. A project-level proposal
+// additionally needs its project live — soft-deleting the project retires the work, and the client
+// must not keep a working URL to it.
 async function findLiveRecipientContext(
   proposal: ProposalRow
 ): Promise<ProposalRecipientContext | null> {
@@ -143,8 +144,7 @@ async function findLiveRecipientContext(
     const rows = await database
       .select({
         preparedForLabel: projects.name,
-        clientName: clients.name,
-        clientEmail: clients.email
+        clientId: clients.id
       })
       .from(projects)
       .innerJoin(clients, eq(clients.id, projects.clientId))
@@ -164,12 +164,12 @@ async function findLiveRecipientContext(
 
   const client = await database.query.clients.findFirst({
     where: and(eq(clients.id, proposal.clientId), isNull(clients.deletedAt)),
-    columns: { name: true, email: true }
+    columns: { id: true, name: true }
   })
 
   if (!client) return null
 
-  return { preparedForLabel: client.name, clientName: client.name, clientEmail: client.email }
+  return { preparedForLabel: client.name, clientId: client.id }
 }
 
 async function getProposalIssuer(): Promise<ProposalIssuerContext> {

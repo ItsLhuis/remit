@@ -31,9 +31,11 @@ import {
   getProposalOtpExpiry,
   hasExhaustedProposalOtpAttempts,
   matchesProposalRecipient,
+  matchProposalRespondent,
   PROPOSAL_OTP_LENGTH,
   PROPOSAL_OTP_TTL_MINUTES,
-  type ProposalOtpRejection
+  type ProposalOtpRejection,
+  type ProposalRespondent
 } from "./services"
 import { type ProposalResponseTarget } from "./types"
 
@@ -85,7 +87,11 @@ export async function requestProposalOtp(
   // A non-matching address gets the identical success payload and no email. Returning an error
   // instead would turn the endpoint into an oracle for "who is this proposal addressed to", and
   // sending to the submitted address would turn it into an open relay for anyone holding the link.
-  if (!matchesProposalRecipient(parsed.data.email, target.recipientEmail)) {
+  // The set matched against is this client's own address and its live contacts, and nothing else:
+  // a contact of another client, or one that has been soft-deleted, is not an identity here.
+  const respondent = matchProposalRespondent(parsed.data.email, target.respondents)
+
+  if (!respondent) {
     await writeProposalResponseAudit("proposal.otp.requested", target, context, {
       action: parsed.data.action,
       delivered: false,
@@ -102,7 +108,13 @@ export async function requestProposalOtp(
   let otpId: string
 
   try {
-    otpId = await issueProposalOtp(target, parsed.data.action, codeHash, issuedAt)
+    otpId = await issueProposalOtp({
+      target,
+      respondent,
+      action: parsed.data.action,
+      codeHash,
+      issuedAt
+    })
   } catch (error) {
     logger.error(
       { action: "requestProposalOtp", proposalId: target.id, err: error },
@@ -112,7 +124,7 @@ export async function requestProposalOtp(
     return { error: t("proposals.public.errors.requestFailed") }
   }
 
-  const delivery = await deliverProposalOtp(target, parsed.data.action, code)
+  const delivery = await deliverProposalOtp(target, respondent, parsed.data.action, code)
 
   if ("error" in delivery) {
     await invalidateProposalOtp(otpId, new Date())
@@ -262,12 +274,21 @@ async function recordProposalResponse({
   })
 }
 
-async function issueProposalOtp(
-  target: ProposalResponseTarget,
-  action: ProposalAction,
-  codeHash: string,
+type IssueProposalOtpInput = {
+  target: ProposalResponseTarget
+  respondent: ProposalRespondent
+  action: ProposalAction
+  codeHash: string
   issuedAt: Date
-): Promise<string> {
+}
+
+async function issueProposalOtp({
+  target,
+  respondent,
+  action,
+  codeHash,
+  issuedAt
+}: IssueProposalOtpInput): Promise<string> {
   return database.transaction(async (transaction) => {
     // Supersede every outstanding code for this proposal rather than letting them accumulate: a
     // client who asks twice must not leave the first code live, or the attempt ceiling applies per
@@ -289,7 +310,10 @@ async function issueProposalOtp(
         proposalId: target.id,
         action,
         codeHash,
-        email: target.recipientEmail,
+        // The address the code is actually mailed to, which is what `verifyProposalOtp` compares
+        // against: the identity is decided once, at request time, and the verify step can no longer
+        // be answered by a different member of the respondent set.
+        email: respondent.email,
         expiresAt: getProposalOtpExpiry(issuedAt)
       })
       .returning({ id: proposalOtps.id })
@@ -302,6 +326,7 @@ async function issueProposalOtp(
 
 async function deliverProposalOtp(
   target: ProposalResponseTarget,
+  respondent: ProposalRespondent,
   action: ProposalAction,
   code: string
 ): Promise<{ data: { delivered: true } } | { error: string }> {
@@ -311,7 +336,7 @@ async function deliverProposalOtp(
     code,
     issuer: target.issuerName,
     minutes: PROPOSAL_OTP_TTL_MINUTES,
-    name: target.recipientName,
+    name: respondent.name,
     number: target.number
   })
 
@@ -320,15 +345,15 @@ async function deliverProposalOtp(
     .values({
       documentType: "proposal",
       documentId: target.id,
-      recipientEmail: target.recipientEmail,
-      recipientName: target.recipientName,
+      recipientEmail: respondent.email,
+      recipientName: respondent.name,
       subject,
       status: "pending"
     })
     .returning({ id: emailLogs.id })
 
   try {
-    await sendTransactionalEmail({ to: target.recipientEmail, subject, text })
+    await sendTransactionalEmail({ to: respondent.email, subject, text })
   } catch (error) {
     logger.error(
       { action: "deliverProposalOtp", proposalId: target.id, err: error },

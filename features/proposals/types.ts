@@ -1,7 +1,7 @@
 import { type Blocks } from "@/features/templates"
 
 import { type ProposalFormInputValues, type ProposalStatus } from "./schemas"
-import { type ProposalsSummaryResult } from "./services"
+import { type ProposalRespondent, type ProposalsSummaryResult } from "./services"
 
 export type ProposalDefaults = {
   defaultCurrency: string
@@ -156,7 +156,7 @@ export type PublicProposal = {
   lineItems: ProposalDetailLineItem[]
 }
 
-// Feature-internal: the OTP flow needs the client's address to decide who may respond, and the
+// Feature-internal: the OTP flow needs every address allowed to answer this proposal, and the
 // proposal id to write the response against. Neither may reach a client graph, so this type stays
 // out of `index.ts` exactly as `getProposalResponseTarget` stays out of `server.ts`.
 export type ProposalResponseTarget = {
@@ -166,8 +166,7 @@ export type ProposalResponseTarget = {
   status: ProposalStatus
   currency: string
   totalCents: number
-  recipientEmail: string
-  recipientName: string
+  respondents: ProposalRespondent[]
   issuerName: string
   locale: string
 }

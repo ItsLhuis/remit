@@ -6,6 +6,11 @@ export const PROPOSAL_OTP_TTL_MINUTES = 10
 // constraint turns a rejected guess into a failed INSERT, so the two move together or not at all.
 export const PROPOSAL_OTP_MAX_ATTEMPTS = 5
 
+export type ProposalRespondent = {
+  email: string
+  name: string
+}
+
 export type ProposalOtpRecord = {
   expiresAt: Date
   attempts: number
@@ -48,4 +53,18 @@ export function hasExhaustedProposalOtpAttempts(attempts: number): boolean {
 // who types their own address with a different capitalisation must not be told they are a stranger.
 export function matchesProposalRecipient(candidate: string, recipient: string): boolean {
   return candidate.trim().toLowerCase() === recipient.trim().toLowerCase()
+}
+
+// Who may answer a proposal (ADR-0027): the client's own address, or any of that client's live
+// contacts. The caller supplies the list, and it is built from one client's rows only
+// (`features/clients/contactQueries.ts`), so a contact of a different client is not in it and
+// cannot match. The matched identity is returned rather than a boolean because the OTP is then
+// issued and mailed to that address and to no other.
+export function matchProposalRespondent(
+  candidate: string,
+  respondents: ProposalRespondent[]
+): ProposalRespondent | null {
+  return (
+    respondents.find((respondent) => matchesProposalRecipient(candidate, respondent.email)) ?? null
+  )
 }

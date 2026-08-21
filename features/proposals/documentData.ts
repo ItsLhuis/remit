@@ -5,6 +5,8 @@ import { t } from "@/lib/i18n/server"
 import { database } from "@/database"
 import { clients, lineItems, projects, proposals } from "@/database/schema"
 
+import { getClientDocumentRecipient } from "@/features/clients/server"
+
 import { type TemplateRenderData } from "@/features/templates"
 
 import { type ProposalStatus } from "./schemas"
@@ -40,9 +42,12 @@ export async function buildProposalDocumentData(
 
   if (!proposal) return null
 
-  const [instance, client, items] = await Promise.all([
+  const clientId = proposal.clientId ?? (await getProjectClientId(proposal.projectId))
+
+  const [instance, client, recipient, items] = await Promise.all([
     database.query.settings.findFirst(),
-    getProposalClient(proposal.projectId, proposal.clientId),
+    getProposalClient(clientId),
+    getClientDocumentRecipient(clientId),
     getProposalLineItems(proposalId)
   ])
 
@@ -88,24 +93,19 @@ export async function buildProposalDocumentData(
     publicToken: proposal.publicToken,
     businessName: instance?.businessName ?? "Remit",
     templateId: proposal.templateId,
-    recipientEmail: client?.email ?? null,
-    recipientName: client?.name ?? ""
+    // The envelope address only. `renderData` still names the client, because the document is issued
+    // to the company; where it is delivered is a separate question, answered by the client's primary
+    // contact when it has one and by `clients.email` otherwise (ADR-0027).
+    recipientEmail: recipient?.email ?? null,
+    recipientName: recipient?.name ?? ""
   }
 }
 
-// Either parent resolves to the same client — `fk_proposals_project_client` keeps the pair in
-// agreement — so the stored `client_id` answers directly and the project is only consulted for a
-// row written before stage 29's backfill ran.
-async function getProposalClient(
-  projectId: string | null,
-  clientId: string | null
-): Promise<ProposalRenderClient | null> {
-  const resolvedClientId = clientId ?? (await getProjectClientId(projectId))
-
-  if (!resolvedClientId) return null
+async function getProposalClient(clientId: string | null): Promise<ProposalRenderClient | null> {
+  if (!clientId) return null
 
   const client = await database.query.clients.findFirst({
-    where: and(eq(clients.id, resolvedClientId), isNull(clients.deletedAt))
+    where: and(eq(clients.id, clientId), isNull(clients.deletedAt))
   })
 
   if (!client) return null
@@ -126,6 +126,9 @@ async function getProposalClient(
   }
 }
 
+// Either parent resolves to the same client — `fk_proposals_project_client` keeps the pair in
+// agreement — so the stored `client_id` answers directly and the project is only consulted for a
+// row written before stage 29's backfill ran.
 async function getProjectClientId(projectId: string | null): Promise<string | null> {
   if (!projectId) return null
 
