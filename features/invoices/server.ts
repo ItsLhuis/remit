@@ -29,6 +29,7 @@ export {
   getInvoiceForEdit,
   getInvoicesPageData,
   listConvertibleProposals,
+  listInvoicesByClient,
   listInvoicesByProject
 } from "./queries"
 

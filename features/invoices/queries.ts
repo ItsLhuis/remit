@@ -84,6 +84,23 @@ export async function getInvoiceDefaults(): Promise<InvoiceDefaults> {
   }
 }
 
+// Scoped by `invoices.client_id` alone rather than also by the invoice's project's client, because
+// `mutations.ts` denormalizes `project.clientId` onto every invoice it raises under a project. The
+// clients feature reads the relationship the same way in `queries.ts` (the outstanding balance, the
+// invoice count and the billing trend), so this list and the stat cards above it cannot disagree.
+export async function listInvoicesByClient(
+  clientId: string,
+  defaultCurrency = "EUR"
+): Promise<InvoiceListItem[]> {
+  const rows = await database
+    .select(invoiceListColumns)
+    .from(invoices)
+    .where(and(eq(invoices.clientId, clientId), isNull(invoices.deletedAt)))
+    .orderBy(desc(invoices.createdAt))
+
+  return rows.map((row) => toInvoiceListItem(row, defaultCurrency))
+}
+
 export async function listInvoicesByProject(
   projectId: string,
   defaultCurrency = "EUR"
