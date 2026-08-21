@@ -5,6 +5,8 @@ import { t } from "@/lib/i18n/server"
 import { database } from "@/database"
 import { clients, invoices, lineItems, projects } from "@/database/schema"
 
+import { getClientDocumentRecipient } from "@/features/clients/server"
+
 import { type TemplateRenderData } from "@/features/templates"
 
 import { type InvoiceStatus } from "./schemas"
@@ -44,9 +46,12 @@ export async function buildInvoiceDocumentData(
 
   if (!invoice) return null
 
-  const [instance, client, items] = await Promise.all([
+  const clientId = invoice.clientId ?? (await getProjectClientId(invoice.projectId))
+
+  const [instance, client, recipient, items] = await Promise.all([
     database.query.settings.findFirst(),
-    getInvoiceClient(invoice.clientId, invoice.projectId),
+    getInvoiceClient(clientId),
+    getClientDocumentRecipient(clientId),
     getInvoiceLineItems(invoiceId)
   ])
 
@@ -109,23 +114,19 @@ export async function buildInvoiceDocumentData(
     outstandingCents: totalCents - amountPaidCents,
     businessName: instance?.businessName ?? "Remit",
     templateId: invoice.templateId,
-    recipientEmail: client?.email ?? null,
-    recipientName: client?.name ?? ""
+    // The envelope address only. `renderData` still names the client, because the document is issued
+    // to the company; where it is delivered is a separate question, answered by the client's primary
+    // contact when it has one and by `clients.email` otherwise (ADR-0027).
+    recipientEmail: recipient?.email ?? null,
+    recipientName: recipient?.name ?? ""
   }
 }
 
-// The recipient lives on the client, reached either directly or through the invoice's project, in
-// the same either-or shape `chk_invoices_parent` allows.
-async function getInvoiceClient(
-  clientId: string | null,
-  projectId: string | null
-): Promise<InvoiceRenderClient | null> {
-  const resolvedClientId = clientId ?? (await getProjectClientId(projectId))
-
-  if (!resolvedClientId) return null
+async function getInvoiceClient(clientId: string | null): Promise<InvoiceRenderClient | null> {
+  if (!clientId) return null
 
   const client = await database.query.clients.findFirst({
-    where: and(eq(clients.id, resolvedClientId), isNull(clients.deletedAt))
+    where: and(eq(clients.id, clientId), isNull(clients.deletedAt))
   })
 
   if (!client) return null
@@ -146,6 +147,8 @@ async function getInvoiceClient(
   }
 }
 
+// The client is reached either directly or through the invoice's project, in the same either-or
+// shape `chk_invoices_parent` allows.
 async function getProjectClientId(projectId: string | null): Promise<string | null> {
   if (!projectId) return null
 

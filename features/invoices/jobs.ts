@@ -12,7 +12,9 @@ import { env } from "@/lib/config/env"
 import { enqueueJob, registerJobHandler } from "@/lib/jobs"
 
 import { database } from "@/database"
-import { auditLogs, clients, invoices, projects, uploads } from "@/database/schema"
+import { auditLogs, invoices, projects, uploads } from "@/database/schema"
+
+import { getClientDocumentRecipient } from "@/features/clients/server"
 
 import { isEmailConfigured, sendDocumentEmail } from "@/features/email/server"
 
@@ -318,9 +320,10 @@ async function getReminderSchedule(): Promise<ReminderSchedule | null> {
   return { beforeDueDays: row.reminderBeforeDueDays, afterDueDays: row.reminderAfterDueDays }
 }
 
-// The recipient lives on the client, reached either directly or through the invoice's project, in the
-// same either-or shape `chk_invoices_parent` allows. An invoice whose client has no email address
-// yields nothing, and the caller skips it rather than failing.
+// The client is reached either directly or through the invoice's project, in the same either-or
+// shape `chk_invoices_parent` allows, and the address is then resolved the way every other send
+// path resolves it (ADR-0027): the primary contact when there is one, `clients.email` otherwise. An
+// invoice whose client is gone yields nothing, and the caller skips it rather than failing.
 async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | null> {
   const [row] = await database
     .select({
@@ -331,21 +334,17 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
       currency: invoices.currency,
       dueDate: invoices.dueDate,
       publicToken: invoices.publicToken,
-      directEmail: clients.email,
-      directName: clients.name,
+      directClientId: invoices.clientId,
       projectClientId: projects.clientId
     })
     .from(invoices)
-    .leftJoin(clients, eq(invoices.clientId, clients.id))
     .leftJoin(projects, eq(invoices.projectId, projects.id))
     .where(eq(invoices.id, invoiceId))
     .limit(1)
 
   if (row?.dueDate == null) return null
 
-  const recipient = row.directEmail
-    ? { email: row.directEmail, name: row.directName ?? "" }
-    : await getProjectClientRecipient(row.projectClientId)
+  const recipient = await getClientDocumentRecipient(row.directClientId ?? row.projectClientId)
 
   if (!recipient) return null
 
@@ -360,19 +359,6 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
     recipientEmail: recipient.email,
     recipientName: recipient.name
   }
-}
-
-async function getProjectClientRecipient(
-  clientId: string | null
-): Promise<{ email: string; name: string } | null> {
-  if (!clientId) return null
-
-  const row = await database.query.clients.findFirst({
-    columns: { email: true, name: true },
-    where: and(eq(clients.id, clientId), isNull(clients.deletedAt))
-  })
-
-  return row?.email ? { email: row.email, name: row.name } : null
 }
 
 function renderReminderSubject(

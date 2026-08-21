@@ -5,6 +5,8 @@ import { t } from "@/lib/i18n/server"
 import { database } from "@/database"
 import { clients, contracts, projects } from "@/database/schema"
 
+import { getClientDocumentRecipient } from "@/features/clients/server"
+
 import { type TemplateRenderData } from "@/features/templates"
 
 import { type ContractStatus } from "./schemas"
@@ -33,9 +35,12 @@ export async function buildContractDocumentData(
 
   if (!contract) return null
 
-  const [instance, client] = await Promise.all([
+  const clientId = contract.clientId ?? (await getProjectClientId(contract.projectId))
+
+  const [instance, client, recipient] = await Promise.all([
     database.query.settings.findFirst(),
-    getContractClient(contract.clientId, contract.projectId)
+    getContractClient(clientId),
+    getClientDocumentRecipient(clientId)
   ])
 
   const renderData = buildContractRenderData({
@@ -70,21 +75,19 @@ export async function buildContractDocumentData(
     number: contract.number,
     publicToken: contract.publicToken,
     businessName: instance?.businessName ?? "Remit",
-    recipientEmail: client?.email ?? null,
-    recipientName: client?.name ?? ""
+    // The envelope address only. `renderData` still names the client, because the document is issued
+    // to the company; where it is delivered is a separate question, answered by the client's primary
+    // contact when it has one and by `clients.email` otherwise (ADR-0027).
+    recipientEmail: recipient?.email ?? null,
+    recipientName: recipient?.name ?? ""
   }
 }
 
-async function getContractClient(
-  clientId: string | null,
-  projectId: string | null
-): Promise<ContractRenderClient | null> {
-  const resolvedClientId = clientId ?? (await getProjectClientId(projectId))
-
-  if (!resolvedClientId) return null
+async function getContractClient(clientId: string | null): Promise<ContractRenderClient | null> {
+  if (!clientId) return null
 
   const client = await database.query.clients.findFirst({
-    where: and(eq(clients.id, resolvedClientId), isNull(clients.deletedAt))
+    where: and(eq(clients.id, clientId), isNull(clients.deletedAt))
   })
 
   if (!client) return null
