@@ -41,7 +41,8 @@ import { ClientProjectsPanel, type ProjectListItem } from "@/features/projects"
 
 import { softDeleteClient } from "../../mutations"
 import { formatLocation } from "../../services"
-import { type ClientDetail, type ClientFormData } from "../../types"
+import { type ClientContact, type ClientDetail, type ClientFormData } from "../../types"
+import { ClientContactsPanel } from "../ClientContactsPanel"
 import { ClientFormSheet } from "../ClientFormSheet"
 import { DeleteClientDialog } from "../DeleteClientDialog"
 
@@ -66,11 +67,18 @@ const RecurringBarChart = dynamic(() => import("./charts").then((m) => m.Recurri
 type ClientWorkspaceProps = {
   client: ClientDetail
   projects: ProjectListItem[]
+  contacts: ClientContact[]
   formData: ClientFormData
   locale: string
 }
 
-const ClientWorkspace = ({ client, projects, formData, locale }: ClientWorkspaceProps) => {
+const ClientWorkspace = ({
+  client,
+  projects,
+  contacts,
+  formData,
+  locale
+}: ClientWorkspaceProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -207,6 +215,7 @@ const ClientWorkspace = ({ client, projects, formData, locale }: ClientWorkspace
                 <TabsTrigger value="financials">{t("clients.detail.tabs.financials")}</TabsTrigger>
                 <TabsTrigger value="projects">{t("clients.detail.tabs.projects")}</TabsTrigger>
                 <TabsTrigger value="activity">{t("clients.detail.tabs.activity")}</TabsTrigger>
+                <TabsTrigger value="contacts">{t("clients.detail.tabs.contacts")}</TabsTrigger>
                 <TabsTrigger value="details">{t("clients.detail.tabs.details")}</TabsTrigger>
               </TabsList>
               <TabsContent value="overview">
@@ -246,6 +255,13 @@ const ClientWorkspace = ({ client, projects, formData, locale }: ClientWorkspace
                   icon="Activity"
                   title={t("clients.detail.activityEmptyTitle")}
                   description={t("clients.detail.activityEmptyDescription")}
+                />
+              </TabsContent>
+              <TabsContent value="contacts">
+                <ClientContactsPanel
+                  clientId={client.id}
+                  clientEmail={client.email}
+                  contacts={contacts}
                 />
               </TabsContent>
               <TabsContent value="details">

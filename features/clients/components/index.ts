@@ -1,3 +1,4 @@
+export * from "./ClientContactsPanel"
 export * from "./ClientDetailPage"
 export * from "./ClientForm"
 export * from "./ClientFormSheet"

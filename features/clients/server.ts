@@ -7,6 +7,12 @@ export {
 } from "./mutations"
 
 export {
+  getClientDocumentRecipient,
+  listClientContacts,
+  listClientRecipientIdentities
+} from "./contactQueries"
+
+export {
   getClient,
   getClientDefaults,
   getClientDetail,

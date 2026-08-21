@@ -23,6 +23,7 @@ export {
 
 export {
   type ClientAddress,
+  type ClientContact,
   type ClientDefaults,
   type ClientDetail,
   type ClientFilterOptions,
