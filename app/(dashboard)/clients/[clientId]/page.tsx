@@ -5,7 +5,12 @@ import { type Metadata } from "next"
 import { t } from "@/lib/i18n/server"
 
 import { ClientDetailPage } from "@/features/clients"
-import { getClientDefaults, getClientDetail, getClientForEdit } from "@/features/clients/server"
+import {
+  getClientDefaults,
+  getClientDetail,
+  getClientForEdit,
+  listClientContacts
+} from "@/features/clients/server"
 
 import { listProjectsByClient } from "@/features/projects/server"
 
@@ -20,10 +25,11 @@ type ClientDetailRouteProps = {
 const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
   const { clientId } = await params
 
-  const [client, formData, defaults] = await Promise.all([
+  const [client, formData, defaults, contacts] = await Promise.all([
     getClientDetail({ id: clientId }),
     getClientForEdit({ id: clientId }),
-    getClientDefaults()
+    getClientDefaults(),
+    listClientContacts({ id: clientId })
   ])
 
   if (!client || !formData) notFound()
@@ -34,6 +40,7 @@ const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
     <ClientDetailPage
       client={client}
       projects={projects}
+      contacts={contacts}
       formData={formData}
       locale={defaults.defaultLocale}
     />

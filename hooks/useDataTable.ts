@@ -70,6 +70,10 @@ export type UseDataTableOptions<TData> = Omit<
   shallow?: boolean
   clearOnDefault?: boolean
   startTransition?: TransitionStartFunction
+  // Prefix for this table's `page`, `perPage`, `sort`, and per-column filter query parameters.
+  // Two tables rendered by the same route otherwise share those keys, so paginating one paginates
+  // the other; give every table beyond the route's primary one a prefix (e.g. `"contact_"`).
+  urlKeyPrefix?: string
   columnVisibilityStorageKey?: string
   initialState?: Omit<Partial<TableState>, "sorting"> & { sorting?: SortingState }
 }
@@ -84,6 +88,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     shallow = true,
     clearOnDefault = true,
     startTransition,
+    urlKeyPrefix = "",
     columnVisibilityStorageKey,
     ...tableOptions
   } = options
@@ -101,15 +106,15 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
   )
 
   const [page, setPage] = useQueryState(
-    "page",
+    `${urlKeyPrefix}page`,
     parseAsInteger.withOptions(queryOptions).withDefault(1)
   )
   const [perPage, setPerPage] = useQueryState(
-    "perPage",
+    `${urlKeyPrefix}perPage`,
     parseAsInteger.withOptions(queryOptions).withDefault(DEFAULT_PAGE_SIZE)
   )
   const [sorting, setSorting] = useQueryState(
-    "sort",
+    `${urlKeyPrefix}sort`,
     getSortingStateParser(columnIds)
       .withOptions(queryOptions)
       .withDefault(initialState?.sorting ?? [])
@@ -120,28 +125,41 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     [page, perPage]
   )
 
-  const filterParsers = useMemo(() => {
-    const parsers: Record<string, typeof filterValueParser> = {}
+  // Column id on the table side, prefixed query parameter on the URL side. Every hop between the
+  // two goes through this map, so a prefixed table filters under its own keys without the column
+  // ids TanStack sees ever carrying the prefix.
+  const filterKeysByColumnId = useMemo(() => {
+    const keys = new Map<string, string>()
 
     for (const column of columns) {
       if (!column.enableColumnFilter) continue
 
       const id = getColumnId(column)
 
-      if (id) parsers[id] = filterValueParser
+      if (id) keys.set(id, `${urlKeyPrefix}${id}`)
     }
 
+    return keys
+  }, [columns, urlKeyPrefix])
+
+  const filterParsers = useMemo(() => {
+    const parsers: Record<string, typeof filterValueParser> = {}
+
+    for (const key of filterKeysByColumnId.values()) parsers[key] = filterValueParser
+
     return parsers
-  }, [columns])
+  }, [filterKeysByColumnId])
 
   const [filterValues, setFilterValues] = useQueryStates(filterParsers, queryOptions)
 
   const columnFilters = useMemo<ColumnFiltersState>(
     () =>
-      Object.entries(filterValues).flatMap(([id, value]) =>
-        value && value.length > 0 ? [{ id, value }] : []
-      ),
-    [filterValues]
+      [...filterKeysByColumnId].flatMap(([id, key]) => {
+        const value = filterValues[key]
+
+        return value && value.length > 0 ? [{ id, value }] : []
+      }),
+    [filterKeysByColumnId, filterValues]
   )
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>(
@@ -186,10 +204,10 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
 
     const filtersById = new Map(next.map((filter) => [filter.id, filter]))
 
-    for (const id of Object.keys(filterParsers)) {
+    for (const [id, key] of filterKeysByColumnId) {
       const match = filtersById.get(id)
 
-      updates[id] = match ? (match.value as string[]) : null
+      updates[key] = match ? (match.value as string[]) : null
     }
 
     void setPage(1)
