@@ -104,6 +104,7 @@ const config = {
   serverAuthFunctionNames: [
     "requireClientWrite",
     "requireClientDelete",
+    "requireAttachmentWrite",
     "requireLeadWrite",
     "requireLeadDelete",
     "requireProjectWrite",

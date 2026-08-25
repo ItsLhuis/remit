@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
 
 import { putDocumentObject } from "@/lib/storage/s3"
 
@@ -46,6 +46,9 @@ export async function storeDocumentPdf({
       path: objectKey,
       mimeType: PDF_CONTENT_TYPE,
       sizeBytes: bytes.length,
+      // Hashed from the buffer this function just wrote, not read back from the store: the bytes are
+      // already in hand, so a verification round trip would only confirm what was sent.
+      checksumSha256: createHash("sha256").update(bytes).digest("hex"),
       bucket: "documents"
     })
     .returning({ id: uploads.id })

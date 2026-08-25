@@ -6,6 +6,8 @@ import { t } from "@/lib/i18n/server"
 
 import { getEntityActivity } from "@/features/activityLog/server"
 
+import { canWriteAttachments, listAttachments } from "@/features/attachments/server"
+
 import { ClientDetailPage } from "@/features/clients"
 import {
   getClientDefaults,
@@ -29,13 +31,16 @@ type ClientDetailRouteProps = {
 const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
   const { clientId } = await params
 
-  const [client, formData, defaults, contacts, activity] = await Promise.all([
-    getClientDetail({ id: clientId }),
-    getClientForEdit({ id: clientId }),
-    getClientDefaults(),
-    listClientContacts({ id: clientId }),
-    getEntityActivity({ entityType: "client", entityId: clientId })
-  ])
+  const [client, formData, defaults, contacts, activity, attachments, canWriteFiles] =
+    await Promise.all([
+      getClientDetail({ id: clientId }),
+      getClientForEdit({ id: clientId }),
+      getClientDefaults(),
+      listClientContacts({ id: clientId }),
+      getEntityActivity({ entityType: "client", entityId: clientId }),
+      listAttachments({ parentType: "client", parentId: clientId }),
+      canWriteAttachments()
+    ])
 
   if (!client || !formData) notFound()
 
@@ -51,6 +56,8 @@ const ClientDetailRoute = async ({ params }: ClientDetailRouteProps) => {
       invoices={invoices}
       contacts={contacts}
       activity={activity}
+      attachments={attachments}
+      canWriteAttachments={canWriteFiles}
       formData={formData}
       locale={defaults.defaultLocale}
     />

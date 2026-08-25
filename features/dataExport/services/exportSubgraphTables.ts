@@ -30,11 +30,33 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
       "locale",
       "defaultHourlyRateCents",
       "notes",
+      "imageUploadId",
       "deletedAt",
       "createdAt",
       "updatedAt"
     ],
     excludedColumns: [{ column: "portalToken", reason: "bearerToken" }]
+  },
+  {
+    // Both scopes, like every other subgraph table: an attachment belongs to exactly one of a client,
+    // project, invoice, or expense, and `queries.ts`'s `buildClientScope` covers all four. The file
+    // itself travels as the `uploads` row `uploadId` names, gathered into the subgraph's `uploadIds`.
+    table: "attachments",
+    file: "data/attachments.json",
+    scopes: EVERY_SCOPE,
+    columns: [
+      "id",
+      "clientId",
+      "projectId",
+      "invoiceId",
+      "expenseId",
+      "uploadId",
+      "title",
+      "uploadedByUserId",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: []
   },
   {
     table: "client_contacts",
@@ -430,7 +452,18 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
     table: "uploads",
     file: "data/uploads.json",
     scopes: EVERY_SCOPE,
-    columns: ["id", "filename", "path", "bucket", "mimeType", "sizeBytes", "createdAt"],
+    // `checksumSha256` travels with the row it describes: an archive that carries the object bytes
+    // and not the hash gives a restorer no way to tell an intact file from a truncated one.
+    columns: [
+      "id",
+      "filename",
+      "path",
+      "bucket",
+      "mimeType",
+      "sizeBytes",
+      "checksumSha256",
+      "createdAt"
+    ],
     excludedColumns: []
   }
 ]

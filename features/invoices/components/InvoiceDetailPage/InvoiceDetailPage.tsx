@@ -15,12 +15,16 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  Card,
+  CardContent,
   Icon,
   ScrollArea,
   SidebarTrigger,
   Typography,
   toast
 } from "@/components/ui"
+
+import { AttachmentsPanel, type AttachmentListItem } from "@/features/attachments"
 
 import {
   computeInvoiceEffectiveReceivable,
@@ -52,9 +56,17 @@ type InvoiceDetailPageProps = {
   invoice: InvoiceDetail
   payments: PaymentListItem[]
   creditNotes: CreditNoteListItem[]
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
 }
 
-const InvoiceDetailPage = ({ invoice, payments, creditNotes }: InvoiceDetailPageProps) => {
+const InvoiceDetailPage = ({
+  invoice,
+  payments,
+  creditNotes,
+  attachments,
+  canWriteAttachments
+}: InvoiceDetailPageProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -248,6 +260,16 @@ const InvoiceDetailPage = ({ invoice, payments, creditNotes }: InvoiceDetailPage
               effectiveReceivableCents={effectiveReceivableCents}
               canIssue={!isEditable}
             />
+            <Card size="sm">
+              <CardContent>
+                <AttachmentsPanel
+                  parent={{ parentType: "invoice", parentId: invoice.id }}
+                  attachments={attachments}
+                  locale={locale}
+                  canWrite={canWriteAttachments}
+                />
+              </CardContent>
+            </Card>
           </div>
           <div className="flex flex-col gap-6">
             <InvoiceSummaryCard

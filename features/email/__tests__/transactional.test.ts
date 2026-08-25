@@ -129,6 +129,18 @@ describe("sendTransactionalEmail via SMTP", () => {
     expect(mocks.closeTransport).toHaveBeenCalledOnce()
   })
 
+  test("returns the message id nodemailer reported", async () => {
+    mocks.findFirst.mockResolvedValue(smtpRow)
+
+    const messageId = await sendTransactionalEmail({
+      to: "to@example.com",
+      subject: "Hello",
+      text: "Body"
+    })
+
+    expect(messageId).toBe("smtp-message-id")
+  })
+
   test("maps an EAUTH failure to smtp_auth and never leaks the password", async () => {
     mocks.findFirst.mockResolvedValue(smtpRow)
     mocks.sendMail.mockRejectedValueOnce(
@@ -143,6 +155,18 @@ describe("sendTransactionalEmail via SMTP", () => {
 })
 
 describe("sendTransactionalEmail via Resend", () => {
+  test("returns the message id Resend reported", async () => {
+    mocks.findFirst.mockResolvedValue(resendRow)
+
+    const messageId = await sendTransactionalEmail({
+      to: "to@example.com",
+      subject: "Hello",
+      text: "Body"
+    })
+
+    expect(messageId).toBe("resend-message-id")
+  })
+
   test("sends through the Resend SDK without an idempotency key by default", async () => {
     mocks.findFirst.mockResolvedValue(resendRow)
 

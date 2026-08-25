@@ -79,7 +79,12 @@ type ResendConfig = {
 
 const SMTP_TIMEOUT_MS = 15_000
 
-export async function sendTransactionalEmail(email: TransactionalEmail): Promise<void> {
+// Returns the provider's own message id so the three callers that own an `email_logs` row —
+// `documentEmail.ts`, `features/team/invitationEmail.ts`, `features/proposals/publicResponse.ts` —
+// can persist it into `provider_message_id`. It is the only handle that ties a Remit row to the
+// provider's delivery log when a client says a mail never arrived. Null when the provider accepted
+// the message without naming it.
+export async function sendTransactionalEmail(email: TransactionalEmail): Promise<string | null> {
   const settings = await getEmailSettings()
 
   if (!settings || !isEmailConfigured(settings)) {
@@ -92,15 +97,11 @@ export async function sendTransactionalEmail(email: TransactionalEmail): Promise
   }
 
   if (settings.emailProvider === "smtp") {
-    await sendWithSmtp(getSmtpConfig(settings), email)
-
-    return
+    return sendWithSmtp(getSmtpConfig(settings), email)
   }
 
   if (settings.emailProvider === "resend") {
-    await sendWithResend(getResendConfig(settings), email)
-
-    return
+    return sendWithResend(getResendConfig(settings), email)
   }
 
   throw new EmailDeliveryError("not_configured")
@@ -164,7 +165,10 @@ function getDefaultFromAddress(): string {
   return `no-reply@${host}`
 }
 
-async function sendWithResend(config: ResendConfig, email: TransactionalEmail): Promise<void> {
+async function sendWithResend(
+  config: ResendConfig,
+  email: TransactionalEmail
+): Promise<string | null> {
   const resend = new Resend(config.apiKey)
 
   let data: { id: string } | null
@@ -191,7 +195,7 @@ async function sendWithResend(config: ResendConfig, email: TransactionalEmail): 
     throw new EmailDeliveryError("provider_failed")
   }
 
-  if (!error && data) return
+  if (!error && data) return data.id
 
   const code = mapResendError(error?.name)
 
@@ -203,7 +207,7 @@ async function sendWithResend(config: ResendConfig, email: TransactionalEmail): 
   throw new EmailDeliveryError(code)
 }
 
-async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Promise<void> {
+async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Promise<string | null> {
   const transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port,
@@ -215,7 +219,7 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
   })
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: config.from,
       to: email.to,
       subject: email.subject,
@@ -223,6 +227,8 @@ async function sendWithSmtp(config: SmtpConfig, email: TransactionalEmail): Prom
       ...(email.html ? { html: email.html } : {}),
       ...(email.attachments?.length ? { attachments: toProviderAttachments(email) } : {})
     })
+
+    return info.messageId
   } catch (error) {
     const code = mapNodemailerError(error)
 

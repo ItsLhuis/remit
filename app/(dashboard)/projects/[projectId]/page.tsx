@@ -6,6 +6,8 @@ import { t } from "@/lib/i18n/server"
 
 import { getEntityActivity } from "@/features/activityLog/server"
 
+import { canWriteAttachments, listAttachments } from "@/features/attachments/server"
+
 import { listClientOptions } from "@/features/clients/server"
 
 import { ProjectDetailPage } from "@/features/projects"
@@ -22,13 +24,16 @@ type ProjectDetailRouteProps = {
 const ProjectDetailRoute = async ({ params }: ProjectDetailRouteProps) => {
   const { projectId } = await params
 
-  const [project, formData, clients, defaults, activity] = await Promise.all([
-    getProjectDetail({ id: projectId }),
-    getProjectForEdit({ id: projectId }),
-    listClientOptions(),
-    getProjectDefaults(),
-    getEntityActivity({ entityType: "project", entityId: projectId })
-  ])
+  const [project, formData, clients, defaults, activity, attachments, canWriteFiles] =
+    await Promise.all([
+      getProjectDetail({ id: projectId }),
+      getProjectForEdit({ id: projectId }),
+      listClientOptions(),
+      getProjectDefaults(),
+      getEntityActivity({ entityType: "project", entityId: projectId }),
+      listAttachments({ parentType: "project", parentId: projectId }),
+      canWriteAttachments()
+    ])
 
   if (!project || !formData) notFound()
 
@@ -39,6 +44,8 @@ const ProjectDetailRoute = async ({ params }: ProjectDetailRouteProps) => {
       clients={clients}
       locale={defaults.defaultLocale}
       activity={activity}
+      attachments={attachments}
+      canWriteAttachments={canWriteFiles}
     />
   )
 }

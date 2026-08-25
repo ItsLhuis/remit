@@ -41,6 +41,7 @@ async function makePdfUpload(): Promise<string> {
       path: `documents/contracts/${crypto.randomUUID()}.pdf`,
       mimeType: "application/pdf",
       sizeBytes: 1024,
+      checksumSha256: "b".repeat(64),
       bucket: "documents"
     })
     .returning({ id: uploads.id })

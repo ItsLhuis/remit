@@ -4,6 +4,7 @@ import { type PgColumn, type PgTable } from "drizzle-orm/pg-core"
 import { database } from "@/database"
 import {
   activityLogs,
+  attachments,
   auditLogs,
   clientContacts,
   clients,
@@ -51,6 +52,7 @@ const DATA_EXPORT_HISTORY_LIMIT = 20
 // silently exporting one file fewer.
 const EXPORT_TABLE_SOURCES: Record<string, PgTable> = {
   activity_logs: activityLogs,
+  attachments,
   audit_logs: auditLogs,
   client_contacts: clientContacts,
   clients,
@@ -239,6 +241,7 @@ type ClientSubgraph = {
   creditNoteIds: string[]
   documentIds: string[]
   entityIds: string[]
+  expenseIds: string[]
   invoiceIds: string[]
   projectIds: string[]
   proposalIds: string[]
@@ -291,24 +294,42 @@ async function readClientSubgraph(clientId: string): Promise<ClientSubgraph> {
         .where(or(eq(expenses.clientId, clientId), withinIdSet(expenses.projectId, projectIds)))
     ])
 
-  const [creditNoteIds, paymentIds, signatureUploadIds] = await Promise.all([
-    selectIds(
+  const expenseIds = expenseRows.map((row) => row.id)
+
+  const [creditNoteIds, paymentIds, signatureUploadIds, attachmentUploadIds, clientImageRows] =
+    await Promise.all([
+      selectIds(
+        database
+          .select({ id: creditNotes.id })
+          .from(creditNotes)
+          .where(withinIdSet(creditNotes.invoiceId, invoiceIds))
+      ),
+      selectIds(
+        database
+          .select({ id: payments.id })
+          .from(payments)
+          .where(withinIdSet(payments.invoiceId, invoiceIds))
+      ),
       database
-        .select({ id: creditNotes.id })
-        .from(creditNotes)
-        .where(withinIdSet(creditNotes.invoiceId, invoiceIds))
-    ),
-    selectIds(
+        .select({ uploadId: contractSignatures.signedPdfUploadId })
+        .from(contractSignatures)
+        .where(withinIdSet(contractSignatures.contractId, contractIds)),
       database
-        .select({ id: payments.id })
-        .from(payments)
-        .where(withinIdSet(payments.invoiceId, invoiceIds))
-    ),
-    database
-      .select({ uploadId: contractSignatures.signedPdfUploadId })
-      .from(contractSignatures)
-      .where(withinIdSet(contractSignatures.contractId, contractIds))
-  ])
+        .select({ uploadId: attachments.uploadId })
+        .from(attachments)
+        .where(
+          or(
+            eq(attachments.clientId, clientId),
+            withinIdSet(attachments.projectId, projectIds),
+            withinIdSet(attachments.invoiceId, invoiceIds),
+            withinIdSet(attachments.expenseId, expenseIds)
+          )
+        ),
+      database
+        .select({ uploadId: clients.imageUploadId })
+        .from(clients)
+        .where(eq(clients.id, clientId))
+    ])
 
   const documentIds = [...invoiceIds, ...proposalIds, ...contractIds]
 
@@ -328,12 +349,19 @@ async function readClientSubgraph(clientId: string): Promise<ClientSubgraph> {
       ...documentIds,
       ...creditNoteIds
     ],
+    expenseIds,
     invoiceIds,
     projectIds,
     proposalIds,
+    // Every upload the archive's rows point at, so the file loop carries the objects too. Attachment
+    // uploads join the receipt and signature ones here rather than through a rule in
+    // `buildClientScope`, because `uploads` is scoped by id and an attachment's file is reachable
+    // only through the attachment row that names it.
     uploadIds: [
       ...expenseRows.flatMap((row) => (row.receiptUploadId ? [row.receiptUploadId] : [])),
-      ...signatureUploadIds.flatMap((row) => (row.uploadId ? [row.uploadId] : []))
+      ...signatureUploadIds.flatMap((row) => (row.uploadId ? [row.uploadId] : [])),
+      ...attachmentUploadIds.map((row) => row.uploadId),
+      ...clientImageRows.flatMap((row) => (row.uploadId ? [row.uploadId] : []))
     ]
   }
 }
@@ -394,6 +422,13 @@ function buildClientScope(
       return withinIdSet(activityLogs.entityId, subgraph.entityIds)
     case "email_logs":
       return withinIdSet(emailLogs.documentId, subgraph.documentIds)
+    case "attachments":
+      return or(
+        eq(attachments.clientId, clientId),
+        withinIdSet(attachments.projectId, subgraph.projectIds),
+        withinIdSet(attachments.invoiceId, subgraph.invoiceIds),
+        withinIdSet(attachments.expenseId, subgraph.expenseIds)
+      )
     case "uploads":
       return withinIdSet(uploads.id, subgraph.uploadIds)
     default:

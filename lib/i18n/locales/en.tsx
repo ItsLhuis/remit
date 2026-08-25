@@ -111,6 +111,50 @@ export const english: Language = {
         description: "An unexpected error interrupted this page."
       }
     },
+    fileUpload: {
+      progress: "{percent}% of {size}",
+      dismiss: "Dismiss {filename}",
+      errors: {
+        invalidType: "That file type is not supported",
+        tooLarge: "That file is too large",
+        presignFailed: "Could not start the upload",
+        uploadFailed: "Could not upload the file"
+      }
+    },
+    attachments: {
+      title: "Files",
+      description: "Documents and images attached to this record",
+      dropLabel: "Drop to attach",
+      label: "Drop files here or browse",
+      help: "Up to {count} files, {size} each",
+      countLabel: "{count, plural, one {# file} other {# files}}",
+      addedBy: "Added by {name}",
+      addedByUnknown: "Added by a removed user",
+      untitled: "Untitled file",
+      download: "Download {filename}",
+      remove: "Remove {filename}",
+      removeConfirmTitle: "Remove this file?",
+      removeConfirmDescription:
+        "The file and its stored copy are deleted permanently. This cannot be undone.",
+      added: "File attached",
+      removed: "File removed",
+      empty: {
+        title: "No files yet",
+        description: "Attach a brief, a signed agreement, or anything else this record needs."
+      },
+      errors: {
+        notFound: "File not found",
+        notUploaded: "That file did not finish uploading. Try again",
+        parentNotFound: "The record this file belongs to was not found",
+        limitReached: "This record already has the maximum number of files",
+        totalTooLarge: "This record has reached its total file size limit",
+        invalidType: "That file type is not supported",
+        tooLarge: "That file is too large",
+        invalidKey: "That upload could not be verified",
+        addFailed: "Could not attach the file",
+        removeFailed: "Could not remove the file"
+      }
+    },
     totp: {
       title: "Two-factor authentication",
       codeLabel: "Verification code",
@@ -789,6 +833,7 @@ export const english: Language = {
           projects: "Projects",
           activity: "Activity",
           contacts: "Contacts",
+          files: "Files",
           details: "Details"
         },
         quick: {
@@ -865,10 +910,27 @@ export const english: Language = {
         contactNotFound: "Contact not found",
         contactUpdateFailed: "Failed to update contact",
         contactPrimaryConflict:
-          "Another contact was made primary at the same time. Reload and try again"
+          "Another contact was made primary at the same time. Reload and try again",
+        invalidImageFileType: "That image type is not supported",
+        imageUploadUrlFailed: "Could not start the image upload",
+        imageUpdateFailed: "Failed to update the client image"
+      },
+      image: {
+        label: "Client image",
+        dropLabel: "Drop to set image",
+        help: "A logo or a photo, up to 5 MB",
+        upload: "Upload image",
+        remove: "Remove image",
+        updated: "Client image updated",
+        removed: "Client image removed",
+        alt: "{name} image"
       },
       validation: {
         nameRequired: "Client name is required.",
+        imageFilenameRequired: "Image filename is required.",
+        imageContentTypeRequired: "Image content type is required.",
+        imageSizeInvalid: "Enter a valid image size.",
+        imageTooLarge: "Image must be 5 MB or smaller.",
         nameTooLong:
           "Client name must be {count, plural, one {# character} other {# characters}} or fewer.",
         emailInvalid: "Enter a valid email address.",
@@ -1546,6 +1608,7 @@ export const english: Language = {
         none: "None",
         upload: "Upload receipt",
         replace: "Replace receipt",
+        drop: "Drop to attach receipt",
         remove: "Remove",
         open: "Open receipt {filename}",
         help: "Images or PDF, up to {megabytes} MB"
@@ -3272,6 +3335,7 @@ export const english: Language = {
         businessLogoMissing: "No business logo configured yet",
         uploadImage: "Upload image",
         replaceImage: "Replace image",
+        dropImage: "Drop to set image",
         imageEmpty: "No image uploaded yet",
         tableSource: "Rows",
         tableSourceManual: "Manual",
@@ -3571,6 +3635,7 @@ export const english: Language = {
         description: "Manage your identity, account details, and current session.",
         avatar: "Avatar",
         uploadPhoto: "Upload photo",
+        dropPhoto: "Drop to set photo",
         removePhoto: "Remove photo",
         avatarHelp: "JPG, PNG, WebP or GIF. Max 5MB.",
         uploadUrlFailed: "Failed to get upload URL.",
@@ -3674,6 +3739,7 @@ export const english: Language = {
         logoAlt: "{name} logo",
         fallbackBusinessName: "Business",
         uploadLogo: "Upload logo",
+        dropLogo: "Drop to set logo",
         removeLogo: "Remove logo",
         logoHelp: "JPG, PNG, WebP or GIF. Max 5MB.",
         uploadUrlFailed: "Failed to get upload URL.",

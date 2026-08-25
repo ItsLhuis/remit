@@ -75,8 +75,10 @@ export async function sendDocumentEmail(input: DocumentEmailInput): Promise<Docu
     })
     .returning({ id: emailLogs.id })
 
+  let providerMessageId: string | null = null
+
   try {
-    await sendTransactionalEmail({
+    providerMessageId = await sendTransactionalEmail({
       to: input.recipientEmail,
       subject: input.subject,
       text: input.text,
@@ -112,7 +114,12 @@ export async function sendDocumentEmail(input: DocumentEmailInput): Promise<Docu
   if (log) {
     await database
       .update(emailLogs)
-      .set({ status: "sent", sentAt: new Date(), pdfAttached: attachment !== null })
+      .set({
+        status: "sent",
+        sentAt: new Date(),
+        pdfAttached: attachment !== null,
+        providerMessageId
+      })
       .where(eq(emailLogs.id, log.id))
   }
 

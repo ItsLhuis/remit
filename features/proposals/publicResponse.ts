@@ -352,8 +352,10 @@ async function deliverProposalOtp(
     })
     .returning({ id: emailLogs.id })
 
+  let providerMessageId: string | null = null
+
   try {
-    await sendTransactionalEmail({ to: respondent.email, subject, text })
+    providerMessageId = await sendTransactionalEmail({ to: respondent.email, subject, text })
   } catch (error) {
     logger.error(
       { action: "deliverProposalOtp", proposalId: target.id, err: error },
@@ -374,7 +376,7 @@ async function deliverProposalOtp(
   if (log) {
     await database
       .update(emailLogs)
-      .set({ status: "sent", sentAt: new Date() })
+      .set({ status: "sent", sentAt: new Date(), providerMessageId })
       .where(eq(emailLogs.id, log.id))
   }
 

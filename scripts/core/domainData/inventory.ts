@@ -55,6 +55,14 @@ export const DOMAIN_DATA_INVENTORY = [
     reason: "archive record of exported domain data"
   },
   {
+    key: "attachments",
+    table: "attachments",
+    seed: "skip",
+    reseed: "delete",
+    reset: "delete",
+    reason: "user-uploaded files hanging off a client, project, invoice, or expense"
+  },
+  {
     key: "contractSignatures",
     table: "contract_signatures",
     seed: "skip",

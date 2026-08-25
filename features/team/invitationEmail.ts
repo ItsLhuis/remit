@@ -45,8 +45,10 @@ export async function sendInvitationEmail(email: InvitationEmail): Promise<boole
     })
     .returning({ id: emailLogs.id })
 
+  let providerMessageId: string | null = null
+
   try {
-    await sendTransactionalEmail({
+    providerMessageId = await sendTransactionalEmail({
       to: email.to,
       subject,
       text: `${intro}\n\n${cta}: ${email.link}\n\n${outro}`,
@@ -78,7 +80,7 @@ export async function sendInvitationEmail(email: InvitationEmail): Promise<boole
   if (log) {
     await database
       .update(emailLogs)
-      .set({ status: "sent", sentAt: new Date() })
+      .set({ status: "sent", sentAt: new Date(), providerMessageId })
       .where(eq(emailLogs.id, log.id))
   }
 

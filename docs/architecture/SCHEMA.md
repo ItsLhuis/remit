@@ -40,7 +40,8 @@
 25. [Payments](#26-payments)
 26. [Credit notes](#27-credit-notes)
 27. [Data exports](#27-data-exports)
-28. [Enum reference](#28-enum-reference)
+28. [Attachments](#28-attachments)
+29. [Enum reference](#29-enum-reference)
 
 ---
 
@@ -490,25 +491,43 @@ S3-compatible file storage records.
 
 ### `uploads`
 
-| Column     | Type        | Null | Default             | Notes                          |
-| ---------- | ----------- | ---- | ------------------- | ------------------------------ |
-| id         | uuid        | no   | `gen_random_uuid()` | PK                             |
-| filename   | text        | no   |                     | Original filename              |
-| path       | text        | no   |                     | Unique. Storage path or S3 key |
-| mime_type  | text        | no   |                     |                                |
-| size_bytes | bigint      | no   |                     | `> 0`                          |
-| created_at | timestamptz | no   | `now()`             |                                |
+| Column          | Type        | Null | Default             | Notes                                               |
+| --------------- | ----------- | ---- | ------------------- | --------------------------------------------------- |
+| id              | uuid        | no   | `gen_random_uuid()` | PK                                                  |
+| filename        | text        | no   |                     | Original filename                                   |
+| path            | text        | no   |                     | Unique. Storage path or S3 key                      |
+| bucket          | enum        | no   | `'public'`          | `public \| documents` — which store resolves `path` |
+| mime_type       | text        | no   |                     |                                                     |
+| size_bytes      | bigint      | no   |                     | `> 0`. Measured server-side from the stored object  |
+| checksum_sha256 | text        | no   |                     | Lowercase hex SHA-256 of the stored object          |
+| created_at      | timestamptz | no   | `now()`             |                                                     |
 
 Constraints:
 
 - `chk_uploads_size_bytes` — `> 0`.
+- `chk_uploads_checksum_sha256` — 64 lowercase hex characters.
 
 Indexes:
 
 - Unique on `path`.
+- `uploads_checksum_sha256_idx` on `checksum_sha256`.
 
 **No `updated_at`. No `deleted_at`.** Uploads are immutable; deletion is a hard delete (and removes
 the underlying file).
+
+`size_bytes` and `checksum_sha256` are both measured from the stored object by
+`lib/storage/verifyUploadedObject.ts` after the client's `PUT` completes, never taken from the
+client that uploaded it: a presigned `PUT` proves nothing about what was actually written. The
+checksum exists so `pnpm remit:restore` can tell a truncated or substituted object from an intact
+one, which the size alone cannot.
+
+A `documents` row must never be handed to `resolveStorageUrl`, which builds a public URL and would
+mislead the caller into thinking a private object is reachable. Private objects are served through a
+credentialed route — `app/api/attachments/[id]/route.ts` for attachments.
+
+Every reference to `uploads` is `on delete set null` **except `attachments.upload_id`**, which is
+`NOT NULL` and cascades: an invoice or an expense outlives its file, an attachment does not. See
+[section 28](#28-attachments) and [ADR-0028](adr/0028-attachments-and-visual-identity.md).
 
 ---
 
@@ -595,6 +614,7 @@ Indexes: `leads_email_idx`, `leads_status_idx`, `leads_created_at_idx` on `creat
 | default_hourly_rate_cents | bigint           | yes  |                     | Default rate for time entries on this client's projects. Null = no negotiated rate, which is distinct from a rate of 0. ≥ 0 if not null. |
 | notes                     | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                                         |
 | portal_token              | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`                                                                                                |
+| image_upload_id           | uuid             | yes  |                     | FK → `uploads.id` (set null). Logo or photo — a Remit client is either. Public bucket                                                    |
 
 Standard `timestamps` and `softDelete`.
 
@@ -1271,7 +1291,51 @@ inclusion and exclusion policy.
 
 ---
 
-## 28. Enum reference
+## 28. Attachments
+
+Many files per record, for the four entities that carry them in v1: clients, projects, invoices and
+expenses. Every attachment object lives in the private `documents` bucket and is served only through
+`app/api/attachments/[id]/route.ts`; nothing here is reachable from a public token route. See
+[ADR-0028](adr/0028-attachments-and-visual-identity.md).
+
+### `attachments`
+
+| Column              | Type | Null | Default             | Notes                                          |
+| ------------------- | ---- | ---- | ------------------- | ---------------------------------------------- |
+| id                  | uuid | no   | `gen_random_uuid()` | PK                                             |
+| client_id           | uuid | yes  |                     | FK → `clients.id` (cascade)                    |
+| project_id          | uuid | yes  |                     | FK → `projects.id` (cascade)                   |
+| invoice_id          | uuid | yes  |                     | FK → `invoices.id` (cascade)                   |
+| expense_id          | uuid | yes  |                     | FK → `expenses.id` (cascade)                   |
+| upload_id           | uuid | no   |                     | FK → `uploads.id` (cascade). Unique            |
+| title               | text | yes  |                     | Caption, ≤ 200 chars. Null = show the filename |
+| uploaded_by_user_id | uuid | yes  |                     | FK → `users.id` (set null)                     |
+
+Standard `timestamps`. No `softDelete`: removing an attachment deletes the row, the `uploads` row
+and the stored object, because a user who removes a file expects it gone rather than hidden while
+the object stays readable to anyone holding its key.
+
+Constraints:
+
+- `chk_attachments_parent` — exactly one of `client_id`, `project_id`, `invoice_id`, `expense_id` is
+  set, in the same shape as `chk_line_items_parent`. This is what makes "an attachment belongs to
+  precisely one record the requester can be checked against" structural rather than conventional.
+- `chk_attachments_title` — `title IS NULL OR length(title) <= 200`.
+
+Indexes: one per parent foreign key, `attachments_uploaded_by_user_id_idx`, and
+`uq_attachments_upload_id` — **unique**, because removing an attachment deletes its `uploads` row,
+so two attachments sharing one upload would make removing either destroy both.
+
+The parent foreign keys cascade rather than setting null: an attachment whose parent is gone has no
+record left to authorize a reader against, so it must not survive it.
+
+Limits are enforced on the server — in `features/attachments/` and the presign route, not only in
+the client: 25 MB per file, 20 files per record, 100 MB total per record, and a mime allowlist that
+excludes archives and SVG.
+
+---
+
+## 29. Enum reference
 
 All enum types declared in `database/schema/enums.ts`.
 
@@ -1296,6 +1360,7 @@ All enum types declared in `database/schema/enums.ts`.
 | `entity_type`              | `client`, `project`, `proposal`, `invoice`, `contract`, `task`, `time_entry`, `expense`, `payment`                                                                                                   |
 | `document_type`            | `proposal`, `invoice`, `contract`                                                                                                                                                                    |
 | `template_type`            | `invoice`, `proposal`, `contract`, `credit_note`, `email_invoice_send`, `email_proposal_send`, `email_contract_send`, `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated` |
+| `storage_bucket`           | `public`, `documents`                                                                                                                                                                                |
 | `backup_destination`       | `local`, `s3`, `r2`, `b2`                                                                                                                                                                            |
 | `backup_cadence`           | `daily`, `weekly`                                                                                                                                                                                    |
 | `data_export_scope`        | `instance`, `client`                                                                                                                                                                                 |

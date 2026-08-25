@@ -112,6 +112,49 @@ export type Translations = {
       description: string
     }
   }
+  fileUpload: {
+    progress: string
+    dismiss: string
+    errors: {
+      invalidType: string
+      tooLarge: string
+      presignFailed: string
+      uploadFailed: string
+    }
+  }
+  attachments: {
+    title: string
+    description: string
+    dropLabel: string
+    label: string
+    help: string
+    countLabel: string
+    addedBy: string
+    addedByUnknown: string
+    untitled: string
+    download: string
+    remove: string
+    removeConfirmTitle: string
+    removeConfirmDescription: string
+    added: string
+    removed: string
+    empty: {
+      title: string
+      description: string
+    }
+    errors: {
+      notFound: string
+      parentNotFound: string
+      notUploaded: string
+      limitReached: string
+      totalTooLarge: string
+      invalidType: string
+      tooLarge: string
+      invalidKey: string
+      addFailed: string
+      removeFailed: string
+    }
+  }
   totp: {
     title: string
     codeLabel: string
@@ -762,6 +805,7 @@ export type Translations = {
         projects: string
         activity: string
         contacts: string
+        files: string
         details: string
       }
       quick: {
@@ -835,10 +879,27 @@ export type Translations = {
       contactNotFound: string
       contactUpdateFailed: string
       contactPrimaryConflict: string
+      invalidImageFileType: string
+      imageUploadUrlFailed: string
+      imageUpdateFailed: string
+    }
+    image: {
+      label: string
+      dropLabel: string
+      help: string
+      upload: string
+      remove: string
+      updated: string
+      removed: string
+      alt: string
     }
     validation: {
       nameRequired: string
       nameTooLong: string
+      imageFilenameRequired: string
+      imageContentTypeRequired: string
+      imageSizeInvalid: string
+      imageTooLarge: string
       emailInvalid: string
       emailTooLong: string
       textTooLong: string
@@ -1497,6 +1558,7 @@ export type Translations = {
       none: string
       upload: string
       replace: string
+      drop: string
       remove: string
       open: string
       help: string
@@ -3190,6 +3252,7 @@ export type Translations = {
       businessLogoMissing: string
       uploadImage: string
       replaceImage: string
+      dropImage: string
       imageEmpty: string
       tableSource: string
       tableSourceManual: string
@@ -3483,6 +3546,7 @@ export type Translations = {
       description: string
       avatar: string
       uploadPhoto: string
+      dropPhoto: string
       removePhoto: string
       avatarHelp: string
       uploadUrlFailed: string
@@ -3581,6 +3645,7 @@ export type Translations = {
       logoAlt: string
       fallbackBusinessName: string
       uploadLogo: string
+      dropLogo: string
       removeLogo: string
       logoHelp: string
       uploadUrlFailed: string

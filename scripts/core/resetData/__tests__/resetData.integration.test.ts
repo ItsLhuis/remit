@@ -230,7 +230,13 @@ async function attachInvoicePdf(): Promise<string> {
 async function createUpload(filename: string, path: string): Promise<string> {
   const [row] = await database
     .insert(uploads)
-    .values({ filename, path, mimeType: "application/octet-stream", sizeBytes: 1024 })
+    .values({
+      filename,
+      path,
+      mimeType: "application/octet-stream",
+      sizeBytes: 1024,
+      checksumSha256: "a".repeat(64)
+    })
     .returning({ id: uploads.id })
 
   if (!row) throw new Error("Expected the upload insert to return a row")

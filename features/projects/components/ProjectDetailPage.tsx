@@ -1,5 +1,7 @@
 import { type EntityActivityPanelData } from "@/features/activityLog"
 
+import { type AttachmentListItem } from "@/features/attachments"
+
 import { type ProjectClientOption, type ProjectDetail, type ProjectFormData } from "../types"
 
 import { ProjectWorkspace } from "./ProjectWorkspace"
@@ -10,6 +12,8 @@ type ProjectDetailPageProps = {
   clients: ProjectClientOption[]
   locale: string
   activity: EntityActivityPanelData
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
 }
 
 const ProjectDetailPage = ({
@@ -17,7 +21,9 @@ const ProjectDetailPage = ({
   formData,
   clients,
   locale,
-  activity
+  activity,
+  attachments,
+  canWriteAttachments
 }: ProjectDetailPageProps) => {
   return (
     <ProjectWorkspace
@@ -26,6 +32,8 @@ const ProjectDetailPage = ({
       clients={clients}
       locale={locale}
       activity={activity}
+      attachments={attachments}
+      canWriteAttachments={canWriteAttachments}
     />
   )
 }

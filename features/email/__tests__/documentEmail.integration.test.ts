@@ -41,7 +41,11 @@ function makeInput(overrides: Record<string, unknown> = {}) {
 
 async function readLog() {
   const [log] = await database
-    .select({ status: emailLogs.status, pdfAttached: emailLogs.pdfAttached })
+    .select({
+      status: emailLogs.status,
+      pdfAttached: emailLogs.pdfAttached,
+      providerMessageId: emailLogs.providerMessageId
+    })
     .from(emailLogs)
     .where(eq(emailLogs.documentId, DOCUMENT_ID))
 
@@ -51,7 +55,7 @@ async function readLog() {
 beforeEach(async () => {
   vi.clearAllMocks()
 
-  mocks.sendTransactionalEmail.mockResolvedValue(undefined)
+  mocks.sendTransactionalEmail.mockResolvedValue("provider-message-id")
   mocks.getStorageObjectBytes.mockResolvedValue(Buffer.from("%PDF-1.4", "latin1"))
 
   await makeSettings({
@@ -103,6 +107,24 @@ describe("sendDocumentEmail", () => {
     expect(mocks.sendTransactionalEmail).toHaveBeenCalledWith(
       expect.not.objectContaining({ attachments: expect.anything() })
     )
+  })
+
+  test("records the provider's message id returned by the send", async () => {
+    const { sendDocumentEmail } = await import("../documentEmail")
+
+    await sendDocumentEmail(makeInput())
+
+    expect(await readLog()).toMatchObject({ providerMessageId: "provider-message-id" })
+  })
+
+  test("leaves the provider message id null when the provider named no message", async () => {
+    mocks.sendTransactionalEmail.mockResolvedValue(null)
+
+    const { sendDocumentEmail } = await import("../documentEmail")
+
+    await sendDocumentEmail(makeInput())
+
+    expect(await readLog()).toMatchObject({ status: "sent", providerMessageId: null })
   })
 
   test("sends nothing a second time for the same document and occasion", async () => {

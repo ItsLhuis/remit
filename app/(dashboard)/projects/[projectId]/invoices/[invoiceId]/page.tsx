@@ -4,6 +4,8 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
+import { canWriteAttachments, listAttachments } from "@/features/attachments/server"
+
 import { listInvoiceCreditNotes } from "@/features/creditNotes/server"
 
 import { InvoiceDetailPage } from "@/features/invoices"
@@ -22,15 +24,25 @@ type InvoiceRouteProps = {
 const InvoiceRoute = async ({ params }: InvoiceRouteProps) => {
   const { invoiceId } = await params
 
-  const [invoice, payments, creditNotes] = await Promise.all([
+  const [invoice, payments, creditNotes, attachments, canWriteFiles] = await Promise.all([
     getInvoiceDetail({ id: invoiceId }),
     listInvoicePayments({ invoiceId }),
-    listInvoiceCreditNotes({ invoiceId })
+    listInvoiceCreditNotes({ invoiceId }),
+    listAttachments({ parentType: "invoice", parentId: invoiceId }),
+    canWriteAttachments()
   ])
 
   if (!invoice) notFound()
 
-  return <InvoiceDetailPage invoice={invoice} payments={payments} creditNotes={creditNotes} />
+  return (
+    <InvoiceDetailPage
+      invoice={invoice}
+      payments={payments}
+      creditNotes={creditNotes}
+      attachments={attachments}
+      canWriteAttachments={canWriteFiles}
+    />
+  )
 }
 
 export default InvoiceRoute

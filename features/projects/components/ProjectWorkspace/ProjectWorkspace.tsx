@@ -35,6 +35,8 @@ import {
 
 import { EntityActivityTimeline, type EntityActivityPanelData } from "@/features/activityLog"
 
+import { AttachmentsPanel, type AttachmentListItem } from "@/features/attachments"
+
 import { softDeleteProject } from "../../mutations"
 import { type ProjectClientOption, type ProjectDetail, type ProjectFormData } from "../../types"
 import { DeleteProjectDialog } from "../DeleteProjectDialog"
@@ -50,6 +52,8 @@ type ProjectWorkspaceProps = {
   clients: ProjectClientOption[]
   locale: string
   activity: EntityActivityPanelData
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
 }
 
 const ProjectWorkspace = ({
@@ -57,7 +61,9 @@ const ProjectWorkspace = ({
   formData,
   clients,
   locale,
-  activity
+  activity,
+  attachments,
+  canWriteAttachments
 }: ProjectWorkspaceProps) => {
   const { t } = useTranslation()
 
@@ -246,6 +252,16 @@ const ProjectWorkspace = ({
               </CardHeader>
               <CardContent>
                 <EntityActivityTimeline data={activity} />
+              </CardContent>
+            </Card>
+            <Card size="sm">
+              <CardContent>
+                <AttachmentsPanel
+                  parent={{ parentType: "project", parentId: project.id }}
+                  attachments={attachments}
+                  locale={locale}
+                  canWrite={canWriteAttachments}
+                />
               </CardContent>
             </Card>
             <Card size="sm" className="gap-0 py-0">
