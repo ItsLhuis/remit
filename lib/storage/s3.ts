@@ -104,6 +104,14 @@ export async function putDocumentObject(input: PutDocumentObjectInput): Promise<
   )
 }
 
+// The counterpart to `putDocumentObject` for objects a user removes rather than a job writes. Only
+// attachments use it: a rendered invoice or contract PDF is the snapshot of what a client already
+// holds and is never deleted (`database/schema/invoices.ts`), whereas an attachment is a file the
+// owner put there and can take back.
+export async function deleteDocumentObject(objectKey: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({ Bucket: MINIO_DOCUMENTS_BUCKET, Key: objectKey }))
+}
+
 export async function getDocumentObjectStream(objectKey: string): Promise<ExportObjectStream> {
   const object = await s3.send(
     new GetObjectCommand({ Bucket: MINIO_DOCUMENTS_BUCKET, Key: objectKey })
@@ -117,10 +125,12 @@ export async function getDocumentObjectStream(objectKey: string): Promise<Export
   }
 }
 
-// Created by the worker on first render, for the same reason `ensureExportsBucket` is created by the
-// export job: the worker is a separate process that never runs the Next.js instrumentation hook, and
-// it is the only writer of this bucket.
-async function ensureDocumentsBucket(): Promise<void> {
+// Created lazily rather than in `instrumentation.ts`, for the same reason `ensureExportsBucket` is:
+// the worker is a separate process that never runs the Next.js instrumentation hook. Exported
+// because the worker is no longer the only writer — `app/api/upload/[type]/route.ts` presigns
+// attachment PUTs directly into this bucket, and a presigned URL for a bucket that does not exist
+// yet fails at the browser with an S3 error the user cannot act on.
+export async function ensureDocumentsBucket(): Promise<void> {
   try {
     await s3.send(new HeadBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
   } catch (error) {
