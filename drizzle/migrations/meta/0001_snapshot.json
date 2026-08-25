@@ -1,6 +1,6 @@
 {
-  "id": "bb3ad7f9-5f85-4f46-8ec2-cad8c04e0019",
-  "prevId": "8a245c83-9037-435d-9346-733d2f5bda30",
+  "id": "e880e519-a3e4-482f-93d4-f52113350937",
+  "prevId": "e2950478-7c27-4029-90f4-fae4a89823ac",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -119,6 +119,237 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.attachments": {
+      "name": "attachments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "invoice_id": {
+          "name": "invoice_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expense_id": {
+          "name": "expense_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "upload_id": {
+          "name": "upload_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_by_user_id": {
+          "name": "uploaded_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "attachments_client_id_idx": {
+          "name": "attachments_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "attachments_project_id_idx": {
+          "name": "attachments_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "attachments_invoice_id_idx": {
+          "name": "attachments_invoice_id_idx",
+          "columns": [
+            {
+              "expression": "invoice_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "attachments_expense_id_idx": {
+          "name": "attachments_expense_id_idx",
+          "columns": [
+            {
+              "expression": "expense_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "uq_attachments_upload_id": {
+          "name": "uq_attachments_upload_id",
+          "columns": [
+            {
+              "expression": "upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "attachments_uploaded_by_user_id_idx": {
+          "name": "attachments_uploaded_by_user_id_idx",
+          "columns": [
+            {
+              "expression": "uploaded_by_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "attachments_client_id_clients_id_fk": {
+          "name": "attachments_client_id_clients_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["client_id"],
+          "tableTo": "clients",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "attachments_project_id_projects_id_fk": {
+          "name": "attachments_project_id_projects_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["project_id"],
+          "tableTo": "projects",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "attachments_invoice_id_invoices_id_fk": {
+          "name": "attachments_invoice_id_invoices_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "attachments_expense_id_expenses_id_fk": {
+          "name": "attachments_expense_id_expenses_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["expense_id"],
+          "tableTo": "expenses",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "attachments_upload_id_uploads_id_fk": {
+          "name": "attachments_upload_id_uploads_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["upload_id"],
+          "tableTo": "uploads",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "attachments_uploaded_by_user_id_users_id_fk": {
+          "name": "attachments_uploaded_by_user_id_users_id_fk",
+          "tableFrom": "attachments",
+          "columnsFrom": ["uploaded_by_user_id"],
+          "tableTo": "users",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_attachments_parent": {
+          "name": "chk_attachments_parent",
+          "value": "(\n        (\"attachments\".\"client_id\" IS NOT NULL)::int +\n        (\"attachments\".\"project_id\" IS NOT NULL)::int +\n        (\"attachments\".\"invoice_id\" IS NOT NULL)::int +\n        (\"attachments\".\"expense_id\" IS NOT NULL)::int\n      ) = 1"
+        },
+        "chk_attachments_title": {
+          "name": "chk_attachments_title",
+          "value": "\"attachments\".\"title\" IS NULL OR length(\"attachments\".\"title\") <= 200"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.audit_logs": {
@@ -964,6 +1195,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "image_upload_id": {
+          "name": "image_upload_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "portal_token": {
           "name": "portal_token",
           "type": "text",
@@ -1022,6 +1259,21 @@
           "method": "btree",
           "concurrently": false
         },
+        "clients_image_upload_id_idx": {
+          "name": "clients_image_upload_id_idx",
+          "columns": [
+            {
+              "expression": "image_upload_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
         "clients_active_idx": {
           "name": "clients_active_idx",
           "columns": [
@@ -1055,7 +1307,17 @@
           "concurrently": false
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "clients_image_upload_id_uploads_id_fk": {
+          "name": "clients_image_upload_id_uploads_id_fk",
+          "tableFrom": "clients",
+          "columnsFrom": ["image_upload_id"],
+          "tableTo": "uploads",
+          "columnsTo": ["id"],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3496,6 +3758,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "checksum_sha256": {
+          "name": "checksum_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3504,7 +3772,23 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "uploads_checksum_sha256_idx": {
+          "name": "uploads_checksum_sha256_idx",
+          "columns": [
+            {
+              "expression": "checksum_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -3519,6 +3803,10 @@
         "chk_uploads_size_bytes": {
           "name": "chk_uploads_size_bytes",
           "value": "\"uploads\".\"size_bytes\" > 0"
+        },
+        "chk_uploads_checksum_sha256": {
+          "name": "chk_uploads_checksum_sha256",
+          "value": "\"uploads\".\"checksum_sha256\" ~ '^[0-9a-f]{64}$'"
         }
       },
       "isRLSEnabled": false

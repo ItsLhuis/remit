@@ -33,6 +33,26 @@ CREATE TABLE "activity_logs" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "attachments" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"client_id" uuid,
+	"project_id" uuid,
+	"invoice_id" uuid,
+	"expense_id" uuid,
+	"upload_id" uuid NOT NULL,
+	"title" text,
+	"uploaded_by_user_id" uuid,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "chk_attachments_parent" CHECK ((
+        ("attachments"."client_id" IS NOT NULL)::int +
+        ("attachments"."project_id" IS NOT NULL)::int +
+        ("attachments"."invoice_id" IS NOT NULL)::int +
+        ("attachments"."expense_id" IS NOT NULL)::int
+      ) = 1),
+	CONSTRAINT "chk_attachments_title" CHECK ("attachments"."title" IS NULL OR length("attachments"."title") <= 200)
+);
+--> statement-breakpoint
 CREATE TABLE "audit_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"event" text NOT NULL,
@@ -137,6 +157,7 @@ CREATE TABLE "clients" (
 	"locale" text,
 	"default_hourly_rate_cents" bigint,
 	"notes" text,
+	"image_upload_id" uuid,
 	"portal_token" text,
 	"deleted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -430,9 +451,11 @@ CREATE TABLE "uploads" (
 	"bucket" "storage_bucket" DEFAULT 'public' NOT NULL,
 	"mime_type" text NOT NULL,
 	"size_bytes" bigint NOT NULL,
+	"checksum_sha256" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "uploads_path_unique" UNIQUE("path"),
-	CONSTRAINT "chk_uploads_size_bytes" CHECK ("uploads"."size_bytes" > 0)
+	CONSTRAINT "chk_uploads_size_bytes" CHECK ("uploads"."size_bytes" > 0),
+	CONSTRAINT "chk_uploads_checksum_sha256" CHECK ("uploads"."checksum_sha256" ~ '^[0-9a-f]{64}$')
 );
 --> statement-breakpoint
 CREATE TABLE "invitations" (
@@ -663,11 +686,18 @@ CREATE TABLE "data_exports" (
 	CONSTRAINT "chk_data_exports_scope_client" CHECK (("data_exports"."scope" = 'instance' AND "data_exports"."client_id" IS NULL) OR "data_exports"."scope" = 'client')
 );
 --> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_invoice_id_invoices_id_fk" FOREIGN KEY ("invoice_id") REFERENCES "public"."invoices"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_expense_id_expenses_id_fk" FOREIGN KEY ("expense_id") REFERENCES "public"."expenses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_upload_id_uploads_id_fk" FOREIGN KEY ("upload_id") REFERENCES "public"."uploads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "attachments" ADD CONSTRAINT "attachments_uploaded_by_user_id_users_id_fk" FOREIGN KEY ("uploaded_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_user_id_users_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "two_factors" ADD CONSTRAINT "two_factors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "client_contacts" ADD CONSTRAINT "client_contacts_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "clients" ADD CONSTRAINT "clients_image_upload_id_uploads_id_fk" FOREIGN KEY ("image_upload_id") REFERENCES "public"."uploads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "email_logs" ADD CONSTRAINT "email_logs_template_id_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."templates"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_client_id_clients_id_fk" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_proposal_id_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."proposals"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -715,6 +745,12 @@ ALTER TABLE "data_exports" ADD CONSTRAINT "data_exports_requested_by_user_id_use
 CREATE INDEX "activity_logs_created_at_idx" ON "activity_logs" USING btree ("created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "activity_logs_entity_idx" ON "activity_logs" USING btree ("entity_type","entity_id");--> statement-breakpoint
 CREATE INDEX "activity_logs_unread_idx" ON "activity_logs" USING btree ("id") WHERE "activity_logs"."read_at" IS NULL;--> statement-breakpoint
+CREATE INDEX "attachments_client_id_idx" ON "attachments" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX "attachments_project_id_idx" ON "attachments" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "attachments_invoice_id_idx" ON "attachments" USING btree ("invoice_id");--> statement-breakpoint
+CREATE INDEX "attachments_expense_id_idx" ON "attachments" USING btree ("expense_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_attachments_upload_id" ON "attachments" USING btree ("upload_id");--> statement-breakpoint
+CREATE INDEX "attachments_uploaded_by_user_id_idx" ON "attachments" USING btree ("uploaded_by_user_id");--> statement-breakpoint
 CREATE INDEX "audit_logs_event_created_at_idx" ON "audit_logs" USING btree ("event","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "audit_logs_actor_idx" ON "audit_logs" USING btree ("actor_user_id");--> statement-breakpoint
 CREATE INDEX "audit_logs_target_idx" ON "audit_logs" USING btree ("target_entity_type","target_entity_id");--> statement-breakpoint
@@ -728,6 +764,7 @@ CREATE INDEX "client_contacts_email_idx" ON "client_contacts" USING btree ("emai
 CREATE UNIQUE INDEX "uq_client_contacts_primary" ON "client_contacts" USING btree ("client_id") WHERE "client_contacts"."is_primary" = true AND "client_contacts"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "clients_name_idx" ON "clients" USING btree ("name");--> statement-breakpoint
 CREATE INDEX "clients_email_idx" ON "clients" USING btree ("email");--> statement-breakpoint
+CREATE INDEX "clients_image_upload_id_idx" ON "clients" USING btree ("image_upload_id");--> statement-breakpoint
 CREATE INDEX "clients_active_idx" ON "clients" USING btree ("id") WHERE "clients"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX "clients_portal_token_idx" ON "clients" USING btree ("portal_token") WHERE "clients"."portal_token" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "email_logs_document_idx" ON "email_logs" USING btree ("document_type","document_id");--> statement-breakpoint
@@ -767,6 +804,7 @@ CREATE UNIQUE INDEX "proposals_public_token_idx" ON "proposals" USING btree ("pu
 CREATE UNIQUE INDEX "uq_tax_rates_default" ON "tax_rates" USING btree ("is_default") WHERE "tax_rates"."is_default" = true AND "tax_rates"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "templates_type_idx" ON "templates" USING btree ("type");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_templates_default_per_type" ON "templates" USING btree ("type") WHERE "templates"."is_default" = true AND "templates"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE INDEX "uploads_checksum_sha256_idx" ON "uploads" USING btree ("checksum_sha256");--> statement-breakpoint
 CREATE INDEX "invitation_email_idx" ON "invitations" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "invitation_organization_id_idx" ON "invitations" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "invitation_status_idx" ON "invitations" USING btree ("status");--> statement-breakpoint

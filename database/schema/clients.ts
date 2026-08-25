@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 import { encryptedColumn, softDelete, timestamps } from "./helpers"
+import { uploads } from "./uploads"
 
 export const clients = pgTable(
   "clients",
@@ -31,6 +32,10 @@ export const clients = pgTable(
     locale: text("locale"),
     defaultHourlyRateCents: bigint("default_hourly_rate_cents", { mode: "number" }),
     notes: encryptedColumn("notes"),
+    // `image`, not `logo`: a Remit client is a company or a person, and half of them have a face
+    // rather than a mark. Shaped like `settings.business_logo_upload_id` — an `uploads` reference
+    // rather than a URL — so the object is instance-owned and the same delete semantics apply.
+    imageUploadId: uuid("image_upload_id").references(() => uploads.id, { onDelete: "set null" }),
     portalToken: text("portal_token"),
     ...softDelete,
     ...timestamps
@@ -38,6 +43,7 @@ export const clients = pgTable(
   (table) => [
     index("clients_name_idx").on(table.name),
     index("clients_email_idx").on(table.email),
+    index("clients_image_upload_id_idx").on(table.imageUploadId),
     index("clients_active_idx")
       .on(table.id)
       .where(sql`${table.deletedAt} IS NULL`),

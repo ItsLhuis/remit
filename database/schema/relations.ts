@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm"
 
 import { activityLogs } from "./activityLogs"
+import { attachments } from "./attachments"
 import { auditLogs } from "./auditLogs"
 import { users } from "./auth"
 import { clientContacts } from "./clientContacts"
@@ -8,6 +9,7 @@ import { clients } from "./clients"
 import { contracts } from "./contracts"
 import { dataExports } from "./dataExports"
 import { emailLogs } from "./emailLogs"
+import { expenses } from "./expenses"
 import { invoices } from "./invoices"
 import { lineItems } from "./lineItems"
 import { projects } from "./projects"
@@ -19,6 +21,33 @@ import { templates } from "./templates"
 import { uploads } from "./uploads"
 
 export const activityLogsRelations = relations(activityLogs, () => ({}))
+
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+  client: one(clients, {
+    fields: [attachments.clientId],
+    references: [clients.id]
+  }),
+  project: one(projects, {
+    fields: [attachments.projectId],
+    references: [projects.id]
+  }),
+  invoice: one(invoices, {
+    fields: [attachments.invoiceId],
+    references: [invoices.id]
+  }),
+  expense: one(expenses, {
+    fields: [attachments.expenseId],
+    references: [expenses.id]
+  }),
+  upload: one(uploads, {
+    fields: [attachments.uploadId],
+    references: [uploads.id]
+  }),
+  uploadedByUser: one(users, {
+    fields: [attachments.uploadedByUserId],
+    references: [users.id]
+  })
+}))
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   actorUser: one(users, {
@@ -34,9 +63,14 @@ export const clientContactsRelations = relations(clientContacts, ({ one }) => ({
   })
 }))
 
-export const clientsRelations = relations(clients, ({ many }) => ({
+export const clientsRelations = relations(clients, ({ one, many }) => ({
   contacts: many(clientContacts),
-  projects: many(projects)
+  projects: many(projects),
+  attachments: many(attachments),
+  image: one(uploads, {
+    fields: [clients.imageUploadId],
+    references: [uploads.id]
+  })
 }))
 
 export const contractsRelations = relations(contracts, ({ one }) => ({

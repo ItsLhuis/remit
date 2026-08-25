@@ -1,4 +1,5 @@
 export * from "./activityLogs"
+export * from "./attachments"
 export * from "./auditLogs"
 export * from "./auth"
 export * from "./clientContacts"
