@@ -1,4 +1,10 @@
 export {
+  confirmClientImageUpload,
+  removeClientImage,
+  type ClientImageResult
+} from "./imageMutations"
+
+export {
   createClient,
   softDeleteClient,
   updateClient,

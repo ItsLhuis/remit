@@ -2,11 +2,11 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { formatDay, getInitials } from "@/lib/utils"
+import { formatDay } from "@/lib/utils"
+
+import { resolveStorageUrl } from "@/lib/storage"
 
 import {
-  Avatar,
-  AvatarFallback,
   Badge,
   Button,
   Card,
@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  EntityAvatar,
   Icon,
   IconButton,
   Separator,
@@ -51,9 +52,12 @@ const ClientSummaryCard = ({
   return (
     <Card className="gap-0 py-0 lg:sticky lg:top-8">
       <div className="flex flex-col items-center gap-3 p-6 text-center">
-        <Avatar className="size-16">
-          <AvatarFallback className="text-lg">{getInitials(client.name)}</AvatarFallback>
-        </Avatar>
+        <EntityAvatar
+          name={client.name}
+          src={resolveStorageUrl(client.imageStorageKey)}
+          alt={t("clients.image.alt", { name: client.name })}
+          className="size-16 [&_[data-slot=avatar-fallback]]:text-lg"
+        />
         <div className="flex flex-col items-center gap-2">
           <Typography variant="h2" className="text-2xl text-balance">
             {client.name}

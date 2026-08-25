@@ -5,6 +5,9 @@ export type ClientListItem = {
   id: string
   name: string
   email: string
+  // The storage key, not a URL: `resolveStorageUrl` runs in the browser and needs the raw key, and
+  // the client image lives in the public bucket where that helper is the correct reader.
+  imageStorageKey: string | null
   currency: string
   outstandingBalanceCents: number
   invoiceCount: number
@@ -60,6 +63,7 @@ export type ClientDetail = {
   // encryption buys here is confidentiality at rest, not from the authenticated owner. It is still
   // excluded from audit diffing — see `mutations.ts`'s `auditFields`.
   notes: string
+  imageStorageKey: string | null
   outstandingBalanceCents: number
   health: ClientHealth
   deletedAt: Date | null

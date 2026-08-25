@@ -2,25 +2,29 @@
 
 import { revalidatePath } from "next/cache"
 
-import { headers } from "next/headers"
-
 import { and, eq, isNull, ne } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
-
-import { auth } from "@/lib/auth"
-import { getCurrentRole, type Role } from "@/lib/auth/session"
 
 import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress, parseAmountToCents } from "@/lib/utils"
+import { parseAmountToCents } from "@/lib/utils"
 
 import { database } from "@/database"
 import { clientContacts, clients } from "@/database/schema"
 
 import { emitClientCreated, emitClientDeleted, emitClientUpdated } from "./events"
+import {
+  ExpectedClientError,
+  handleClientActionError,
+  requireClientDelete,
+  requireClientWrite,
+  writeClientAudit,
+  type ClientContactAuditEvent,
+  type ClientWriteContext
+} from "./mutationContext"
 import { toClientFormData } from "./queries"
 import {
   clientContactIdSchema,
@@ -39,26 +43,6 @@ export type ClientMutationResult = { data: { client: ClientFormData } } | { erro
 export type DeleteClientResult = { data: { id: string } } | { error: string }
 
 export type ClientContactMutationResult = { data: { id: string } } | { error: string }
-
-type ClientWriteContext = {
-  userId: string
-  role: Role
-  ipAddress: string | null
-  userAgent: string | null
-}
-
-type ClientWriteGate = { context: ClientWriteContext } | { error: string }
-
-type ClientAuditEvent = "client.created" | "client.updated" | "client.deleted"
-
-// A contact write is audited on the same footing as a client write, and for a stronger reason than
-// symmetry: since ADR-0027 a contact address both receives this client's documents and may accept
-// its proposals, so adding one grants an acting identity and removing one revokes it.
-type ClientContactAuditEvent =
-  | "client_contact.created"
-  | "client_contact.updated"
-  | "client_contact.deleted"
-  | "client_contact.primary_changed"
 
 type ClientContactTransaction = Parameters<Parameters<typeof database.transaction>[0]>[0]
 
@@ -95,6 +79,7 @@ const clientReturnColumns = {
   locale: clients.locale,
   defaultHourlyRateCents: clients.defaultHourlyRateCents,
   notes: clients.notes,
+  imageUploadId: clients.imageUploadId,
   portalToken: clients.portalToken,
   deletedAt: clients.deletedAt,
   createdAt: clients.createdAt,
@@ -397,65 +382,6 @@ export async function softDeleteClientContact(
   }
 }
 
-async function requireClientWrite(): Promise<ClientWriteGate> {
-  const gate = await getClientActionContext()
-
-  if ("error" in gate) return gate
-
-  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
-    return { error: t("errors.forbidden") }
-  }
-
-  return gate
-}
-
-async function requireClientDelete(): Promise<ClientWriteGate> {
-  const gate = await getClientActionContext()
-
-  if ("error" in gate) return gate
-
-  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
-
-  return gate
-}
-
-async function getClientActionContext(): Promise<ClientWriteGate> {
-  const requestHeaders = await headers()
-  const session = await auth.api.getSession({ headers: requestHeaders })
-
-  if (!session) return { error: t("errors.unauthorized") }
-
-  const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
-
-  if (!isRole(role)) return { error: t("errors.forbidden") }
-
-  return {
-    context: {
-      userId: session.user.id,
-      role,
-      ipAddress: getIpAddress(requestHeaders),
-      userAgent: requestHeaders.get("user-agent")
-    }
-  }
-}
-
-async function writeClientAudit(
-  context: ClientWriteContext,
-  event: ClientAuditEvent,
-  clientId: string,
-  metadata: Record<string, unknown>
-): Promise<void> {
-  await writeAudit(event, {
-    actorUserId: context.userId,
-    actorRole: context.role,
-    targetEntityType: "client",
-    targetEntityId: clientId,
-    metadata,
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent
-  })
-}
-
 function toClientWriteValues(values: ClientFormValues): typeof clients.$inferInsert {
   return {
     name: values.name,
@@ -503,19 +429,6 @@ function emptyToNull(value: string): string | null {
   const trimmed = value.trim()
 
   return trimmed.length > 0 ? trimmed : null
-}
-
-function handleClientActionError(
-  error: unknown,
-  action: string,
-  userId: string | null,
-  clientId?: string
-): { error: string } {
-  if (error instanceof ExpectedClientError) return { error: error.message }
-
-  logger.error({ action, userId, clientId, err: error }, "Client action failed")
-
-  return { error: t("clients.errors.updateFailed") }
 }
 
 async function findContactClientId(
@@ -627,9 +540,3 @@ function isPrimaryContactConflict(error: unknown): boolean {
     (error as { code?: unknown }).code === "23505"
   )
 }
-
-function isRole(value: string | null | undefined): value is Role {
-  return value === "owner" || value === "accountant" || value === "assistant"
-}
-
-class ExpectedClientError extends Error {}

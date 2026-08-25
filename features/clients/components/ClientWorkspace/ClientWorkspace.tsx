@@ -39,6 +39,8 @@ import {
 
 import { EntityActivityTimeline, type EntityActivityPanelData } from "@/features/activityLog"
 
+import { AttachmentsPanel, type AttachmentListItem } from "@/features/attachments"
+
 import { ClientInvoicesPanel, type InvoiceListItem } from "@/features/invoices"
 
 import { ClientProjectsPanel, type ProjectListItem } from "@/features/projects"
@@ -50,6 +52,7 @@ import { ClientContactsPanel } from "../ClientContactsPanel"
 import { ClientFormSheet } from "../ClientFormSheet"
 import { DeleteClientDialog } from "../DeleteClientDialog"
 
+import { ClientImageSection } from "./ClientImageSection"
 import { ClientSummaryCard } from "./ClientSummaryCard"
 import { ContactRow } from "./ContactRow"
 import { DetailGroup } from "./DetailGroup"
@@ -73,6 +76,8 @@ type ClientWorkspaceProps = {
   invoices: InvoiceListItem[]
   contacts: ClientContact[]
   activity: EntityActivityPanelData
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
   formData: ClientFormData
   locale: string
 }
@@ -83,6 +88,8 @@ const ClientWorkspace = ({
   invoices,
   contacts,
   activity,
+  attachments,
+  canWriteAttachments,
   formData,
   locale
 }: ClientWorkspaceProps) => {
@@ -223,6 +230,7 @@ const ClientWorkspace = ({
                 <TabsTrigger value="projects">{t("clients.detail.tabs.projects")}</TabsTrigger>
                 <TabsTrigger value="activity">{t("clients.detail.tabs.activity")}</TabsTrigger>
                 <TabsTrigger value="contacts">{t("clients.detail.tabs.contacts")}</TabsTrigger>
+                <TabsTrigger value="files">{t("clients.detail.tabs.files")}</TabsTrigger>
                 <TabsTrigger value="details">{t("clients.detail.tabs.details")}</TabsTrigger>
               </TabsList>
               <TabsContent value="overview">
@@ -269,6 +277,24 @@ const ClientWorkspace = ({
                   clientEmail={client.email}
                   contacts={contacts}
                 />
+              </TabsContent>
+              <TabsContent value="files">
+                <div className="flex flex-col gap-8">
+                  <ClientImageSection
+                    clientId={client.id}
+                    clientName={client.name}
+                    imageStorageKey={client.imageStorageKey}
+                    locale={locale}
+                    canWrite={canWriteAttachments}
+                  />
+                  <Separator />
+                  <AttachmentsPanel
+                    parent={{ parentType: "client", parentId: client.id }}
+                    attachments={attachments}
+                    locale={locale}
+                    canWrite={canWriteAttachments}
+                  />
+                </div>
               </TabsContent>
               <TabsContent value="details">
                 <Card size="sm" className="gap-0 py-0">

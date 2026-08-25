@@ -20,8 +20,13 @@ import {
 import { formatCentsForInput } from "@/lib/utils"
 
 import { database } from "@/database"
-import { clients, invoices, payments, projects, recurringInvoices } from "@/database/schema"
+import { clients, invoices, projects, recurringInvoices, uploads } from "@/database/schema"
 
+import {
+  getClientInvoiceCountSubquery,
+  getClientInvoiceTotalsSubquery,
+  getClientPaymentTotalsSubquery
+} from "./queryFragments"
 import {
   clientIdSchema,
   parseClientListQuery,
@@ -32,7 +37,6 @@ import {
 import {
   buildClientBillingTrend,
   getClientHealth,
-  OUTSTANDING_INVOICE_STATUSES,
   summarizeClients,
   type ClientBillingPoint,
   type ClientsSummary,
@@ -52,6 +56,7 @@ export type ClientListRow = {
   id: string
   name: string
   email: string
+  imageStorageKey: string | null
   currency: string | null
   outstandingBalanceCents: number
   invoiceCount: number
@@ -67,10 +72,16 @@ export type ClientOption = {
 
 type ClientDetailRow = typeof clients.$inferSelect
 
+// The detail read joins the image upload so the workspace can render it without a second query.
+// `toClientFormData` takes the bare row and is called from `mutations.ts`'s `returning()`, which has
+// no join, so the relation is optional here rather than part of `ClientDetailRow` itself.
+type ClientDetailRowWithImage = ClientDetailRow & { image?: { path: string } | null }
+
 const clientListColumns = {
   id: clients.id,
   name: clients.name,
   email: clients.email,
+  imageStorageKey: uploads.path,
   currency: clients.currency,
   createdAt: clients.createdAt,
   deletedAt: clients.deletedAt
@@ -130,6 +141,7 @@ export async function listClients(
         invoiceCount: invoiceCountExpr
       })
       .from(clients)
+      .leftJoin(uploads, eq(uploads.id, clients.imageUploadId))
       .leftJoin(invoiceTotals, eq(invoiceTotals.clientId, clients.id))
       .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
       .leftJoin(invoiceCounts, eq(invoiceCounts.clientId, clients.id))
@@ -216,7 +228,8 @@ export async function getClientDetail(input: unknown): Promise<ClientDetail | nu
 
   const [client, defaults] = await Promise.all([
     database.query.clients.findFirst({
-      where: and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt))
+      where: and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt)),
+      with: { image: { columns: { path: true } } }
     }),
     getClientDefaults()
   ])
@@ -374,59 +387,6 @@ function getClientHealthCondition(
 // the number of payments and silently inflates every outstanding balance on the page. The
 // `greatest(..., 0)` wrapper at each call site mirrors the clamp in
 // `services/calculateOutstandingBalance.ts` so SQL and the pure service agree on an overpaid client.
-function getClientInvoiceTotalsSubquery() {
-  return database
-    .select({
-      clientId: invoices.clientId,
-      totalCents: sql<number>`cast(coalesce(sum(${invoices.totalCents}), 0) as bigint)`.as(
-        "total_cents"
-      )
-    })
-    .from(invoices)
-    .where(
-      and(
-        isNotNull(invoices.clientId),
-        isNull(invoices.deletedAt),
-        inArray(invoices.status, OUTSTANDING_INVOICE_STATUSES)
-      )
-    )
-    .groupBy(invoices.clientId)
-    .as("client_invoice_totals")
-}
-
-function getClientPaymentTotalsSubquery() {
-  return database
-    .select({
-      clientId: invoices.clientId,
-      paidCents: sql<number>`cast(coalesce(sum(${payments.amountCents}), 0) as bigint)`.as(
-        "paid_cents"
-      )
-    })
-    .from(invoices)
-    .innerJoin(payments, and(eq(payments.invoiceId, invoices.id), isNull(payments.deletedAt)))
-    .where(
-      and(
-        isNotNull(invoices.clientId),
-        isNull(invoices.deletedAt),
-        inArray(invoices.status, OUTSTANDING_INVOICE_STATUSES)
-      )
-    )
-    .groupBy(invoices.clientId)
-    .as("client_payment_totals")
-}
-
-function getClientInvoiceCountSubquery() {
-  return database
-    .select({
-      clientId: invoices.clientId,
-      invoiceCount: count().as("invoice_count")
-    })
-    .from(invoices)
-    .where(and(isNotNull(invoices.clientId), isNull(invoices.deletedAt)))
-    .groupBy(invoices.clientId)
-    .as("client_invoice_counts")
-}
-
 async function getOutstandingBalanceCents(clientId: string): Promise<number> {
   const invoiceTotals = getClientInvoiceTotalsSubquery()
   const paymentTotals = getClientPaymentTotalsSubquery()
@@ -525,6 +485,7 @@ function toClientListItem(row: ClientListRow, defaultCurrency: string): ClientLi
     id: row.id,
     name: row.name,
     email: row.email,
+    imageStorageKey: row.imageStorageKey,
     currency: row.currency ?? defaultCurrency,
     outstandingBalanceCents,
     invoiceCount,
@@ -535,7 +496,7 @@ function toClientListItem(row: ClientListRow, defaultCurrency: string): ClientLi
 }
 
 type ToClientDetailInput = {
-  row: ClientDetailRow
+  row: ClientDetailRowWithImage
   outstandingBalanceCents: number
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
@@ -566,6 +527,7 @@ function toClientDetail({
       country: row.country ?? ""
     },
     notes: row.notes ?? "",
+    imageStorageKey: row.image?.path ?? null,
     outstandingBalanceCents,
     health: getClientHealth({
       outstandingBalanceCents,

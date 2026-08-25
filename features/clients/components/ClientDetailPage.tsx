@@ -1,5 +1,7 @@
 import { type EntityActivityPanelData } from "@/features/activityLog"
 
+import { type AttachmentListItem } from "@/features/attachments"
+
 import { type InvoiceListItem } from "@/features/invoices"
 
 import { type ProjectListItem } from "@/features/projects"
@@ -14,6 +16,8 @@ type ClientDetailPageProps = {
   invoices: InvoiceListItem[]
   contacts: ClientContact[]
   activity: EntityActivityPanelData
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
   formData: ClientFormData
   locale: string
 }
@@ -24,6 +28,8 @@ const ClientDetailPage = ({
   invoices,
   contacts,
   activity,
+  attachments,
+  canWriteAttachments,
   formData,
   locale
 }: ClientDetailPageProps) => {
@@ -34,6 +40,8 @@ const ClientDetailPage = ({
       invoices={invoices}
       contacts={contacts}
       activity={activity}
+      attachments={attachments}
+      canWriteAttachments={canWriteAttachments}
       formData={formData}
       locale={locale}
     />

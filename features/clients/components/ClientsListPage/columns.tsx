@@ -6,11 +6,11 @@ import Link from "next/link"
 
 import { type TFunction } from "@/lib/i18n"
 
-import { cn, formatCurrency, formatDay, getInitials } from "@/lib/utils"
+import { cn, formatCurrency, formatDay } from "@/lib/utils"
+
+import { resolveStorageUrl } from "@/lib/storage"
 
 import {
-  Avatar,
-  AvatarFallback,
   Badge,
   Checkbox,
   DataTableColumnHeader,
@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  EntityAvatar,
   Icon,
   IconButton,
   Skeleton,
@@ -102,9 +103,12 @@ export function getClientColumns(
 
         return (
           <div className="flex items-center gap-3">
-            <Avatar size="sm">
-              <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
-            </Avatar>
+            <EntityAvatar
+              size="sm"
+              name={client.name}
+              src={resolveStorageUrl(client.imageStorageKey)}
+              alt={t("clients.image.alt", { name: client.name })}
+            />
             <div className="flex min-w-0 flex-col">
               {client.deletedAt ? (
                 <span className="truncate font-medium">{client.name}</span>

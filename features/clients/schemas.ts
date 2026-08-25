@@ -15,6 +15,8 @@ import {
   MAX_PAGE_SIZE
 } from "@/lib/utils"
 
+import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_MIME_TYPES } from "@/lib/storage"
+
 const CLIENT_NAME_MAX_LENGTH = 160
 const CLIENT_EMAIL_MAX_LENGTH = 320
 const CLIENT_TEXT_MAX_LENGTH = 255
@@ -179,6 +181,34 @@ export const clientListQuerySchema = z.object({
 
 export type ClientListQuery = z.infer<typeof clientListQuerySchema>
 export type ClientStatusFilter = (typeof CLIENT_STATUS_FILTERS)[number]
+
+// The client image is minted under this prefix by `app/api/upload/[type]/route.ts`'s `client-image`
+// variant. Restated as a literal for the same reason `EXPENSE_RECEIPT_KEY_PREFIX` is: the route must
+// not import a feature, and this refusal is what stops a caller pointing the column at an object it
+// did not upload through that variant.
+const CLIENT_IMAGE_KEY_PREFIX = "clients/"
+
+export const confirmClientImageUploadSchema = z.object({
+  clientId: z.uuid(i18n.t("clients.validation.idInvalid")),
+  objectKey: z
+    .string()
+    .trim()
+    .min(1, i18n.t("clients.errors.invalidImageFileType"))
+    .startsWith(CLIENT_IMAGE_KEY_PREFIX, i18n.t("clients.errors.invalidImageFileType")),
+  filename: z
+    .string()
+    .trim()
+    .min(1, i18n.t("clients.validation.imageFilenameRequired"))
+    .max(255, i18n.t("clients.validation.imageFilenameRequired")),
+  contentType: z.enum(IMAGE_UPLOAD_MIME_TYPES, i18n.t("clients.errors.invalidImageFileType")),
+  sizeBytes: z
+    .number()
+    .int(i18n.t("clients.validation.imageSizeInvalid"))
+    .positive(i18n.t("clients.validation.imageSizeInvalid"))
+    .max(IMAGE_UPLOAD_MAX_BYTES, i18n.t("clients.validation.imageTooLarge"))
+})
+
+export type ConfirmClientImageUploadValues = z.infer<typeof confirmClientImageUploadSchema>
 
 export function parseClientListQuery(input: unknown): ClientListQuery {
   const outstanding = readArrayParam(input, "outstanding")
