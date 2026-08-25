@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, useRef, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -9,27 +9,28 @@ import { useTranslation } from "@/lib/i18n"
 import { type User } from "@/lib/auth"
 import { useSession } from "@/lib/auth/client"
 
-import { getInitials } from "@/lib/utils"
-
 import { resolveStorageUrl } from "@/lib/storage"
 
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Button,
+  EntityAvatar,
+  FileDropzone,
+  FileUploadProgressList,
   Spinner,
   toast,
   Typography
 } from "@/components/ui"
 
+import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_MIME_TYPES, useFileUpload } from "@/hooks"
+
 import { confirmAvatarUpload, removeAvatar } from "../../mutations"
 
 type AvatarSectionProps = {
   user: User
+  locale: string
 }
 
-const AvatarSection = ({ user }: AvatarSectionProps) => {
+const AvatarSection = ({ user, locale }: AvatarSectionProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -37,82 +38,37 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
   const { refetch } = useSession()
 
   const [avatarStorageKey, setAvatarStorageKey] = useState<string | null>(user.image ?? null)
-  const [isPending, startTransition] = useTransition()
+  const [isRemoving, startRemoving] = useTransition()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const avatarUrl = resolveStorageUrl(avatarStorageKey)
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-
-    if (!file) return
-
-    // Clearing the input before the upload runs is what lets the same file be picked again after a
-    // failure; a file input fires no change event when its value is unchanged.
-    event.target.value = ""
-
-    startTransition(async () => {
-      const presignResponse = await fetch("/api/upload/avatar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, contentType: file.type, sizeBytes: file.size })
+  const { items, isUploading, upload, dismiss } = useFileUpload({
+    type: "avatar",
+    maxBytes: IMAGE_UPLOAD_MAX_BYTES,
+    mimeTypes: IMAGE_UPLOAD_MIME_TYPES,
+    onUploaded: async (result) => {
+      const confirmed = await confirmAvatarUpload({
+        objectKey: result.objectKey,
+        filename: result.filename,
+        mimeType: result.mimeType,
+        sizeBytes: result.sizeBytes
       })
 
-      if (!presignResponse.ok) {
-        const data: unknown = await presignResponse.json()
-        const message =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as Record<string, unknown>).error)
-            : t("settings.profile.uploadUrlFailed")
-
-        toast.error(message)
+      if ("error" in confirmed) {
+        toast.error(confirmed.error)
 
         return
       }
 
-      const { uploadUrl, objectKey } = (await presignResponse.json()) as {
-        uploadUrl: string
-        objectKey: string
-      }
-
-      const putResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      })
-
-      if (!putResponse.ok) {
-        toast.error(t("settings.profile.uploadFailed"))
-
-        return
-      }
-
-      const result = await confirmAvatarUpload({
-        objectKey,
-        filename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size
-      })
-
-      if ("error" in result) {
-        toast.error(result.error)
-
-        return
-      }
-
-      setAvatarStorageKey(result.data.storageKey)
+      setAvatarStorageKey(confirmed.data.storageKey)
 
       await refetch({ query: { disableCookieCache: true } })
 
       router.refresh()
-
       toast.success(t("settings.profile.avatarUpdated"))
-    })
-  }
+    }
+  })
 
   const handleRemoveAvatar = () => {
-    startTransition(async () => {
+    startRemoving(async () => {
       const result = await removeAvatar()
 
       if ("error" in result) {
@@ -126,53 +82,46 @@ const AvatarSection = ({ user }: AvatarSectionProps) => {
       await refetch({ query: { disableCookieCache: true } })
 
       router.refresh()
-
       toast.success(t("settings.profile.avatarRemoved"))
     })
   }
 
-  const hasAvatar = Boolean(avatarStorageKey)
-
   return (
     <section className="space-y-4">
       <Typography variant="h4">{t("settings.profile.avatar")}</Typography>
-      <div className="flex items-center gap-4">
-        <Avatar className="size-20">
-          <AvatarImage src={avatarUrl} alt={user.name} />
-          <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            aria-label={t("settings.profile.uploadPhoto")}
-            onChange={handleFileChange}
+      <div className="flex items-start gap-4">
+        <EntityAvatar
+          size="lg"
+          shape="circle"
+          name={user.name}
+          src={resolveStorageUrl(avatarStorageKey)}
+          alt={user.name}
+          className="size-20"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <FileDropzone
+            size="compact"
+            accept={IMAGE_UPLOAD_MIME_TYPES}
+            disabled={isUploading || isRemoving}
+            label={t("settings.profile.uploadPhoto")}
+            dropLabel={t("settings.profile.dropPhoto")}
+            description={t("settings.profile.avatarHelp")}
+            onFiles={upload}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {isPending && <Spinner />}
-            {t("settings.profile.uploadPhoto")}
-          </Button>
-          {hasAvatar ? (
+          <FileUploadProgressList items={items} locale={locale} onDismiss={dismiss} />
+          {avatarStorageKey ? (
             <Button
               type="button"
               variant="destructive"
               size="sm"
-              disabled={isPending}
+              className="self-start"
+              disabled={isUploading || isRemoving}
               onClick={handleRemoveAvatar}
             >
-              {isPending && <Spinner />}
+              {isRemoving && <Spinner />}
               {t("settings.profile.removePhoto")}
             </Button>
           ) : null}
-          <Typography affects={["muted", "tiny"]}>{t("settings.profile.avatarHelp")}</Typography>
         </div>
       </div>
     </section>

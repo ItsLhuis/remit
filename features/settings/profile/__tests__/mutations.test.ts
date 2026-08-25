@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   deleteWhere: vi.fn(),
   eq: vi.fn(),
   deleteStorageObject: vi.fn(),
+  verifyUploadedObject: vi.fn(),
   loggerError: vi.fn()
 }))
 
@@ -53,6 +54,13 @@ vi.mock("@/lib/logger", () => ({
   }
 }))
 
+// Mocked at its own module boundary rather than through the s3 client beneath it: this suite is
+// about what the mutation does with a verified object, and hashing real bytes would test
+// `verifyUploadedObject` a second time.
+vi.mock("@/lib/storage/verifyUploadedObject", () => ({
+  verifyUploadedObject: mocks.verifyUploadedObject
+}))
+
 vi.mock("@/lib/storage/s3", () => ({
   deleteStorageObject: mocks.deleteStorageObject
 }))
@@ -80,6 +88,10 @@ describe("profile settings mutations", () => {
     vi.clearAllMocks()
 
     mocks.headers.mockResolvedValue(new Headers())
+    mocks.verifyUploadedObject.mockResolvedValue({
+      sizeBytes: 2048,
+      checksumSha256: "c".repeat(64)
+    })
     mocks.changeEmail.mockResolvedValue(undefined)
     mocks.getSession.mockResolvedValue({ user: { id: "user-1", image: null } })
     mocks.updateUser.mockResolvedValue(undefined)
@@ -142,11 +154,14 @@ describe("profile settings mutations", () => {
 
     expect(result).toEqual({ data: { storageKey: "avatars/user-1/123.png" } })
     expect(mocks.insert).toHaveBeenCalledWith("uploadsTable")
+    // The verified size, not the 1024 the request claimed: the row records what the object actually
+    // measured server-side.
     expect(mocks.insertValues).toHaveBeenCalledWith({
       filename: "photo.png",
       path: "avatars/user-1/123.png",
       mimeType: "image/png",
-      sizeBytes: 1024
+      sizeBytes: 2048,
+      checksumSha256: "c".repeat(64)
     })
     expect(mocks.updateUser).toHaveBeenCalledWith({
       headers: expect.any(Headers),

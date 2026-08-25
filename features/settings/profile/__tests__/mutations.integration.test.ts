@@ -10,6 +10,7 @@ import { database } from "@/tests/integration/database"
 const mocks = vi.hoisted(() => ({
   changeEmail: vi.fn(),
   deleteStorageObject: vi.fn(),
+  getStorageObjectBytes: vi.fn(),
   getSession: vi.fn(),
   headers: vi.fn(),
   loggerError: vi.fn(),
@@ -44,7 +45,8 @@ vi.mock("@/lib/logger", () => ({
 }))
 
 vi.mock("@/lib/storage/s3", () => ({
-  deleteStorageObject: mocks.deleteStorageObject
+  deleteStorageObject: mocks.deleteStorageObject,
+  getStorageObjectBytes: mocks.getStorageObjectBytes
 }))
 
 const ownerId = "00000000-0000-4000-8000-000000000021"
@@ -63,6 +65,7 @@ describe("profile settings mutations", () => {
     })
     mocks.updateUser.mockResolvedValue(undefined)
     mocks.deleteStorageObject.mockResolvedValue(undefined)
+    mocks.getStorageObjectBytes.mockResolvedValue(Buffer.from("stored-avatar-bytes"))
   })
 
   test("requests an email change with the profile callback URL", async () => {

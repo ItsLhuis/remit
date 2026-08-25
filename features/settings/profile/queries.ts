@@ -16,3 +16,11 @@ export async function getProfileEmailConfigured(): Promise<boolean> {
 
   return isEmailConfigured(settings ?? null)
 }
+
+export async function getProfileLocale(): Promise<string> {
+  const settings = await database.query.settings.findFirst({
+    columns: { defaultLocale: true }
+  })
+
+  return settings?.defaultLocale ?? "en"
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { type ChangeEvent, useRef, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -9,107 +9,62 @@ import { useTranslation } from "@/lib/i18n"
 import { resolveStorageUrl } from "@/lib/storage"
 
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Button,
-  Icon,
+  EntityAvatar,
+  FileDropzone,
+  FileUploadProgressList,
   Spinner,
   toast,
   Typography
 } from "@/components/ui"
+
+import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_MIME_TYPES, useFileUpload } from "@/hooks"
 
 import { confirmBusinessLogoUpload, removeBusinessLogo } from "../../mutations"
 
 type LogoSectionProps = {
   businessName: string
   businessLogoStorageKey: string | null
+  locale: string
 }
 
-const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps) => {
+const LogoSection = ({ businessName, businessLogoStorageKey, locale }: LogoSectionProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
 
   const [logoStorageKey, setLogoStorageKey] = useState<string | null>(businessLogoStorageKey)
-  const [isPending, startTransition] = useTransition()
+  const [isRemoving, startRemoving] = useTransition()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const displayName = businessName || t("settings.business.fallbackBusinessName")
 
-  const logoUrl = resolveStorageUrl(logoStorageKey)
-
-  const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-
-    if (!file) return
-
-    // Clearing the input before the upload runs is what lets the same file be picked again after a
-    // failure; a file input fires no change event when its value is unchanged.
-    event.target.value = ""
-
-    startTransition(async () => {
-      const presignResponse = await fetch("/api/upload/business-logo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          sizeBytes: file.size
-        })
+  const { items, isUploading, upload, dismiss } = useFileUpload({
+    type: "business-logo",
+    maxBytes: IMAGE_UPLOAD_MAX_BYTES,
+    mimeTypes: IMAGE_UPLOAD_MIME_TYPES,
+    onUploaded: async (result) => {
+      const confirmed = await confirmBusinessLogoUpload({
+        objectKey: result.objectKey,
+        filename: result.filename,
+        contentType: result.mimeType,
+        sizeBytes: result.sizeBytes
       })
 
-      if (!presignResponse.ok) {
-        const data: unknown = await presignResponse.json()
-        const message =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as Record<string, unknown>).error)
-            : t("settings.business.uploadUrlFailed")
-
-        toast.error(message)
+      if ("error" in confirmed) {
+        toast.error(confirmed.error)
 
         return
       }
 
-      const uploadData = (await presignResponse.json()) as {
-        uploadUrl: string
-        objectKey: string
-      }
-
-      const putResponse = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      })
-
-      if (!putResponse.ok) {
-        toast.error(t("settings.business.uploadFailed"))
-
-        return
-      }
-
-      const result = await confirmBusinessLogoUpload({
-        objectKey: uploadData.objectKey,
-        filename: file.name,
-        contentType: file.type,
-        sizeBytes: file.size
-      })
-
-      if ("error" in result) {
-        toast.error(result.error)
-
-        return
-      }
-
-      setLogoStorageKey(result.data.storageKey)
+      setLogoStorageKey(confirmed.data.storageKey)
 
       router.refresh()
-
       toast.success(t("settings.business.logoUpdated"))
-    })
-  }
+    }
+  })
 
   const handleRemoveLogo = () => {
-    startTransition(async () => {
+    startRemoving(async () => {
       const result = await removeBusinessLogo()
 
       if ("error" in result) {
@@ -121,7 +76,6 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
       setLogoStorageKey(null)
 
       router.refresh()
-
       toast.success(t("settings.business.logoRemoved"))
     })
   }
@@ -129,51 +83,38 @@ const LogoSection = ({ businessName, businessLogoStorageKey }: LogoSectionProps)
   return (
     <section className="space-y-4">
       <Typography variant="h4">{t("settings.business.logo")}</Typography>
-      <div className="flex items-center gap-4">
-        <Avatar className="size-20 rounded-lg after:rounded-lg">
-          <AvatarImage
-            src={logoUrl}
-            alt={t("settings.business.logoAlt", {
-              name: businessName || t("settings.business.fallbackBusinessName")
-            })}
-            className="rounded-lg object-contain"
+      <div className="flex items-start gap-4">
+        <EntityAvatar
+          size="lg"
+          name={displayName}
+          src={resolveStorageUrl(logoStorageKey)}
+          alt={t("settings.business.logoAlt", { name: displayName })}
+          className="size-20"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <FileDropzone
+            size="compact"
+            accept={IMAGE_UPLOAD_MIME_TYPES}
+            disabled={isUploading || isRemoving}
+            label={t("settings.business.uploadLogo")}
+            dropLabel={t("settings.business.dropLogo")}
+            description={t("settings.business.logoHelp")}
+            onFiles={upload}
           />
-          <AvatarFallback className="rounded-lg">
-            <Icon name="Building2" className="text-muted-foreground size-8" aria-hidden="true" />
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            aria-label={t("settings.business.uploadLogo")}
-            onChange={handleLogoChange}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {isPending && <Spinner />}
-            {t("settings.business.uploadLogo")}
-          </Button>
+          <FileUploadProgressList items={items} locale={locale} onDismiss={dismiss} />
           {logoStorageKey ? (
             <Button
               type="button"
               variant="destructive"
               size="sm"
-              disabled={isPending}
+              className="self-start"
+              disabled={isUploading || isRemoving}
               onClick={handleRemoveLogo}
             >
-              {isPending && <Spinner />}
+              {isRemoving && <Spinner />}
               {t("settings.business.removeLogo")}
             </Button>
           ) : null}
-          <Typography affects={["muted", "tiny"]}>{t("settings.business.logoHelp")}</Typography>
         </div>
       </div>
     </section>

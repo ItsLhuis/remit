@@ -6,16 +6,17 @@ import { Separator } from "@/components/ui"
 
 import { SettingsPageHeader } from "@/components/layout"
 
-import { getProfileEmailConfigured } from "../../queries"
+import { getProfileEmailConfigured, getProfileLocale } from "../../queries"
 
 import { AccountDetailsSection } from "./AccountDetailsSection"
 import { AvatarSection } from "./AvatarSection"
 import { LogoutSection } from "./LogoutSection"
 
 const ProfileSettingsPage = async () => {
-  const [session, emailConfigured] = await Promise.all([
+  const [session, emailConfigured, locale] = await Promise.all([
     requireSession(undefined, { disableCookieCache: true }),
-    getProfileEmailConfigured()
+    getProfileEmailConfigured(),
+    getProfileLocale()
   ])
 
   return (
@@ -26,7 +27,7 @@ const ProfileSettingsPage = async () => {
         icon="UserRound"
       />
       <div className="space-y-8">
-        <AvatarSection user={session.user} />
+        <AvatarSection user={session.user} locale={locale} />
         <Separator />
         <AccountDetailsSection user={session.user} emailConfigured={emailConfigured} />
         <Separator />

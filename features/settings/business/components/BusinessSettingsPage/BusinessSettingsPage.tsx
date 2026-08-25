@@ -26,6 +26,7 @@ const BusinessSettingsPage = async () => {
         <LogoSection
           businessName={settings.businessName}
           businessLogoStorageKey={settings.businessLogoStorageKey}
+          locale={settings.defaultLocale}
         />
         <Separator />
         <BusinessProfileSection

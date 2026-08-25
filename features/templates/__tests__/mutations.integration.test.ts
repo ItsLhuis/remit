@@ -19,6 +19,7 @@ const flags = { hidden: false, locked: false }
 
 const mocks = vi.hoisted(() => ({
   emit: vi.fn(),
+  getStorageObjectBytes: vi.fn(),
   getCurrentRole: vi.fn(),
   getSession: vi.fn(),
   headers: vi.fn(),
@@ -28,6 +29,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath
+}))
+
+vi.mock("@/lib/storage/s3", () => ({
+  getStorageObjectBytes: mocks.getStorageObjectBytes
 }))
 
 vi.mock("next/headers", () => ({
@@ -64,6 +69,10 @@ const ownerEmail = "owner-templates@example.com"
 describe("template mutations", () => {
   beforeEach(async () => {
     vi.clearAllMocks()
+
+    // `confirmTemplateImageUpload` verifies the stored object before it inserts into `uploads`
+    // (lib/storage/verifyUploadedObject.ts), and the row's size and checksum come from these bytes.
+    mocks.getStorageObjectBytes.mockResolvedValue(Buffer.from("stored-template-image-bytes"))
 
     await makeUser({ id: ownerId, email: ownerEmail })
 

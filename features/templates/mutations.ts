@@ -17,6 +17,9 @@ import { logger } from "@/lib/logger"
 
 import { getIpAddress } from "@/lib/utils"
 
+import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/storage"
+import { verifyUploadedObject } from "@/lib/storage/verifyUploadedObject"
+
 import { database } from "@/database"
 import { templates, uploads } from "@/database/schema"
 
@@ -270,6 +273,16 @@ export async function confirmTemplateImageUpload(
 
   const { context } = gate
 
+  // The presigned PUT is a URL, not proof that anything was stored. Reading the object back is what
+  // turns the client's report into a fact, and it supplies the size and checksum the row records.
+  const verified = await verifyUploadedObject({
+    objectKey: parsed.data.objectKey,
+    bucket: "public",
+    maxBytes: IMAGE_UPLOAD_MAX_BYTES
+  })
+
+  if (!verified) return { error: t("templates.validation.imageUploadFailed") }
+
   try {
     const [upload] = await database
       .insert(uploads)
@@ -277,7 +290,8 @@ export async function confirmTemplateImageUpload(
         filename: parsed.data.filename,
         path: parsed.data.objectKey,
         mimeType: parsed.data.contentType,
-        sizeBytes: parsed.data.sizeBytes
+        sizeBytes: verified.sizeBytes,
+        checksumSha256: verified.checksumSha256
       })
       .returning({ id: uploads.id, path: uploads.path })
 

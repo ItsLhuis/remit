@@ -13,7 +13,9 @@ import { getCurrentRole } from "@/lib/auth/session"
 
 import { logger } from "@/lib/logger"
 
+import { IMAGE_UPLOAD_MAX_BYTES } from "@/lib/storage"
 import { deleteStorageObject } from "@/lib/storage/s3"
+import { verifyUploadedObject } from "@/lib/storage/verifyUploadedObject"
 
 import { database } from "@/database"
 import { settings, uploads } from "@/database/schema"
@@ -144,6 +146,16 @@ export async function confirmBusinessLogoUpload(
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
+  // The presigned PUT is a URL, not proof that anything was stored. Reading the object back is what
+  // turns the client's report into a fact, and it supplies the size and checksum the row records.
+  const verified = await verifyUploadedObject({
+    objectKey: parsed.data.objectKey,
+    bucket: "public",
+    maxBytes: IMAGE_UPLOAD_MAX_BYTES
+  })
+
+  if (!verified) return { error: t("settings.business.uploadFailed") }
+
   let existingSettingsId: string | null = null
   let oldLogoUploadId: string | null = null
   let oldLogoPath: string | null = null
@@ -171,7 +183,8 @@ export async function confirmBusinessLogoUpload(
         filename: parsed.data.filename,
         path: parsed.data.objectKey,
         mimeType: parsed.data.contentType,
-        sizeBytes: parsed.data.sizeBytes
+        sizeBytes: verified.sizeBytes,
+        checksumSha256: verified.checksumSha256
       })
       .returning({ id: uploads.id })
 

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   deleteWhere: vi.fn(),
   eq: vi.fn(),
   deleteStorageObject: vi.fn(),
+  verifyUploadedObject: vi.fn(),
   loggerError: vi.fn(),
   loggerWarn: vi.fn()
 }))
@@ -58,6 +59,13 @@ vi.mock("@/lib/logger", () => ({
     error: mocks.loggerError,
     warn: mocks.loggerWarn
   }
+}))
+
+// Mocked at its own module boundary rather than through the s3 client beneath it: this suite is
+// about what the mutation does with a verified object, and hashing real bytes would test
+// `verifyUploadedObject` a second time.
+vi.mock("@/lib/storage/verifyUploadedObject", () => ({
+  verifyUploadedObject: mocks.verifyUploadedObject
 }))
 
 vi.mock("@/lib/storage/s3", () => ({
@@ -116,6 +124,10 @@ describe("business settings mutations", () => {
     vi.clearAllMocks()
 
     mocks.headers.mockResolvedValue(new Headers())
+    mocks.verifyUploadedObject.mockResolvedValue({
+      sizeBytes: 2048,
+      checksumSha256: "c".repeat(64)
+    })
     mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
     mocks.getCurrentRole.mockResolvedValue("owner")
     mocks.listOrganizations.mockResolvedValue([{ id: "org-1" }])
@@ -250,11 +262,14 @@ describe("business settings mutations", () => {
     })
 
     expect(result).toEqual({ data: { storageKey: "business-logos/123.png" } })
+    // The verified size, not the 1024 the request claimed: the row records what the object actually
+    // measured server-side.
     expect(mocks.insertValues).toHaveBeenCalledWith(expect.objectContaining({ id: "uploads.id" }), {
       filename: "logo.png",
       path: "business-logos/123.png",
       mimeType: "image/png",
-      sizeBytes: 1024
+      sizeBytes: 2048,
+      checksumSha256: "c".repeat(64)
     })
     expect(mocks.updateSet).toHaveBeenCalledWith(expect.objectContaining({ id: "settings.id" }), {
       businessLogoUploadId: "upload-1"

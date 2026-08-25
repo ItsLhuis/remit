@@ -9,6 +9,7 @@ import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
   deleteStorageObject: vi.fn(),
+  getStorageObjectBytes: vi.fn(),
   getCurrentRole: vi.fn(),
   getSession: vi.fn(),
   headers: vi.fn(),
@@ -49,7 +50,8 @@ vi.mock("@/lib/logger", () => ({
 }))
 
 vi.mock("@/lib/storage/s3", () => ({
-  deleteStorageObject: mocks.deleteStorageObject
+  deleteStorageObject: mocks.deleteStorageObject,
+  getStorageObjectBytes: mocks.getStorageObjectBytes
 }))
 
 const ownerId = "00000000-0000-4000-8000-000000000011"
@@ -69,6 +71,7 @@ describe("business settings mutations", () => {
     mocks.listOrganizations.mockResolvedValue([{ id: "00000000-0000-4000-8000-000000000012" }])
     mocks.updateOrganization.mockResolvedValue({ id: "00000000-0000-4000-8000-000000000012" })
     mocks.deleteStorageObject.mockResolvedValue(undefined)
+    mocks.getStorageObjectBytes.mockResolvedValue(Buffer.from("stored-logo-bytes"))
   })
 
   test("persists profile settings and mirrors the organization name when the owner saves profile details", async () => {

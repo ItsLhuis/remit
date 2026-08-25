@@ -1,10 +1,10 @@
 "use client"
 
-import { useRef, useState, type ChangeEvent } from "react"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { Button, Spinner, toast, Typography } from "@/components/ui"
+import { FileDropzone, toast, Typography } from "@/components/ui"
+
+import { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_MIME_TYPES, useFileUpload } from "@/hooks"
 
 import { confirmTemplateImageUpload } from "../../mutations"
 
@@ -16,9 +16,13 @@ type ImageBlockFieldProps = {
   onUploaded: (uploadId: string, storageKey: string) => void
 }
 
-// Template images are upload-only: the block stores an uploads.id, never a URL. This field drives
-// the shared presign -> PUT -> confirm flow (the avatar/logo pattern) against the template-image
-// upload type.
+// Template images are upload-only: the block stores an uploads.id, never a URL.
+//
+// The one deliberate difference from the other three migrated call sites is that this field shows no
+// `FileUploadProgressList`. It lives in the canvas editor's inspector panel, a fixed-width column
+// beside the canvas, where a growing list would push the rest of the block's controls out of view
+// mid-upload. A single image at the 5 MB ceiling finishes fast enough that the dropzone's disabled
+// state is the whole feedback it needs; failures still arrive as a toast.
 const ImageBlockField = ({
   hasUpload,
   imageUrl,
@@ -28,77 +32,27 @@ const ImageBlockField = ({
 }: ImageBlockFieldProps) => {
   const { t } = useTranslation()
 
-  const [isUploading, setIsUploading] = useState(false)
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-
-    if (!file) return
-
-    event.target.value = ""
-
-    setIsUploading(true)
-
-    try {
-      const presignResponse = await fetch("/api/upload/template-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          sizeBytes: file.size
-        })
+  const { isUploading, upload } = useFileUpload({
+    type: "template-image",
+    maxBytes: IMAGE_UPLOAD_MAX_BYTES,
+    mimeTypes: IMAGE_UPLOAD_MIME_TYPES,
+    onUploaded: async (result) => {
+      const confirmed = await confirmTemplateImageUpload({
+        objectKey: result.objectKey,
+        filename: result.filename,
+        contentType: result.mimeType,
+        sizeBytes: result.sizeBytes
       })
 
-      if (!presignResponse.ok) {
-        const data: unknown = await presignResponse.json()
-        const message =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as Record<string, unknown>).error)
-            : t("templates.validation.imageUploadUrlFailed")
-
-        toast.error(message)
+      if ("error" in confirmed) {
+        toast.error(confirmed.error)
 
         return
       }
 
-      const uploadData = (await presignResponse.json()) as {
-        uploadUrl: string
-        objectKey: string
-      }
-
-      const putResponse = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      })
-
-      if (!putResponse.ok) {
-        toast.error(t("templates.validation.imageUploadFailed"))
-
-        return
-      }
-
-      const result = await confirmTemplateImageUpload({
-        objectKey: uploadData.objectKey,
-        filename: file.name,
-        contentType: file.type,
-        sizeBytes: file.size
-      })
-
-      if ("error" in result) {
-        toast.error(result.error)
-
-        return
-      }
-
-      onUploaded(result.data.uploadId, result.data.storageKey)
-    } finally {
-      setIsUploading(false)
+      onUploaded(confirmed.data.uploadId, confirmed.data.storageKey)
     }
-  }
+  })
 
   return (
     <div className="flex flex-col gap-2">
@@ -115,24 +69,14 @@ const ImageBlockField = ({
           <Typography affects={["muted", "small"]}>{t("templates.editor.imageEmpty")}</Typography>
         </div>
       )}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        className="hidden"
-        aria-label={t("templates.editor.uploadImage")}
-        onChange={handleFileChange}
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
+      <FileDropzone
+        size="compact"
+        accept={IMAGE_UPLOAD_MIME_TYPES}
         disabled={disabled || isUploading}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        {isUploading && <Spinner />}
-        {hasUpload ? t("templates.editor.replaceImage") : t("templates.editor.uploadImage")}
-      </Button>
+        label={hasUpload ? t("templates.editor.replaceImage") : t("templates.editor.uploadImage")}
+        dropLabel={t("templates.editor.dropImage")}
+        onFiles={upload}
+      />
     </div>
   )
 }
