@@ -10,7 +10,10 @@ type IconButtonSize = Extract<
   "icon" | "icon-xs" | "icon-sm" | "icon-lg"
 >
 
-type IconButtonProps = Omit<ComponentProps<typeof Button>, "children" | "size"> & {
+// `asChild` is excluded rather than forwarded: this component always renders a second child — the
+// `sr-only` label — so a slotted `Button` would hand two children to `React.Children.only` and throw
+// at render. A link that needs an icon button's look uses `Button asChild` directly.
+type IconButtonProps = Omit<ComponentProps<typeof Button>, "asChild" | "children" | "size"> & {
   children: ReactNode
   label: string
   tooltip?: string

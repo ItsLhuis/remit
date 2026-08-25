@@ -1,5 +1,6 @@
 export * from "./useCopyWithFeedback"
 export * from "./useDataTable"
+export * from "./useFileUpload"
 export * from "./useIsMobile"
 export * from "./useListFilters"
 export * from "./useLocalStorage"
