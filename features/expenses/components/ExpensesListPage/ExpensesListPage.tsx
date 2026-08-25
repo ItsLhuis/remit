@@ -251,6 +251,9 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
           clientOptions={data.clientOptions}
           categoryOptions={data.categoryOptions}
           defaultCurrency={data.defaults.defaultCurrency}
+          locale={data.defaults.defaultLocale}
+          attachments={[]}
+          canWriteAttachments={data.canWriteAttachments}
           onOpenChange={setCreateOpen}
           onSuccess={() => router.refresh()}
         />
@@ -263,6 +266,9 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
             clientOptions={data.clientOptions}
             categoryOptions={data.categoryOptions}
             defaultCurrency={data.defaults.defaultCurrency}
+            locale={data.defaults.defaultLocale}
+            attachments={data.attachmentsByExpense[editFormData.id] ?? []}
+            canWriteAttachments={data.canWriteAttachments}
             onOpenChange={(open) => {
               if (!open) setEditExpense(null)
             }}

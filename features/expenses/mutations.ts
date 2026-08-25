@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger"
 import { getIpAddress, serializeCsv } from "@/lib/utils"
 
 import { deleteStorageObject } from "@/lib/storage/s3"
+import { verifyUploadedObject } from "@/lib/storage/verifyUploadedObject"
 
 import { database } from "@/database"
 import { clients, expenses, projects, uploads } from "@/database/schema"
@@ -25,6 +26,7 @@ import { clients, expenses, projects, uploads } from "@/database/schema"
 import { emitExpenseCreated } from "./events"
 import { getExpenseForEdit, getExpensesDefaults, listExpensesForExport } from "./queries"
 import {
+  EXPENSE_RECEIPT_MAX_BYTES,
   expenseFormSchema,
   expenseIdSchema,
   expenseListQuerySchema,
@@ -417,13 +419,24 @@ function toExpenseColumns(values: ExpenseFormValues | UpdateExpenseValues, scope
 async function insertReceiptUpload(receipt: ExpenseReceiptValues | null): Promise<string | null> {
   if (!receipt) return null
 
+  // The presigned PUT is a URL, not proof that anything was stored, and the form's `sizeBytes` is the
+  // browser's claim about a file the server never saw. Reading the object back settles both.
+  const verified = await verifyUploadedObject({
+    objectKey: receipt.objectKey,
+    bucket: "public",
+    maxBytes: EXPENSE_RECEIPT_MAX_BYTES
+  })
+
+  if (!verified) throw new ExpectedExpenseError(t("expenses.errors.uploadFailed"))
+
   const [created] = await database
     .insert(uploads)
     .values({
       filename: receipt.filename,
       path: receipt.objectKey,
       mimeType: receipt.mimeType,
-      sizeBytes: receipt.sizeBytes
+      sizeBytes: verified.sizeBytes,
+      checksumSha256: verified.checksumSha256
     })
     .returning({ id: uploads.id })
 

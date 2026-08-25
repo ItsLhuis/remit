@@ -2,7 +2,16 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui"
+import {
+  Separator,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle
+} from "@/components/ui"
+
+import { AttachmentsPanel, type AttachmentListItem } from "@/features/attachments"
 
 import { type ExpenseClientOption, type ExpenseFormData, type ExpenseProjectOption } from "../types"
 
@@ -14,6 +23,9 @@ type ExpenseFormSheetProps = {
   clientOptions: ExpenseClientOption[]
   categoryOptions: string[]
   defaultCurrency: string
+  locale: string
+  attachments: AttachmentListItem[]
+  canWriteAttachments: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: (expense: { id: string }) => void
 } & ({ mode: "create"; expense?: never } | { mode: "edit"; expense: ExpenseFormData })
@@ -40,16 +52,32 @@ const ExpenseFormSheet = (props: ExpenseFormSheetProps) => {
           </SheetDescription>
         </SheetHeader>
         {props.mode === "edit" ? (
-          <ExpenseForm
-            mode="edit"
-            expense={props.expense}
-            projectOptions={props.projectOptions}
-            clientOptions={props.clientOptions}
-            categoryOptions={props.categoryOptions}
-            defaultCurrency={props.defaultCurrency}
-            onSuccess={handleSuccess}
-            onCancel={() => props.onOpenChange(false)}
-          />
+          // The files panel only exists in edit mode, and deliberately: an attachment needs an
+          // `expense_id` to hang off, and a expense being created does not have one yet. It also
+          // writes immediately where the form around it writes on submit, which is why it sits below
+          // a separator with its own heading rather than reading as another form field. The receipt
+          // field inside the form is the expense's own document; this is everything else.
+          <>
+            <ExpenseForm
+              mode="edit"
+              expense={props.expense}
+              projectOptions={props.projectOptions}
+              clientOptions={props.clientOptions}
+              categoryOptions={props.categoryOptions}
+              defaultCurrency={props.defaultCurrency}
+              onSuccess={handleSuccess}
+              onCancel={() => props.onOpenChange(false)}
+            />
+            <Separator />
+            <div className="p-4">
+              <AttachmentsPanel
+                parent={{ parentType: "expense", parentId: props.expense.id }}
+                attachments={props.attachments}
+                locale={props.locale}
+                canWrite={props.canWriteAttachments}
+              />
+            </div>
+          </>
         ) : (
           <ExpenseForm
             mode="create"

@@ -20,6 +20,8 @@ import { formatCentsForInput } from "@/lib/utils"
 import { database } from "@/database"
 import { clients, expenses, projects, uploads } from "@/database/schema"
 
+import { canWriteAttachments, listAttachmentsByParents } from "@/features/attachments/server"
+
 import {
   expenseIdSchema,
   parseExpenseListQuery,
@@ -95,6 +97,17 @@ export async function getExpensesPageData(input: unknown): Promise<ExpensesPageD
       listExpenseCurrencyOptions()
     ])
 
+  // Batched after the list rather than beside it: the ids come from `list.rows`, and an expense has
+  // no detail page, so its files panel lives in the edit sheet and needs the attachments already on
+  // the page when the sheet opens.
+  const [attachmentsByExpense, canWriteFiles] = await Promise.all([
+    listAttachmentsByParents({
+      parentType: "expense",
+      parentIds: list.rows.map((row) => row.id)
+    }),
+    canWriteAttachments()
+  ])
+
   return {
     expenses: list.rows,
     rowCount: list.rowCount,
@@ -104,6 +117,8 @@ export async function getExpensesPageData(input: unknown): Promise<ExpensesPageD
     clientOptions,
     categoryOptions,
     currencyOptions,
+    attachmentsByExpense,
+    canWriteAttachments: canWriteFiles,
     defaults
   }
 }

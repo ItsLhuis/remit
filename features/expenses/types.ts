@@ -1,3 +1,5 @@
+import { type AttachmentListItem } from "@/features/attachments"
+
 import { type ExpenseFormInputValues, type ExpenseListQuery } from "./schemas"
 
 export type ExpenseReceiptFile = {
@@ -62,6 +64,8 @@ export type ExpensesPageData = {
   clientOptions: ExpenseClientOption[]
   categoryOptions: string[]
   currencyOptions: string[]
+  attachmentsByExpense: Record<string, AttachmentListItem[]>
+  canWriteAttachments: boolean
   defaults: ExpensesDefaults
 }
 

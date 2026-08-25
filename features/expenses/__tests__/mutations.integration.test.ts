@@ -20,6 +20,7 @@ import { parseExpenseListQuery } from "../schemas"
 const mocks = vi.hoisted(() => ({
   deleteStorageObject: vi.fn(),
   emit: vi.fn(),
+  getStorageObjectBytes: vi.fn(),
   getCurrentRole: vi.fn(),
   getSession: vi.fn(),
   headers: vi.fn(),
@@ -61,7 +62,8 @@ vi.mock("@/lib/logger", () => ({
 }))
 
 vi.mock("@/lib/storage/s3", () => ({
-  deleteStorageObject: mocks.deleteStorageObject
+  deleteStorageObject: mocks.deleteStorageObject,
+  getStorageObjectBytes: mocks.getStorageObjectBytes
 }))
 
 const ownerId = "00000000-0000-4000-8000-000000000c01"
@@ -93,6 +95,10 @@ function expenseInput(overrides?: Record<string, unknown>) {
 describe("expense mutations", () => {
   beforeEach(async () => {
     vi.clearAllMocks()
+
+    // `confirmExpenseReceipt` verifies the stored object before it inserts into `uploads`
+    // (lib/storage/verifyUploadedObject.ts), and the row's size and checksum come from these bytes.
+    mocks.getStorageObjectBytes.mockResolvedValue(Buffer.from("stored-receipt-bytes"))
 
     await makeUser({ id: ownerId, email: ownerEmail })
     await makeSettings()
