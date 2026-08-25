@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   headers: vi.fn(),
   getSession: vi.fn(),
   getSignedUrl: vi.fn(),
+  ensureDocumentsBucket: vi.fn(),
   s3UploadPresigner: {}
 }))
 
@@ -27,6 +28,8 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/storage/s3", () => ({
   MINIO_BUCKET: "remit-test",
+  MINIO_DOCUMENTS_BUCKET: "remit-test-documents",
+  ensureDocumentsBucket: mocks.ensureDocumentsBucket,
   s3UploadPresigner: mocks.s3UploadPresigner
 }))
 
@@ -52,6 +55,14 @@ function logoParams() {
 
 function receiptParams() {
   return { params: Promise.resolve({ type: "expense-receipt" }) }
+}
+
+function attachmentParams() {
+  return { params: Promise.resolve({ type: "attachment" }) }
+}
+
+function clientImageParams() {
+  return { params: Promise.resolve({ type: "client-image" }) }
 }
 
 describe("avatar upload route", () => {
@@ -397,6 +408,167 @@ describe("expense receipt upload route", () => {
 
     expect(response.status).toBe(401)
     expect(body.error).toBe("errors.unauthorized")
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+})
+
+describe("attachment upload route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    mocks.headers.mockResolvedValue(new Headers())
+    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
+    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
+    mocks.ensureDocumentsBucket.mockResolvedValue(undefined)
+  })
+
+  test("mints an attachment key under the prefix the feature schema requires", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/attachment", {
+        filename: "nda.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 2048
+      }),
+      attachmentParams()
+    )
+    const body = (await response.json()) as { objectKey: string }
+
+    expect(response.status).toBe(200)
+    expect(body.objectKey).toMatch(
+      /^attachments\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/
+    )
+  })
+
+  test("signs an attachment into the private documents bucket, never the public one", async () => {
+    const { POST } = await import("../[type]/route")
+
+    await POST(
+      createRequest("https://remit.test/api/upload/attachment", {
+        filename: "brief.png",
+        contentType: "image/png",
+        sizeBytes: 2048
+      }),
+      attachmentParams()
+    )
+
+    const command = mocks.getSignedUrl.mock.calls[0]?.[1] as { input: { Bucket: string } }
+
+    expect(command.input.Bucket).toBe("remit-test-documents")
+    expect(mocks.ensureDocumentsBucket).toHaveBeenCalledOnce()
+  })
+
+  test("refuses a file larger than the attachment ceiling without calling storage", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/attachment", {
+        filename: "huge.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 26 * 1024 * 1024
+      }),
+      attachmentParams()
+    )
+
+    expect(response.status).toBe(400)
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+
+  test("refuses an archive, which would carry anything past the mime allowlist", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/attachment", {
+        filename: "bundle.zip",
+        contentType: "application/zip",
+        sizeBytes: 2048
+      }),
+      attachmentParams()
+    )
+
+    expect(response.status).toBe(400)
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+
+  test("returns unauthorized when the request has no session", async () => {
+    mocks.getSession.mockResolvedValueOnce(null)
+
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/attachment", {
+        filename: "nda.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 2048
+      }),
+      attachmentParams()
+    )
+
+    expect(response.status).toBe(401)
+    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+  })
+})
+
+describe("client image upload route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    mocks.headers.mockResolvedValue(new Headers())
+    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
+    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
+  })
+
+  test("mints a client image key under the prefix the feature schema requires", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/client-image", {
+        filename: "acme.png",
+        contentType: "image/png",
+        sizeBytes: 2048
+      }),
+      clientImageParams()
+    )
+    const body = (await response.json()) as { objectKey: string }
+
+    expect(response.status).toBe(200)
+    expect(body.objectKey).toMatch(
+      /^clients\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/
+    )
+  })
+
+  test("signs a client image into the public bucket, where resolveStorageUrl can read it", async () => {
+    const { POST } = await import("../[type]/route")
+
+    await POST(
+      createRequest("https://remit.test/api/upload/client-image", {
+        filename: "acme.png",
+        contentType: "image/png",
+        sizeBytes: 2048
+      }),
+      clientImageParams()
+    )
+
+    const command = mocks.getSignedUrl.mock.calls[0]?.[1] as { input: { Bucket: string } }
+
+    expect(command.input.Bucket).toBe("remit-test")
+    expect(mocks.ensureDocumentsBucket).not.toHaveBeenCalled()
+  })
+
+  test("refuses a PDF, which is not an image", async () => {
+    const { POST } = await import("../[type]/route")
+
+    const response = await POST(
+      createRequest("https://remit.test/api/upload/client-image", {
+        filename: "acme.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 2048
+      }),
+      clientImageParams()
+    )
+
+    expect(response.status).toBe(400)
     expect(mocks.getSignedUrl).not.toHaveBeenCalled()
   })
 })

@@ -14,6 +14,7 @@ export async function makeUpload(overrides?: Partial<InferInsertModel<typeof upl
       path: `uploads/${faker.string.uuid()}.png`,
       mimeType: "image/png",
       sizeBytes: 1024,
+      checksumSha256: faker.string.hexadecimal({ length: 64, prefix: "", casing: "lower" }),
       ...overrides
     })
     .returning()
