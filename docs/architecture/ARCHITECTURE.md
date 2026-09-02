@@ -1752,6 +1752,10 @@ shipped against them yet) may be consolidated or rewritten in place — the goal
 record at the moment implementation begins, not a frozen history of every draft. Each ADR follows
 the standard template: **Context**, **Decision**, **Consequences**, **Alternatives considered**.
 
+An ADR records why a decision was taken. What was subsequently built against it — the scope, the
+implementation shape, the evidence and the gaps left open on the day — is recorded separately, one
+sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
+
 | ADR                                                 | Title                                                                       | Status   |
 | --------------------------------------------------- | --------------------------------------------------------------------------- | -------- |
 | [0001](adr/0001-no-cookie-routing.md)               | No cookies for routing state                                                | Accepted |

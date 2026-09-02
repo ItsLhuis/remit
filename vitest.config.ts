@@ -38,6 +38,7 @@ export default defineConfig({
             "features/**/services/__tests__/**",
             "lib/**/__tests__/**",
             "hooks/__tests__/**",
+            "scripts/core/**/__tests__/**",
             "**/*.integration.test.ts",
             "tests/e2e/**",
             "**/node_modules/**"

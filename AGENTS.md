@@ -67,8 +67,9 @@ provides the Postgres service used by integration tests.
   `layout/` via `components/layout/index.ts`. Check existing primitives before adding new UI.
 - `database/` - Drizzle ORM. Schemas in `database/schema/` (one file per domain, barrel at
   `database/schema/index.ts`). Never edit files in `drizzle/migrations/` manually.
-- `lib/` - Server and client utilities. `lib/auth.ts` - better-auth server config;
-  `lib/authClient.ts` - client exports (`authClient`, `signOut`, `useSession`).
+- `lib/` - Server and client utilities. `lib/auth/index.ts` - better-auth server config (`auth`);
+  `lib/auth/client.ts` - client exports (`authClient`, `signOut`, `useSession`);
+  `lib/auth/session.ts` - the authorization helpers (`requireSession`, `requireRole`).
 - `hooks/` - Shared React hooks.
 - `providers/` - App-level React providers.
 - `scripts/` - Repository automation scripts, including version bump helpers.
@@ -144,6 +145,20 @@ Working principles behind the detailed `.agents/rules/`, adapted from the
 what the system is, the design philosophy, the domain model, module boundaries, security
 architecture, and every significant architectural decision. Implementation plans and feature
 decisions must align with the principles and decisions recorded there.
+
+## Delivery Records
+
+`docs/delivery/` records what was built, why, how, and how it was verified — one record per
+capability, sealed once the work ships. It is the repository's memory of its own deliveries, and it
+exists because nothing else here holds one: an ADR records a decision and never changes,
+`ARCHITECTURE.md` and `SCHEMA.md` record the present and are rewritten in place, and the runbooks
+record procedures.
+
+A change that delivers a whole capability opens a record when the work starts and seals it once
+every gate passes. A record cites ADRs and source files; it never restates an ADR, never
+reconstructs `git log`, and never carries a claim without a reference. A sealed record is immutable
+— later work on the same capability is a new record that supersedes it. `docs/delivery/README.md`
+owns the format, `tests/docs/delivery.test.ts` enforces what can be enforced.
 
 ## Shared Rules
 
