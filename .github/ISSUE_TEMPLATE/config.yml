@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/ItsLhuis/remit/security/advisories/new
+    about: >
+      Never report a security problem in a public issue. This opens a private advisory visible only
+      to the maintainer. The policy is in SECURITY.md.
+  - name: Ask a question or discuss an idea
+    url: https://github.com/ItsLhuis/remit/discussions
+    about: Questions about running, configuring or extending Remit belong in Discussions.
+  - name: Read the documentation
+    url: https://github.com/ItsLhuis/remit/tree/main/docs
+    about: Architecture, the database schema, the decision records, and the operator runbooks.

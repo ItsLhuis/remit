@@ -1,0 +1,57 @@
+name: Feature request
+description: Suggest a capability Remit does not have
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remit is opinionated on purpose. A request that conflicts with a recorded decision can still
+        be worth making — say so, and argue it. The decisions live in
+        [`docs/architecture/adr/`](../blob/main/docs/architecture/adr).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that Remit makes hard or impossible today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like it to do
+      description: Describe the behaviour, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+      description: The workaround, if you have one, and why it is not enough.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Who does this serve
+      options:
+        - Any freelancer using Remit
+        - A specific jurisdiction's legal or tax requirement
+        - A specific deployment or self-hosting setup
+        - Mostly me
+    validations:
+      required: true
+
+  - type: textarea
+    id: jurisdiction
+    attributes:
+      label: Jurisdiction
+      description: >
+        If this is a legal, tax or invoicing requirement, name the country and the rule. Invoicing
+        law differs enough per country that a request without it usually cannot be implemented
+        correctly.
+    validations:
+      required: false

@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in Remit does not work as described
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a security vulnerability here. Use
+        [Security → Report a vulnerability](https://github.com/security/advisories) instead; the
+        policy is in [SECURITY.md](../blob/main/.github/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Remit version
+      description: Shown on /settings/system, or the image tag you are running.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is it deployed
+      description: A self-hosted bug usually cannot be reproduced without this.
+      options:
+        - Docker Compose (the shipped docker-compose.yml)
+        - Docker, but a custom compose or orchestrator
+        - Local development (pnpm dev)
+        - Hosted
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: health
+    attributes:
+      label: System health
+      description: >
+        If the instance starts, paste what /settings/system reports — database, migrations, email,
+        storage, backup and disk. Redact anything you consider sensitive.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: >
+        App or worker container logs around the failure. Remove any secrets before pasting; Remit
+        does not log credentials, but your reverse proxy might.
+      render: shell
+    validations:
+      required: false
