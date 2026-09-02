@@ -184,7 +184,8 @@ implemented command.
   database, encryption key, uploads volume, and configured backup destination.
 - **Required configuration:** `DATABASE_URL`, `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`, readable
   uploads/storage paths, and a local or configured remote backup destination. Remote destinations
-  use the encrypted backup credentials saved in `/settings/backup`.
+  use the encrypted backup credentials held in the `settings` row's `backup_s3_*` columns, which are
+  written directly against the database.
 - **Destructive scope:** non-destructive.
 - **Confirmation:** overwriting an existing local output path requires interactive confirmation
   unless `--yes` is supplied.

@@ -1,7 +1,6 @@
 ---
 paths:
-  - "lib/auth*.ts"
-  - "lib/session.ts"
+  - "lib/auth/**"
   - "app/api/auth/**"
   - "app/(auth)/**"
   - "features/**"
@@ -25,9 +24,9 @@ Direct database access to Better Auth-owned tables is acceptable only for:
 - Schema definitions and generated migrations.
 - Explicit operational recovery scripts, such as the password reset CLI.
 
-`requireSession` and `requireRole` in `lib/session.ts` are the canonical application authorization
-helpers. `requireRole` delegates to Better Auth organization state, specifically the active member
-role, and must not create or repair memberships as a fallback.
+`requireSession` and `requireRole` in `lib/auth/session.ts` are the canonical application
+authorization helpers. `requireRole` delegates to Better Auth organization state, specifically the
+active member role, and must not create or repair memberships as a fallback.
 
 Organization creation, active organization selection, membership changes, invitations, and role
 changes use Better Auth organization APIs. Remit uses one Better Auth organization per instance.
