@@ -8,8 +8,31 @@ import { expect, test } from "vitest"
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url))
 
+const adrDirectory = join(repoRoot, "docs", "architecture", "adr")
+
 function readArchitecture(): string {
   return readFileSync(join(repoRoot, "docs", "architecture", "ARCHITECTURE.md"), "utf8")
+}
+
+function readAdrIndex(): string {
+  return readFileSync(join(adrDirectory, "README.md"), "utf8")
+}
+
+// The `adr/README.md` table links siblings (`0001-….md`) where the ARCHITECTURE.md table links
+// through the directory (`adr/0001-….md`), so the two are compared on file names rather than on
+// their raw rows.
+function extractAdrIndexFiles(index: string): string[] {
+  const files = new Set<string>()
+
+  for (const line of index.split("\n")) {
+    if (!line.trim().startsWith("|")) continue
+
+    for (const match of line.matchAll(/\((\d{4}-[^)]+\.md)\)/g)) {
+      files.add(match[1])
+    }
+  }
+
+  return [...files]
 }
 
 function extractIndexedAdrFiles(architecture: string): string[] {
@@ -32,8 +55,8 @@ function extractIndexedAdrFiles(architecture: string): string[] {
 }
 
 test("every ADR file is listed in the ARCHITECTURE.md decision index", () => {
-  const adrFiles = readdirSync(join(repoRoot, "docs", "architecture", "adr")).filter((name) =>
-    name.endsWith(".md")
+  const adrFiles = readdirSync(adrDirectory).filter(
+    (name) => name.endsWith(".md") && name !== "README.md"
   )
   const indexed = new Set(extractIndexedAdrFiles(readArchitecture()))
 
@@ -52,4 +75,21 @@ test("every ADR row in the ARCHITECTURE.md decision index points at a file that 
 
   expect(indexed.length).toBeGreaterThan(0)
   expect(broken).toEqual([])
+})
+
+test("the adr directory index lists exactly the ADR files on disk", () => {
+  const adrFiles = readdirSync(adrDirectory)
+    .filter((name) => name.endsWith(".md") && name !== "README.md")
+    .sort()
+  const indexed = extractAdrIndexFiles(readAdrIndex()).sort()
+
+  expect(adrFiles.length).toBeGreaterThan(0)
+  expect(indexed).toEqual(adrFiles)
+})
+
+test("the adr directory index and the ARCHITECTURE.md index agree", () => {
+  const architectureIndexed = extractIndexedAdrFiles(readArchitecture()).sort()
+  const directoryIndexed = extractAdrIndexFiles(readAdrIndex()).sort()
+
+  expect(directoryIndexed).toEqual(architectureIndexed)
 })

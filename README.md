@@ -150,7 +150,8 @@ The repository currently ships Docker Compose assets for production, development
 A one-command install script is planned, but `scripts/install.sh` is not present today.
 
 The production Compose file exposes the app for an existing reverse proxy and runs PostgreSQL plus
-MinIO alongside the app container.
+MinIO alongside the app container. The step-by-step path from a machine with Docker on it to an
+instance you are logged into is the [installation runbook](./docs/operations/INSTALL.md).
 
 Current operational support:
 
