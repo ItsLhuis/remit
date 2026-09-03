@@ -1,11 +1,13 @@
 # Remit — Architecture
 
-> This document is the authoritative, forward-looking technical reference for Remit. It describes
-> what the system must be, why it is designed that way, and how its parts compose into a coherent
-> whole. What is written here is what the code must implement; the implementation follows the
-> document, not the other way around. It is written for engineers who want to understand the system
-> deeply before contributing, for evaluators reading the codebase as a portfolio artefact, and for
-> the author as the canonical record of every significant architectural decision.
+> This document is the authoritative technical reference for Remit as it stands. It describes what
+> the system is, why it is built that way, and how its parts compose into a coherent whole. It
+> describes only what the repository contains: a capability that is not built is not in this
+> document, in any form — not as a plan, not as a marker, not as a reserved name. A decision that
+> has been taken but not yet built lives in an ADR instead, which is what an ADR is for. It is
+> written for engineers who want to understand the system deeply before contributing, for evaluators
+> reading the codebase as a portfolio artefact, and for the author as the canonical record of every
+> significant architectural decision.
 >
 > Sections are refined in place as decisions evolve; outdated paragraphs are rewritten rather than
 > preserved as history. The historical trail lives in git and in the immutable ADR set under
@@ -37,7 +39,7 @@
 15. [Internationalization](#15-internationalization)
 16. [Observability](#16-observability)
 17. [Testing strategy](#17-testing-strategy)
-18. [Hosted offering](#18-hosted-offering)
+18. [Operating Remit for somebody else](#18-operating-remit-for-somebody-else)
 19. [Open architectural questions](#19-open-architectural-questions)
 20. [Architecture Decision Records](#20-architecture-decision-records)
 
@@ -66,9 +68,9 @@ own infrastructure.
 **Single-instance simplicity.** Every domain entity is implicitly owned by the instance. There is no
 multi-tenancy in the application code, no per-seat pricing logic in the schema. Multi-user support
 exists as a layered addition (owner, accountant, assistant) — see the Multi-user model section — and
-never introduces tenant scoping into domain queries. A managed Hosted offering exists alongside
-self-hosting, with each customer running on a dedicated isolated instance — see the Hosted offering
-section — so that the same simplification holds for both deployment models.
+never introduces tenant scoping into domain queries. Running an instance on somebody else's behalf
+is per-instance isolation rather than shared tenancy — see the Operating Remit for somebody else
+section — so the same simplification holds however the instance is operated.
 
 ### Primary workflow
 
@@ -121,8 +123,8 @@ in this list takes precedence.
 
 No feature, integration, or convenience trade-off justifies sending user data through third parties
 without explicit, opt-in configuration by the user. This is not aspirational — it is enforced by
-architecture: every external dependency (email, payment, error tracking) is an optional adapter that
-is disabled until the user provides credentials.
+architecture: every external dependency (email, payments, object storage) is an adapter that stays
+disabled until the user provides credentials.
 
 ### 2 — Single-instance simplicity is structural
 
@@ -132,8 +134,8 @@ the instance sees the same domain dataset, scoped only by role permissions.
 
 This eliminates an entire class of permission-checking bugs, simplifies every query, and means the
 permission model can be understood in two sentences: you own everything in your instance, and your
-role decides what you can do with it. The Hosted offering preserves this by isolating each customer
-in a dedicated instance — see the Hosted offering section.
+role decides what you can do with it. Running instances for other people preserves this by isolating
+each one — see the Operating Remit for somebody else section.
 
 ### 3 — Modular architecture for a multi-year roadmap
 
@@ -168,11 +170,10 @@ compiler's guarantees hold all the way from the database schema to the React com
 
 ### 8 — The self-hosting experience is part of the product
 
-Self-hosting operations are product work, not afterthoughts. The architecture target includes
-install, upgrade, backup, restore, and disaster recovery. Password-reset recovery, encrypted backup
-archives, destructive-safe restores, deterministic demo seeding, encryption-key rotation, and
-host-side upgrades, and the background job worker are shipped operational surfaces; the installer
-remains planned until backed by code. See the Self-hosting experience section.
+Self-hosting operations are product work, not afterthoughts. Password-reset recovery, encrypted
+backup archives, destructive-safe restores, deterministic demo seeding and its inverse data reset,
+encryption-key rotation, host-side upgrades, and the background job worker are operational surfaces
+of the product, built and documented as such. See the Self-hosting experience section.
 
 ---
 
@@ -225,7 +226,8 @@ erDiagram
         uuid clientId FK
         string status
         string publicToken
-        timestamp expiresAt
+        timestamp validUntil
+        timestamp lockedAt
         timestamp deletedAt
     }
     Contract {
@@ -247,7 +249,8 @@ erDiagram
         bigint totalCents
         string currency
         string publicToken
-        timestamp dueAt
+        timestamp dueDate
+        bigint lateFeeCents
         timestamp deletedAt
     }
     LineItem {
@@ -257,8 +260,8 @@ erDiagram
         string description
         integer quantity
         bigint unitPriceCents
-        decimal taxRate
-        decimal discountPercent
+        decimal taxPercentageSnapshot
+        decimal discountPercentage
     }
     Payment {
         uuid id PK
@@ -378,16 +381,21 @@ erDiagram
 ```
 draft ──► sent ──► paid
             │
-            ├── (overdue - computed, not stored: dueAt < now AND status = sent)
-            └── (partially_paid - computed: sum(payments) < totalCents AND payments exist)
+            ├── (overdue - computed, not stored: status is not draft, paidAt is null,
+            │              and dueDate's UTC day is before today's)
+            └── (partially_paid - computed: 0 < amountPaidCents < totalCents)
 ```
+
+`overdue` and `partially_paid` are never written to `invoices.status`, which holds exactly the three
+stored values. `features/invoices/services/invoiceStatusView.ts`'s `deriveInvoiceStatusView` is the
+single place both are derived, in that precedence, so no two badges can disagree.
 
 **Proposal**
 
 ```
 draft ──► sent ──► accepted
                 ├── rejected
-                └── expired (computed: expiresAt < now AND status = sent)
+                └── expired (computed: validUntil < now AND status = sent)
 ```
 
 **Project**
@@ -417,13 +425,19 @@ draft ──► sent ──► signed
 **RecurringInvoice**
 
 ```
-active ──► completed (end condition met: count or date)
+active ──► paused ──► active
+  │
+  ├── completed (end condition met: count or date)
+  └── cancelled
 ```
 
 ### Key invariants
 
-- A proposal is immutable after acceptance. Editing an accepted proposal creates an immutable
-  historical version; the original is preserved.
+- A proposal is immutable once accepted. `proposals.locked_at` is set at the moment of acceptance by
+  `features/proposals/publicResponse.ts`, and every edit and send path in the module refuses a
+  locked row. There is no second version of an accepted proposal, because the accepted one can never
+  be edited into one — a correction is a new proposal, and the accepted document a client agreed to
+  stays exactly as they saw it.
 - An invoice number, once assigned, is permanent and never reused. The sequence is per-prefix and
   configurable in settings.
 - A conversion link is stored once, on the produced document: `invoices.proposalId` and
@@ -441,8 +455,10 @@ active ──► completed (end condition met: count or date)
 - `timeEntries.invoicedInId` and `expenses.invoicedInId` are the canonical "this was billed, on that
   invoice" link, and the one the unbilled partial indexes rely on. `lineItems.sourceTimeEntryId` and
   `lineItems.sourceExpenseId` are optional per-line provenance, not a mirror of it:
-  `features/recurringInvoices/jobs.ts` writes the first and not the second, so neither may be
-  derived from the other. Nothing enforces this — the flow that would write both does not exist yet.
+  `features/recurringInvoices/jobs.ts` writes `invoicedInId` on the retainer branch and never writes
+  the per-line columns, so neither may be derived from the other. Nothing in the application writes
+  `lineItems.sourceTimeEntryId` or `lineItems.sourceExpenseId`; the demo seeder is their only
+  writer.
 - `audit_logs` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
   application level.
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
@@ -462,15 +478,10 @@ helpers, polymorphic patterns where pragmatic. The full table-by-table schema sp
 `SCHEMA.md` in this directory - that is the authoritative reference for column shape, constraints,
 and indexes.
 
-A divergence between the domain model and the schema means one of the following:
-
-1. The schema is ahead — a new feature is being implemented and the domain model has not yet been
-   updated. The domain model is updated as part of merging the feature.
-2. The schema is behind — the domain model describes a planned feature whose schema does not yet
-   exist. This is expected; the schema implements only what is built.
-
-A divergence that is neither of the above is a defect and is reconciled before further work
-proceeds.
+A divergence between the domain model and the schema is a defect in either direction, and is
+reconciled before further work proceeds. The domain model describes what the schema implements: it
+does not run ahead of it to describe an entity that has no table, and it does not lag behind a table
+that exists. Both are updated in the same change as the code they describe.
 
 ---
 
@@ -490,8 +501,8 @@ proceeds.
   │   app/(dashboard)/**        │    │   /i/[token]   Invoice view          │
   │   app/(auth)/**             │    │   /p/[token]   Proposal acceptance   │
   │   app/(setup)/**            │    │   /c/[token]   Contract signing      │
-  └─────────────────────────────┘    │   /s/[token]   Client portal         │
-                 │                   └──────────────────────────────────────┘
+  └─────────────────────────────┘    └──────────────────────────────────────┘
+                 │
                  │ calls
                  │
   ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
@@ -507,8 +518,7 @@ proceeds.
   │   Drizzle ORM               │    │   Email  - SMTP or Resend            │
   │   PostgreSQL                │    │   Payments - Stripe (or others)      │
   │   database/schema/          │    │   Storage  - local FS or S3          │
-  └─────────────────────────────┘    │   Error tracking - Sentry-compatible │
-                                     └──────────────────────────────────────┘
+  └─────────────────────────────┘    └──────────────────────────────────────┘
 ```
 
 ### Technology stack
@@ -590,9 +600,9 @@ changes only. The boundary enforcement means no hidden coupling to unwind.
 
 ### Feature inventory
 
-The full feature inventory and its planned extensions are documented in the project's roadmap.
-Active features at any given time are reflected by the directories present in `features/` and by the
-relations declared in `database/schema/`.
+The feature inventory is the set of directories under `features/` and the relations declared in
+`database/schema/`. Those two are the inventory; no separate list is maintained, because a list kept
+by hand beside them drifts from both.
 
 ---
 
@@ -741,8 +751,7 @@ when attachments landed; each regeneration re-created those two files unchanged 
 
 A squash **invalidates every existing database**. There is no upgrade path across one: a developer
 or deployment holding the old history has to reset, because the replay is keyed by hash and the old
-hashes no longer exist. It is safe only while v1 has not shipped, and it stops being available the
-moment it has — from the first release onwards, migrations are only ever appended.
+hashes no longer exist. Migrations are only ever appended to that baseline.
 
 ---
 
@@ -765,45 +774,56 @@ With the bus, `markInvoicePaid` emits `invoice.paid` once. Each feature register
 
 ```
 <entity>.<past_tense_verb>
+```
 
-invoice.created        invoice.sent           invoice.paid
-invoice.overdue        invoice.reminder_sent  invoice.partially_paid
-proposal.sent          proposal.accepted      proposal.rejected       proposal.expired
-contract.sent          contract.signed        contract.expired
-time.logged            time.invoiced
-expense.created        expense.invoiced
-payment.received
+`lib/events/types.ts` holds the whole map, and the compiler rejects any `emit` whose name or payload
+is not in it. Grouped by entity, the names it declares are:
+
+```
+lead.created           lead.updated           lead.deleted            lead.stage_changed
+lead.converted
 client.created         client.updated         client.deleted
-lead.converted         lead.stage_changed
+project.created        project.updated        project.deleted         project.status_changed
+task.created           task.updated           task.deleted            task.status_changed
+template.created       template.updated       template.deleted
+proposal.created       proposal.updated       proposal.deleted        proposal.sent
+proposal.accepted      proposal.rejected
+contract.created       contract.updated       contract.deleted        contract.sent
+contract.signed        contract.terminated
+invoice.created        invoice.updated        invoice.deleted         invoice.sent
+invoice.paid           invoice.overdue        invoice.reminder_sent
+credit_note.issued     credit_note.deleted
+payment.received
+time.logged            expense.created
+recurring.invoice_generated  retainer.pool_exhausted
 auth.login.succeeded   auth.login.failed      auth.password.changed
 auth.totp.reconfigured auth.backup_code.consumed
 settings.email.configured  settings.payment.configured  settings.security.changed
-recurring.invoice_generated  retainer.pool_exhausted
-member.invited         member.accepted        member.removed         invitation.canceled
+member.invited         member.accepted        member.removed          invitation.canceled
 ```
 
-### `invoice.paid` fan-out as a concrete example
+### Who subscribes
 
-```
-emit("invoice.paid", { invoiceId })
-  ├── features/activityLog/events.ts   — writes "Invoice #INV-042 marked as paid"
-  ├── features/audit/events.ts         — writes security audit entry
-  ├── features/dashboard/events.ts     — revalidates dashboard KPI cache tags
-  ├── features/email/events.ts         — sends payment receipt if SMTP is configured
-  └── features/projects/events.ts      — checks if all project invoices are paid;
-                                          suggests marking project as completed
-```
+`features/activityLog/events.ts` is the bus's only subscriber. It registers fourteen handlers, each
+of which turns one domain event into a row in the user-facing feed, and it is imported for that side
+effect by `instrumentation.ts` so the handlers exist before the first request.
 
-Each handler is owned by its feature. Adding a new consumer requires no change to the
-`markInvoicePaid` action.
+Every other `features/*/events.ts` is emit-only: a thin typed wrapper such as
+`features/payments/events.ts`'s `emitInvoiceSettled`, which exists so a feature's own name for what
+happened stays inside that feature. The bus is therefore carrying exactly one cross-feature consumer
+today, and the value it is buying is that adding a second one — a receipt email, a cache
+invalidation — needs no change to `markInvoicePaid`.
+
+The security audit log is deliberately _not_ on the bus: audit writes happen inline in the mutation
+that performs the action, because an audit entry that a handler could drop is not an audit entry.
 
 ### Bus properties
 
-| Property    | Value                                         | Rationale                                                                                 |
-| ----------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Type safety | Strongly typed event map                      | Adding an event requires extending the map; handlers are type-checked against the payload |
-| Execution   | Synchronous; async handlers awaited in series | Handler failures surface as action errors; no silent background failures                  |
-| Topology    | In-process, no broker                         | Correct for single-instance deployment; extractable to a queue when load demands it       |
+| Property    | Value                                                                                  | Rationale                                                                                                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Type safety | Strongly typed event map                                                               | Adding an event requires extending the map; handlers are type-checked against the payload                                                                                      |
+| Execution   | In-process; handlers run concurrently under one `Promise.all`, and the emit is awaited | Handler failures surface as action errors; no silent background failures. `emit` catches nothing, so `.agents/rules/events.md` requires every handler to catch and log its own |
+| Topology    | In-process, no broker                                                                  | Correct for single-instance deployment; extractable to a queue when load demands it                                                                                            |
 
 ---
 
@@ -888,22 +908,22 @@ Corp"), can be edited or deleted via the UI, used for "what happened this week" 
 event summaries.
 
 **Audit log** (`audit_logs`) - security-facing, append-only, immutable. No UI to delete entries.
-Schema: `id`, `event`, `actorUserId | null`, `targetEntityType | null`, `targetEntityId | null`,
-`metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no `deletedAt`. Captures:
-login success/failure; password change; TOTP setup, reconfiguration; Better Auth backup-code
-consumption; CLI/admin password resets; settings changes touching SMTP, Stripe, or payment
-information; data exports; entity deletions; public token rotations; member changes (see the
-Multi-user model section); backup and restore operations.
+Schema: `id`, `event`, `actorUserId | null`, `actorRole | null`, `targetEntityType | null`,
+`targetEntityId | null`, `metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no
+`deletedAt`. Captures: login success/failure; rate limits tripped; password change; TOTP setup,
+reconfiguration; Better Auth backup-code consumption; CLI/admin password resets; settings changes
+touching SMTP, Stripe, or payment information; data exports; entity deletions; member changes (see
+the Multi-user model section); backup and restore operations.
 
 ### Public token security
 
-Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`, `/s/[token]`) are:
+Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) are:
 
-- Generated with `crypto.randomBytes(32).toString("base64url")` — 256 bits of entropy.
+- Generated with `crypto.randomBytes(32).toString("base64url")` — 256 bits of entropy, at the moment
+  the document is created.
 - Compared with `crypto.timingSafeEqual` to prevent timing-based token enumeration.
 - On token miss, the response shape and approximate response time match a "valid token, document
   archived" case to defeat enumeration via timing.
-- Revocable and rotatable without losing the underlying document.
 - All public token pages set `X-Robots-Tag: noindex, nofollow` and
   `<meta name="robots" content="noindex,nofollow">`.
 
@@ -928,28 +948,47 @@ touch this file" is always the already-answered question "may this requester tou
 
 ### Rate limiting
 
-A rate limiter with a swappable adapter (in-memory by default; Redis for multi-instance deploys)
-protects every endpoint that processes authentication or a public token. Protected endpoints:
-`POST /login`, `POST /register`, `/i/[token]`, `/p/[token]`, password reset requests, and all
-`/api/*` routes with a per-IP backstop.
+A rate limiter with a swappable adapter protects every endpoint that processes authentication or a
+public token. `lib/rateLimit/` ships one adapter, `inMemoryAdapter.ts`, which is correct for the
+single-instance deployment model and is the only adapter a single process needs.
 
-Limits are sane defaults configurable in settings.
+Coverage, and where each limit lives:
+
+| Surface                                           | Limit                | Enforced in                                                  |
+| ------------------------------------------------- | -------------------- | ------------------------------------------------------------ |
+| `/i/[token]`, `/p/[token]`, `/c/[token]`          | 60 per IP per minute | `proxy.ts`, ahead of the route                               |
+| `/invite/[invitationId]`                          | 30 per IP per minute | `proxy.ts`                                                   |
+| Proposal OTP request and verify, contract signing | Per route, per IP    | each `route.ts`, in addition to the proxy limit              |
+| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes    | Better Auth's own limiter, configured in `lib/auth/index.ts` |
+| `POST /api/auth/sign-up/email`                    | 3 per hour           | Better Auth's own limiter                                    |
+| Password reset requests                           | 5 per hour           | Better Auth's own limiter                                    |
+| Every other Better Auth endpoint                  | 100 per 15 minutes   | Better Auth's own limiter                                    |
+| `/api/webhooks/stripe`                            | Per IP               | the route handler                                            |
+
+A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
+`/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
+interval, and it reads nothing that a rate limit would protect.
 
 ### HTTP security headers
 
-Set in middleware for every response:
+`proxy.ts`'s `applySecurityHeaders` sets these on every response the middleware returns, which is
+every response except the static assets its matcher excludes:
 
-| Header                      | Value                                                              |
-| --------------------------- | ------------------------------------------------------------------ |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)        |
-| `Content-Security-Policy`   | Strict with explicit allowlists for third-party assets             |
-| `X-Frame-Options`           | `DENY` on all pages except those that explicitly require embedding |
-| `X-Content-Type-Options`    | `nosniff`                                                          |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                  |
-| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                         |
+| Header                      | Value                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)                   |
+| `Content-Security-Policy`   | `default-src 'self'` with per-source allowlists, and `frame-ancestors 'none'` |
+| `X-Frame-Options`           | `DENY`, dropped on public token routes                                        |
+| `X-Content-Type-Options`    | `nosniff`                                                                     |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                             |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                    |
 
-Session cookies: `httpOnly: true`, `secure: true` (production), `sameSite: "lax"`. The application
-refuses to start in production mode without HTTPS.
+Dropping `X-Frame-Options` on a public token route does not make that page embeddable: the CSP's
+`frame-ancestors 'none'` is unconditional and is the directive a modern browser honours. The header
+is dropped there so the two are not in conflict, not to permit framing.
+
+Session cookies: `httpOnly: true`, `secure: true` (production), `sameSite: "lax"`. Terminating TLS
+is the reverse proxy's job; the application does not check the scheme it is reached over.
 
 ### Routing state rule
 
@@ -995,13 +1034,14 @@ neither included nor explicitly excluded. Policy:
 
 Included:
 
-- Business records: `clients` (including the encrypted `notes`, decrypted), `leads`, `projects`,
-  `tasks`, `time_entries`, `expenses`, `proposals`, `contracts`, `contract_signatures`,
-  `recurring_invoices`, `invoices`, `line_items`, `payments`, `credit_notes`.
+- Business records, all of them scoped to a client's subgraph when the export names one: `clients`
+  (including the encrypted `notes`, decrypted), `client_contacts`, `leads`, `projects`, `tasks`,
+  `time_entries`, `expenses`, `proposals`, `contracts`, `contract_signatures`, `recurring_invoices`,
+  `invoices`, `line_items`, `payments`, `credit_notes`, `attachments`, `activity_logs`,
+  `email_logs`, `uploads`.
 - `settings` business identity, locale and document-numbering columns, plus `payment_bank_name` and
   `payment_instructions`.
-- `templates`, `tax_rates`, `activity_logs`, `audit_logs`, `uploads`, `data_exports` — instance
-  scope only.
+- `templates`, `tax_rates`, `audit_logs`, `data_exports` — instance scope only.
 - Every `uploads` object's bytes, which is also how ADR-0022 PDFs travel once they are stored as
   uploads.
 - Soft-deleted rows, with `deleted_at` intact, because they still exist in the instance.
@@ -1023,13 +1063,16 @@ surface is excluded rather than filtered field by field, because one auditable b
 grow a new leak each time a provider setting is added beside a secret; and the Better Auth boundary
 is drawn around the plugin's entire schema rather than around its credential columns, because those
 tables' shape is owned by a dependency that changes across upgrades. A client-scoped export drops
-the instance-wide files (`settings`, `templates`, `tax_rates`, `audit_logs`) and scopes everything
-else to that client's subgraph.
+the instance-wide tables (`settings`, `templates`, `tax_rates`, `audit_logs`, `data_exports`) and
+scopes everything else to that client's subgraph.
 
-**Soft delete and retention.** Domain entities use `deletedAt` for soft delete and are restorable
-from a trash view. Hard delete is available after a configurable retention period. Hard-deleting a
-client cascades to projects, proposals, and invoices in soft-delete state and requires typed-name
-confirmation.
+**Soft delete.** Domain entities carry `deletedAt` through the `softDelete` helper, and every read
+excludes rows where it is set. Deleting from the application is always this soft delete: the row
+stays, and financial records survive the deletion for the retention their legal context requires.
+The rows remain in a data export, with `deleted_at` intact, because they still exist in the
+instance. [ADR-0010](adr/0010-soft-delete.md) records the decision, including the parts of it —
+restoring a soft-deleted record, and hard-deleting it once a retention window has passed — that are
+decided and not built.
 
 ---
 
@@ -1093,9 +1136,9 @@ implicit to the instance. See ADR-0013.
 Authorization is implemented as a thin layer in two places:
 
 **Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
-`/settings/system`, `/settings/api`, and any endpoint that exposes the encryption key fingerprint
-are owner-only. Routes that perform sends or deletions are blocked for `assistant`. All other routes
-are accessible to all roles.
+`/settings/system`, and any endpoint that exposes the encryption key fingerprint are owner-only.
+Routes that perform sends or deletions are blocked for `assistant`. All other routes are accessible
+to all roles.
 
 **Action-level (operation gating).** Every server action gates on the active member's role before it
 writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
@@ -1261,21 +1304,18 @@ visible; modals trap focus. Full conventions in `accessibility.md`.
 Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
 application-level interactions. API routes exist only for specific, justified cases:
 
-| Route                  | Purpose                                                        |
-| ---------------------- | -------------------------------------------------------------- |
-| `/i/[token]`           | Public invoice view (anonymous)                                |
-| `/p/[token]`           | Public proposal acceptance (anonymous + OTP)                   |
-| `/c/[token]`           | Public contract signing (anonymous)                            |
-| `/s/[token]`           | Client portal (anonymous, read-only)                           |
-| `/api/webhooks/stripe` | Stripe webhook event receiver                                  |
-| `/api/health`          | Uptime monitor health check (public)                           |
-| `/api/metrics`         | Reserved Prometheus metrics endpoint (opt-in, token-protected) |
-
-### Public API
-
-A REST API mirroring the server actions, with scoped API tokens managed in `/settings/api` and
-outbound webhooks configurable per event in `/settings/webhooks`. Documentation auto-generated from
-Zod schemas via `zod-openapi`.
+| Route                        | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `/i/[token]`                 | Public invoice view (anonymous)                           |
+| `/p/[token]`                 | Public proposal acceptance (anonymous + OTP)              |
+| `/c/[token]`                 | Public contract signing (anonymous)                       |
+| `/api/auth/[...all]`         | Better Auth's own handler                                 |
+| `/api/webhooks/stripe`       | Stripe webhook event receiver                             |
+| `/api/health`                | Uptime monitor health check (public)                      |
+| `/api/upload/[type]`         | Session-gated direct upload                               |
+| `/api/attachments/[id]`      | Session-gated attachment download from the private bucket |
+| `/api/documents/[type]/[id]` | Session-gated rendered-document download                  |
+| `/api/exports/[id]`          | Owner-gated data export archive download                  |
 
 ### Validation at every boundary
 
@@ -1309,7 +1349,8 @@ lib/config/env.ts    Zod-validated deployment configuration. Process exits on fa
 /setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
 /settings/**         Ongoing instance configuration stored in the settings table.
 .env                 Deployment-owned configuration: database URL, auth URL/secret, encryption key,
-                     data/storage bootstrap, Hosted mode, optional Sentry DSN, optional metrics token.
+                     data/storage bootstrap, Redis, Chromium path, and the three unread variables
+                     named in the Observability and Operating-for-somebody-else sections.
 ```
 
 No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
@@ -1319,9 +1360,11 @@ Stripe, bank-transfer details, invoice defaults, backup policy, and template cus
 
 ### Data residency
 
-All data is stored in the PostgreSQL instance owned and operated by the user. No analytics,
-telemetry, or usage data leaves the instance without explicit configuration. Error tracking is
-opt-in through `SENTRY_DSN`; future update checks remain opt-in.
+All data is stored in the PostgreSQL instance owned and operated by the user. Nothing leaves the
+instance that the operator has not configured to leave it: there is no analytics, no telemetry and
+no usage reporting, and no code path that sends any of the three
+([ADR-0018](adr/0018-no-telemetry.md)). The only outbound traffic Remit makes is to the email,
+payment and object-storage providers the operator supplies credentials for.
 
 ---
 
@@ -1332,16 +1375,15 @@ upgrade, backup, and recover. Remit treats each of these as first-class product 
 architecture defines the boundaries and safety model; focused operations and specification documents
 carry the command-level detail.
 
-Current implementation status: the repository ships Docker Compose files, an entrypoint migration
-script, the `/settings/system` health surface, `pnpm remit:reset-password` for credential recovery,
-`pnpm remit:backup` for encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for
-destructive-safe local and remote restores, `pnpm remit:seed-demo` for deterministic local/demo
-data, `pnpm remit:reset-data` for returning a demoed instance to zero domain data without losing the
-account or its configuration, `pnpm remit:rotate-encryption-key` for operational master-key
-rotation, and the host-side `scripts/host/upgrade.sh` upgrade flow documented in
-[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). The one-command installer, scheduled
-backup job, and platform-specific deployment guides remain planned operational work and are not
-shipped as package scripts today.
+The repository ships Docker Compose files, an entrypoint migration script, the `/settings/system`
+health surface, `pnpm remit:reset-password` for credential recovery, `pnpm remit:backup` for
+encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for destructive-safe local and
+remote restores, `pnpm remit:seed-demo` for deterministic local/demo data, `pnpm remit:reset-data`
+for returning a demoed instance to zero domain data without losing the account or its configuration,
+`pnpm remit:rotate-encryption-key` for operational master-key rotation, and the host-side
+`scripts/host/upgrade.sh` upgrade flow documented in
+[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Installation from those assets is the
+[installation runbook](../operations/INSTALL.md).
 
 The deeper self-hosting references are:
 
@@ -1355,17 +1397,6 @@ The deeper self-hosting references are:
   rollback, and troubleshooting.
 - [ADR-0021](adr/0021-encryption-key-rotation.md) for encryption key rotation semantics,
   recoverability, audit events, and refusal rules.
-
-### Planned one-command install
-
-The target installer remains a host-side bootstrap that verifies Docker and Docker Compose, asks
-only for boot-time values, generates required secrets, starts the compose stack, waits for health,
-and opens `/register`.
-
-`scripts/install.sh` is not present today. Until it exists, production operators use the Docker
-Compose assets directly and provide required runtime environment values themselves. The target
-remains that normal product configuration - SMTP, Stripe, branding, templates, backup destination,
-and similar settings - belongs in the UI rather than manual environment editing.
 
 ### Setup wizard
 
@@ -1385,8 +1416,8 @@ advanced configuration discoverable and testable in place.
 
 `/settings/system` is authenticated and owner-only. It is the human-readable operational status
 surface for database connectivity, email/Stripe/storage reachability, last successful backup, backup
-destination status, data-volume disk usage, encryption key fingerprint, and application version.
-Future update checks remain opt-in.
+destination status, data-volume disk usage, encryption key fingerprint, and the running application
+version.
 
 `/api/health` is public and intentionally small. It returns `200` or `503` with a minimal JSON body
 for uptime monitors and host-side scripts.
@@ -1438,11 +1469,12 @@ Database contents and uploads are replaced by the archive contents after confirm
 safety, refusal rules, data effects, and logging/redaction details live in the
 [Restore runbook](../operations/RESTORE.md).
 
-Backup configuration and status fields exist in the settings schema, and `/settings/system` surfaces
-destination, success, and failure status. The encrypted bundle writer, S3-compatible destinations,
-retention enforcement, and destructive-safe local or remote restore CLI are shipped. The scheduled
-backup job remains planned work. A missed backup for N consecutive days surfaces a banner in the
-dashboard.
+Backup configuration and status live in the settings schema. `/settings/system` reads the three
+status columns — destination, last success, last failure — and surfaces them. The other backup
+columns, including the destination itself, the cadence, the three retention counts and the five
+S3-compatible credential columns, are written by nothing in the application: an operator sets them
+directly, or takes the defaults, and passes overrides to the command. Backup runs when an operator
+runs `remit:backup`.
 
 ### Updates
 
@@ -1465,9 +1497,8 @@ compose project. Its architecture is a four-step flow:
 4. Wait for the health check and print success or rollback instructions.
 
 The operator procedure, rollback path, and troubleshooting notes live in
-[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Auto-upgrade is opt-in; manual upgrade is
-the default. The CHANGELOG is published in the repository and surfaced in `/settings/system` when an
-update is available.
+[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Upgrading is always an operator action:
+nothing in the application detects a new release, and nothing upgrades itself.
 
 ### Encryption key rotation
 
@@ -1477,13 +1508,13 @@ encrypted-column registry, table-scoped transaction and resume strategy, backup 
 re-encryption, audit event contract, and post-run operator instructions. The command never accepts
 keys on the command line and never rewrites `.env`.
 
-### Deployment guides
+### Operator documentation
 
-`docs/operations/UPGRADE.md` is the shipped host-side upgrade runbook. `docs/deploy/` remains the
-planned home for tested platform-specific deployment guides. The intended guide set covers at least
-Docker Compose on a Linux VPS, Coolify, Dokploy, Railway, Render, Raspberry Pi, an existing Nginx
-reverse proxy, and Cloudflare Tunnel. Each guide ends with verification steps: log in, create a test
-client, and send a test invoice.
+Three runbooks cover the operator's life-cycle: the [installation runbook](../operations/INSTALL.md)
+from a machine with Docker to an instance the operator is logged into, the
+[upgrade runbook](../operations/UPGRADE.md), and the [restore runbook](../operations/RESTORE.md).
+Each is written against the Docker Compose assets in the repository, which are the deployment
+surface Remit supports.
 
 ---
 
@@ -1579,27 +1610,16 @@ Server-side log entries for errors always include structured context - action na
 entity id - and never include sensitive data: passwords, tokens, API keys, or encryption secrets.
 The full convention is in `errors.md`.
 
-### Error tracking
+### What an operator can observe
 
-Sentry-compatible interface, disabled by default. The deployment operator sets `SENTRY_DSN` to
-enable error tracking. Without a DSN, the Sentry SDK must not transmit events. Self-hosted Sentry
-and GlitchTip work via the same DSN-based configuration.
+Three surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
+`/settings/system` is the human-readable status page described in the Self-hosting experience
+section. The container's stdout carries the pino log stream, which is where an error is found.
 
-### Metrics
-
-`/api/metrics` is reserved for Prometheus-format metrics. It is opt-in and bearer-token protected by
-`REMIT_METRICS_TOKEN`. When implemented and enabled, it exposes:
-
-- HTTP request counters by route and status code.
-- Error counters by feature and error type.
-- Queue depth for the outbound email queue.
-- Recurring job execution counts and last-run timestamps.
-
-If `REMIT_METRICS_TOKEN` is unset, the metrics endpoint remains unavailable rather than public.
-
-### Health checks
-
-see the Self-hosting experience section — health is part of the self-hosting experience.
+`lib/config/env.ts` validates two further variables, `SENTRY_DSN` and `REMIT_METRICS_TOKEN`, and no
+code reads either one. Setting them changes nothing: Remit has no error-tracking client and serves
+no metrics endpoint. They are recorded here because an operator who sets one and sees no effect is
+otherwise left debugging their own deployment.
 
 ---
 
@@ -1623,12 +1643,13 @@ Tier 2 - Integration (every server action)
   Recurring jobs               Daily invoice generation, overdue detection.
   IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
 
-Tier 3 - E2E (Playwright, five canonical flows)
-  1. Register → setup wizard → TOTP + backup codes → first dashboard
-  2. Client → project → proposal → acceptance → invoice → paid
-  3. Time entry → invoice → send → paid
-  4. Recurring invoice generates expected draft on next-run date
-  5. Password reset via email or CLI/admin reset
+Tier 3 - E2E (Playwright)
+  tests/e2e/auth.spec.ts       Register → business setup → the TOTP QR step, and the
+                               login page's CLI-reset help when SMTP is unconfigured.
+  tests/e2e/health.spec.ts     The public health endpoint.
+  tests/e2e/templateEditor*    Eleven specs over the canvas engine's pointer gestures,
+                               which is the one surface whose behaviour only a real
+                               browser can assert (ADR-0024).
 
 Tier 4 - Selective component tests
   When: state machine (multi-step dialogs), 3+ conditional branches,
@@ -1644,9 +1665,9 @@ Tier 5 - Never tested
   Snapshot tests of rendered React - banned.
 ```
 
-The coverage model is the target shape as each domain lands. Early-stage placeholders and unbuilt
-domains do not receive placeholder tests; E2E coverage expands only when the corresponding workflow
-exists in the product.
+`.agents/rules/testing.md` names five canonical end-to-end flows this suite is held to. The first
+runs as far as the TOTP QR step; the other four have no spec. That commitment lives in the rule
+file, which is where a coverage target belongs — this document records the specs that exist.
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
 `.agents/rules/testing.md`. The project ships Vitest unit tests, Vitest integration tests against
@@ -1662,63 +1683,33 @@ Dockerized Postgres, and Playwright E2E tests.
 
 ---
 
-## 18. Hosted offering
+## 18. Operating Remit for somebody else
 
-Remit is open-source and self-hostable first. A Hosted offering exists alongside self-hosting for
-users who do not want to operate their own infrastructure. The Hosted offering does not displace
-self-hosting; it complements it.
+Remit is open-source and self-hostable. Running an instance on somebody else's behalf — a managed
+offering, an agency running one per client, an employer running one for a contractor — needs no
+application change, because of one architectural commitment the schema already keeps.
 
-### Single architectural commitment
+### The commitment
 
 **One customer = one isolated Remit instance.** No shared database. No `tenantId` columns. No
-row-level tenant scoping inside the application code. The same Docker image and the same schema that
-a self-hoster uses are what each Hosted customer gets, with their own database and their own volume
-of files.
+row-level tenant scoping inside the application code. The same Docker image and the same schema a
+self-hoster runs is what such a customer gets, with their own database and their own volume of
+files.
 
-This is a strong commitment because the alternative - multi-tenancy via row-level scoping in a
-shared database - would force every domain query to carry tenant filtering, expand the security
-surface, and contradict see the Design philosophy section design philosophy. Per-instance isolation
-keeps the application code oblivious to whether it is running on a freelancer's Raspberry Pi or on
-the Hosted platform.
+The alternative — multi-tenancy via row-level scoping in a shared database — would force every
+domain query to carry tenant filtering, expand the security surface, and contradict the Design
+philosophy section. Per-instance isolation keeps the application code oblivious to whether it is
+running on a freelancer's Raspberry Pi or on somebody's fleet.
 
-### What Hosted adds, outside the application
+That commitment is what this section is for. Without it, it is too easy for a contributor to add a
+`tenantId` column "just in case", which would compromise the single-instance model for self-hosters
+and add complexity nothing exercises. Everything an operator running a fleet would need beyond this
+— provisioning, routing, billing, centralised backups — is operations work outside this repository,
+and no part of it is here.
 
-The Hosted offering needs operational components that do not belong in the open-source repository:
-
-- A **control plane** - handles signups, subscription billing, instance provisioning, and routing.
-  This is a separate codebase, not part of the Remit application.
-- A **router** - maps `<customer>.remit.dev` (or a custom domain) to the correct instance. Standard
-  reverse-proxy work, not Remit-specific.
-- **Centralised backups, patching, and monitoring** - operational concerns that the user would
-  otherwise handle themselves on a self-host.
-
-None of this requires changes to the Remit application. The Hosted operator runs the same image,
-manages the lifecycle externally.
-
-### What the application does need to know
-
-Three small affordances inside the application acknowledge the Hosted context:
-
-- **Read-only configuration items in Hosted mode.** The encryption key fingerprint, the base URL,
-  and the database connection are user-editable on a self-host but read-only on Hosted (the operator
-  manages them). A boolean flag in `lib/config/env.ts` (`REMIT_HOSTED_MODE`) drives this.
-- **Backup section.** On Hosted, the backup destination is operator-managed; the UI shows that
-  status rather than asking the user to configure S3/R2 credentials.
-- **Update section.** On Hosted, the update flow is operator-managed; the UI shows the running
-  version but does not expose a self-service upgrade command.
-
-These are UI affordances, not feature gates. Every feature exists in both modes.
-
-### Why this matters now even though Hosted is not built
-
-Documenting the per-instance commitment up front prevents architectural drift. Without this section,
-it is too easy for a future contributor to add a `tenantId` column "just in case", which would
-compromise the single-instance model for self-hosters and add complexity that is never exercised. By
-committing to per-instance isolation as the architecture for both deployment models, the application
-stays simple, the schema stays clean, and the future Hosted launch is operations work - not
-refactoring work.
-
-See ADR-0014.
+`lib/config/env.ts` validates a `REMIT_HOSTED_MODE` boolean that no code reads, alongside the two
+observability variables in the Observability section. [ADR-0014](adr/0014-hosted-offering.md)
+records the isolation decision and what it rejected.
 
 ---
 
@@ -1730,16 +1721,12 @@ the relevant architecture section, not here. Recording open questions forces awa
 trade-off space and prevents accidental de-facto decisions where the first prototype becomes the
 answer.
 
-No architectural questions are open. Two that a system of this shape commonly leaves unsettled are
-decided and recorded as ADRs:
-
-- **PDF rendering engine.** Invoice, proposal, contract, and credit-note PDFs render via a headless
-  Chromium browser (Puppeteer/Playwright) from the same block-model HTML that powers the templates
-  editor preview, run as a background job, so the editor preview and the rendered PDF share one
-  HTML/CSS path. See ADR-0022.
-- **Background job execution.** Recurring-invoice generation, overdue detection, reminder emails,
-  and PDF rendering run as durable, retryable, idempotent jobs on BullMQ backed by Redis. Redis is
-  shared infrastructure for the job queue and a planned cache layer. See ADR-0023.
+No architectural questions are open. The section stays even while it is empty, because its value is
+the discipline it names rather than its contents: an undecided question is not an unbuilt feature,
+so it has a home here and nowhere else, and a system of this shape accumulates them. Two that such a
+system commonly leaves unsettled are decided and recorded as ADRs — the PDF rendering engine
+([ADR-0022](adr/0022-pdf-rendering-engine.md)) and background job execution
+([ADR-0023](adr/0023-job-scheduling-bullmq-redis.md)).
 
 ---
 
@@ -1789,10 +1776,11 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 
 ---
 
-_This document is the authoritative, forward-looking reference for Remit's technical architecture.
-It describes the system as it must be — what is written here is what the code must implement.
-Sections are refined in place as decisions evolve; outdated paragraphs are rewritten rather than
-preserved as history (the git log is the historical record). When a significant architectural
-decision is made, this document is updated and a new ADR is recorded; ADRs that have shipped against
+_This document is the authoritative reference for Remit's technical architecture as it stands. It
+describes the system that exists; a capability that is not built is absent from it rather than
+marked, and a decision taken but not built is recorded in an ADR. Sections are refined in place as
+the system changes; outdated paragraphs are rewritten rather than preserved as history (the git log
+is the historical record). When a significant architectural decision is made, a new ADR is recorded,
+and this document is updated once the code behind it is real; ADRs that have shipped against
 existing code remain immutable per
 [Architecture: Architecture Decision Records](#20-architecture-decision-records)._

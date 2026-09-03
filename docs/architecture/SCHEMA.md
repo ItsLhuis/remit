@@ -1,13 +1,16 @@
 # Remit — Database schema
 
-> Authoritative table-by-table specification of the final schema. Describes every column, its type,
-> nullability, default, and the constraints/indexes the table carries. Does not contain Drizzle code
-> — implementation translates this specification into `database/schema/*.ts` files using the
-> conventions in `database.md` and the Drizzle documentation (consult Context7 if needed for the
-> exact API of the Drizzle version in use).
+> Table-by-table description of the schema in `database/schema/`. Every column, its type,
+> nullability, default, and the constraints and indexes the table carries. It contains no Drizzle
+> code; the Drizzle files are the schema, written using the conventions in `database.md`, and this
+> document describes them.
 >
-> This document and `ARCHITECTURE.md` together are the technical contract for the schema. When a new
-> feature requires schema changes, both are updated as part of the work.
+> A column exists here if and only if it exists there, and `tests/docs/schema.test.ts` fails the
+> build when the two disagree in either direction. A column with no reader or no writer is a fact
+> about the schema and is recorded as one, in the Notes cell, rather than left to read as though
+> something used it.
+>
+> Schema changes and the passage here that describes them land in the same change.
 
 ---
 
@@ -156,12 +159,15 @@ Index: `verifications_identifier_idx` on `identifier`.
 
 ### `two_factors`
 
-| Column       | Type | Null | Notes                                                                             |
-| ------------ | ---- | ---- | --------------------------------------------------------------------------------- |
-| id           | text | no   | PK                                                                                |
-| user_id      | uuid | no   | FK → `users.id` (cascade)                                                         |
-| secret       | text | no   | Encrypted at rest                                                                 |
-| backup_codes | text | no   | Better Auth-managed encrypted payload containing the current list of backup codes |
+| Column                    | Type        | Null | Default | Notes                                                                                                                           |
+| ------------------------- | ----------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| id                        | text        | no   |         | PK                                                                                                                              |
+| user_id                   | uuid        | no   |         | FK → `users.id` (cascade)                                                                                                       |
+| secret                    | text        | no   |         | Encrypted at rest                                                                                                               |
+| backup_codes              | text        | no   |         | Better Auth-managed encrypted payload containing the current list of backup codes                                               |
+| verified                  | boolean     | yes  | `true`  | Declared by the installed Better Auth two-factor plugin, and the installed version is the schema contract. Remit never reads it |
+| failed_verification_count | integer     | yes  | `0`     | Plugin-owned lockout counter, same contract as `verified`                                                                       |
+| locked_until              | timestamptz | yes  |         | Plugin-owned lockout expiry, same contract as `verified`                                                                        |
 
 Indexes: `two_factors_user_id_idx` on `user_id`, `two_factors_secret_idx` on `secret`.
 
@@ -352,6 +358,12 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | backup_last_failure_at     | timestamptz      | yes  |                                                                                                                                                                                          |
 |                  | backup_last_failure_reason | text             | yes  |                                                                                                                                                                                          |
 |                  | created_at, updated_at     | timestamptz      | no   | Standard `timestamps`                                                                                                                                                                    |
+
+The three `backup_last_*` columns are written by `remit:backup` and read by `/settings/system`. The
+ten backup policy columns above them — destination, cadence, the three retention counts and the five
+S3-compatible credential columns — are read by `scripts/core/backup/` and written by nothing: no
+settings surface edits them, so an operator either takes the defaults or sets them directly.
+`backup_cadence` is read by nothing at all, because no scheduler consumes it.
 
 Constraints (named):
 
@@ -613,7 +625,7 @@ Indexes: `leads_email_idx`, `leads_status_idx`, `leads_created_at_idx` on `creat
 | locale                    | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default.                       |
 | default_hourly_rate_cents | bigint           | yes  |                     | Default rate for time entries on this client's projects. Null = no negotiated rate, which is distinct from a rate of 0. ≥ 0 if not null. |
 | notes                     | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                                         |
-| portal_token              | text             | yes  |                     | Unique. Per-client portal at `/s/[token]`                                                                                                |
+| portal_token              | text             | yes  |                     | Unique where not null. No code writes or reads it; the column and its partial index exist, and nothing mints a value                     |
 | image_upload_id           | uuid             | yes  |                     | FK → `uploads.id` (set null). Logo or photo — a Remit client is either. Public bucket                                                    |
 
 Standard `timestamps` and `softDelete`.
@@ -1062,37 +1074,37 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 
 ### `invoices`
 
-| Column                      | Type            | Null | Default             | Notes                                                                    |
-| --------------------------- | --------------- | ---- | ------------------- | ------------------------------------------------------------------------ |
-| id                          | uuid            | no   | `gen_random_uuid()` | PK                                                                       |
-| project_id                  | uuid            | yes  |                     | Part of `fk_invoices_project_client` — null for ad-hoc client invoices   |
-| client_id                   | uuid            | yes  |                     | FK → `clients.id` (set null). Always required when project_id is set     |
-| proposal_id                 | uuid            | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal          |
-| recurring_invoice_id        | uuid            | yes  |                     | FK → `recurring_invoices.id` (set null) — when generated from a schedule |
-| template_id                 | uuid            | yes  |                     | FK → `templates.id` (set null)                                           |
-| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written once, never regenerated            |
-| number                      | text            | no   |                     | Unique. E.g. `INV-0042`                                                  |
-| status                      | enum            | no   | `'draft'`           | See enum reference                                                       |
-| currency                    | varchar(3)      | no   | `'EUR'`             |                                                                          |
-| exchange_rate               | numeric(20, 10) | yes  |                     | Snapshot when currency differs from instance default                     |
-| discount_type               | enum            | yes  |                     | `percentage \| fixed`                                                    |
-| discount_percentage         | numeric(5, 2)   | yes  |                     |                                                                          |
-| discount_amount_cents       | bigint          | yes  |                     |                                                                          |
-| subtotal_cents              | bigint          | no   | `0`                 | ≥ 0                                                                      |
-| discount_amount_total_cents | bigint          | no   | `0`                 | ≥ 0                                                                      |
-| tax_amount_cents            | bigint          | no   | `0`                 | ≥ 0                                                                      |
-| total_cents                 | bigint          | no   | `0`                 | ≥ 0                                                                      |
-| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app.                       |
-| issue_date                  | date            | yes  |                     |                                                                          |
-| due_date                    | date            | yes  |                     | Used for overdue detection. ≥ issue_date if both set.                    |
-| paid_at                     | timestamptz     | yes  |                     | Set when status transitions to `paid`                                    |
-| late_fee_cents              | bigint          | yes  |                     | Applied for `overdue` invoices                                           |
-| notes                       | text            | yes  |                     |                                                                          |
-| public_token                | text            | no   |                     | Unique. Anonymous access via `/i/[token]`                                |
-| first_viewed_at             | timestamptz     | yes  |                     |                                                                          |
-| last_viewed_at              | timestamptz     | yes  |                     |                                                                          |
-| view_count                  | integer         | no   | `0`                 | ≥ 0                                                                      |
-| last_reminder_sent_at       | timestamptz     | yes  |                     |                                                                          |
+| Column                      | Type            | Null | Default             | Notes                                                                                   |
+| --------------------------- | --------------- | ---- | ------------------- | --------------------------------------------------------------------------------------- |
+| id                          | uuid            | no   | `gen_random_uuid()` | PK                                                                                      |
+| project_id                  | uuid            | yes  |                     | Part of `fk_invoices_project_client` — null for ad-hoc client invoices                  |
+| client_id                   | uuid            | yes  |                     | FK → `clients.id` (set null). Always required when project_id is set                    |
+| proposal_id                 | uuid            | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal                         |
+| recurring_invoice_id        | uuid            | yes  |                     | FK → `recurring_invoices.id` (set null) — when generated from a schedule                |
+| template_id                 | uuid            | yes  |                     | FK → `templates.id` (set null)                                                          |
+| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written once, never regenerated                           |
+| number                      | text            | no   |                     | Unique. E.g. `INV-0042`                                                                 |
+| status                      | enum            | no   | `'draft'`           | See enum reference                                                                      |
+| currency                    | varchar(3)      | no   | `'EUR'`             |                                                                                         |
+| exchange_rate               | numeric(20, 10) | yes  |                     | Snapshot when currency differs from instance default                                    |
+| discount_type               | enum            | yes  |                     | `percentage \| fixed`                                                                   |
+| discount_percentage         | numeric(5, 2)   | yes  |                     |                                                                                         |
+| discount_amount_cents       | bigint          | yes  |                     |                                                                                         |
+| subtotal_cents              | bigint          | no   | `0`                 | ≥ 0                                                                                     |
+| discount_amount_total_cents | bigint          | no   | `0`                 | ≥ 0                                                                                     |
+| tax_amount_cents            | bigint          | no   | `0`                 | ≥ 0                                                                                     |
+| total_cents                 | bigint          | no   | `0`                 | ≥ 0                                                                                     |
+| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app.                                      |
+| issue_date                  | date            | yes  |                     |                                                                                         |
+| due_date                    | date            | yes  |                     | Used for overdue detection. ≥ issue_date if both set.                                   |
+| paid_at                     | timestamptz     | yes  |                     | Set when status transitions to `paid`                                                   |
+| late_fee_cents              | bigint          | yes  |                     | Read by the PDF merge variable `invoice.lateFee` and the data export. No code writes it |
+| notes                       | text            | yes  |                     |                                                                                         |
+| public_token                | text            | no   |                     | Unique. Anonymous access via `/i/[token]`                                               |
+| first_viewed_at             | timestamptz     | yes  |                     |                                                                                         |
+| last_viewed_at              | timestamptz     | yes  |                     |                                                                                         |
+| view_count                  | integer         | no   | `0`                 | ≥ 0                                                                                     |
+| last_reminder_sent_at       | timestamptz     | yes  |                     |                                                                                         |
 
 Standard `timestamps` and `softDelete`.
 
@@ -1117,11 +1129,11 @@ Foreign key: `fk_invoices_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
 `0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
 
-**Note for whoever builds the retention purge (ADR-0010).** A client hard delete cascades its
-projects away and nulls `invoices.client_id`, which leaves an ad-hoc invoice with both parents null
-and fails `chk_invoices_parent`. This is pre-existing — it is true of the schema before stage 29 as
-well — and no hard-delete path exists in the codebase yet. The purge has to order its writes so the
-invoices go before the client, or resolve the parent first.
+**Note for whoever builds the retention purge ([ADR-0010](adr/0010-soft-delete.md)).** A client hard
+delete cascades its projects away and nulls `invoices.client_id`, which leaves an ad-hoc invoice
+with both parents null and fails `chk_invoices_parent`. It predates the composite parent keys rather
+than being caused by them, and no hard-delete path exists in the codebase. The purge has to order
+its writes so the invoices go before the client, or resolve the parent first.
 
 Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal_id_idx`,
 `invoices_recurring_invoice_id_idx`, `invoices_template_id_idx`, `invoices_status_idx`,
@@ -1371,9 +1383,15 @@ All enum types declared in `database/schema/enums.ts`.
 and `paid_at IS NULL`, and `partially_paid` when
 `amount_paid_cents > 0 AND amount_paid_cents < total_cents`.
 
-`member_role` remains available for app-owned tables such as `audit_logs.actor_role`. Better Auth's
+`member_role` is the app-owned role enum, used by `audit_logs.actor_role`. Better Auth's
 organization-plugin tables (`member.role`, `invitation.role`, `invitation.status`) are stored as
 `text` to match the plugin contract.
+
+`entity_type` and the activity feed do not line up in either direction, and both halves matter to
+anyone extending the feed. `features/activityLog/events.ts` writes eight of its nine values and
+never writes `task`. The four domain nouns it cannot hold at all — a lead, a credit note, a
+recurring invoice and a client contact — are why none of those appear in the feed; admitting one
+needs a migration that adds the value.
 
 ---
 

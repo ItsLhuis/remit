@@ -94,39 +94,40 @@ Records without the field were written at delivery time.
 
 Oldest first, matching the ADR index, so the numbers read as the order the product was built in.
 
-| Record                                          | Capability                                     | Date       | Verdict                  | Decisions                    |
-| ----------------------------------------------- | ---------------------------------------------- | ---------- | ------------------------ | ---------------------------- |
-| [0001](0001-application-foundation.md)          | Application foundation, containers and health  | 2026-06-01 | Complete                 | ADR-0011, ADR-0020           |
-| [0002](0002-authentication-and-totp.md)         | Authentication, onboarding and mandatory TOTP  | 2026-05-13 | Complete                 | ADR-0003, ADR-0012, ADR-0013 |
-| [0003](0003-encryption-at-rest.md)              | Encryption at rest                             | 2026-05-28 | Complete                 | ADR-0005                     |
-| [0004](0004-internationalisation.md)            | Internationalisation                           | 2026-05-16 | Complete                 | ADR-0015                     |
-| [0005](0005-file-storage-and-uploads.md)        | File storage adapters and uploads              | 2026-05-19 | Complete                 | ADR-0019                     |
-| [0006](0006-audit-log-and-hardening.md)         | Security audit log and HTTP hardening          | 2026-05-08 | Complete with known gaps | ADR-0001                     |
-| [0007](0007-design-system.md)                   | Design system and appearance preferences       | 2026-06-14 | Complete                 | —                            |
-| [0008](0008-email-delivery.md)                  | Email delivery adapters                        | 2026-05-30 | Complete                 | ADR-0008                     |
-| [0009](0009-instance-settings.md)               | Instance settings surface                      | 2026-08-04 | Complete with known gaps | ADR-0016                     |
-| [0010](0010-leads-clients-and-contacts.md)      | Leads, clients and client contacts             | 2026-08-21 | Complete                 | ADR-0027                     |
-| [0011](0011-projects-and-tasks.md)              | Projects and tasks                             | 2026-07-28 | Complete                 | ADR-0004                     |
-| [0012](0012-template-editor.md)                 | Template editor                                | 2026-07-27 | Complete                 | ADR-0024                     |
-| [0013](0013-proposals.md)                       | Proposals and public acceptance                | 2026-07-29 | Complete                 | ADR-0017                     |
-| [0014](0014-contracts.md)                       | Contracts and public signing                   | 2026-08-01 | Complete                 | ADR-0017, ADR-0022           |
-| [0015](0015-invoices-and-credit-notes.md)       | Invoices, public view and credit notes         | 2026-08-03 | Complete with known gaps | ADR-0009, ADR-0017           |
-| [0016](0016-payments.md)                        | Payments and Stripe settlement                 | 2026-08-03 | Complete with known gaps | ADR-0009                     |
-| [0017](0017-recurring-invoices-and-jobs.md)     | Recurring invoices and the job runtime         | 2026-08-05 | Complete with known gaps | ADR-0023                     |
-| [0018](0018-time-tracking-and-expenses.md)      | Time tracking and expenses                     | 2026-08-06 | Complete with known gaps | ADR-0017                     |
-| [0019](0019-activity-log.md)                    | Activity log                                   | 2026-08-07 | Complete with known gaps | ADR-0006                     |
-| [0020](0020-dashboard-and-reports.md)           | Dashboard and reports                          | 2026-08-18 | Complete with known gaps | ADR-0007                     |
-| [0021](0021-team-management.md)                 | Team management and roles                      | 2026-08-12 | Complete                 | ADR-0013                     |
-| [0022](0022-data-export.md)                     | Account data export                            | 2026-08-13 | Complete                 | ADR-0010, ADR-0019           |
-| [0023](0023-document-pipeline.md)               | Document pipeline — PDF rendering and email    | 2026-08-14 | Complete with known gaps | ADR-0022, ADR-0023           |
-| [0024](0024-document-parentage.md)              | Document parentage integrity                   | 2026-08-20 | Complete                 | ADR-0026                     |
-| [0025](0025-attachments-and-visual-identity.md) | Attachments and visual identity                | 2026-08-25 | Complete with known gaps | ADR-0019, ADR-0028           |
-| [0026](0026-encrypted-backup.md)                | Encrypted backup and remote destinations       | 2026-05-23 | Complete with known gaps | ADR-0019, ADR-0020           |
-| [0027](0027-restore.md)                         | Restore from an encrypted archive              | 2026-05-26 | Complete                 | ADR-0020                     |
-| [0028](0028-encryption-key-rotation.md)         | Encryption key rotation                        | 2026-05-28 | Complete                 | ADR-0021                     |
-| [0029](0029-demo-seeding-and-data-reset.md)     | Demo data seeding and instance data reset      | 2026-08-18 | Complete                 | ADR-0025                     |
-| [0030](0030-host-side-upgrade.md)               | Host-side upgrade                              | 2026-05-26 | Complete                 | ADR-0020                     |
-| [0031](0031-delivery-records.md)                | Delivery records and the documentation surface | 2026-09-01 | Complete                 | —                            |
+| Record                                          | Capability                                     | Date       | Verdict                  | Decisions                                        |
+| ----------------------------------------------- | ---------------------------------------------- | ---------- | ------------------------ | ------------------------------------------------ |
+| [0001](0001-application-foundation.md)          | Application foundation, containers and health  | 2026-06-01 | Complete                 | ADR-0011, ADR-0020                               |
+| [0002](0002-authentication-and-totp.md)         | Authentication, onboarding and mandatory TOTP  | 2026-05-13 | Complete                 | ADR-0003, ADR-0012, ADR-0013                     |
+| [0003](0003-encryption-at-rest.md)              | Encryption at rest                             | 2026-05-28 | Complete                 | ADR-0005                                         |
+| [0004](0004-internationalisation.md)            | Internationalisation                           | 2026-05-16 | Complete                 | ADR-0015                                         |
+| [0005](0005-file-storage-and-uploads.md)        | File storage adapters and uploads              | 2026-05-19 | Complete                 | ADR-0019                                         |
+| [0006](0006-audit-log-and-hardening.md)         | Security audit log and HTTP hardening          | 2026-05-08 | Complete with known gaps | ADR-0001                                         |
+| [0007](0007-design-system.md)                   | Design system and appearance preferences       | 2026-06-14 | Complete                 | —                                                |
+| [0008](0008-email-delivery.md)                  | Email delivery adapters                        | 2026-05-30 | Complete                 | ADR-0008                                         |
+| [0009](0009-instance-settings.md)               | Instance settings surface                      | 2026-08-04 | Complete with known gaps | ADR-0016                                         |
+| [0010](0010-leads-clients-and-contacts.md)      | Leads, clients and client contacts             | 2026-08-21 | Complete                 | ADR-0027                                         |
+| [0011](0011-projects-and-tasks.md)              | Projects and tasks                             | 2026-07-28 | Complete                 | ADR-0004                                         |
+| [0012](0012-template-editor.md)                 | Template editor                                | 2026-07-27 | Complete                 | ADR-0024                                         |
+| [0013](0013-proposals.md)                       | Proposals and public acceptance                | 2026-07-29 | Complete                 | ADR-0017                                         |
+| [0014](0014-contracts.md)                       | Contracts and public signing                   | 2026-08-01 | Complete                 | ADR-0017, ADR-0022                               |
+| [0015](0015-invoices-and-credit-notes.md)       | Invoices, public view and credit notes         | 2026-08-03 | Complete with known gaps | ADR-0009, ADR-0017                               |
+| [0016](0016-payments.md)                        | Payments and Stripe settlement                 | 2026-08-03 | Complete with known gaps | ADR-0009                                         |
+| [0017](0017-recurring-invoices-and-jobs.md)     | Recurring invoices and the job runtime         | 2026-08-05 | Complete with known gaps | ADR-0023                                         |
+| [0018](0018-time-tracking-and-expenses.md)      | Time tracking and expenses                     | 2026-08-06 | Complete with known gaps | ADR-0017                                         |
+| [0019](0019-activity-log.md)                    | Activity log                                   | 2026-08-07 | Complete with known gaps | ADR-0006                                         |
+| [0020](0020-dashboard-and-reports.md)           | Dashboard and reports                          | 2026-08-18 | Complete with known gaps | ADR-0007                                         |
+| [0021](0021-team-management.md)                 | Team management and roles                      | 2026-08-12 | Complete                 | ADR-0013                                         |
+| [0022](0022-data-export.md)                     | Account data export                            | 2026-08-13 | Complete                 | ADR-0010, ADR-0019                               |
+| [0023](0023-document-pipeline.md)               | Document pipeline — PDF rendering and email    | 2026-08-14 | Complete with known gaps | ADR-0022, ADR-0023                               |
+| [0024](0024-document-parentage.md)              | Document parentage integrity                   | 2026-08-20 | Complete                 | ADR-0026                                         |
+| [0025](0025-attachments-and-visual-identity.md) | Attachments and visual identity                | 2026-08-25 | Complete with known gaps | ADR-0019, ADR-0028                               |
+| [0026](0026-encrypted-backup.md)                | Encrypted backup and remote destinations       | 2026-05-23 | Complete with known gaps | ADR-0019, ADR-0020                               |
+| [0027](0027-restore.md)                         | Restore from an encrypted archive              | 2026-05-26 | Complete                 | ADR-0020                                         |
+| [0028](0028-encryption-key-rotation.md)         | Encryption key rotation                        | 2026-05-28 | Complete                 | ADR-0021                                         |
+| [0029](0029-demo-seeding-and-data-reset.md)     | Demo data seeding and instance data reset      | 2026-08-18 | Complete                 | ADR-0025                                         |
+| [0030](0030-host-side-upgrade.md)               | Host-side upgrade                              | 2026-05-26 | Complete                 | ADR-0020                                         |
+| [0031](0031-delivery-records.md)                | Delivery records and the documentation surface | 2026-09-01 | Complete                 | —                                                |
+| [0032](0032-documentation-reconciliation.md)    | Documentation reconciliation                   | 2026-09-03 | Complete with known gaps | ADR-0010, ADR-0014, ADR-0018, ADR-0023, ADR-0025 |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, which was written at delivery
 time.

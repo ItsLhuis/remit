@@ -12,17 +12,14 @@ and lock-in to a vendor that can change pricing or shut down at any time. Remit 
 freelancers who want full control: run it on your own server, own everything, encrypted at rest, and
 never depend on a third party for the data that runs your business.
 
-A managed Hosted offering exists for users who don't want to run their own infrastructure — same
-open-source code, same architecture, just operated for you. Each Hosted customer runs on a dedicated
-isolated instance; there is no shared multi-tenant database. **Self-hosting is and remains the
-first-class deployment model.**
+Running an instance on somebody else's behalf takes no application change and no shared database:
+one customer is one isolated instance, running the same image and the same schema a self-hoster
+runs. **Self-hosting is the first-class deployment model.**
 
-The target self-hosting experience is a single command, everything in Docker, and nothing to
-configure manually beyond the basics. Today the repository ships Docker Compose assets, the
-password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe local and
-remote restores, encryption key rotation, deterministic demo-data seeding and its matching instance
-data reset, and the host-side upgrade runbook; the full installer and scheduled backups are still
-planned work.
+Self-hosting is Docker Compose. The repository ships production, development and test Compose
+assets, the password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe
+local and remote restores, encryption key rotation, deterministic demo-data seeding and its matching
+instance data reset, and the host-side upgrade script and runbook.
 
 ## Principles
 
@@ -37,8 +34,7 @@ against these.
   (accountant, assistant) is layered on top.
 - **Self-hosting is part of the product.** Docker Compose deployment, health checks, local and
   S3-compatible backup and restore, encryption key rotation, operational recovery, and host-side
-  upgrades exist today. One-command install and scheduled backups remain planned product work, not
-  afterthoughts.
+  upgrades are built and documented as product surfaces, not afterthoughts.
 - **Modular by construction.** Each feature is a closed module with explicitly enforced boundaries.
   Business logic is pure and testable, decoupled from Next.js and Drizzle. The codebase is
   structured to scale to a multi-year roadmap without architectural debt.
@@ -73,11 +69,12 @@ and multi-currency support. Projects associate to clients with status, budget, a
 Lightweight task system with kanban view inside each project.
 
 **Time tracking.** Built-in start/stop timer attached to projects and tasks, plus manual entry.
-Hourly rate precedence: entry → task → project → client → instance default. One-click conversion of
-unbilled time entries to invoice line items, grouped by project or task.
+Hourly rate precedence: entry → task → project → client → instance default. Billable and unbilled
+hours are tracked per project and surfaced on the dashboard.
 
-**Expenses.** Manual entry with receipt uploads, configurable categories, re-billable flag with
-markup, and conversion to invoice line items. CSV export for accountants.
+**Expenses.** Manual entry with receipt attachments, free-text categories that autocomplete from the
+ones you have already used, and a re-billable flag with a markup percentage. CSV export for
+accountants.
 
 **Proposals.** Per-project proposals with line items (description, quantity, unit price, per-item
 discount, tax). Lifecycle: Draft → Sent → Accepted → Rejected. Public token URL with OTP-secured
@@ -87,29 +84,31 @@ acceptance flow. One-click conversion to invoice on acceptance, or to a contract
 (NDA, service agreement, retainer agreement). Public signing URL with full audit trail (IP,
 user-agent, timestamp, typed full name) and a generated signed PDF.
 
-**Invoices.** Generate manually, from an accepted proposal, from time entries, or from re-billable
-expenses. Per-item discounts (percentage or fixed), configurable tax rates, multi-currency with
-exchange rate snapshot. Lifecycle: Draft → Sent → Paid → Overdue, with computed `partially_paid`
-status when payments are partial. Automatic late-fee logic and configurable reminder cadence.
+**Invoices.** Generate manually or from an accepted proposal. Per-item discounts (percentage or
+fixed), configurable tax rates, multi-currency with exchange rate snapshot. Lifecycle: Draft → Sent
+→ Paid, with `overdue` and `partially_paid` computed at read time. Configurable reminder cadence
+before and after the due date, sent by a background job.
 
 **Recurring invoices and retainers.** Schedules generate invoices automatically (weekly, monthly,
 quarterly, yearly). Retainer model with included hours per period and overage rate. End conditions
 by date or count. Invoices generate as `draft` or auto-send.
 
-**Payments.** Manual entry (bank transfer, cash, etc.) and integrated Stripe with hosted checkout
-per invoice. Partial payment support — multiple payments per invoice with computed status.
+**Payments.** Manual entry (bank transfer, cash, and others), and Stripe settlement through a
+webhook that records what a payment intent collected. Partial payment support — multiple payments
+per invoice with computed status.
 
 **Credit notes.** Created from existing invoices for corrections or returns. Own numbering sequence.
 Required by Portuguese and EU law for invoice corrections.
 
-**Public client portal.** Per-client token at `/s/[token]` aggregating all invoices, proposals,
-contracts, and project status into a single read-only view. No account required. Token revocable.
+**Public documents.** Every invoice, proposal and contract carries its own token URL a client opens
+without an account: invoices to view and download, proposals to accept or reject behind an emailed
+one-time code, contracts to sign with a full audit trail.
 
 **Dashboard.** KPI tiles (revenue MTD/YTD, outstanding, overdue, expenses, profit), 12-month
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.
 
 **Reports.** Revenue by client/project/month/tax rate, time by project/client/billable status,
-expenses by category, tax summary by rate. CSV and PDF export.
+expenses by category, tax summary by rate. CSV export.
 
 **Templates.** Block-based visual editor for invoice, proposal, contract, credit note, and email
 templates. Merge variables, custom branding.
@@ -134,26 +133,28 @@ Security is treated as a first-class feature, not a checklist.
 - AES-256-GCM encryption at rest for all sensitive credentials (SMTP, Resend, Stripe, IBAN, client
   notes).
 - Append-only security audit log separate from the user-facing activity log — captures every
-  authentication event, settings change touching money or security, deletion, export, and public
-  token rotation.
+  authentication event, tripped rate limit, settings change touching money or security, deletion,
+  data export, and backup or restore run. Enforced insert-only by a database trigger, not by
+  convention.
 - Public token security: 256-bit entropy, constant-time comparison, timing-safe error responses to
   defeat enumeration, `noindex` headers on every public document page.
 - Strict HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
   Permissions-Policy) enforced for every response.
 - Rate limiting on every endpoint that processes authentication or a public token.
-- GDPR-aligned full data export (every entity, every uploaded file, every PDF), and support for the
-  right to be forgotten with a configurable fiscal retention window.
+- GDPR-aligned data export, instance-wide or scoped to one client: every business record, every
+  uploaded file and every generated PDF, assembled by a background job into an archive only the
+  owner can download. The export is an allowlist of table _and_ column, with a test that fails when
+  a new schema column is neither included nor explicitly excluded.
 
 ## Self-hosting
 
-The repository currently ships Docker Compose assets for production, development, and test Postgres.
-A one-command install script is planned, but `scripts/install.sh` is not present today.
+The repository ships Docker Compose assets for production, development, and test Postgres.
 
 The production Compose file exposes the app for an existing reverse proxy and runs PostgreSQL plus
 MinIO alongside the app container. The step-by-step path from a machine with Docker on it to an
 instance you are logged into is the [installation runbook](./docs/operations/INSTALL.md).
 
-Current operational support:
+Operational support:
 
 - **Entrypoint migrations** - the app container runs the compiled migration script before starting
   the Next.js server.
@@ -186,11 +187,6 @@ Current operational support:
   [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md)
   and [ADR-0020](./docs/architecture/adr/0020-operational-cli-contract.md). No placeholder package
   scripts ship.
-
-Planned operational support:
-
-- **Scheduled backups** - scheduled execution for the shipped local, S3, R2, and Backblaze B2
-  destinations, using the documented `.remitbak` archive format.
 
 ## Stack
 
