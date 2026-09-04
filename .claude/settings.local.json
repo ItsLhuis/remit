@@ -8,7 +8,10 @@
       "WebSearch",
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(ls lib/audit)",
+      "Bash(sed -n '1,80p' lib/audit/index.ts)",
+      "Bash(grep -rn \"AuditEvent\\\\b\" -A12 features/invoices/mutationContext.ts)"
     ]
   }
 }

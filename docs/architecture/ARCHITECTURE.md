@@ -912,18 +912,28 @@ Schema: `id`, `event`, `actorUserId | null`, `actorRole | null`, `targetEntityTy
 `targetEntityId | null`, `metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no
 `deletedAt`. Captures: login success/failure; rate limits tripped; password change; TOTP setup,
 reconfiguration; Better Auth backup-code consumption; CLI/admin password resets; settings changes
-touching SMTP, Stripe, or payment information; data exports; entity deletions; member changes (see
-the Multi-user model section); backup and restore operations.
+touching SMTP, Stripe, or payment information; data exports; entity deletions; public token
+rotations and revocations; member changes (see the Multi-user model section); backup and restore
+operations.
 
 ### Public token security
 
-Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) are:
+Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) and the client portal
+(`clients.portal_token`) are:
 
-- Generated with `crypto.randomBytes(32).toString("base64url")` — 256 bits of entropy, at the moment
-  the document is created.
-- Compared with `crypto.timingSafeEqual` to prevent timing-based token enumeration.
+- Minted by `mintPublicToken` in `lib/publicToken.ts` — `crypto.randomBytes(32)` encoded
+  `base64url`, 256 bits of entropy. Every writer goes through that one function, including the demo
+  seeder, which is why a seeded run reproduces every row except its bearer tokens.
+- Compared with `crypto.timingSafeEqual` through `matchesPublicToken` in the same module.
 - On token miss, the response shape and approximate response time match a "valid token, document
   archived" case to defeat enumeration via timing.
+- **Rotatable and revocable without touching the document.** Rotation mints a fresh value, so the
+  old URL stops resolving; revocation clears the column, so the row is not found by the lookup at
+  all and a revoked link is indistinguishable from one that never existed. Both are owner-only, both
+  are reachable from the surface the document already lives on, and neither touches the document's
+  content, status, or history. A client portal is the same pair of operations: enabling it is a
+  rotation from nothing, disabling it is a revocation, and soft-deleting the client performs one.
+  [ADR-0029](adr/0029-public-token-lifecycle.md) records the shape and its alternatives.
 - All public token pages set `X-Robots-Tag: noindex, nofollow` and
   `<meta name="robots" content="noindex,nofollow">`.
 
@@ -1773,6 +1783,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0026](adr/0026-document-parentage.md)              | Document parentage — optional project, agreeing client, composite key       | Accepted |
 | [0027](adr/0027-contact-identity.md)                | Contact identity — delivery target and acceptance identity, never an entity | Accepted |
 | [0028](adr/0028-attachments-and-visual-identity.md) | Attachments — one table, one foreign key per parent, private bucket         | Accepted |
+| [0029](adr/0029-public-token-lifecycle.md)          | Public token lifecycle — one minter, and revocation as an absent token      | Accepted |
 
 ---
 

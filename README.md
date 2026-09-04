@@ -102,7 +102,9 @@ Required by Portuguese and EU law for invoice corrections.
 
 **Public documents.** Every invoice, proposal and contract carries its own token URL a client opens
 without an account: invoices to view and download, proposals to accept or reject behind an emailed
-one-time code, contracts to sign with a full audit trail.
+one-time code, contracts to sign with a full audit trail. Every link is rotatable and revocable from
+the document it belongs to, without touching the document itself — a revoked link answers exactly
+like one that never existed.
 
 **Dashboard.** KPI tiles (revenue MTD/YTD, outstanding, overdue, expenses, profit), 12-month
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.
@@ -136,8 +138,9 @@ Security is treated as a first-class feature, not a checklist.
   authentication event, tripped rate limit, settings change touching money or security, deletion,
   data export, and backup or restore run. Enforced insert-only by a database trigger, not by
   convention.
-- Public token security: 256-bit entropy, constant-time comparison, timing-safe error responses to
-  defeat enumeration, `noindex` headers on every public document page.
+- Public token security: 256-bit entropy from one shared minter, constant-time comparison,
+  timing-safe error responses to defeat enumeration, `noindex` headers on every public document
+  page, and owner-only rotation and revocation with an audit entry that never records the token.
 - Strict HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
   Permissions-Policy) enforced for every response.
 - Rate limiting on every endpoint that processes authentication or a public token.

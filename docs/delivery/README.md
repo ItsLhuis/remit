@@ -128,6 +128,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0030](0030-host-side-upgrade.md)               | Host-side upgrade                              | 2026-05-26 | Complete                 | ADR-0020                                         |
 | [0031](0031-delivery-records.md)                | Delivery records and the documentation surface | 2026-09-01 | Complete                 | —                                                |
 | [0032](0032-documentation-reconciliation.md)    | Documentation reconciliation                   | 2026-09-03 | Complete with known gaps | ADR-0010, ADR-0014, ADR-0018, ADR-0023, ADR-0025 |
+| [0033](0033-public-token-lifecycle.md)          | Public token lifecycle                         | 2026-09-04 | Complete with known gaps | ADR-0029                                         |
 
-Every record above carries `Reconstructed: yes` except `DR-0031`, which was written at delivery
-time.
+Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032` and `DR-0033`, which
+were written at delivery time.

@@ -155,7 +155,9 @@ implemented command.
   contracts, and recurring invoice schedules.
 - **Limitations:** refuses to proceed when seedable rows already exist unless `--reseed` is
   supplied; does not seed or mutate Better Auth-owned auth tables, organization tables, uploads,
-  email logs, audit logs, or activity logs.
+  email logs, audit logs, or activity logs. Public tokens are the one field a seed does not
+  determine: a demo instance's document links are real bearer credentials, so they come from the
+  CSPRNG like every other token (ADR-0029) and differ on every run.
 
 ### `pnpm remit:reset-data`
 
