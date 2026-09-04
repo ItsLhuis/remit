@@ -1,12 +1,31 @@
-import { randomBytes } from "node:crypto"
-
 import { describe, expect, test } from "vitest"
 
-import { matchesPublicToken } from "../publicToken"
+import { matchesPublicToken, mintPublicToken } from "../publicToken"
+
+describe("mintPublicToken", () => {
+  test("returns the 43-character base64url encoding of 32 random bytes", () => {
+    const token = mintPublicToken()
+
+    expect(token).toHaveLength(43)
+    expect(Buffer.from(token, "base64url")).toHaveLength(32)
+  })
+
+  test("emits only URL-safe base64 characters", () => {
+    const tokens = Array.from({ length: 200 }, mintPublicToken)
+
+    for (const token of tokens) expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  })
+
+  test("never repeats a value across a large batch", () => {
+    const tokens = Array.from({ length: 5_000 }, mintPublicToken)
+
+    expect(new Set(tokens).size).toBe(tokens.length)
+  })
+})
 
 describe("matchesPublicToken", () => {
   test("accepts a token identical to the stored one", () => {
-    const token = randomBytes(32).toString("base64url")
+    const token = mintPublicToken()
 
     expect(matchesPublicToken(token, token)).toBe(true)
   })
