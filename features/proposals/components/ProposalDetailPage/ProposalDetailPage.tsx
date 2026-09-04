@@ -165,7 +165,11 @@ const ProposalDetailPage = ({ proposal }: ProposalDetailPageProps) => {
           </div>
           <div className="flex flex-col gap-6">
             <ProposalSummaryCard proposal={proposal} />
-            <ProposalPublicLinkCard publicPath={proposal.publicPath} />
+            <ProposalPublicLinkCard
+              proposalId={proposal.id}
+              publicPath={proposal.publicPath}
+              publicLinkState={proposal.publicLinkState}
+            />
           </div>
         </div>
         <SendProposalDialog

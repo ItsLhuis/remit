@@ -31,7 +31,8 @@ import {
   type InvoiceListPageData,
   type InvoiceTaxRateOption,
   type InvoiceTemplateOption,
-  type ProposalInvoiceSnapshot
+  type ProposalInvoiceSnapshot,
+  type PublicLinkState
 } from "./types"
 
 const invoiceListColumns = {
@@ -199,15 +200,33 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
     notes: invoice.notes ?? "",
     viewCount: invoice.viewCount,
     templateName: template?.name ?? null,
-    // The token exists from creation, but exposing it before the invoice is sent would hand out a
-    // live client URL for a document the client is not meant to have seen yet. The test is the
-    // status rather than `issueDate`, because a draft may already carry an issue date from the form
-    // and `getPublicInvoice` in publicQueries.ts admits sent and paid invoices only — a link offered
-    // for a draft would resolve to the "unavailable" panel.
-    publicPath: invoice.status === "draft" ? null : `/i/${invoice.publicToken}`,
+    // A draft's token exists but must not be exposed: it would hand out a live client URL for a
+    // document the client is not meant to have seen yet. The test is the status rather than
+    // `issueDate`, because a draft may already carry an issue date from the form and
+    // `getPublicInvoice` in publicQueries.ts admits sent and paid invoices only — a link offered for
+    // a draft would resolve to the "unavailable" panel. A revoked invoice has no token at all.
+    publicPath: toInvoicePublicPath(invoice),
+    publicLinkState: toPublicLinkState(invoice),
     lineItems: rows.map(toInvoiceDetailLineItem),
     defaults
   }
+}
+
+// The two link fields are derived together so the path and the state can never disagree: a `live`
+// state without a path, or a path on a `revoked` invoice, would each be a bug the card would render.
+function toInvoicePublicPath(invoice: { status: InvoiceStatus; publicToken: string | null }) {
+  if (invoice.status === "draft" || !invoice.publicToken) return null
+
+  return `/i/${invoice.publicToken}`
+}
+
+function toPublicLinkState(invoice: {
+  status: InvoiceStatus
+  publicToken: string | null
+}): PublicLinkState {
+  if (invoice.status === "draft") return "unissued"
+
+  return invoice.publicToken ? "live" : "revoked"
 }
 
 export async function getInvoiceForEdit(input: unknown): Promise<InvoiceFormData | null> {

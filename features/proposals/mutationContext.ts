@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache"
+
 import { headers } from "next/headers"
 
 import { t } from "@/lib/i18n/server"
@@ -28,6 +30,8 @@ export type ProposalAuditEvent =
   | "proposal.updated"
   | "proposal.sent"
   | "proposal.deleted"
+  | "proposal.public_link.rotated"
+  | "proposal.public_link.revoked"
 
 export type ProposalActionErrorContext = {
   action: string
@@ -41,8 +45,8 @@ export type ProposalActionErrorContext = {
 // as an incident.
 export class ExpectedProposalError extends Error {}
 
-// Three named gates over one implementation: an assistant may draft and revise a proposal, but
-// issuing it to a client and destroying it are owner-only. The names are what `doctor.config.ts`
+// Four named gates over one implementation: an assistant may draft and revise a proposal, but
+// issuing it to a client, withdrawing the link it was issued on, and destroying it are owner-only. The names are what `doctor.config.ts`
 // registers as server auth functions, so each call site stays greppable to its privilege level.
 export function requireProposalWrite(): Promise<ProposalWriteGate> {
   return requireProposalRole(["owner", "assistant"])
@@ -54,6 +58,30 @@ export function requireProposalSend(): Promise<ProposalWriteGate> {
 
 export function requireProposalDelete(): Promise<ProposalWriteGate> {
   return requireProposalRole(["owner"])
+}
+
+// Owner-only, on the same footing as sending: rotating or revoking a link changes what a recipient
+// can still open, which is a transmit decision rather than a draft edit.
+export function requireProposalPublicLink(): Promise<ProposalWriteGate> {
+  return requireProposalRole(["owner"])
+}
+
+export type ProposalScope = {
+  projectId: string | null
+  clientId: string | null
+}
+
+export function revalidateProposalPaths(scope: ProposalScope, proposalId: string): void {
+  revalidatePath(`/proposals/${proposalId}`)
+  revalidatePath("/proposals")
+
+  if (scope.projectId) {
+    revalidatePath(`/projects/${scope.projectId}/proposals/${proposalId}`)
+    revalidatePath(`/projects/${scope.projectId}/proposals`)
+    revalidatePath(`/projects/${scope.projectId}`)
+  }
+
+  if (scope.clientId) revalidatePath(`/clients/${scope.clientId}`)
 }
 
 export async function writeProposalAudit(

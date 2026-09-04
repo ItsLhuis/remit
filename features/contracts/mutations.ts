@@ -2,13 +2,12 @@
 
 import { revalidatePath } from "next/cache"
 
-import { randomBytes } from "node:crypto"
-
 import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
 import { enqueueJob } from "@/lib/jobs"
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { clients, contracts, projects, settings, templates } from "@/database/schema"
@@ -30,6 +29,8 @@ import {
   requireContractSend,
   requireContractTerminate,
   requireContractWrite,
+  revalidateContractPaths,
+  type ContractParentIds,
   writeContractAudit,
   ExpectedContractError
 } from "./mutationContext"
@@ -58,11 +59,6 @@ export type SendContractResult = { data: { id: string } } | { error: string }
 export type TerminateContractResult = { data: { id: string } } | { error: string }
 
 export type DeleteContractResult = { data: { id: string } } | { error: string }
-
-type ContractParentIds = {
-  projectId: string | null
-  clientId: string | null
-}
 
 const AUDIT_FIELDS = [
   "title",
@@ -107,7 +103,7 @@ export async function createContract(input: unknown): Promise<ContractMutationRe
           // uniquely indexed, and so a failed send can never consume a contract number. Nothing
           // reads the token back until `issuedAt` is set - the public signing route is what finally
           // resolves it.
-          publicToken: randomBytes(32).toString("base64url")
+          publicToken: mintPublicToken()
         })
         .returning({ id: contracts.id })
 
@@ -186,7 +182,7 @@ export async function createContractFromProposal(input: unknown): Promise<Contra
           title: parsed.data.title,
           status: "draft",
           blocks,
-          publicToken: randomBytes(32).toString("base64url")
+          publicToken: mintPublicToken()
         })
         .returning({ id: contracts.id })
 
@@ -627,17 +623,6 @@ function isSameValue(a: unknown, b: unknown): boolean {
   if (a instanceof Date || b instanceof Date) return false
 
   return (a ?? null) === (b ?? null)
-}
-
-// A contract is reachable from the top-level list, its own detail route, and whichever parent
-// records it names, so all of them go stale on a write. The parent paths are conditional because a
-// contract has a project, a client, or one of each - never necessarily both.
-function revalidateContractPaths(contract: { id: string } & ContractParentIds): void {
-  revalidatePath("/contracts")
-  revalidatePath(`/contracts/${contract.id}`)
-
-  if (contract.projectId) revalidatePath(`/projects/${contract.projectId}`)
-  if (contract.clientId) revalidatePath(`/clients/${contract.clientId}`)
 }
 
 // The partial unique index `contracts_proposal_id_unique_idx` is what actually serializes two

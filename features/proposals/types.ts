@@ -97,6 +97,15 @@ export type ProposalDetailLineItem = {
   totalCents: number
 }
 
+// The three states a document's public link can be in. `unissued` and `revoked` both mean "no URL
+// resolves", and the token cannot tell them apart — it is absent in both cases (ADR-0029). The
+// document's own lifecycle is what distinguishes them: a draft has never been handed out, a revoked
+// document was and had its link withdrawn. Duplicated per feature rather than shared, like the
+// decoy token in each `publicQueries.ts`, because no feature may reach into another's read models.
+export type ProposalPublicLinkResult = { data: { id: string } } | { error: string }
+
+export type PublicLinkState = "unissued" | "live" | "revoked"
+
 export type ProposalDetail = {
   id: string
   projectId: string | null
@@ -117,9 +126,11 @@ export type ProposalDetail = {
   issuedAt: Date | null
   viewCount: number
   templateName: string | null
-  // Null until the proposal is sent. The token exists from creation (the column is NOT NULL), but no
-  // read model may carry it before `issuedAt` is set — see `getProposalDetail` in queries.ts.
+  // Null unless the link is live: a proposal that has never been issued must not surface its token
+  // (SCHEMA.md's `proposals.public_token` note), and a revoked one has no token at all.
+  // `publicLinkState` is what tells those two apart — see `getProposalDetail` in queries.ts.
   publicPath: string | null
+  publicLinkState: PublicLinkState
   lineItems: ProposalDetailLineItem[]
   defaults: ProposalDefaults
 }

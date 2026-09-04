@@ -103,6 +103,13 @@ export type InvoiceDetailLineItem = {
   totalCents: number
 }
 
+// The three states a document's public link can be in. `unissued` and `revoked` both mean "no URL
+// resolves", and the token cannot tell them apart — it is absent in both cases (ADR-0029). The
+// document's own lifecycle is what distinguishes them: a draft has never been handed out, a revoked
+// document was and had its link withdrawn. Duplicated per feature rather than shared, like the
+// decoy token in each `publicQueries.ts`, because no feature may reach into another's read models.
+export type PublicLinkState = "unissued" | "live" | "revoked"
+
 export type InvoiceDetail = {
   id: string
   projectId: string | null
@@ -126,9 +133,11 @@ export type InvoiceDetail = {
   notes: string
   viewCount: number
   templateName: string | null
-  // Null until the invoice is sent. The token exists from creation (the column is NOT NULL), but no
-  // read model may carry it before `issueDate` is set — see `getInvoiceDetail` in queries.ts.
+  // Null unless the link is live: a draft has never been handed out, and a revoked invoice has no
+  // token at all. `publicLinkState` is what tells those two apart — see `getInvoiceDetail` in
+  // queries.ts.
   publicPath: string | null
+  publicLinkState: PublicLinkState
   lineItems: InvoiceDetailLineItem[]
   defaults: InvoiceDefaults
 }
@@ -190,6 +199,8 @@ export type SendInvoiceResult = { data: { id: string } } | { error: string }
 export type MarkInvoicePaidResult = { data: { id: string } } | { error: string }
 
 export type DeleteInvoiceResult = { data: { id: string } } | { error: string }
+
+export type InvoicePublicLinkResult = { data: { id: string } } | { error: string }
 
 // An accepted proposal that has not been turned into an invoice yet. `totalCents` and `currency`
 // travel with it so the conversion dialog can show what the invoice will be worth before the write.

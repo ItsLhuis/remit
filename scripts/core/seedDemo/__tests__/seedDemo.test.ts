@@ -6,11 +6,18 @@ import { buildDemoSeedPlan } from "../plan"
 
 const OWNER_ID = "3fdd6b4f-71b8-4dbb-b5e2-5b626c08348c"
 
+// Public tokens are the one field a seed does not determine, so they are stripped before the
+// comparison rather than the comparison being loosened: everything else still has to match byte for
+// byte, and a second field going random would fail here.
+function withoutPublicTokens(plan: ReturnType<typeof buildDemoSeedPlan>): string {
+  return JSON.stringify(plan, (key, value) => (key === "publicToken" ? undefined : value))
+}
+
 test("builds byte-identical plans when the same seed is used", () => {
   const first = buildDemoSeedPlan(42, OWNER_ID)
   const second = buildDemoSeedPlan(42, OWNER_ID)
 
-  expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  expect(withoutPublicTokens(first)).toBe(withoutPublicTokens(second))
   expect(first.counts.clients).toBe(6)
   expect(first.counts.projects).toBe(11)
   expect(first.counts.invoices).toBe(6)
@@ -66,7 +73,15 @@ test("builds different deterministic identifiers when the seed changes", () => {
   const second = buildDemoSeedPlan(43, OWNER_ID)
 
   expect(first.clients[0]?.id).not.toBe(second.clients[0]?.id)
+})
+
+test("mints a fresh public token on every plan built from the same seed", () => {
+  const first = buildDemoSeedPlan(42, OWNER_ID)
+  const second = buildDemoSeedPlan(42, OWNER_ID)
+
   expect(first.invoices[0]?.publicToken).not.toBe(second.invoices[0]?.publicToken)
+  expect(first.proposals[0]?.publicToken).not.toBe(second.proposals[0]?.publicToken)
+  expect(first.contracts[0]?.publicToken).not.toBe(second.contracts[0]?.publicToken)
 })
 
 test("parses supported CLI flags", () => {

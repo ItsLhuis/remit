@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache"
+
 import { headers } from "next/headers"
 
 import { t } from "@/lib/i18n/server"
@@ -29,6 +31,8 @@ export type ContractAuditEvent =
   | "contract.sent"
   | "contract.terminated"
   | "contract.deleted"
+  | "contract.public_link.rotated"
+  | "contract.public_link.revoked"
 
 export type ContractActionErrorContext = {
   action: string
@@ -42,8 +46,9 @@ export type ContractActionErrorContext = {
 // as an incident.
 export class ExpectedContractError extends Error {}
 
-// Four named gates over one implementation: an assistant may draft and revise a contract, but
-// issuing it to a counterparty, ending it, and destroying it are owner-only. The names are what
+// Five named gates over one implementation: an assistant may draft and revise a contract, but
+// issuing it to a counterparty, withdrawing the link it was issued on, ending it, and destroying it
+// are owner-only. The names are what
 // `doctor.config.ts` registers as server auth functions, so each call site stays greppable to its
 // privilege level.
 export function requireContractWrite(): Promise<ContractWriteGate> {
@@ -60,6 +65,28 @@ export function requireContractTerminate(): Promise<ContractWriteGate> {
 
 export function requireContractDelete(): Promise<ContractWriteGate> {
   return requireContractRole(["owner"])
+}
+
+// Owner-only, on the same footing as sending: rotating or revoking a link changes what a signer can
+// still open, which is a transmit decision rather than a draft edit.
+export function requireContractPublicLink(): Promise<ContractWriteGate> {
+  return requireContractRole(["owner"])
+}
+
+export type ContractParentIds = {
+  projectId: string | null
+  clientId: string | null
+}
+
+// A contract is reachable from the top-level list, its own detail route, and whichever parent
+// records it names, so all of them go stale on a write. The parent paths are conditional because a
+// contract has a project, a client, or one of each - never necessarily both.
+export function revalidateContractPaths(contract: { id: string } & ContractParentIds): void {
+  revalidatePath("/contracts")
+  revalidatePath(`/contracts/${contract.id}`)
+
+  if (contract.projectId) revalidatePath(`/projects/${contract.projectId}`)
+  if (contract.clientId) revalidatePath(`/clients/${contract.clientId}`)
 }
 
 export async function writeContractAudit(

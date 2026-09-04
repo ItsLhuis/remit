@@ -1,10 +1,10 @@
-import { randomBytes } from "node:crypto"
-
 import { compareSync } from "bcryptjs"
 
 import { and, eq } from "drizzle-orm"
 
 import { beforeEach, describe, expect, test, vi } from "vitest"
+
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { auditLogs, emailLogs, proposalOtps, proposals } from "@/database/schema"
 
@@ -15,7 +15,8 @@ import {
   makeProject,
   makeProposal,
   makeProposalOtp,
-  makeSettings
+  makeSettings,
+  publicTokenOf
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
@@ -71,7 +72,7 @@ async function makeSentProposal(overrides?: Record<string, unknown>) {
   const proposal = await makeProposal({
     projectId: project.id,
     status: "sent",
-    publicToken: randomBytes(32).toString("base64url"),
+    publicToken: mintPublicToken(),
     issuedAt: new Date("2026-07-01T10:00:00.000Z"),
     totalCents: 100000,
     ...overrides
@@ -100,7 +101,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -123,7 +124,7 @@ describe("requestProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [log] = await database
@@ -141,11 +142,11 @@ describe("requestProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
     await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const rows = await database
@@ -162,7 +163,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: "stranger@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const rows = await database
@@ -182,7 +183,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: "finance@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -206,7 +207,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: "intruder@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const rows = await database
@@ -230,7 +231,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: "former@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const rows = await database
@@ -252,7 +253,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -269,11 +270,11 @@ describe("requestProposalOtp", () => {
 
     const archived = await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
     const unknown = await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(randomBytes(32).toString("base64url"))
+      requestContext(mintPublicToken())
     )
 
     expect(archived).toEqual(unknown)
@@ -286,7 +287,7 @@ describe("requestProposalOtp", () => {
 
     const result = await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -311,12 +312,12 @@ describe("verifyProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const result = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: readSentCode(), rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -336,7 +337,7 @@ describe("verifyProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: "signatory@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const result = await verifyProposalOtp(
@@ -346,7 +347,7 @@ describe("verifyProposalOtp", () => {
         code: readSentCode(),
         rejectionReason: ""
       },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -362,12 +363,12 @@ describe("verifyProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: "signatory@example.com" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const result = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: readSentCode(), rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -381,19 +382,19 @@ describe("verifyProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "accept", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const code = readSentCode()
 
     await verifyProposalOtp(
       { action: "accept", email: clientEmail, code, rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const replay = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code, rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -410,7 +411,7 @@ describe("verifyProposalOtp", () => {
 
     await requestProposalOtp(
       { action: "reject", email: clientEmail },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const result = await verifyProposalOtp(
@@ -420,7 +421,7 @@ describe("verifyProposalOtp", () => {
         code: readSentCode(),
         rejectionReason: "Budget moved to next quarter"
       },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -437,7 +438,7 @@ describe("verifyProposalOtp", () => {
 
     const result = await verifyProposalOtp(
       { action: "reject", email: clientEmail, code: "123456", rejectionReason: "   " },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -453,7 +454,7 @@ describe("verifyProposalOtp", () => {
 
     const result = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "999999", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -481,12 +482,12 @@ describe("verifyProposalOtp", () => {
 
     await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "999999", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const correct = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [otp] = await database
@@ -511,7 +512,7 @@ describe("verifyProposalOtp", () => {
 
     const result = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [row] = await database.select().from(proposals).where(eq(proposals.id, proposal.id))
@@ -532,7 +533,7 @@ describe("verifyProposalOtp", () => {
 
     const result = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -545,7 +546,7 @@ describe("verifyProposalOtp", () => {
 
     const result = await verifyProposalOtp(
       { action: "accept", email: "stranger@example.com", code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -558,7 +559,7 @@ describe("verifyProposalOtp", () => {
 
     await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     const [entry] = await database
@@ -571,7 +572,7 @@ describe("verifyProposalOtp", () => {
     expect(entry?.actorUserId).toBeNull()
     expect(entry?.ipAddress).toBe("203.0.113.7")
     expect(entry?.userAgent).toBe("Mozilla/5.0")
-    expect(JSON.stringify(entry?.metadata)).not.toContain(proposal.publicToken)
+    expect(JSON.stringify(entry?.metadata)).not.toContain(publicTokenOf(proposal))
   })
 
   test("emits the acceptance and revalidates the internal proposal surfaces", async () => {
@@ -581,7 +582,7 @@ describe("verifyProposalOtp", () => {
 
     await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
 
     expect(mocks.emit).toHaveBeenCalledWith("proposal.accepted", {
@@ -602,11 +603,11 @@ describe("verifyProposalOtp", () => {
 
     const archived = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(proposal.publicToken)
+      requestContext(publicTokenOf(proposal))
     )
     const unknown = await verifyProposalOtp(
       { action: "accept", email: clientEmail, code: "123456", rejectionReason: "" },
-      requestContext(randomBytes(32).toString("base64url"))
+      requestContext(mintPublicToken())
     )
 
     expect(archived).toEqual(unknown)

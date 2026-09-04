@@ -29,7 +29,8 @@ export type InvoiceDocumentData = {
   currency: string
   locale: string
   dueDate: Date | null
-  publicToken: string
+  // Null once the link has been revoked; every caller building a URL has to say what it does then.
+  publicToken: string | null
   outstandingCents: number
   businessName: string
   templateId: string | null

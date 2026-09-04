@@ -528,6 +528,7 @@ function toClientDetail({
     },
     notes: row.notes ?? "",
     imageStorageKey: row.image?.path ?? null,
+    portalPath: row.portalToken ? `/s/${row.portalToken}` : null,
     outstandingBalanceCents,
     health: getClientHealth({
       outstandingBalanceCents,

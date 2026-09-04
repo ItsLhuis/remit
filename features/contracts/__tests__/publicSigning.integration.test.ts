@@ -1,12 +1,18 @@
-import { randomBytes } from "node:crypto"
-
 import { eq } from "drizzle-orm"
 
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
+import { mintPublicToken } from "@/lib/publicToken"
+
 import { auditLogs, contractSignatures, contracts } from "@/database/schema"
 
-import { makeClient, makeContract, makeProject, makeSettings } from "@/tests/factories"
+import {
+  makeClient,
+  makeContract,
+  makeProject,
+  makeSettings,
+  publicTokenOf
+} from "@/tests/factories"
 import { makeTextBlock } from "@/tests/factories/blocks"
 import { database } from "@/tests/integration/database"
 
@@ -52,7 +58,7 @@ const signerValues = {
 }
 
 function makeToken() {
-  return randomBytes(32).toString("base64url")
+  return mintPublicToken()
 }
 
 async function makeSentContract(overrides?: Record<string, unknown>) {
@@ -88,7 +94,7 @@ describe("signPublicContract", () => {
     const { contract } = await makeSentContract()
 
     const result = await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 
@@ -105,7 +111,7 @@ describe("signPublicContract", () => {
   test("records the signer, the consent snapshot and the request metadata", async () => {
     const { contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     const [signature] = await readSignatures(contract.id)
 
@@ -126,7 +132,7 @@ describe("signPublicContract", () => {
     const { contract } = await makeSentContract()
 
     await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ipAddress: null,
       userAgent: null
     })
@@ -140,7 +146,7 @@ describe("signPublicContract", () => {
   test("emits contract.signed and enqueues the signed pdf render for the new signature", async () => {
     const { contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     const [signature] = await readSignatures(contract.id)
 
@@ -157,7 +163,7 @@ describe("signPublicContract", () => {
   test("revalidates the contract and its client", async () => {
     const { client, contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/contracts")
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/contracts/${contract.id}`)
@@ -175,7 +181,7 @@ describe("signPublicContract", () => {
       issuedAt: new Date("2026-07-15T09:30:00.000Z")
     })
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/projects/${project.id}`)
   })
@@ -183,7 +189,7 @@ describe("signPublicContract", () => {
   test("writes an audit entry with no actor and the request metadata", async () => {
     const { contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     const [entry] = await database
       .select()
@@ -204,18 +210,18 @@ describe("signPublicContract", () => {
   test("never records the public token in the audit trail", async () => {
     const { contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     const entries = await database.select().from(auditLogs)
 
-    expect(JSON.stringify(entries)).not.toContain(contract.publicToken)
+    expect(JSON.stringify(entries)).not.toContain(publicTokenOf(contract))
   })
 
   test("refuses a draft contract", async () => {
     const { contract } = await makeSentContract({ status: "draft", issuedAt: null })
 
     const result = await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 
@@ -227,7 +233,7 @@ describe("signPublicContract", () => {
     const { contract } = await makeSentContract({ status: "signed" })
 
     const result = await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 
@@ -243,7 +249,7 @@ describe("signPublicContract", () => {
     })
 
     const result = await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 
@@ -254,10 +260,10 @@ describe("signPublicContract", () => {
   test("refuses a second signature on a contract it already signed", async () => {
     const { contract } = await makeSentContract()
 
-    await signPublicContract(signerValues, { token: contract.publicToken, ...signerContext })
+    await signPublicContract(signerValues, { token: publicTokenOf(contract), ...signerContext })
 
     const result = await signPublicContract(signerValues, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 
@@ -282,7 +288,7 @@ describe("signPublicContract", () => {
 
     const result = await signPublicContract(
       { ...signerValues, signerName: "   " },
-      { token: contract.publicToken, ...signerContext }
+      { token: publicTokenOf(contract), ...signerContext }
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -294,7 +300,7 @@ describe("signPublicContract", () => {
 
     const result = await signPublicContract(
       { ...signerValues, signerEmail: "not-an-email" },
-      { token: contract.publicToken, ...signerContext }
+      { token: publicTokenOf(contract), ...signerContext }
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -306,7 +312,7 @@ describe("signPublicContract", () => {
 
     const result = await signPublicContract(
       { ...signerValues, consentAccepted: false },
-      { token: contract.publicToken, ...signerContext }
+      { token: publicTokenOf(contract), ...signerContext }
     )
 
     expect(result).toEqual({ error: expect.any(String) })
@@ -324,7 +330,7 @@ describe("signPublicContract", () => {
     const { contract } = await makeSentContract()
 
     const result = await signPublicContract(null, {
-      token: contract.publicToken,
+      token: publicTokenOf(contract),
       ...signerContext
     })
 

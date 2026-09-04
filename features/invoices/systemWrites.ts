@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto"
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { invoices } from "@/database/schema"
@@ -99,7 +99,7 @@ export async function writeSystemInvoice(input: SystemInvoiceInput): Promise<Sys
       issueDate: dates?.issueDate ?? null,
       dueDate: dates?.dueDate ?? null,
       notes: input.notes,
-      publicToken: randomBytes(32).toString("base64url")
+      publicToken: mintPublicToken()
     })
     .returning({ id: invoices.id })
 

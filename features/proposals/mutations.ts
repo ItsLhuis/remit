@@ -1,14 +1,11 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
-
-import { randomBytes } from "node:crypto"
-
 import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
 import { enqueueJob } from "@/lib/jobs"
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { clients, lineItems, projects, proposals, settings, taxRates } from "@/database/schema"
@@ -24,6 +21,8 @@ import {
   requireProposalDelete,
   requireProposalSend,
   requireProposalWrite,
+  revalidateProposalPaths,
+  type ProposalScope,
   writeProposalAudit,
   ExpectedProposalError
 } from "./mutationContext"
@@ -67,11 +66,6 @@ type DiscountValues = {
 }
 
 type ProposalWriteValues = CreateProposalValues | UpdateProposalValues
-
-type ProposalScope = {
-  projectId: string | null
-  clientId: string | null
-}
 
 const AUDIT_FIELDS = [
   "projectId",
@@ -125,7 +119,7 @@ export async function createProposal(input: unknown): Promise<ProposalMutationRe
           // Minted here rather than at send so `proposals.public_token` can stay NOT NULL and
           // uniquely indexed. Nothing reads it back until `issuedAt` is set — see the read model in
           // queries.ts, which withholds the client path for an unissued proposal.
-          publicToken: randomBytes(32).toString("base64url")
+          publicToken: mintPublicToken()
         })
         .returning({ id: proposals.id })
 
@@ -623,17 +617,4 @@ function emptyToNull(value: string): string | null {
   const trimmed = value.trim()
 
   return trimmed.length > 0 ? trimmed : null
-}
-
-function revalidateProposalPaths(scope: ProposalScope, proposalId: string): void {
-  revalidatePath(`/proposals/${proposalId}`)
-  revalidatePath("/proposals")
-
-  if (scope.projectId) {
-    revalidatePath(`/projects/${scope.projectId}/proposals/${proposalId}`)
-    revalidatePath(`/projects/${scope.projectId}/proposals`)
-    revalidatePath(`/projects/${scope.projectId}`)
-  }
-
-  if (scope.clientId) revalidatePath(`/clients/${scope.clientId}`)
 }

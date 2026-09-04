@@ -25,7 +25,12 @@ export type ClientWriteContext = {
 
 export type ClientWriteGate = { context: ClientWriteContext } | { error: string }
 
-export type ClientAuditEvent = "client.created" | "client.updated" | "client.deleted"
+export type ClientAuditEvent =
+  | "client.created"
+  | "client.updated"
+  | "client.deleted"
+  | "client.portal_link.rotated"
+  | "client.portal_link.revoked"
 
 // A contact write is audited on the same footing as a client write, and for a stronger reason than
 // symmetry: since ADR-0027 a contact address both receives this client's documents and may accept
@@ -40,28 +45,22 @@ export type ClientContactAuditEvent =
 // unexpected failures it logs and flattens into one message.
 export class ExpectedClientError extends Error {}
 
-// The names `doctor.config.ts` registers as server auth functions, so each call site stays greppable
-// to its privilege level. An assistant drafts and edits; only the owner destroys.
-export async function requireClientWrite(): Promise<ClientWriteGate> {
-  const gate = await getClientActionContext()
-
-  if ("error" in gate) return gate
-
-  if (gate.context.role !== "owner" && gate.context.role !== "assistant") {
-    return { error: t("errors.forbidden") }
-  }
-
-  return gate
+// Three named gates over one implementation, like every other feature's `mutationContext.ts`. The
+// names are what `doctor.config.ts` registers as server auth functions, so each call site stays
+// greppable to its privilege level. An assistant drafts and edits; only the owner destroys — and
+// only the owner touches the portal link, because a standing bearer credential to everything Remit
+// holds about a client is a transmit decision rather than an edit (ARCHITECTURE.md's role table
+// refuses `send` and `transmit` to both other roles).
+export function requireClientWrite(): Promise<ClientWriteGate> {
+  return requireClientRole(["owner", "assistant"])
 }
 
-export async function requireClientDelete(): Promise<ClientWriteGate> {
-  const gate = await getClientActionContext()
+export function requireClientDelete(): Promise<ClientWriteGate> {
+  return requireClientRole(["owner"])
+}
 
-  if ("error" in gate) return gate
-
-  if (gate.context.role !== "owner") return { error: t("errors.forbidden") }
-
-  return gate
+export function requireClientPortalLink(): Promise<ClientWriteGate> {
+  return requireClientRole(["owner"])
 }
 
 export async function writeClientAudit(
@@ -92,6 +91,16 @@ export function handleClientActionError(
   logger.error({ action, userId, clientId, err: error }, "Client action failed")
 
   return { error: t("clients.errors.updateFailed") }
+}
+
+async function requireClientRole(allowed: Role[]): Promise<ClientWriteGate> {
+  const gate = await getClientActionContext()
+
+  if ("error" in gate) return gate
+
+  if (!allowed.includes(gate.context.role)) return { error: t("errors.forbidden") }
+
+  return gate
 }
 
 async function getClientActionContext(): Promise<ClientWriteGate> {

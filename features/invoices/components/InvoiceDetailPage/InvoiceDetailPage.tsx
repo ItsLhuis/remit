@@ -277,7 +277,11 @@ const InvoiceDetailPage = ({
               creditedCents={creditedCents}
               outstandingCents={outstandingCents}
             />
-            <InvoicePublicLinkCard publicPath={invoice.publicPath} />
+            <InvoicePublicLinkCard
+              invoiceId={invoice.id}
+              publicPath={invoice.publicPath}
+              publicLinkState={invoice.publicLinkState}
+            />
           </div>
         </div>
         <SendInvoiceDialog

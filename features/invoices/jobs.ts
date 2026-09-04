@@ -344,6 +344,10 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
 
   if (row?.dueDate == null) return null
 
+  // A reminder with no link to the invoice is not worth sending, and minting a replacement token in
+  // a background job would silently undo a withdrawal the owner asked for (ADR-0029).
+  if (row.publicToken == null) return null
+
   const recipient = await getClientDocumentRecipient(row.directClientId ?? row.projectClientId)
 
   if (!recipient) return null

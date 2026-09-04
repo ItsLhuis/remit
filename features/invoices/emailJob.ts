@@ -45,13 +45,27 @@ export async function sendInvoiceEmail(payload: {
     return
   }
 
+  // A revoked public link leaves the mail with nowhere to point, and minting a replacement here
+  // would silently undo the withdrawal the owner asked for. Skipping is the only honest outcome, and
+  // it is not a failure to retry either (ADR-0029).
+  if (!document.publicToken) {
+    logger.warn(
+      { action: "sendInvoiceEmail", invoiceId: payload.invoiceId, occasion: payload.occasion },
+      "Invoice email skipped: public link revoked"
+    )
+
+    return
+  }
+
+  const publicUrl = `${env.NEXT_PUBLIC_APP_URL}/i/${document.publicToken}`
+
   const [attachment, body] = await Promise.all([
     getInvoicePdfAttachment(payload.invoiceId),
     renderEmailTemplate({
       templateType: TEMPLATE_TYPE_BY_OCCASION[payload.occasion],
       renderData: document.renderData,
       fallbackSubject: getFallbackSubject(payload.occasion, document),
-      fallbackText: getFallbackText(payload.occasion, document)
+      fallbackText: getFallbackText(payload.occasion, document, publicUrl)
     })
   ])
 
@@ -101,7 +115,8 @@ function getFallbackSubject(
 // template editor must still be able to invoice, so this path is ordinary rather than exceptional.
 function getFallbackText(
   occasion: InvoiceEmailOccasion,
-  document: ResolvedInvoiceDocument
+  document: ResolvedInvoiceDocument,
+  publicUrl: string
 ): string {
   const values = {
     clientName: document.recipientName,
@@ -109,7 +124,7 @@ function getFallbackText(
     // What is still owed, not the face value: a partly paid invoice must not chase the full amount.
     amount: formatCurrency(document.outstandingCents, document.currency, document.locale),
     dueDate: document.dueDate ? formatDay(document.dueDate, document.locale) : "",
-    url: `${env.NEXT_PUBLIC_APP_URL}/i/${document.publicToken}`,
+    url: publicUrl,
     businessName: document.businessName
   }
 

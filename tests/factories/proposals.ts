@@ -2,6 +2,8 @@ import { faker } from "@faker-js/faker"
 
 import { type InferInsertModel } from "drizzle-orm"
 
+import { mintPublicToken } from "@/lib/publicToken"
+
 import { proposals } from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
@@ -24,7 +26,7 @@ export async function makeProposal(overrides?: Partial<InferInsertModel<typeof p
       number: `PROP-${faker.string.alphanumeric(8).toUpperCase()}`,
       status: "draft",
       currency: "EUR",
-      publicToken: faker.string.alphanumeric(32),
+      publicToken: mintPublicToken(),
       subtotalCents: 0,
       discountAmountTotalCents: 0,
       taxAmountCents: 0,

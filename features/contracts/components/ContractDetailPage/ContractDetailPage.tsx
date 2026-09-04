@@ -34,6 +34,7 @@ import { DeleteContractDialog } from "../DeleteContractDialog"
 import { SendContractDialog } from "../SendContractDialog"
 import { TerminateContractDialog } from "../TerminateContractDialog"
 
+import { ContractPublicLinkCard } from "./ContractPublicLinkCard"
 import { ContractSummaryCard } from "./ContractSummaryCard"
 
 type ContractDetailPageProps = {
@@ -208,6 +209,11 @@ const ContractDetailPage = ({ contract, locale, timeZone }: ContractDetailPagePr
           </div>
           <div className="flex flex-col gap-6">
             <ContractSummaryCard contract={contract} locale={locale} timeZone={timeZone} />
+            <ContractPublicLinkCard
+              contractId={contract.id}
+              publicPath={contract.publicPath}
+              publicLinkState={contract.publicLinkState}
+            />
           </div>
         </div>
         <SendContractDialog

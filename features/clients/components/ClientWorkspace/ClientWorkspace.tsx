@@ -53,6 +53,7 @@ import { ClientFormSheet } from "../ClientFormSheet"
 import { DeleteClientDialog } from "../DeleteClientDialog"
 
 import { ClientImageSection } from "./ClientImageSection"
+import { ClientPortalCard } from "./ClientPortalCard"
 import { ClientSummaryCard } from "./ClientSummaryCard"
 import { ContactRow } from "./ContactRow"
 import { DetailGroup } from "./DetailGroup"
@@ -153,15 +154,18 @@ const ClientWorkspace = ({
           </Button>
         </div>
         <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-          <ClientSummaryCard
-            client={client}
-            locale={locale}
-            location={location}
-            websiteHref={websiteHref}
-            onEdit={() => setEditOpen(true)}
-            onCopyEmail={onCopyEmail}
-            onRequestDelete={() => setDeleteOpen(true)}
-          />
+          <div className="flex flex-col gap-6">
+            <ClientSummaryCard
+              client={client}
+              locale={locale}
+              location={location}
+              websiteHref={websiteHref}
+              onEdit={() => setEditOpen(true)}
+              onCopyEmail={onCopyEmail}
+              onRequestDelete={() => setDeleteOpen(true)}
+            />
+            <ClientPortalCard clientId={client.id} portalPath={client.portalPath} />
+          </div>
           <div className="flex min-w-0 flex-col gap-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard icon="Wallet" label={t("clients.detail.outstandingLabel")}>

@@ -1,12 +1,11 @@
 "use server"
 
-import { randomBytes } from "node:crypto"
-
 import { and, eq, inArray, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
 import { enqueueJob } from "@/lib/jobs"
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { invoices, lineItems, projects, taxRates } from "@/database/schema"
@@ -119,7 +118,7 @@ export async function createInvoice(input: unknown): Promise<InvoiceMutationResu
           // Minted here rather than at send so `invoices.public_token` can stay NOT NULL and
           // uniquely indexed. Nothing reads it back until `issueDate` is set — see the read model in
           // queries.ts, which withholds the client path for an unissued invoice.
-          publicToken: randomBytes(32).toString("base64url")
+          publicToken: mintPublicToken()
         })
         .returning({ id: invoices.id })
 

@@ -41,7 +41,9 @@ export const contracts = pgTable(
     blocks: jsonb("blocks")
       .notNull()
       .default(sql`'[]'::jsonb`),
-    publicToken: text("public_token").notNull(),
+    // Nullable is the revoked state (ADR-0029): clearing it withdraws the signing link without
+    // touching the contract it points at.
+    publicToken: text("public_token"),
     issuedAt: timestamp("issued_at", { withTimezone: true, mode: "date" }),
     effectiveFrom: date("effective_from", { mode: "date" }),
     effectiveUntil: date("effective_until", { mode: "date" }),

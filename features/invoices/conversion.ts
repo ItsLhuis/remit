@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 
-import { randomBytes } from "node:crypto"
-
 import { and, eq, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
+
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { invoices } from "@/database/schema"
@@ -89,7 +89,7 @@ export async function createInvoiceFromProposal(input: unknown): Promise<Invoice
           taxAmountCents: totals.taxAmountCents,
           totalCents: totals.totalCents,
           notes: snapshot.notes,
-          publicToken: randomBytes(32).toString("base64url")
+          publicToken: mintPublicToken()
         })
         .returning({ id: invoices.id })
 

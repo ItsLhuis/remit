@@ -2,6 +2,8 @@ import { createHash } from "node:crypto"
 
 import { faker } from "@faker-js/faker"
 
+import { mintPublicToken } from "@/lib/publicToken"
+
 import { DEFAULT_DEMO_SEED_SIZE } from "./inventory"
 import {
   buildSeedSizeProfile,
@@ -540,7 +542,11 @@ function buildProposals(
       totalCents: subtotalCents + taxAmountCents,
       validUntil: dateOnly(baseDate, 21 + index),
       notes: "Prepared for review; scope can be adjusted before acceptance.",
-      publicToken: deterministicToken(seed, "proposal", index),
+      // The one field a seed does not determine: a demo instance's public links are real bearer
+      // credentials on a real port, so they are minted from the CSPRNG like every other token
+      // (`security.md`). `CLI-CONTRACT.md` carries the resulting exception to the byte-identical
+      // plan contract.
+      publicToken: mintPublicToken(),
       viewCount: status === "draft" ? 0 : 2 + index,
       issuedAt: status === "draft" ? null : timestamp(baseDate, -15 + index),
       lockedAt: status === "accepted" ? respondedAt : null,
@@ -599,7 +605,7 @@ function buildInvoices(
       dueDate: dateOnly(baseDate, 10 + index * 4),
       paidAt,
       notes: "Payment by bank transfer is preferred for this demo invoice.",
-      publicToken: deterministicToken(seed, "invoice", index),
+      publicToken: mintPublicToken(),
       viewCount: status === "draft" ? 0 : 1 + index,
       createdAt: timestamp(createdAt, index),
       updatedAt
@@ -851,7 +857,7 @@ function buildContracts(
           text: "The consultant will provide the services described in the approved proposal."
         }
       ],
-      publicToken: deterministicToken(seed, "contract", index),
+      publicToken: mintPublicToken(),
       issuedAt: status === "draft" ? null : timestamp(baseDate, -8 + index),
       effectiveFrom: dateOnly(baseDate, -7 + index),
       effectiveUntil: dateOnly(baseDate, 90 + index * 30),
@@ -941,14 +947,6 @@ function deterministicUuid(seed: number, namespace: string, index: number): stri
   const hex = bytes.toString("hex")
 
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
-
-// Derived from the seed rather than generated with `randomBytes`, which is what `security.md`
-// requires of every real public token. Demo rows must come out byte-identical for a given seed,
-// the contract `docs/architecture/operations/CLI-CONTRACT.md` states for `remit:seed-demo`, and a
-// random token would break it. These tokens are therefore guessable and belong only to demo data.
-function deterministicToken(seed: number, namespace: string, index: number): string {
-  return createHash("sha256").update(`remit-demo:${seed}:${namespace}:${index}`).digest("base64url")
 }
 
 function projectName(clientName: string, index: number): string {

@@ -26,7 +26,8 @@ export type ProposalDocumentData = {
   currency: string
   locale: string
   totalCents: number
-  publicToken: string
+  // Null once the link has been revoked; every caller building a URL has to say what it does then.
+  publicToken: string | null
   businessName: string
   templateId: string | null
   recipientEmail: string | null

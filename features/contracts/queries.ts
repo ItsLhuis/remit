@@ -35,7 +35,8 @@ import {
   type ContractFormData,
   type ContractListItem,
   type ContractParentOptions,
-  type ContractsPageData
+  type ContractsPageData,
+  type PublicLinkState
 } from "./types"
 
 // The client a project-level contract belongs to, reached through its project. Aliased because the
@@ -205,8 +206,30 @@ export async function getContractDetail(input: unknown): Promise<ContractDetail 
     terminationReason: contract.terminationReason,
     projectName: project?.name ?? null,
     clientName: client?.name ?? null,
-    hasSignature: signature.length > 0
+    hasSignature: signature.length > 0,
+    // A draft's token exists but must not be exposed: it would hand out a live signing URL for a
+    // contract the counterparty is not meant to have seen yet. A contract whose link was revoked has
+    // no token at all.
+    publicPath: toContractPublicPath(contract),
+    publicLinkState: toContractPublicLinkState(contract)
   }
+}
+
+// The two link fields are derived together so the path and the state can never disagree: a `live`
+// state without a path, or a path on a revoked contract, would each be a bug the card would render.
+function toContractPublicPath(contract: { issuedAt: Date | null; publicToken: string | null }) {
+  if (!contract.issuedAt || !contract.publicToken) return null
+
+  return `/c/${contract.publicToken}`
+}
+
+function toContractPublicLinkState(contract: {
+  issuedAt: Date | null
+  publicToken: string | null
+}): PublicLinkState {
+  if (!contract.issuedAt) return "unissued"
+
+  return contract.publicToken ? "live" : "revoked"
 }
 
 export async function getContractForEdit(input: unknown): Promise<ContractFormData | null> {

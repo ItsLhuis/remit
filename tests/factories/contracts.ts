@@ -2,6 +2,8 @@ import { faker } from "@faker-js/faker"
 
 import { type InferInsertModel } from "drizzle-orm"
 
+import { mintPublicToken } from "@/lib/publicToken"
+
 import { contracts } from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
@@ -25,7 +27,7 @@ export async function makeContract(overrides?: Partial<InferInsertModel<typeof c
       title: faker.commerce.productName(),
       status: "draft",
       blocks: [makeTextBlock()],
-      publicToken: faker.string.alphanumeric(32),
+      publicToken: mintPublicToken(),
       ...overrides,
       clientId
     })

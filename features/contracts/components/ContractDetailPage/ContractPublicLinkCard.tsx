@@ -21,20 +21,20 @@ import {
   toast
 } from "@/components/ui"
 
-import { revokeInvoicePublicLink, rotateInvoicePublicLink } from "../../publicLink"
+import { revokeContractPublicLink, rotateContractPublicLink } from "../../publicLink"
 import { type PublicLinkState } from "../../types"
 
-type InvoicePublicLinkCardProps = {
-  invoiceId: string
+type ContractPublicLinkCardProps = {
+  contractId: string
   publicPath: string | null
   publicLinkState: PublicLinkState
 }
 
-const InvoicePublicLinkCard = ({
-  invoiceId,
+const ContractPublicLinkCard = ({
+  contractId,
   publicPath,
   publicLinkState
-}: InvoicePublicLinkCardProps) => {
+}: ContractPublicLinkCardProps) => {
   const { t } = useTranslation()
 
   const router = useRouter()
@@ -50,7 +50,7 @@ const InvoicePublicLinkCard = ({
     if (isBusy) return
 
     startRotating(async () => {
-      const result = await rotateInvoicePublicLink({ id: invoiceId })
+      const result = await rotateContractPublicLink({ id: contractId })
 
       if ("error" in result) {
         toast.error(result.error)
@@ -58,7 +58,7 @@ const InvoicePublicLinkCard = ({
         return
       }
 
-      toast.success(t("invoices.detail.linkRotated"))
+      toast.success(t("contracts.detail.linkRotated"))
 
       setRotateOpen(false)
 
@@ -70,7 +70,7 @@ const InvoicePublicLinkCard = ({
     if (isBusy) return
 
     startRevoking(async () => {
-      const result = await revokeInvoicePublicLink({ id: invoiceId })
+      const result = await revokeContractPublicLink({ id: contractId })
 
       if ("error" in result) {
         toast.error(result.error)
@@ -78,7 +78,7 @@ const InvoicePublicLinkCard = ({
         return
       }
 
-      toast.success(t("invoices.detail.linkRevoked"))
+      toast.success(t("contracts.detail.linkRevoked"))
 
       setRevokeOpen(false)
 
@@ -89,32 +89,32 @@ const InvoicePublicLinkCard = ({
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>{t("invoices.detail.publicLinkTitle")}</CardTitle>
-        <CardDescription>{t("invoices.detail.publicLinkDescription")}</CardDescription>
+        <CardTitle>{t("contracts.detail.publicLinkTitle")}</CardTitle>
+        <CardDescription>{t("contracts.detail.publicLinkDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {publicPath ? (
           <CopyLinkField
             path={publicPath}
-            label={t("invoices.detail.publicLinkTitle")}
-            copyLabel={t("invoices.detail.copyLink")}
-            copiedLabel={t("invoices.detail.linkCopied")}
+            label={t("contracts.detail.publicLinkTitle")}
+            copyLabel={t("contracts.detail.copyLink")}
+            copiedLabel={t("contracts.detail.linkCopied")}
           />
         ) : null}
         {publicLinkState === "revoked" ? (
           <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">
               <Icon name="Link2Off" aria-hidden="true" />
-              {t("invoices.detail.publicLinkRevoked")}
+              {t("contracts.detail.publicLinkRevoked")}
             </Badge>
             <Typography variant="p" affects={["muted", "small", "removePMargin"]}>
-              {t("invoices.detail.publicLinkRevokedDescription")}
+              {t("contracts.detail.publicLinkRevokedDescription")}
             </Typography>
           </div>
         ) : null}
         {publicLinkState === "unissued" ? (
           <Typography variant="p" affects={["muted", "small", "removePMargin"]}>
-            {t("invoices.detail.publicLinkHidden")}
+            {t("contracts.detail.publicLinkHidden")}
           </Typography>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -125,8 +125,8 @@ const InvoicePublicLinkCard = ({
               onClick={() => setRotateOpen(true)}
             >
               {publicLinkState === "live"
-                ? t("invoices.detail.rotateLink")
-                : t("invoices.detail.issueNewLink")}
+                ? t("contracts.detail.rotateLink")
+                : t("contracts.detail.issueNewLink")}
             </Button>
             {publicLinkState === "live" ? (
               <Button
@@ -135,7 +135,7 @@ const InvoicePublicLinkCard = ({
                 disabled={isBusy}
                 onClick={() => setRevokeOpen(true)}
               >
-                {t("invoices.detail.revokeLink")}
+                {t("contracts.detail.revokeLink")}
               </Button>
             ) : null}
           </div>
@@ -143,9 +143,9 @@ const InvoicePublicLinkCard = ({
       </CardContent>
       <ConfirmDialog
         open={rotateOpen}
-        title={t("invoices.detail.rotateLinkTitle")}
-        description={t("invoices.detail.rotateLinkDescription")}
-        confirmLabel={t("invoices.detail.rotateLinkConfirm")}
+        title={t("contracts.detail.rotateLinkTitle")}
+        description={t("contracts.detail.rotateLinkDescription")}
+        confirmLabel={t("contracts.detail.rotateLinkConfirm")}
         cancelLabel={t("common.actions.cancel")}
         isPending={isRotating}
         onOpenChange={setRotateOpen}
@@ -153,9 +153,9 @@ const InvoicePublicLinkCard = ({
       />
       <ConfirmDialog
         open={revokeOpen}
-        title={t("invoices.detail.revokeLinkTitle")}
-        description={t("invoices.detail.revokeLinkDescription")}
-        confirmLabel={t("invoices.detail.revokeLinkConfirm")}
+        title={t("contracts.detail.revokeLinkTitle")}
+        description={t("contracts.detail.revokeLinkDescription")}
+        confirmLabel={t("contracts.detail.revokeLinkConfirm")}
         cancelLabel={t("common.actions.cancel")}
         isPending={isRevoking}
         variant="destructive"
@@ -166,4 +166,4 @@ const InvoicePublicLinkCard = ({
   )
 }
 
-export { InvoicePublicLinkCard }
+export { ContractPublicLinkCard }

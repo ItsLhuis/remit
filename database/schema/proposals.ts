@@ -51,7 +51,9 @@ export const proposals = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     validUntil: date("valid_until", { mode: "date" }),
     notes: text("notes"),
-    publicToken: text("public_token").notNull(),
+    // Minted at draft creation and never surfaced before `issued_at`; nullable is the revoked state
+    // (ADR-0029), which is why the column no longer needs to be `NOT NULL` to keep that invariant.
+    publicToken: text("public_token"),
     firstViewedAt: timestamp("first_viewed_at", { withTimezone: true, mode: "date" }),
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true, mode: "date" }),
     viewCount: integer("view_count").notNull().default(0),

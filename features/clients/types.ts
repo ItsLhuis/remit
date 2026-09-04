@@ -64,6 +64,11 @@ export type ClientDetail = {
   // excluded from audit diffing — see `mutations.ts`'s `auditFields`.
   notes: string
   imageStorageKey: string | null
+  // The portal URL, or null when this client has no portal. The token itself never reaches the read
+  // model — the path is the only form of it the workspace needs, and it is what the copy control
+  // hands out. Null covers both "never enabled" and "revoked": for a client those are one state
+  // (ADR-0029).
+  portalPath: string | null
   outstandingBalanceCents: number
   health: ClientHealth
   deletedAt: Date | null

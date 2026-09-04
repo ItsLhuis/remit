@@ -22,6 +22,13 @@
       "when": 1787583560744,
       "tag": "0002_document_parent_agreement",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788454582974,
+      "tag": "0003_revocable_public_tokens",
+      "breakpoints": true
     }
   ]
 }

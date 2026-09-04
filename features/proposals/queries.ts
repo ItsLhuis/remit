@@ -33,7 +33,8 @@ import {
   type ProposalListPageData,
   type ProposalParentOptions,
   type ProposalTaxRateOption,
-  type ProposalTemplateOption
+  type ProposalTemplateOption,
+  type PublicLinkState
 } from "./types"
 
 const proposalListColumns = {
@@ -166,12 +167,31 @@ export async function getProposalDetail(input: unknown): Promise<ProposalDetail 
     issuedAt: proposal.issuedAt,
     viewCount: proposal.viewCount,
     templateName: template?.name ?? null,
-    // The token exists from creation, but exposing it before the proposal is issued would hand out a
-    // live client URL for a document the client is not meant to have seen yet.
-    publicPath: proposal.issuedAt ? `/p/${proposal.publicToken}` : null,
+    // A proposal that was never issued keeps its token unexposed: surfacing it would hand out a live
+    // client URL for a document the client is not meant to have seen yet (SCHEMA.md's
+    // `proposals.public_token` note). An issued proposal whose link was revoked has no token at all.
+    publicPath: toProposalPublicPath(proposal),
+    publicLinkState: toProposalPublicLinkState(proposal),
     lineItems: rows.map(toProposalDetailLineItem),
     defaults
   }
+}
+
+// The two link fields are derived together so the path and the state can never disagree: a `live`
+// state without a path, or a path on a revoked proposal, would each be a bug the card would render.
+function toProposalPublicPath(proposal: { issuedAt: Date | null; publicToken: string | null }) {
+  if (!proposal.issuedAt || !proposal.publicToken) return null
+
+  return `/p/${proposal.publicToken}`
+}
+
+function toProposalPublicLinkState(proposal: {
+  issuedAt: Date | null
+  publicToken: string | null
+}): PublicLinkState {
+  if (!proposal.issuedAt) return "unissued"
+
+  return proposal.publicToken ? "live" : "revoked"
 }
 
 export async function getProposalForEdit(input: unknown): Promise<ProposalFormData | null> {

@@ -30,6 +30,18 @@ export async function sendContractEmail(payload: { contractId: string }): Promis
     return
   }
 
+  // A revoked public link leaves the mail with nowhere to point, and minting a replacement here
+  // would silently undo the withdrawal the owner asked for. Skipping is the only honest outcome, and
+  // it is not a failure to retry either (ADR-0029).
+  if (!document.publicToken) {
+    logger.warn(
+      { action: "sendContractEmail", contractId: payload.contractId },
+      "Contract email skipped: public link revoked"
+    )
+
+    return
+  }
+
   const [attachment, body] = await Promise.all([
     getContractPdfAttachment(payload.contractId),
     renderEmailTemplate({

@@ -1,8 +1,8 @@
-import { randomBytes } from "node:crypto"
-
 import { eq } from "drizzle-orm"
 
 import { beforeEach, describe, expect, test } from "vitest"
+
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { clients, projects, proposals } from "@/database/schema"
 
@@ -18,7 +18,7 @@ import { database } from "@/tests/integration/database"
 import { getPublicProposal } from "../publicQueries"
 
 function makeToken() {
-  return randomBytes(32).toString("base64url")
+  return mintPublicToken()
 }
 
 async function makeSentProposal(overrides?: Record<string, unknown>) {

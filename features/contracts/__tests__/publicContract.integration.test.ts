@@ -1,6 +1,6 @@
-import { randomBytes } from "node:crypto"
-
 import { beforeEach, describe, expect, test, vi } from "vitest"
+
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { makeClient, makeContract, makeProject, makeSettings } from "@/tests/factories"
 import { makeTextBlock } from "@/tests/factories/blocks"
@@ -15,12 +15,13 @@ vi.mock("@/lib/publicToken", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/publicToken")>()
 
   return {
+    ...actual,
     matchesPublicToken: mocks.matchesPublicToken.mockImplementation(actual.matchesPublicToken)
   }
 })
 
 function makeToken() {
-  return randomBytes(32).toString("base64url")
+  return mintPublicToken()
 }
 
 async function makeSentContract(overrides?: Record<string, unknown>) {

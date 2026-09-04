@@ -41,6 +41,8 @@ export type InvoiceAuditEvent =
   | "invoice.sent"
   | "invoice.paid"
   | "invoice.deleted"
+  | "invoice.public_link.rotated"
+  | "invoice.public_link.revoked"
 
 export type InvoiceActionErrorContext = {
   action: string
@@ -54,7 +56,7 @@ export type InvoiceParentIds = {
   clientId: string | null
 }
 
-// Four named gates over one implementation. An assistant may draft and revise an invoice, but
+// Five named gates over one implementation. An assistant may draft and revise an invoice, but
 // issuing a numbered document to a client and destroying one are owner-only; recording that money
 // arrived is the accountant's job as much as the owner's. The names are what `doctor.config.ts`
 // registers as server auth functions, so each call site stays greppable to its privilege level.
@@ -71,6 +73,13 @@ export function requireInvoiceMarkPaid(): Promise<InvoiceWriteGate> {
 }
 
 export function requireInvoiceDelete(): Promise<InvoiceWriteGate> {
+  return requireInvoiceRole(["owner"])
+}
+
+// Owner-only, on the same footing as sending: rotating or revoking a link changes what a recipient
+// can still open, which is a transmit decision rather than a draft edit (ARCHITECTURE.md's role
+// table refuses `send` and `transmit` to both other roles).
+export function requireInvoicePublicLink(): Promise<InvoiceWriteGate> {
   return requireInvoiceRole(["owner"])
 }
 

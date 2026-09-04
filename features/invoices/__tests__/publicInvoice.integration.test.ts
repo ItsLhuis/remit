@@ -1,8 +1,8 @@
-import { randomBytes } from "node:crypto"
-
 import { eq } from "drizzle-orm"
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
+
+import { mintPublicToken } from "@/lib/publicToken"
 
 import { invoices, projects, settings } from "@/database/schema"
 
@@ -20,12 +20,13 @@ vi.mock("@/lib/publicToken", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/publicToken")>()
 
   return {
+    ...actual,
     matchesPublicToken: mocks.matchesPublicToken.mockImplementation(actual.matchesPublicToken)
   }
 })
 
 function makeToken() {
-  return randomBytes(32).toString("base64url")
+  return mintPublicToken()
 }
 
 async function makeSentInvoice(overrides?: Record<string, unknown>) {

@@ -12,6 +12,8 @@ import { logger } from "@/lib/logger"
 
 import { parseAmountToCents } from "@/lib/utils"
 
+import { mintPublicToken } from "@/lib/publicToken"
+
 import { database } from "@/database"
 import { clientContacts, clients } from "@/database/schema"
 
@@ -20,6 +22,7 @@ import {
   ExpectedClientError,
   handleClientActionError,
   requireClientDelete,
+  requireClientPortalLink,
   requireClientWrite,
   writeClientAudit,
   type ClientContactAuditEvent,
@@ -43,6 +46,8 @@ export type ClientMutationResult = { data: { client: ClientFormData } } | { erro
 export type DeleteClientResult = { data: { id: string } } | { error: string }
 
 export type ClientContactMutationResult = { data: { id: string } } | { error: string }
+
+export type ClientPortalLinkResult = { data: { id: string } } | { error: string }
 
 type ClientContactTransaction = Parameters<Parameters<typeof database.transaction>[0]>[0]
 
@@ -194,9 +199,13 @@ export async function softDeleteClient(input: unknown): Promise<DeleteClientResu
   const { context } = gate
 
   try {
+    // Clearing `portalToken` is part of the delete, not a separate decision: the portal is a standing
+    // bearer door into everything Remit holds about this client, and leaving it open on a record the
+    // owner believes is gone is the failure this stage exists to prevent (ADR-0029). A restore
+    // therefore comes back without a portal, and re-enabling one is an explicit act.
     const [deletedClient] = await database
       .update(clients)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), portalToken: null })
       .where(and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt)))
       .returning({ id: clients.id })
 
@@ -211,6 +220,81 @@ export async function softDeleteClient(input: unknown): Promise<DeleteClientResu
     return { data: { id: deletedClient.id } }
   } catch (error) {
     return handleClientActionError(error, "softDeleteClient", context.userId, parsed.data.id)
+  }
+}
+
+export async function rotateClientPortalLink(input: unknown): Promise<ClientPortalLinkResult> {
+  const gate = await requireClientPortalLink()
+
+  if ("error" in gate) return gate
+
+  const parsed = clientIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const existing = await loadLiveClientForPortalLink(parsed.data.id)
+
+    const [rotated] = await database
+      .update(clients)
+      .set({ portalToken: mintPublicToken() })
+      .where(and(eq(clients.id, existing.id), isNull(clients.deletedAt)))
+      .returning({ id: clients.id })
+
+    if (!rotated) throw new ExpectedClientError(t("clients.errors.notFound"))
+
+    // Records that the portal link changed and whether one was live before it, never either token:
+    // the audit trail is readable by anyone with database access, and both values are bearer
+    // credentials (`security.md`).
+    await writeClientAudit(context, "client.portal_link.rotated", rotated.id, {
+      previousState: existing.portalToken ? "live" : "none"
+    })
+
+    revalidatePath(clientsPath)
+    revalidatePath(`${clientsPath}/${rotated.id}`)
+
+    return { data: { id: rotated.id } }
+  } catch (error) {
+    return handleClientActionError(error, "rotateClientPortalLink", context.userId, parsed.data.id)
+  }
+}
+
+export async function revokeClientPortalLink(input: unknown): Promise<ClientPortalLinkResult> {
+  const gate = await requireClientPortalLink()
+
+  if ("error" in gate) return gate
+
+  const parsed = clientIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const existing = await loadLiveClientForPortalLink(parsed.data.id)
+
+    if (!existing.portalToken) {
+      throw new ExpectedClientError(t("clients.errors.portalLinkAlreadyRevoked"))
+    }
+
+    const [revoked] = await database
+      .update(clients)
+      .set({ portalToken: null })
+      .where(and(eq(clients.id, existing.id), isNull(clients.deletedAt)))
+      .returning({ id: clients.id })
+
+    if (!revoked) throw new ExpectedClientError(t("clients.errors.notFound"))
+
+    await writeClientAudit(context, "client.portal_link.revoked", revoked.id, {})
+
+    revalidatePath(clientsPath)
+    revalidatePath(`${clientsPath}/${revoked.id}`)
+
+    return { data: { id: revoked.id } }
+  } catch (error) {
+    return handleClientActionError(error, "revokeClientPortalLink", context.userId, parsed.data.id)
   }
 }
 
@@ -380,6 +464,19 @@ export async function softDeleteClientContact(
   } catch (error) {
     return handleClientContactActionError(error, "softDeleteClientContact", context.userId)
   }
+}
+
+// A soft-deleted client has no portal to manage: `softDeleteClient` clears the token as part of the
+// delete, and a client outside the workspace must not be handed a live door back into it.
+async function loadLiveClientForPortalLink(clientId: string) {
+  const client = await database.query.clients.findFirst({
+    where: and(eq(clients.id, clientId), isNull(clients.deletedAt)),
+    columns: { id: true, portalToken: true }
+  })
+
+  if (!client) throw new ExpectedClientError(t("clients.errors.notFound"))
+
+  return client
 }
 
 function toClientWriteValues(values: ClientFormValues): typeof clients.$inferInsert {
