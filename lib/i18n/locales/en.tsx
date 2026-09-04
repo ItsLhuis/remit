@@ -913,7 +913,9 @@ export const english: Language = {
           "Another contact was made primary at the same time. Reload and try again",
         invalidImageFileType: "That image type is not supported",
         imageUploadUrlFailed: "Could not start the image upload",
-        imageUpdateFailed: "Failed to update the client image"
+        imageUpdateFailed: "Failed to update the client image",
+        portalLinkAlreadyRevoked: "This client has no portal link",
+        portalLinkFailed: "Failed to update the client portal link"
       },
       image: {
         label: "Client image",
@@ -924,6 +926,31 @@ export const english: Language = {
         updated: "Client image updated",
         removed: "Client image removed",
         alt: "{name} image"
+      },
+      portal: {
+        title: "Client portal",
+        description:
+          "A private page where this client can see their own documents. Off until you turn it on.",
+        offBadge: "Portal off",
+        offDescription:
+          "This client has no portal link. Turning it on creates a private address only they should hold.",
+        enable: "Enable portal",
+        rotate: "Rotate link",
+        disable: "Disable portal",
+        copyLink: "Copy portal link",
+        linkCopied: "Portal link copied",
+        enableTitle: "Enable the client portal",
+        enableDescription:
+          "This creates a private link to everything Remit holds for this client. Share it with them and nobody else.",
+        rotateTitle: "Rotate the portal link",
+        rotateDescription:
+          "The current link stops working immediately. The client will need the new one to get back in.",
+        disableTitle: "Disable the client portal",
+        disableDescription:
+          "The link stops working and the client loses access until you enable a portal again.",
+        enabled: "Portal enabled",
+        rotated: "New portal link issued",
+        disabled: "Portal disabled"
       },
       validation: {
         nameRequired: "Client name is required.",
@@ -1840,6 +1867,22 @@ export const english: Language = {
         publicLinkTitle: "Client link",
         publicLinkDescription: "Share this link with the client to let them review and respond.",
         publicLinkHidden: "The client link is created when you send the proposal.",
+        publicLinkRevoked: "Link revoked",
+        publicLinkRevokedDescription:
+          "Nobody can open this proposal. Issue a new link when you are ready to share it again.",
+        rotateLink: "Rotate link",
+        issueNewLink: "Issue a new link",
+        revokeLink: "Revoke link",
+        rotateLinkTitle: "Rotate the client link",
+        rotateLinkDescription:
+          "The current link stops working immediately. Anyone you already sent it to will need the new one.",
+        rotateLinkConfirm: "Rotate link",
+        revokeLinkTitle: "Revoke the client link",
+        revokeLinkDescription:
+          "The link stops working and nobody can open the proposal until you issue a new one.",
+        revokeLinkConfirm: "Revoke link",
+        linkRotated: "New link issued",
+        linkRevoked: "Link revoked",
         copyLink: "Copy link",
         linkCopied: "Link copied"
       },
@@ -1982,7 +2025,10 @@ export const english: Language = {
         notDraft: "Only draft proposals can be changed",
         invalidTransition: "That status change is not allowed",
         updateFailed: "Failed to update proposal",
-        sendFailed: "Failed to send proposal"
+        sendFailed: "Failed to send proposal",
+        publicLinkNotIssued: "Send the proposal before managing its client link",
+        publicLinkAlreadyRevoked: "This proposal has no client link",
+        publicLinkFailed: "Failed to update the client link"
       }
     },
     contracts: {
@@ -2090,7 +2136,29 @@ export const english: Language = {
         lockedDescription: "A contract can only be changed while it is a draft",
         contentTitle: "Content",
         summaryTitle: "Summary",
-        terminationTitle: "Termination"
+        terminationTitle: "Termination",
+        publicLinkTitle: "Signing link",
+        publicLinkDescription:
+          "Share this link with the counterparty to let them read and sign the contract.",
+        publicLinkHidden: "The signing link is created when you send the contract.",
+        publicLinkRevoked: "Link revoked",
+        publicLinkRevokedDescription:
+          "Nobody can open this contract. Issue a new link when you are ready to share it again.",
+        rotateLink: "Rotate link",
+        issueNewLink: "Issue a new link",
+        revokeLink: "Revoke link",
+        rotateLinkTitle: "Rotate the signing link",
+        rotateLinkDescription:
+          "The current link stops working immediately. Anyone you already sent it to will need the new one.",
+        rotateLinkConfirm: "Rotate link",
+        revokeLinkTitle: "Revoke the signing link",
+        revokeLinkDescription:
+          "The link stops working and nobody can read or sign the contract until you issue a new one.",
+        revokeLinkConfirm: "Revoke link",
+        linkRotated: "New link issued",
+        linkRevoked: "Link revoked",
+        copyLink: "Copy link",
+        linkCopied: "Link copied"
       },
       dialogs: {
         send: {
@@ -2203,7 +2271,10 @@ export const english: Language = {
         updateFailed: "Failed to update contract",
         sendFailed: "Failed to send contract",
         terminateFailed: "Failed to terminate contract",
-        deleteFailed: "Failed to delete contract"
+        deleteFailed: "Failed to delete contract",
+        publicLinkNotIssued: "Send the contract before managing its signing link",
+        publicLinkAlreadyRevoked: "This contract has no signing link",
+        publicLinkFailed: "Failed to update the signing link"
       }
     },
     documentEmails: {
@@ -2388,6 +2459,22 @@ export const english: Language = {
         publicLinkTitle: "Client link",
         publicLinkDescription: "The address where your client can view and pay this invoice",
         publicLinkHidden: "The link appears once the invoice is sent",
+        publicLinkRevoked: "Link revoked",
+        publicLinkRevokedDescription:
+          "Nobody can open this invoice. Issue a new link when you are ready to share it again.",
+        rotateLink: "Rotate link",
+        issueNewLink: "Issue a new link",
+        revokeLink: "Revoke link",
+        rotateLinkTitle: "Rotate the client link",
+        rotateLinkDescription:
+          "The current link stops working immediately. Anyone you already sent it to will need the new one.",
+        rotateLinkConfirm: "Rotate link",
+        revokeLinkTitle: "Revoke the client link",
+        revokeLinkDescription:
+          "The link stops working and nobody can open the invoice or pay it online until you issue a new one.",
+        revokeLinkConfirm: "Revoke link",
+        linkRotated: "New link issued",
+        linkRevoked: "Link revoked",
         copyLink: "Copy link",
         linkCopied: "Link copied"
       },
@@ -2508,7 +2595,10 @@ export const english: Language = {
         deleteFailed: "Failed to delete invoice",
         proposalNotConvertible: "Only an accepted proposal can be invoiced",
         proposalAlreadyConverted: "This proposal has already been invoiced",
-        proposalHasNoLineItems: "This proposal has no line items to invoice"
+        proposalHasNoLineItems: "This proposal has no line items to invoice",
+        publicLinkNotIssued: "Send the invoice before managing its client link",
+        publicLinkAlreadyRevoked: "This invoice has no client link",
+        publicLinkFailed: "Failed to update the client link"
       }
     },
     creditNotes: {

@@ -882,6 +882,8 @@ export type Translations = {
       invalidImageFileType: string
       imageUploadUrlFailed: string
       imageUpdateFailed: string
+      portalLinkAlreadyRevoked: string
+      portalLinkFailed: string
     }
     image: {
       label: string
@@ -892,6 +894,26 @@ export type Translations = {
       updated: string
       removed: string
       alt: string
+    }
+    portal: {
+      title: string
+      description: string
+      offBadge: string
+      offDescription: string
+      enable: string
+      rotate: string
+      disable: string
+      copyLink: string
+      linkCopied: string
+      enableTitle: string
+      enableDescription: string
+      rotateTitle: string
+      rotateDescription: string
+      disableTitle: string
+      disableDescription: string
+      enabled: string
+      rotated: string
+      disabled: string
     }
     validation: {
       nameRequired: string
@@ -1789,6 +1811,19 @@ export type Translations = {
       publicLinkTitle: string
       publicLinkDescription: string
       publicLinkHidden: string
+      publicLinkRevoked: string
+      publicLinkRevokedDescription: string
+      rotateLink: string
+      issueNewLink: string
+      revokeLink: string
+      rotateLinkTitle: string
+      rotateLinkDescription: string
+      rotateLinkConfirm: string
+      revokeLinkTitle: string
+      revokeLinkDescription: string
+      revokeLinkConfirm: string
+      linkRotated: string
+      linkRevoked: string
       copyLink: string
       linkCopied: string
     }
@@ -1921,6 +1956,9 @@ export type Translations = {
       invalidTransition: string
       updateFailed: string
       sendFailed: string
+      publicLinkNotIssued: string
+      publicLinkAlreadyRevoked: string
+      publicLinkFailed: string
     }
   }
   contracts: {
@@ -2029,6 +2067,24 @@ export type Translations = {
       contentTitle: string
       summaryTitle: string
       terminationTitle: string
+      publicLinkTitle: string
+      publicLinkDescription: string
+      publicLinkHidden: string
+      publicLinkRevoked: string
+      publicLinkRevokedDescription: string
+      rotateLink: string
+      issueNewLink: string
+      revokeLink: string
+      rotateLinkTitle: string
+      rotateLinkDescription: string
+      rotateLinkConfirm: string
+      revokeLinkTitle: string
+      revokeLinkDescription: string
+      revokeLinkConfirm: string
+      linkRotated: string
+      linkRevoked: string
+      copyLink: string
+      linkCopied: string
     }
     dialogs: {
       send: {
@@ -2138,6 +2194,9 @@ export type Translations = {
       sendFailed: string
       terminateFailed: string
       deleteFailed: string
+      publicLinkNotIssued: string
+      publicLinkAlreadyRevoked: string
+      publicLinkFailed: string
     }
   }
   documentEmails: {
@@ -2319,6 +2378,19 @@ export type Translations = {
       publicLinkTitle: string
       publicLinkDescription: string
       publicLinkHidden: string
+      publicLinkRevoked: string
+      publicLinkRevokedDescription: string
+      rotateLink: string
+      issueNewLink: string
+      revokeLink: string
+      rotateLinkTitle: string
+      rotateLinkDescription: string
+      rotateLinkConfirm: string
+      revokeLinkTitle: string
+      revokeLinkDescription: string
+      revokeLinkConfirm: string
+      linkRotated: string
+      linkRevoked: string
       copyLink: string
       linkCopied: string
     }
@@ -2437,6 +2509,9 @@ export type Translations = {
       proposalNotConvertible: string
       proposalAlreadyConverted: string
       proposalHasNoLineItems: string
+      publicLinkNotIssued: string
+      publicLinkAlreadyRevoked: string
+      publicLinkFailed: string
     }
   }
   creditNotes: {
