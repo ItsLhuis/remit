@@ -106,6 +106,12 @@ one-time code, contracts to sign with a full audit trail. Every link is rotatabl
 the document it belongs to, without touching the document itself — a revoked link answers exactly
 like one that never existed.
 
+**Client portal.** One revocable link per client that lists everything they have been sent —
+invoices with what is still outstanding per currency, proposals, contracts and the state of their
+projects — with a way through to the invoices and proposals they already hold links to. Read-only:
+it writes nothing, shows no internal notes, budgets or rates, and never offers a signing link,
+because signing is the one anonymous action with no second factor.
+
 **Dashboard.** KPI tiles (revenue MTD/YTD, outstanding, overdue, expenses, profit), 12-month
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.
 

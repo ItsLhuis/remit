@@ -501,6 +501,7 @@ that exists. Both are updated in the same change as the code they describe.
   │   app/(dashboard)/**        │    │   /i/[token]   Invoice view          │
   │   app/(auth)/**             │    │   /p/[token]   Proposal acceptance   │
   │   app/(setup)/**            │    │   /c/[token]   Contract signing      │
+  │                             │    │   /s/[token]   Client portal         │
   └─────────────────────────────┘    └──────────────────────────────────────┘
                  │
                  │ calls
@@ -919,7 +920,7 @@ operations.
 ### Public token security
 
 Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) and the client portal
-(`clients.portal_token`) are:
+(`/s/[token]`, `clients.portal_token`) are:
 
 - Minted by `mintPublicToken` in `lib/publicToken.ts` — `crypto.randomBytes(32)` encoded
   `base64url`, 256 bits of entropy. Every writer goes through that one function, including the demo
@@ -951,6 +952,15 @@ redirecting to storage. No attachment is reachable from a public token route in 
 why proposals and contracts — the two entities a client can open anonymously — are not attachable:
 there, every attached file would be an exposure decision rather than a storage one.
 
+The client portal at `/s/[token]` is the fourth route that has to be true of, and is where the rule
+is widest: it resolves a token to a client rather than to a document. It publishes an index — each
+invoice, proposal, contract and project by its number, state and value, with an onward link to the
+documents the client was already sent — and nothing else. It never exposes `clients.notes`, a
+project's budget, description or rate, a payment, a credit note's reason, a time entry, an expense,
+a task, a contact, an attachment, or any internal id, and it never carries a contract signing link,
+because signing is the one anonymous action with no second factor. It writes nothing at all.
+[ADR-0030](adr/0030-client-portal-exposure.md) records the exposure decision and its alternatives.
+
 Authorization comes from the parent record, never from `uploads`, which carries no owner column.
 `chk_attachments_parent` guarantees an attachment names exactly one parent, so "may this requester
 touch this file" is always the already-answered question "may this requester touch that record".
@@ -966,7 +976,8 @@ Coverage, and where each limit lives:
 
 | Surface                                           | Limit                | Enforced in                                                  |
 | ------------------------------------------------- | -------------------- | ------------------------------------------------------------ |
-| `/i/[token]`, `/p/[token]`, `/c/[token]`          | 60 per IP per minute | `proxy.ts`, ahead of the route                               |
+| `/i/`, `/p/`, `/c/`, `/s/[token]`                 | 60 per IP per minute | `proxy.ts`, ahead of the route                               |
+| `/s/[token]`                                      | 30 per IP per 5 min  | the page module, in addition to the proxy limit              |
 | `/invite/[invitationId]`                          | 30 per IP per minute | `proxy.ts`                                                   |
 | Proposal OTP request and verify, contract signing | Per route, per IP    | each `route.ts`, in addition to the proxy limit              |
 | `POST /api/auth/sign-in/email`                    | 10 per 15 minutes    | Better Auth's own limiter, configured in `lib/auth/index.ts` |
@@ -1319,6 +1330,7 @@ application-level interactions. API routes exist only for specific, justified ca
 | `/i/[token]`                 | Public invoice view (anonymous)                           |
 | `/p/[token]`                 | Public proposal acceptance (anonymous + OTP)              |
 | `/c/[token]`                 | Public contract signing (anonymous)                       |
+| `/s/[token]`                 | Public client portal (anonymous)                          |
 | `/api/auth/[...all]`         | Better Auth's own handler                                 |
 | `/api/webhooks/stripe`       | Stripe webhook event receiver                             |
 | `/api/health`                | Uptime monitor health check (public)                      |
@@ -1784,6 +1796,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0027](adr/0027-contact-identity.md)                | Contact identity — delivery target and acceptance identity, never an entity | Accepted |
 | [0028](adr/0028-attachments-and-visual-identity.md) | Attachments — one table, one foreign key per parent, private bucket         | Accepted |
 | [0029](adr/0029-public-token-lifecycle.md)          | Public token lifecycle — one minter, and revocation as an absent token      | Accepted |
+| [0030](adr/0030-client-portal-exposure.md)          | Client portal exposure — an index, and never a signing link                 | Accepted |
 
 ---
 

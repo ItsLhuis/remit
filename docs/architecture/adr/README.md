@@ -43,3 +43,4 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0027](0027-contact-identity.md)                | Contact identity — delivery target and acceptance identity, never an entity | Accepted |
 | [0028](0028-attachments-and-visual-identity.md) | Attachments — one table, one foreign key per parent, private bucket         | Accepted |
 | [0029](0029-public-token-lifecycle.md)          | Public token lifecycle — one minter, and revocation as an absent token      | Accepted |
+| [0030](0030-client-portal-exposure.md)          | Client portal exposure — an index, and never a signing link                 | Accepted |
