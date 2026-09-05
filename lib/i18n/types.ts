@@ -915,6 +915,59 @@ export type Translations = {
       rotated: string
       disabled: string
     }
+    public: {
+      metadataTitle: string
+      fromLabel: string
+      intro: string
+      contactLabel: string
+      unavailable: {
+        title: string
+        description: string
+      }
+      validation: {
+        tokenInvalid: string
+      }
+      invoices: {
+        title: string
+        description: string
+        emptyTitle: string
+        emptyDescription: string
+        due: string
+        noDueDate: string
+        credited: string
+        stillDue: string
+        open: string
+        outstanding: string
+        nothingOutstanding: string
+      }
+      proposals: {
+        title: string
+        description: string
+        emptyTitle: string
+        emptyDescription: string
+        validUntil: string
+        noValidUntil: string
+        open: string
+      }
+      contracts: {
+        title: string
+        description: string
+        emptyTitle: string
+        emptyDescription: string
+        effectiveFrom: string
+        noEffectiveFrom: string
+      }
+      projects: {
+        title: string
+        description: string
+        emptyTitle: string
+        emptyDescription: string
+        between: string
+        startedOn: string
+        endsOn: string
+        noDates: string
+      }
+    }
     validation: {
       nameRequired: string
       nameTooLong: string

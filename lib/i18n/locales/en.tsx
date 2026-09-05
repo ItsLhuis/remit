@@ -952,6 +952,62 @@ export const english: Language = {
         rotated: "New portal link issued",
         disabled: "Portal disabled"
       },
+      public: {
+        metadataTitle: "Client portal",
+        fromLabel: "From",
+        intro:
+          "Everything sent to you, in one place. Open a document to read it in full, or reply to the address below.",
+        contactLabel: "Questions about any of this",
+        unavailable: {
+          title: "This link is not available",
+          description:
+            "The address may have changed or been withdrawn. Ask the person who sent it for a current link."
+        },
+        validation: {
+          tokenInvalid: "This link is not available"
+        },
+        invoices: {
+          title: "Invoices",
+          description: "Every invoice issued to you, newest first.",
+          emptyTitle: "No invoices yet",
+          emptyDescription: "Invoices appear here once they are sent to you.",
+          due: "Due {date}",
+          noDueDate: "No due date",
+          credited: "Credit note {number} for {amount}",
+          stillDue: "{amount} still due",
+          open: "Open invoice {number}",
+          outstanding: "Outstanding",
+          nothingOutstanding: "Nothing outstanding"
+        },
+        proposals: {
+          title: "Proposals",
+          description: "Proposals you have been sent, and how each one ended.",
+          emptyTitle: "No proposals yet",
+          emptyDescription: "Proposals appear here once they are sent to you.",
+          validUntil: "Valid until {date}",
+          noValidUntil: "No expiry date",
+          open: "Open proposal {number}"
+        },
+        contracts: {
+          title: "Contracts",
+          description:
+            "Agreements between you and this business. Signing links are sent to you by email.",
+          emptyTitle: "No contracts yet",
+          emptyDescription: "Contracts appear here once they are sent to you.",
+          effectiveFrom: "In effect from {date}",
+          noEffectiveFrom: "No start date"
+        },
+        projects: {
+          title: "Projects",
+          description: "Work being carried out for you.",
+          emptyTitle: "No projects yet",
+          emptyDescription: "Projects appear here once work is set up for you.",
+          between: "{start} to {end}",
+          startedOn: "Started {date}",
+          endsOn: "Ends {date}",
+          noDates: "No dates set"
+        }
+      },
       validation: {
         nameRequired: "Client name is required.",
         imageFilenameRequired: "Image filename is required.",
