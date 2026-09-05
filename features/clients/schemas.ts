@@ -21,6 +21,7 @@ const CLIENT_NAME_MAX_LENGTH = 160
 const CLIENT_EMAIL_MAX_LENGTH = 320
 const CLIENT_TEXT_MAX_LENGTH = 255
 const CLIENT_NOTES_MAX_LENGTH = 5000
+const CLIENT_PORTAL_TOKEN_MAX_LENGTH = 128
 export const CLIENT_STATUS_FILTERS = ["active", "deleted", "all"] as const
 
 const optionalTextSchema = (maxLength = CLIENT_TEXT_MAX_LENGTH) =>
@@ -120,6 +121,17 @@ export const clientIdSchema = z.object({
 })
 
 export type ClientIdValues = z.infer<typeof clientIdSchema>
+
+// Bounded, not shaped: the stored token is always 43 base64url characters, but validating that here
+// would turn a malformed token into a distinguishable rejection. Anything within the bound falls
+// through to the same constant-time miss as a well-formed token that does not exist.
+const clientPortalTokenValueSchema = z
+  .string()
+  .trim()
+  .min(1, i18n.t("clients.public.validation.tokenInvalid"))
+  .max(CLIENT_PORTAL_TOKEN_MAX_LENGTH, i18n.t("clients.public.validation.tokenInvalid"))
+
+export const clientPortalTokenSchema = z.object({ token: clientPortalTokenValueSchema })
 
 const clientContactFieldsShape = {
   name: z

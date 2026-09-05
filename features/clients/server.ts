@@ -12,6 +12,8 @@ export {
   type DeleteClientResult
 } from "./mutations"
 
+export { getClientPortal } from "./publicQueries"
+
 export {
   getClientDocumentRecipient,
   listClientContacts,

@@ -1,5 +1,18 @@
+import { type ContractDisplayStatus } from "@/features/contracts"
+
+import { type InvoiceViewStatus } from "@/features/invoices"
+
+import { type ProjectStatus } from "@/features/projects"
+
+import { type ProposalStatus } from "@/features/proposals"
+
 import { type ClientFormValues, type ClientListQuery } from "./schemas"
-import { type ClientBillingPoint, type ClientsSummary, type ClientHealth } from "./services"
+import {
+  type ClientBillingPoint,
+  type ClientsSummary,
+  type ClientHealth,
+  type OutstandingByCurrency
+} from "./services"
 
 export type ClientListItem = {
   id: string
@@ -94,4 +107,74 @@ export type ClientListPageData = {
   query: ClientListQuery
   filterOptions: ClientFilterOptions
   defaults: ClientDefaults
+}
+
+export type ClientPortalIssuer = {
+  name: string
+  email: string | null
+}
+
+export type ClientPortalCreditNote = {
+  number: string
+  issuedAt: Date
+  totalCents: number
+}
+
+// `documentPath` on the invoice and proposal below is the one place a bearer token leaves this read
+// model, and it is a path rather than a token so no caller can put one anywhere else. It is present
+// only when the document's own public route would resolve, which is what keeps the portal from
+// offering a link that answers "unavailable" — see `publicQueries.ts` and
+// [ADR-0030](../../docs/architecture/adr/0030-client-portal-exposure.md).
+export type ClientPortalInvoice = {
+  number: string
+  viewStatus: InvoiceViewStatus
+  currency: string
+  totalCents: number
+  amountPaidCents: number
+  outstandingCents: number
+  issueDate: Date | null
+  dueDate: Date | null
+  documentPath: string | null
+  creditNotes: ClientPortalCreditNote[]
+}
+
+export type ClientPortalProposal = {
+  number: string
+  status: ProposalStatus
+  currency: string
+  totalCents: number
+  issuedAt: Date | null
+  validUntil: Date | null
+  documentPath: string | null
+}
+
+// No `documentPath`, unlike its two siblings: the contract signing route is the one public surface
+// that binds the client on nothing but the link, so the portal reports where an agreement stands and
+// never offers a way into it. `publicQueries.ts` gives the reasoning in full.
+export type ClientPortalContract = {
+  number: string
+  title: string
+  status: ContractDisplayStatus
+  issuedAt: Date | null
+  effectiveFrom: Date | null
+  effectiveUntil: Date | null
+}
+
+export type ClientPortalProject = {
+  name: string
+  status: ProjectStatus
+  startDate: Date | null
+  endDate: Date | null
+}
+
+export type ClientPortal = {
+  clientName: string
+  issuer: ClientPortalIssuer
+  locale: string
+  timeZone: string
+  outstanding: OutstandingByCurrency[]
+  invoices: ClientPortalInvoice[]
+  proposals: ClientPortalProposal[]
+  contracts: ClientPortalContract[]
+  projects: ClientPortalProject[]
 }
