@@ -37,6 +37,7 @@ export {
   formatProposalNumber,
   getNextProposalStatuses,
   isProposalEditable,
+  isProposalExpired,
   summarizeProposals,
   type ProposalAcceptedValue,
   type ProposalDiscount,
