@@ -1489,6 +1489,7 @@ export const english: Language = {
         actions: "Time entry actions",
         edit: "Edit entry",
         bulkDelete: "Delete",
+        bulkBill: "Bill selected",
         emptyTitle: "No time logged yet",
         emptyDescription: "Start the timer or log an entry by hand to begin tracking hours.",
         noProjectsDescription: "Create a project first — every time entry belongs to one.",
@@ -1619,6 +1620,7 @@ export const english: Language = {
         actions: "Expense actions",
         edit: "Edit expense",
         bulkDelete: "Delete",
+        bulkBill: "Bill selected",
         rebillsAt: "+{markup}% → {amount}",
         emptyTitle: "No expenses yet",
         emptyDescription:
@@ -2599,7 +2601,10 @@ export const english: Language = {
         currencyInvalid: "Select a currency",
         taxRateInvalid: "Select a valid tax rate",
         discountAmountRequired: "Enter a discount amount",
-        discountPercentageRequired: "Enter a discount percentage"
+        discountPercentageRequired: "Enter a discount percentage",
+        billableSelectionRequired: "Select at least one time entry or expense",
+        billableGroupingInvalid: "Select how the time should be grouped",
+        billableTargetInvalid: "Select an invoice to bill onto"
       },
       public: {
         metadataTitle: "Invoice",
@@ -2639,6 +2644,27 @@ export const english: Language = {
           tokenInvalid: "Invalid invoice link"
         }
       },
+      billable: {
+        title: "Bill to an invoice",
+        description: "Turn the selected time and expenses into invoice line items",
+        trigger: "Bill selected",
+        groupingLabel: "Group time as",
+        groupingEntry: "One line per entry",
+        groupingTask: "One line per task",
+        groupingProject: "One line per project",
+        targetLabel: "Add to",
+        targetNew: "A new draft invoice",
+        previewTitle: "What will be billed",
+        previewEmpty: "Nothing in this selection can be billed",
+        previewLines: "{count, plural, one {# line} other {# lines}}",
+        previewTotal: "Total before tax",
+        previewExcluded:
+          "{count, plural, one {# entry is} other {# entries are}} too short to bill and will stay unbilled",
+        hourUnit: "hour",
+        markupSuffix: "(incl. {percentage}% markup)",
+        submit: "Bill to invoice",
+        billed: "Billed to {number}"
+      },
       errors: {
         notFound: "Invoice not found",
         projectNotFound: "Project not found",
@@ -2652,6 +2678,14 @@ export const english: Language = {
         proposalNotConvertible: "Only an accepted proposal can be invoiced",
         proposalAlreadyConverted: "This proposal has already been invoiced",
         proposalHasNoLineItems: "This proposal has no line items to invoice",
+        billableCurrencyMismatch:
+          "The selection spans more than one currency. Bill each currency separately",
+        billableClientMismatch:
+          "The selection spans more than one client. Bill each client separately",
+        billableNothingToBill: "Nothing in the selection can be billed",
+        billableAlreadyInvoiced: "Part of the selection was billed already. Nothing was charged",
+        billableTargetNotEditable: "Only a draft invoice in the same currency can be added to",
+        billableFailed: "Failed to bill the selection",
         publicLinkNotIssued: "Send the invoice before managing its client link",
         publicLinkAlreadyRevoked: "This invoice has no client link",
         publicLinkFailed: "Failed to update the client link"

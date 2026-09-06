@@ -1433,6 +1433,7 @@ export type Translations = {
       actions: string
       edit: string
       bulkDelete: string
+      bulkBill: string
       emptyTitle: string
       emptyDescription: string
       noProjectsDescription: string
@@ -1562,6 +1563,7 @@ export type Translations = {
       actions: string
       edit: string
       bulkDelete: string
+      bulkBill: string
       rebillsAt: string
       emptyTitle: string
       emptyDescription: string
@@ -2512,6 +2514,9 @@ export type Translations = {
       taxRateInvalid: string
       discountAmountRequired: string
       discountPercentageRequired: string
+      billableSelectionRequired: string
+      billableGroupingInvalid: string
+      billableTargetInvalid: string
     }
     public: {
       metadataTitle: string
@@ -2549,6 +2554,26 @@ export type Translations = {
         tokenInvalid: string
       }
     }
+    billable: {
+      title: string
+      description: string
+      trigger: string
+      groupingLabel: string
+      groupingEntry: string
+      groupingTask: string
+      groupingProject: string
+      targetLabel: string
+      targetNew: string
+      previewTitle: string
+      previewEmpty: string
+      previewLines: string
+      previewTotal: string
+      previewExcluded: string
+      hourUnit: string
+      markupSuffix: string
+      submit: string
+      billed: string
+    }
     errors: {
       notFound: string
       projectNotFound: string
@@ -2562,6 +2587,12 @@ export type Translations = {
       proposalNotConvertible: string
       proposalAlreadyConverted: string
       proposalHasNoLineItems: string
+      billableCurrencyMismatch: string
+      billableClientMismatch: string
+      billableNothingToBill: string
+      billableAlreadyInvoiced: string
+      billableTargetNotEditable: string
+      billableFailed: string
       publicLinkNotIssued: string
       publicLinkAlreadyRevoked: string
       publicLinkFailed: string
