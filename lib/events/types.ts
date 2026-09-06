@@ -222,6 +222,15 @@ export type EventMap = {
     clientId: string | null
     daysOverdue: number
   }
+  // Emitted at most once per invoice, by the same nightly sweep that announces the crossing, and
+  // only when a fee was actually written. `feeCents` is the amount charged after the policy cap, and
+  // it has already been added into `invoices.total_cents` by the time a subscriber sees this.
+  "invoice.late_fee_applied": {
+    invoiceId: string
+    clientId: string | null
+    feeCents: number
+    daysLate: number
+  }
   // `offsetDays` and `phase` together identify which entry of the settings reminder arrays this
   // dispatch corresponds to, which is also the idempotency key the job guards on.
   "invoice.reminder_sent": {

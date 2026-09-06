@@ -24,6 +24,12 @@ export function emitInvoiceOverdue(payload: EventMap["invoice.overdue"]): Promis
   return emit("invoice.overdue", payload)
 }
 
+export function emitInvoiceLateFeeApplied(
+  payload: EventMap["invoice.late_fee_applied"]
+): Promise<void> {
+  return emit("invoice.late_fee_applied", payload)
+}
+
 export function emitInvoiceReminderSent(payload: EventMap["invoice.reminder_sent"]): Promise<void> {
   return emit("invoice.reminder_sent", payload)
 }

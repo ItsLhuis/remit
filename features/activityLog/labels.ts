@@ -33,6 +33,7 @@ export const activityMessagePresentation: Record<ActivityMessageKey, ActivityMes
     "activity.messages.invoiceSent": { icon: "Send" },
     "activity.messages.invoicePaid": { icon: "CircleCheckBig" },
     "activity.messages.invoiceOverdue": { icon: "TriangleAlert" },
+    "activity.messages.invoiceLateFeeApplied": { icon: "TriangleAlert" },
     "activity.messages.invoiceGenerated": { icon: "Repeat" },
     "activity.messages.paymentReceived": { icon: "Banknote" },
     "activity.messages.timeLogged": { icon: "Clock" },
