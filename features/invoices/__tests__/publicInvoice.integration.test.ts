@@ -208,7 +208,10 @@ describe("getPublicInvoice payment affordances", () => {
   })
 
   test("announces card payment as a boolean and never as a key", async () => {
-    await setPaymentSettings({ stripeSecretKey: "sk_test_never_public" })
+    await setPaymentSettings({
+      stripeSecretKey: "sk_test_never_public",
+      stripeWebhookSecret: "whsec_never_public"
+    })
     const { invoice } = await makeSentInvoice()
 
     const result = await getPublicInvoice({ token: invoice.publicToken })
@@ -216,12 +219,29 @@ describe("getPublicInvoice payment affordances", () => {
     expect(result?.payment.stripeConfigured).toBe(true)
     expect(result?.payment.hasBankTransferDetails).toBe(false)
     expect(JSON.stringify(result)).not.toContain("sk_test_never_public")
+    expect(JSON.stringify(result)).not.toContain("whsec_never_public")
+  })
+
+  // The configuration that would take a client's money and record nothing: a Checkout Session needs
+  // only the secret key, and the webhook secret is what verifies the event that settles the invoice.
+  // The pay affordance is gated on both, so this state offers no card payment at all.
+  test("offers no card payment when a secret key is stored without a webhook secret", async () => {
+    await setPaymentSettings({
+      stripeSecretKey: "sk_test_never_public",
+      stripeWebhookSecret: null
+    })
+    const { invoice } = await makeSentInvoice()
+
+    const result = await getPublicInvoice({ token: invoice.publicToken })
+
+    expect(result?.payment.stripeConfigured).toBe(false)
   })
 
   test("offers both methods when both are configured", async () => {
     await setPaymentSettings({
       paymentBankName: "Acme Bank",
-      stripeSecretKey: "sk_test_never_public"
+      stripeSecretKey: "sk_test_never_public",
+      stripeWebhookSecret: "whsec_never_public"
     })
     const { invoice } = await makeSentInvoice()
 

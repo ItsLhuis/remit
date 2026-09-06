@@ -96,9 +96,11 @@ before and after the due date, sent by a background job.
 quarterly, yearly). Retainer model with included hours per period and overage rate. End conditions
 by date or count. Invoices generate as `draft` or auto-send.
 
-**Payments.** Manual entry (bank transfer, cash, and others), and Stripe settlement through a
-webhook that records what a payment intent collected. Partial payment support — multiple payments
-per invoice with computed status.
+**Payments.** Manual entry (bank transfer, cash, and others), and card payment by the client from
+the invoice's own public link through Stripe-hosted checkout — the amount is the outstanding
+balance, derived on the server, and the payment is recorded only by the signed webhook that confirms
+it. Partial payment support — multiple payments per invoice with computed status, and a partially
+paid invoice is payable for its remainder.
 
 **Credit notes.** Created from existing invoices for corrections or returns. Own numbering sequence.
 Required by Portuguese and EU law for invoice corrections.
