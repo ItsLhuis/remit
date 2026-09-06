@@ -7,4 +7,6 @@ export {
 
 export { listInvoicePayments } from "./queries"
 
+export { startInvoiceCheckout } from "./stripeCheckout"
+
 export { handleStripeWebhook } from "./stripeWebhook"
