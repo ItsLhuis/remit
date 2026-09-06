@@ -2370,7 +2370,8 @@ export const english: Language = {
         bodyBefore:
           "Hello {clientName},\n\nThis is a reminder that invoice {number} for {amount} is due on {dueDate}.\n\nYou can view and pay it here: {url}\n\nThank you,\n{businessName}",
         bodyAfter:
-          "Hello {clientName},\n\nInvoice {number} for {amount} was due on {dueDate} and is still outstanding.\n\nYou can view and pay it here: {url}\n\nThank you,\n{businessName}"
+          "Hello {clientName},\n\nInvoice {number} for {amount} was due on {dueDate} and is still outstanding.\n\nYou can view and pay it here: {url}\n\nThank you,\n{businessName}",
+        lateFeeNotice: "A late fee of {amount} has been added to this invoice."
       },
       list: {
         title: "Invoices",
@@ -2478,6 +2479,7 @@ export const english: Language = {
         subtotal: "Subtotal",
         discount: "Discount",
         tax: "Tax",
+        lateFee: "Late fee",
         total: "Total",
         amountPaid: "Paid",
         outstanding: "Outstanding",
@@ -2514,6 +2516,21 @@ export const english: Language = {
         lockedDescription: "An issued invoice cannot be edited. Raise a credit note instead",
         notesTitle: "Notes",
         summaryTitle: "Summary",
+        lateFeeTitle: "Late fee",
+        lateFeeDescription:
+          "Charged automatically when an overdue invoice passes the grace period.",
+        lateFeeWaived: "Waived",
+        lateFeeChargedOn: "Charged on {date}, {days, plural, one {# day} other {# days}} late",
+        lateFeePercentagePolicy: "{percentage}% of the outstanding balance",
+        lateFeeFixedPolicy: "Flat fee of {amount}",
+        lateFeeUnknownPolicy: "Terms no longer on record",
+        lateFeeAdjust: "Adjust fee",
+        lateFeeWaive: "Waive fee",
+        lateFeeDialogTitle: "Adjust the late fee",
+        lateFeeDialogDescription:
+          "The amount you set replaces the fee on this invoice and moves its total by the difference. Enter 0 to waive it.",
+        lateFeeAmountLabel: "Late fee amount",
+        lateFeeSave: "Save fee",
         publicLinkTitle: "Client link",
         publicLinkDescription: "The address where your client can view and pay this invoice",
         publicLinkHidden: "The link appears once the invoice is sent",
@@ -2581,7 +2598,8 @@ export const english: Language = {
         sent: "Invoice sent",
         markedPaid: "Invoice marked as paid",
         deleted: "Invoice deleted",
-        converted: "Invoice created from proposal"
+        converted: "Invoice created from proposal",
+        lateFeeUpdated: "Late fee updated"
       },
       validation: {
         descriptionRequired: "Description is required",
@@ -2604,7 +2622,8 @@ export const english: Language = {
         discountPercentageRequired: "Enter a discount percentage",
         billableSelectionRequired: "Select at least one time entry or expense",
         billableGroupingInvalid: "Select how the time should be grouped",
-        billableTargetInvalid: "Select an invoice to bill onto"
+        billableTargetInvalid: "Select an invoice to bill onto",
+        lateFeeInvalid: "Enter a late fee amount"
       },
       public: {
         metadataTitle: "Invoice",
@@ -2705,7 +2724,11 @@ export const english: Language = {
         billableFailed: "Failed to bill the selection",
         publicLinkNotIssued: "Send the invoice before managing its client link",
         publicLinkAlreadyRevoked: "This invoice has no client link",
-        publicLinkFailed: "Failed to update the client link"
+        publicLinkFailed: "Failed to update the client link",
+        lateFeeNotCharged: "No late fee has been charged on this invoice",
+        lateFeeBelowPaid:
+          "Lowering the fee would leave the invoice paid for more than it is worth. Issue a credit note instead",
+        lateFeeUpdateFailed: "Failed to update the late fee"
       }
     },
     creditNotes: {
@@ -3192,6 +3215,7 @@ export const english: Language = {
         invoiceSent: "Invoice {number} was sent",
         invoicePaid: "Invoice {number} was marked as paid",
         invoiceOverdue: "Invoice {number} is {days, plural, one {# day} other {# days}} overdue",
+        invoiceLateFeeApplied: "Late fee charged on invoice {number}",
         invoiceGenerated: "Invoice {number} was generated automatically (run {occurrence, number})",
         paymentReceived: "Payment received for invoice {number}",
         timeLogged: "Logged {hours, number} h on {project}",
@@ -4088,6 +4112,26 @@ export const english: Language = {
         defaultHourlyRatePlaceholder: "0.00",
         defaultHourlyRateHelp:
           "The last fallback for time entries. A client, project, task or entry rate always wins. Leave blank to log time with no rate.",
+        lateFeeSection: "Late fees",
+        lateFeeSectionDescription:
+          "Charged once by the nightly sweep on an invoice still unpaid after its grace period. Off until you turn it on.",
+        lateFeeEnabled: "Charge late fees",
+        lateFeeEnabledHelp:
+          "New and existing overdue invoices are charged from the next nightly run.",
+        lateFeeType: "Fee type",
+        lateFeeTypeHelp: "A percentage is taken on what is still owed, not on the invoice total.",
+        lateFeeTypePercentage: "Percentage",
+        lateFeeTypeFixed: "Flat amount",
+        lateFeePercentage: "Percentage",
+        lateFeePercentageHelp: "Between 0 and 100.",
+        lateFeeAmount: "Amount",
+        lateFeeAmountHelp: "Charged once, in the invoice's own currency.",
+        lateFeeGraceDays: "Grace period",
+        lateFeeGraceDaysHelp:
+          "Days after the due date before a fee applies. 0 charges the day after.",
+        lateFeeMax: "Maximum fee",
+        lateFeeMaxHelp: "Leave empty for no cap.",
+        lateFeeMaxPlaceholder: "No cap",
         documentDefaultsSection: "Document defaults",
         documentDefaultsSectionDescription:
           "These notes and footer text are copied into new invoice drafts.",
@@ -4111,7 +4155,12 @@ export const english: Language = {
           nextInvoiceNumberForward:
             "Next invoice number cannot be lower than the current next number ({number}).",
           paymentTermsDaysInvalid: "Payment terms must be a whole number from 0 to 365.",
-          defaultHourlyRateInvalid: "Enter a valid hourly rate."
+          defaultHourlyRateInvalid: "Enter a valid hourly rate.",
+          lateFeePercentageInvalid: "Enter a percentage between 0 and 100.",
+          lateFeeAmountInvalid: "Enter a valid amount.",
+          lateFeeAmountRequired: "Enter the fee to charge.",
+          lateFeeGraceDaysInvalid: "Enter a grace period between 0 and 365 days.",
+          lateFeeMaxInvalid: "Enter a valid maximum fee."
         }
       },
       taxRates: {

@@ -2288,6 +2288,7 @@ export type Translations = {
       subjectAfter: string
       bodyBefore: string
       bodyAfter: string
+      lateFeeNotice: string
     }
     list: {
       title: string
@@ -2394,6 +2395,7 @@ export type Translations = {
       subtotal: string
       discount: string
       tax: string
+      lateFee: string
       total: string
       amountPaid: string
       outstanding: string
@@ -2430,6 +2432,19 @@ export type Translations = {
       lockedDescription: string
       notesTitle: string
       summaryTitle: string
+      lateFeeTitle: string
+      lateFeeDescription: string
+      lateFeeWaived: string
+      lateFeeChargedOn: string
+      lateFeePercentagePolicy: string
+      lateFeeFixedPolicy: string
+      lateFeeUnknownPolicy: string
+      lateFeeAdjust: string
+      lateFeeWaive: string
+      lateFeeDialogTitle: string
+      lateFeeDialogDescription: string
+      lateFeeAmountLabel: string
+      lateFeeSave: string
       publicLinkTitle: string
       publicLinkDescription: string
       publicLinkHidden: string
@@ -2494,6 +2509,7 @@ export type Translations = {
       markedPaid: string
       deleted: string
       converted: string
+      lateFeeUpdated: string
     }
     validation: {
       descriptionRequired: string
@@ -2517,6 +2533,7 @@ export type Translations = {
       billableSelectionRequired: string
       billableGroupingInvalid: string
       billableTargetInvalid: string
+      lateFeeInvalid: string
     }
     public: {
       metadataTitle: string
@@ -2611,6 +2628,9 @@ export type Translations = {
       publicLinkNotIssued: string
       publicLinkAlreadyRevoked: string
       publicLinkFailed: string
+      lateFeeNotCharged: string
+      lateFeeBelowPaid: string
+      lateFeeUpdateFailed: string
     }
   }
   creditNotes: {
@@ -3091,6 +3111,7 @@ export type Translations = {
       invoiceSent: string
       invoicePaid: string
       invoiceOverdue: string
+      invoiceLateFeeApplied: string
       invoiceGenerated: string
       paymentReceived: string
       timeLogged: string
@@ -3962,6 +3983,23 @@ export type Translations = {
       defaultHourlyRate: string
       defaultHourlyRatePlaceholder: string
       defaultHourlyRateHelp: string
+      lateFeeSection: string
+      lateFeeSectionDescription: string
+      lateFeeEnabled: string
+      lateFeeEnabledHelp: string
+      lateFeeType: string
+      lateFeeTypeHelp: string
+      lateFeeTypePercentage: string
+      lateFeeTypeFixed: string
+      lateFeePercentage: string
+      lateFeePercentageHelp: string
+      lateFeeAmount: string
+      lateFeeAmountHelp: string
+      lateFeeGraceDays: string
+      lateFeeGraceDaysHelp: string
+      lateFeeMax: string
+      lateFeeMaxHelp: string
+      lateFeeMaxPlaceholder: string
       documentDefaultsSection: string
       documentDefaultsSectionDescription: string
       defaultNotesInvoice: string
@@ -3983,6 +4021,11 @@ export type Translations = {
         nextInvoiceNumberForward: string
         paymentTermsDaysInvalid: string
         defaultHourlyRateInvalid: string
+        lateFeePercentageInvalid: string
+        lateFeeAmountInvalid: string
+        lateFeeAmountRequired: string
+        lateFeeGraceDaysInvalid: string
+        lateFeeMaxInvalid: string
       }
     }
     taxRates: {
