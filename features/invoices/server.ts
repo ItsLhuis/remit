@@ -38,6 +38,8 @@ export { getInvoiceOverviewPageData } from "./overviewQueries"
 
 export { getPublicInvoice } from "./publicQueries"
 
+export { startPublicInvoiceCheckout } from "./publicCheckout"
+
 export { recordPublicInvoiceView } from "./publicView"
 
 export {

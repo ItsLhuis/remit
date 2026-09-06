@@ -25,6 +25,15 @@ type InvoiceIssuerContext = {
   timeZone: string
 }
 
+export type PublicInvoiceCheckoutTarget = {
+  id: string
+  number: string
+  status: InvoiceRow["status"]
+  currency: string
+  totalCents: number
+  amountPaidCents: number
+}
+
 const PUBLIC_TOKEN_MISS_DECOY = "0".repeat(43)
 
 // Every unavailable case — malformed token, unknown token, soft-deleted invoice, and an invoice
@@ -81,6 +90,31 @@ export async function getPublicInvoice(input: unknown): Promise<PublicInvoice | 
       stripeConfigured: payment.stripeConfigured
     },
     lineItems: rows.map(toInvoiceDetailLineItem)
+  }
+}
+
+// What `features/payments/stripeCheckout.ts` needs to open a Checkout Session, and nothing more: no
+// token, no notes, no line items. It resolves through `findIssuedInvoiceByPublicToken`, the same
+// function `getPublicInvoice` above uses, so an invoice that is not publicly viewable can never be
+// publicly payable — there is one definition of visibility and both reads share it.
+export async function getPublicInvoiceCheckoutTarget(
+  input: unknown
+): Promise<PublicInvoiceCheckoutTarget | null> {
+  const parsed = publicInvoiceTokenSchema.safeParse(input)
+
+  if (!parsed.success) return null
+
+  const invoice = await findIssuedInvoiceByPublicToken(parsed.data.token)
+
+  if (!invoice) return null
+
+  return {
+    id: invoice.id,
+    number: invoice.number,
+    status: invoice.status,
+    currency: invoice.currency,
+    totalCents: Number(invoice.totalCents),
+    amountPaidCents: Number(invoice.amountPaidCents)
   }
 }
 
