@@ -33,6 +33,7 @@ type PublicPaymentBlockRow = {
   paymentBankName: string | null
   paymentInstructions: string | null
   stripeSecretKey: string | null
+  stripeWebhookSecret: string | null
 }
 
 export async function getPaymentSettings(): Promise<PaymentSettingsFormData> {
@@ -57,7 +58,8 @@ export async function getPublicPaymentBlock(): Promise<PublicPaymentBlock> {
       paymentIban: true,
       paymentBankName: true,
       paymentInstructions: true,
-      stripeSecretKey: true
+      stripeSecretKey: true,
+      stripeWebhookSecret: true
     }
   })
 
@@ -93,10 +95,14 @@ function toPublicPaymentBlock(row: PublicPaymentBlockRow | null): PublicPaymentB
     paymentIbanDisplay,
     paymentInstructions,
     hasBankTransferDetails: Boolean(bankName || paymentIbanDisplay || paymentInstructions),
-    // The secret key alone, because that is what a server-side Checkout Session needs; the
-    // publishable key is not required to start one. The key itself is read only to be collapsed
-    // into this boolean and never travels further.
-    stripeConfigured: Boolean(row?.stripeSecretKey)
+    // Both secrets, matching `getStripeConfiguration` in `features/payments/stripeWebhook.ts` and
+    // `stripeCheckout.ts` exactly. This boolean is what decides whether an anonymous client is shown
+    // a pay button, and a secret key without a webhook secret is the one configuration that would
+    // take a client's money and record nothing: the session completes, the event arrives, and the
+    // signature has nothing to verify against. The publishable key is not consulted because a
+    // server-side hosted Checkout Session does not need one. Neither value travels past this
+    // boolean.
+    stripeConfigured: Boolean(row?.stripeSecretKey && row.stripeWebhookSecret)
   }
 }
 

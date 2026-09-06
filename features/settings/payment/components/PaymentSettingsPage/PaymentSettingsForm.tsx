@@ -9,8 +9,6 @@ import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { formatDate } from "@/lib/utils"
-
 import {
   Button,
   Field,
@@ -35,6 +33,7 @@ import {
 } from "../../schemas"
 
 import { PaymentSecretField } from "./PaymentSecretField"
+import { StripeConnectionStatus } from "./StripeConnectionStatus"
 
 type PaymentSettingsFormProps = {
   initialValues: PaymentSettingsValues
@@ -101,6 +100,13 @@ const PaymentSettingsForm = ({
   })
 
   const stripeConfigured = Boolean(stripePublishableKey.trim() && stripeSecretKeyConfigured)
+
+  // The configuration that silently takes money: a secret key is enough to open a Checkout Session
+  // and charge a client, and the webhook secret is what verifies the event that records the payment
+  // against the invoice. With one and not the other the card path is refused outright rather than
+  // half-run — `getPublicPaymentBlock` requires both before an anonymous client is shown a pay
+  // button — and this says so, because from this form the state otherwise looks like progress.
+  const cardPaymentsIncomplete = stripeSecretKeyConfigured && !stripeWebhookSecretConfigured
 
   const onSubmit = (values: PaymentSettingsValues) => {
     if (!isDirty || !isValid) return
@@ -306,22 +312,12 @@ const PaymentSettingsForm = ({
               }}
             />
           </div>
-          <div className="space-y-1" aria-live="polite">
-            {stripeTestConnectionAt ? (
-              <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
-                {t("settings.payment.lastStripeTest", {
-                  date: formatDate(new Date(stripeTestConnectionAt), { locale })
-                })}
-              </Typography>
-            ) : (
-              <Typography variant="p" affects={["muted", "removePMargin", "small"]}>
-                {t("settings.payment.lastStripeTestNever")}
-              </Typography>
-            )}
-            {isDirty ? (
-              <FieldDescription>{t("settings.payment.saveBeforeTest")}</FieldDescription>
-            ) : null}
-          </div>
+          <StripeConnectionStatus
+            cardPaymentsIncomplete={cardPaymentsIncomplete}
+            stripeTestConnectionAt={stripeTestConnectionAt}
+            locale={locale}
+            isDirty={isDirty}
+          />
         </FieldGroup>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           {settingsError && <FieldError className="sm:mr-auto">{settingsError}</FieldError>}
