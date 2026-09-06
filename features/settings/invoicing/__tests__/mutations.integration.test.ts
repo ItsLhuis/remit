@@ -53,7 +53,13 @@ const validInvoicingSettings = {
   paymentTermsDays: 14,
   defaultNotesInvoice: "Thank you for your business.",
   defaultInvoiceFooter: "Payment is due according to the terms above.",
-  defaultHourlyRate: "85.00"
+  defaultHourlyRate: "85.00",
+  lateFeeEnabled: false,
+  lateFeeType: "percentage",
+  lateFeePercentage: "",
+  lateFeeAmount: "",
+  lateFeeGraceDays: 0,
+  lateFeeMax: ""
 }
 
 describe("invoicing settings mutations", () => {
@@ -108,7 +114,9 @@ describe("invoicing settings mutations", () => {
           "paymentTermsDays",
           "defaultNotesInvoice",
           "defaultInvoiceFooter",
-          "defaultHourlyRateCents"
+          "defaultHourlyRateCents",
+          "lateFeeEnabled",
+          "lateFeeGraceDays"
         ]
       })
     )
@@ -193,5 +201,118 @@ describe("invoicing settings mutations", () => {
 
     expect(result).toEqual({ error: "You do not have permission to do that" })
     expect(settingsRows).toHaveLength(0)
+  })
+})
+
+describe("late fee policy", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+
+    await makeUser({ id: ownerId, email: ownerEmail })
+
+    mocks.headers.mockResolvedValue(new Headers({ "user-agent": "Vitest" }))
+    mocks.getSession.mockResolvedValue({ user: { id: ownerId, email: ownerEmail } })
+    mocks.getCurrentRole.mockResolvedValue("owner")
+  })
+
+  test("leaves the policy off and unconfigured on a first save", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    await saveInvoicingSettings(validInvoicingSettings)
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow).toMatchObject({
+      lateFeeEnabled: false,
+      lateFeeType: null,
+      lateFeePercentage: null,
+      lateFeeAmountCents: null,
+      lateFeeGraceDays: 0,
+      lateFeeMaxCents: null
+    })
+  })
+
+  test("stores a percentage policy with its grace period and cap", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    await saveInvoicingSettings({
+      ...validInvoicingSettings,
+      lateFeeEnabled: true,
+      lateFeeType: "percentage",
+      lateFeePercentage: "7.5",
+      lateFeeGraceDays: 5,
+      lateFeeMax: "40.00"
+    })
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow).toMatchObject({
+      lateFeeEnabled: true,
+      lateFeeType: "percentage",
+      lateFeePercentage: "7.50",
+      lateFeeAmountCents: null,
+      lateFeeGraceDays: 5,
+      lateFeeMaxCents: 4_000
+    })
+  })
+
+  test("stores a flat policy as cents and clears the percentage", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    await saveInvoicingSettings({
+      ...validInvoicingSettings,
+      lateFeeEnabled: true,
+      lateFeeType: "fixed",
+      lateFeeAmount: "40.00"
+    })
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow).toMatchObject({
+      lateFeeEnabled: true,
+      lateFeeType: "fixed",
+      lateFeePercentage: null,
+      lateFeeAmountCents: 4_000
+    })
+  })
+
+  test("refuses to enable the policy with no amount configured", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    const result = await saveInvoicingSettings({
+      ...validInvoicingSettings,
+      lateFeeEnabled: true,
+      lateFeePercentage: ""
+    })
+
+    expect("error" in result).toBe(true)
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow).toBeUndefined()
+  })
+
+  test("keeps the configured terms when the policy is switched off", async () => {
+    const { saveInvoicingSettings } = await import("../mutations")
+
+    await saveInvoicingSettings({
+      ...validInvoicingSettings,
+      lateFeeEnabled: true,
+      lateFeePercentage: "5"
+    })
+
+    await saveInvoicingSettings({
+      ...validInvoicingSettings,
+      lateFeeEnabled: false,
+      lateFeePercentage: "5"
+    })
+
+    const [settingsRow] = await database.select().from(settings)
+
+    expect(settingsRow).toMatchObject({
+      lateFeeEnabled: false,
+      lateFeeType: "percentage",
+      lateFeePercentage: "5.00"
+    })
   })
 })

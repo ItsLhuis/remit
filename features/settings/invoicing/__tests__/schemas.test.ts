@@ -13,7 +13,13 @@ const validInvoicingSettings = {
   paymentTermsDays: 30,
   defaultNotesInvoice: "Thank you for your business.",
   defaultInvoiceFooter: "Payment is due according to the terms above.",
-  defaultHourlyRate: "85.00"
+  defaultHourlyRate: "85.00",
+  lateFeeEnabled: false,
+  lateFeeType: "percentage",
+  lateFeePercentage: "",
+  lateFeeAmount: "",
+  lateFeeGraceDays: 0,
+  lateFeeMax: ""
 }
 
 test("accepts a blank default hourly rate as no configured rate", () => {
@@ -111,4 +117,60 @@ test("rejects payment terms outside the supported day range", () => {
 
   expect(tooSmall.success).toBe(false)
   expect(tooLarge.success).toBe(false)
+})
+
+test("accepts an unconfigured late-fee policy while the switch is off", () => {
+  const result = invoicingSettingsSchema.safeParse(validInvoicingSettings)
+
+  expect(result.success).toBe(true)
+})
+
+test("rejects enabling the late fee with no percentage entered", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    lateFeeEnabled: true
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("rejects enabling a flat late fee with no amount entered", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    lateFeeEnabled: true,
+    lateFeeType: "fixed"
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("accepts an enabled percentage policy with a grace period and a cap", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    lateFeeEnabled: true,
+    lateFeePercentage: "7.5",
+    lateFeeGraceDays: 5,
+    lateFeeMax: "40.00"
+  })
+
+  expect(result.success).toBe(true)
+})
+
+test("rejects a late-fee percentage above one hundred", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    lateFeeEnabled: true,
+    lateFeePercentage: "120"
+  })
+
+  expect(result.success).toBe(false)
+})
+
+test("rejects a grace period longer than a year", () => {
+  const result = invoicingSettingsSchema.safeParse({
+    ...validInvoicingSettings,
+    lateFeeGraceDays: 400
+  })
+
+  expect(result.success).toBe(false)
 })

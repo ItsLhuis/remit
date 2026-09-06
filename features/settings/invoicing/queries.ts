@@ -12,6 +12,12 @@ type InvoicingSettingsRow = {
   defaultNotesInvoice: string | null
   defaultInvoiceFooter: string | null
   defaultHourlyRateCents: number | null
+  lateFeeEnabled: boolean
+  lateFeeType: "percentage" | "fixed" | null
+  lateFeePercentage: string | null
+  lateFeeAmountCents: number | null
+  lateFeeGraceDays: number
+  lateFeeMaxCents: number | null
 }
 
 export async function getInvoicingSettings(): Promise<InvoicingSettingsValues> {
@@ -23,7 +29,13 @@ export async function getInvoicingSettings(): Promise<InvoicingSettingsValues> {
       paymentTermsDays: true,
       defaultNotesInvoice: true,
       defaultInvoiceFooter: true,
-      defaultHourlyRateCents: true
+      defaultHourlyRateCents: true,
+      lateFeeEnabled: true,
+      lateFeeType: true,
+      lateFeePercentage: true,
+      lateFeeAmountCents: true,
+      lateFeeGraceDays: true,
+      lateFeeMaxCents: true
     }
   })
 
@@ -44,6 +56,15 @@ export function toInvoicingSettingsFormData(
     paymentTermsDays: row?.paymentTermsDays ?? 30,
     defaultNotesInvoice: row?.defaultNotesInvoice ?? "",
     defaultInvoiceFooter: row?.defaultInvoiceFooter ?? "",
-    defaultHourlyRate: formatCentsForInput(row?.defaultHourlyRateCents ?? null)
+    defaultHourlyRate: formatCentsForInput(row?.defaultHourlyRateCents ?? null),
+    lateFeeEnabled: row?.lateFeeEnabled ?? false,
+    // The control needs one of the two types selected even when nothing is configured, and
+    // `percentage` is the shape a statutory late fee usually takes. It reaches the column only when
+    // the operator fills the amount beside it.
+    lateFeeType: row?.lateFeeType ?? "percentage",
+    lateFeePercentage: row?.lateFeePercentage ?? "",
+    lateFeeAmount: formatCentsForInput(row?.lateFeeAmountCents ?? null),
+    lateFeeGraceDays: row?.lateFeeGraceDays ?? 0,
+    lateFeeMax: formatCentsForInput(row?.lateFeeMaxCents ?? null)
   }
 }

@@ -55,6 +55,38 @@ const defaultHourlyRateSchema = z
     message: i18n.t("settings.invoicing.validation.defaultHourlyRateInvalid")
   })
 
+const LATE_FEE_PERCENTAGE_PATTERN = /^\d+(\.\d{1,2})?$/
+
+const lateFeeTypeSchema = z.enum(["percentage", "fixed"])
+
+const lateFeePercentageSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === "" || (LATE_FEE_PERCENTAGE_PATTERN.test(value) && Number(value) <= 100),
+    { message: i18n.t("settings.invoicing.validation.lateFeePercentageInvalid") }
+  )
+
+const lateFeeAmountSchema = z
+  .string()
+  .trim()
+  .refine((value) => isValidAmount(value), {
+    message: i18n.t("settings.invoicing.validation.lateFeeAmountInvalid")
+  })
+
+const lateFeeMaxSchema = z
+  .string()
+  .trim()
+  .refine((value) => isValidAmount(value), {
+    message: i18n.t("settings.invoicing.validation.lateFeeMaxInvalid")
+  })
+
+const lateFeeGraceDaysSchema = z
+  .number()
+  .int(i18n.t("settings.invoicing.validation.lateFeeGraceDaysInvalid"))
+  .min(0, i18n.t("settings.invoicing.validation.lateFeeGraceDaysInvalid"))
+  .max(365, i18n.t("settings.invoicing.validation.lateFeeGraceDaysInvalid"))
+
 const invoicingSettingsBaseSchema = z.object({
   invoicePrefix: invoicePrefixSchema,
   numberPaddingWidth: numberPaddingWidthSchema,
@@ -62,8 +94,35 @@ const invoicingSettingsBaseSchema = z.object({
   paymentTermsDays: paymentTermsDaysSchema,
   defaultNotesInvoice: optionalDocumentTextSchema,
   defaultInvoiceFooter: optionalDocumentTextSchema,
-  defaultHourlyRate: defaultHourlyRateSchema
+  defaultHourlyRate: defaultHourlyRateSchema,
+  lateFeeEnabled: z.boolean(),
+  lateFeeType: lateFeeTypeSchema,
+  lateFeePercentage: lateFeePercentageSchema,
+  lateFeeAmount: lateFeeAmountSchema,
+  lateFeeGraceDays: lateFeeGraceDaysSchema,
+  lateFeeMax: lateFeeMaxSchema
 })
+
+// Turning the policy on without an amount is refused here as well as by
+// `chk_settings_late_fee_enabled_shape`, so the operator sees a field error rather than a database
+// exception. The amount of the *other* type stays whatever it was: switching from a percentage to a
+// flat fee and back must not silently erase the percentage.
+function refineLateFeePolicy(
+  values: InvoicingSettingsValues,
+  context: z.RefinementCtx<InvoicingSettingsValues>
+): void {
+  if (!values.lateFeeEnabled) return
+
+  const path = values.lateFeeType === "percentage" ? "lateFeePercentage" : "lateFeeAmount"
+
+  if (values[path] !== "") return
+
+  context.addIssue({
+    code: "custom",
+    path: [path],
+    message: i18n.t("settings.invoicing.validation.lateFeeAmountRequired")
+  })
+}
 
 // The counter may only ever move forward. Lowering it would hand out a number that has already
 // been issued, which both collides with the unique constraint on `invoices.number` and breaks the
@@ -71,6 +130,8 @@ const invoicingSettingsBaseSchema = z.object({
 // because it comes from the numbers already issued, so the schema is built per request.
 export const createInvoicingSettingsSchema = (minimumNextInvoiceNumber: number) =>
   invoicingSettingsBaseSchema.superRefine((values, context) => {
+    refineLateFeePolicy(values, context)
+
     if (values.nextInvoiceNumber >= minimumNextInvoiceNumber) return
 
     context.addIssue({

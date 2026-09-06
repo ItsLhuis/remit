@@ -32,6 +32,8 @@ import {
   type InvoicingSettingsValues
 } from "../../schemas"
 
+import { LateFeeSection } from "./LateFeeSection"
+
 type InvoicingSettingsFormProps = {
   initialValues: InvoicingSettingsValues
 }
@@ -238,6 +240,8 @@ const InvoicingSettingsForm = ({ initialValues }: InvoicingSettingsFormProps) =>
           />
         </div>
       </FieldGroup>
+      <Separator />
+      <LateFeeSection control={form.control} disabled={isSaving} />
       <Separator />
       <FieldGroup>
         <div className="space-y-1">

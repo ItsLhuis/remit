@@ -45,6 +45,12 @@ type PersistedInvoicingSettings = {
   defaultNotesInvoice: string | null
   defaultInvoiceFooter: string | null
   defaultHourlyRateCents: number | null
+  lateFeeEnabled: boolean
+  lateFeeType: "percentage" | "fixed" | null
+  lateFeePercentage: string | null
+  lateFeeAmountCents: number | null
+  lateFeeGraceDays: number
+  lateFeeMaxCents: number | null
 }
 
 type InvoicingSettingsWritePlan = {
@@ -60,7 +66,13 @@ const invoicingSettingsReturnColumns = {
   paymentTermsDays: settings.paymentTermsDays,
   defaultNotesInvoice: settings.defaultNotesInvoice,
   defaultInvoiceFooter: settings.defaultInvoiceFooter,
-  defaultHourlyRateCents: settings.defaultHourlyRateCents
+  defaultHourlyRateCents: settings.defaultHourlyRateCents,
+  lateFeeEnabled: settings.lateFeeEnabled,
+  lateFeeType: settings.lateFeeType,
+  lateFeePercentage: settings.lateFeePercentage,
+  lateFeeAmountCents: settings.lateFeeAmountCents,
+  lateFeeGraceDays: settings.lateFeeGraceDays,
+  lateFeeMaxCents: settings.lateFeeMaxCents
 } as const
 
 export async function saveInvoicingSettings(input: unknown): Promise<SaveInvoicingSettingsResult> {
@@ -135,7 +147,13 @@ async function getPersistedInvoicingSettings(): Promise<PersistedInvoicingSettin
         paymentTermsDays: true,
         defaultNotesInvoice: true,
         defaultInvoiceFooter: true,
-        defaultHourlyRateCents: true
+        defaultHourlyRateCents: true,
+        lateFeeEnabled: true,
+        lateFeeType: true,
+        lateFeePercentage: true,
+        lateFeeAmountCents: true,
+        lateFeeGraceDays: true,
+        lateFeeMaxCents: true
       }
     })) ?? null
   )
@@ -149,6 +167,7 @@ function buildInvoicingSettingsWritePlan(
   const defaultInvoiceFooter = emptyToNull(values.defaultInvoiceFooter)
   const invoicePrefix = values.invoicePrefix.trim()
   const defaultHourlyRateCents = parseAmountToCents(values.defaultHourlyRate)
+  const lateFee = toLateFeeColumns(values)
   const writeValues: Partial<typeof settings.$inferInsert> = {
     invoicePrefix,
     numberPaddingWidth: values.numberPaddingWidth,
@@ -156,7 +175,8 @@ function buildInvoicingSettingsWritePlan(
     paymentTermsDays: values.paymentTermsDays,
     defaultNotesInvoice,
     defaultInvoiceFooter,
-    defaultHourlyRateCents
+    defaultHourlyRateCents,
+    ...lateFee
   }
   const changedFields = getChangedFields([
     ["invoicePrefix", existing?.invoicePrefix ?? null, invoicePrefix],
@@ -165,13 +185,76 @@ function buildInvoicingSettingsWritePlan(
     ["paymentTermsDays", existing?.paymentTermsDays ?? null, values.paymentTermsDays],
     ["defaultNotesInvoice", existing?.defaultNotesInvoice ?? null, defaultNotesInvoice],
     ["defaultInvoiceFooter", existing?.defaultInvoiceFooter ?? null, defaultInvoiceFooter],
-    ["defaultHourlyRateCents", existing?.defaultHourlyRateCents ?? null, defaultHourlyRateCents]
+    ["defaultHourlyRateCents", existing?.defaultHourlyRateCents ?? null, defaultHourlyRateCents],
+    [
+      "lateFeeEnabled",
+      toComparable(existing?.lateFeeEnabled ?? null),
+      toComparable(lateFee.lateFeeEnabled)
+    ],
+    ["lateFeeType", existing?.lateFeeType ?? null, lateFee.lateFeeType],
+    [
+      "lateFeePercentage",
+      toComparablePercentage(existing?.lateFeePercentage ?? null),
+      toComparablePercentage(lateFee.lateFeePercentage)
+    ],
+    ["lateFeeAmountCents", existing?.lateFeeAmountCents ?? null, lateFee.lateFeeAmountCents],
+    ["lateFeeGraceDays", existing?.lateFeeGraceDays ?? null, lateFee.lateFeeGraceDays],
+    ["lateFeeMaxCents", existing?.lateFeeMaxCents ?? null, lateFee.lateFeeMaxCents]
   ])
 
   return {
     values: writeValues,
     changedFields
   }
+}
+
+type LateFeeColumns = {
+  lateFeeEnabled: boolean
+  lateFeeType: "percentage" | "fixed" | null
+  lateFeePercentage: string | null
+  lateFeeAmountCents: number | null
+  lateFeeGraceDays: number
+  lateFeeMaxCents: number | null
+}
+
+// The type is written only when the amount beside it is filled, which is what
+// `chk_settings_late_fee_shape` demands, and it survives the switch being turned off: an operator
+// who disables the policy for a month should find their terms still there when they turn it back on.
+function toLateFeeColumns(values: InvoicingSettingsValues): LateFeeColumns {
+  const graceAndCap = {
+    lateFeeEnabled: values.lateFeeEnabled,
+    lateFeeGraceDays: values.lateFeeGraceDays,
+    lateFeeMaxCents: parseAmountToCents(values.lateFeeMax)
+  }
+
+  if (values.lateFeeType === "percentage" && values.lateFeePercentage !== "") {
+    return {
+      ...graceAndCap,
+      lateFeeType: "percentage",
+      lateFeePercentage: values.lateFeePercentage,
+      lateFeeAmountCents: null
+    }
+  }
+
+  const lateFeeAmountCents = parseAmountToCents(values.lateFeeAmount)
+
+  if (values.lateFeeType === "fixed" && lateFeeAmountCents !== null) {
+    return { ...graceAndCap, lateFeeType: "fixed", lateFeePercentage: null, lateFeeAmountCents }
+  }
+
+  return { ...graceAndCap, lateFeeType: null, lateFeePercentage: null, lateFeeAmountCents: null }
+}
+
+// `getChangedFields` compares strings and numbers, and the two late-fee columns it cannot take
+// directly are folded to that shape here rather than widening its signature for one caller.
+function toComparable(value: boolean | null): string | null {
+  return value === null ? null : String(value)
+}
+
+// `numeric` round-trips as a padded string, so "5" written and "5.00" read back are the same
+// percentage and must not register as a change on every save.
+function toComparablePercentage(value: string | null): number | null {
+  return value === null ? null : Number(value)
 }
 
 function getChangedFields(
