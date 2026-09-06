@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   integer,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -11,7 +12,7 @@ import {
   varchar
 } from "drizzle-orm/pg-core"
 
-import { backupCadence, backupDestination, emailProvider } from "./enums"
+import { backupCadence, backupDestination, emailProvider, lateFeeType } from "./enums"
 import { encryptedColumn, timestamps } from "./helpers"
 import { uploads } from "./uploads"
 
@@ -58,6 +59,18 @@ export const settings = pgTable(
     nextContractNumber: integer("next_contract_number").notNull().default(1),
     nextCreditNoteNumber: integer("next_credit_note_number").notNull().default(1),
     numberPaddingWidth: integer("number_padding_width").notNull().default(4),
+
+    // Late fees
+    //
+    // Off is the only safe default. These columns arrive on instances that have been invoicing for
+    // months, and a policy that defaulted to on would charge a self-hoster's existing clients a fee
+    // they never agreed to on the first night the upgraded worker ran.
+    lateFeeEnabled: boolean("late_fee_enabled").notNull().default(false),
+    lateFeeType: lateFeeType("late_fee_type"),
+    lateFeePercentage: numeric("late_fee_percentage", { precision: 5, scale: 2 }),
+    lateFeeAmountCents: bigint("late_fee_amount_cents", { mode: "number" }),
+    lateFeeGraceDays: integer("late_fee_grace_days").notNull().default(0),
+    lateFeeMaxCents: bigint("late_fee_max_cents", { mode: "number" }),
 
     // Time tracking
     defaultHourlyRateCents: bigint("default_hourly_rate_cents", { mode: "number" }),
@@ -142,6 +155,35 @@ export const settings = pgTable(
     check(
       "chk_settings_default_hourly_rate",
       sql`${table.defaultHourlyRateCents} IS NULL OR ${table.defaultHourlyRateCents} >= 0`
+    ),
+    // The same either-or shape `chk_invoices_discount_shape` uses: the type names which of the two
+    // amount columns carries the policy, and the other stays null, so no row can hold a percentage
+    // and a flat amount at once.
+    check(
+      "chk_settings_late_fee_shape",
+      sql`(${table.lateFeeType} IS NULL AND ${table.lateFeePercentage} IS NULL AND ${table.lateFeeAmountCents} IS NULL) OR (${table.lateFeeType} = 'percentage' AND ${table.lateFeePercentage} IS NOT NULL AND ${table.lateFeeAmountCents} IS NULL) OR (${table.lateFeeType} = 'fixed' AND ${table.lateFeeAmountCents} IS NOT NULL AND ${table.lateFeePercentage} IS NULL)`
+    ),
+    // Enabling with nothing configured would leave the sweep reading a policy it cannot price, so
+    // the switch and the amount can only be turned on together.
+    check(
+      "chk_settings_late_fee_enabled_shape",
+      sql`${table.lateFeeEnabled} = false OR ${table.lateFeeType} IS NOT NULL`
+    ),
+    check(
+      "chk_settings_late_fee_percentage",
+      sql`${table.lateFeePercentage} IS NULL OR (${table.lateFeePercentage} >= 0 AND ${table.lateFeePercentage} <= 100)`
+    ),
+    check(
+      "chk_settings_late_fee_amount",
+      sql`${table.lateFeeAmountCents} IS NULL OR ${table.lateFeeAmountCents} >= 0`
+    ),
+    check(
+      "chk_settings_late_fee_grace_days",
+      sql`${table.lateFeeGraceDays} >= 0 AND ${table.lateFeeGraceDays} <= 365`
+    ),
+    check(
+      "chk_settings_late_fee_max",
+      sql`${table.lateFeeMaxCents} IS NULL OR ${table.lateFeeMaxCents} >= 0`
     )
   ]
 )

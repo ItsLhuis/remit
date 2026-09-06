@@ -29,6 +29,13 @@
       "when": 1788454582974,
       "tag": "0003_revocable_public_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788717332149,
+      "tag": "0004_pink_virginia_dare",
+      "breakpoints": true
     }
   ]
 }

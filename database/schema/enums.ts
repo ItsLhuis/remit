@@ -26,6 +26,11 @@ export const templateType = pgEnum("template_type", [
 
 export const discountType = pgEnum("discount_type", ["percentage", "fixed"])
 
+// Its own type rather than a second use of `discount_type`: the two happen to share their values
+// today, and a column named `late_fee_type` whose Postgres type is `discount_type` would make any
+// later change to either one move both.
+export const lateFeeType = pgEnum("late_fee_type", ["percentage", "fixed"])
+
 export const entityType = pgEnum("entity_type", [
   "client",
   "project",
