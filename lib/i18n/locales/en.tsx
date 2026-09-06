@@ -2636,9 +2636,26 @@ export const english: Language = {
           reference: "Reference",
           cardTitle: "Card payment",
           cardButton: "Pay by card",
+          cardStarting: "Opening the secure payment page",
           cardUnavailable: "Card payments are not available yet. Use the details above to pay.",
+          lineItemName: "Invoice {number}",
+          unavailable: "This invoice cannot be paid by card",
+          startFailed: "The payment page could not be opened. Try again in a moment",
+          rateLimited: "Too many payment attempts. Wait a few minutes and try again",
           noMethods:
             "No payment details have been published. Contact the sender to arrange payment."
+        },
+        paid: {
+          settledTitle: "Payment received",
+          settledDescription: "This invoice is paid in full. Thank you.",
+          pendingTitle: "Payment submitted",
+          pendingDescription:
+            "Your card payment went through and is being confirmed. Do not pay again.",
+          pendingNote:
+            "This page updates on its own once the confirmation arrives, usually within a few seconds.",
+          invoiceLabel: "Invoice",
+          amountOutstanding: "Amount outstanding",
+          backToInvoice: "Back to the invoice"
         },
         validation: {
           tokenInvalid: "Invalid invoice link"
@@ -4026,6 +4043,9 @@ export const english: Language = {
         testStripeConnection: "Test Stripe connection",
         stripeTestSucceeded: "Stripe connection tested",
         saveBeforeTest: "Save changes before testing the Stripe connection.",
+        cardPaymentsOffTitle: "Card payments are off",
+        cardPaymentsOffDescription:
+          "A secret key is stored but the webhook signing secret is missing, so a card payment could be taken without ever being recorded against the invoice. Add the webhook signing secret to turn card payments on.",
         lastStripeTest: "Last successful Stripe test: {date}",
         lastStripeTestNever: "No successful Stripe test has been recorded.",
         errors: {

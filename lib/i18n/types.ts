@@ -2547,8 +2547,23 @@ export type Translations = {
         reference: string
         cardTitle: string
         cardButton: string
+        cardStarting: string
         cardUnavailable: string
+        lineItemName: string
+        unavailable: string
+        startFailed: string
+        rateLimited: string
         noMethods: string
+      }
+      paid: {
+        settledTitle: string
+        settledDescription: string
+        pendingTitle: string
+        pendingDescription: string
+        pendingNote: string
+        invoiceLabel: string
+        amountOutstanding: string
+        backToInvoice: string
       }
       validation: {
         tokenInvalid: string
@@ -3906,6 +3921,8 @@ export type Translations = {
       testStripeConnection: string
       stripeTestSucceeded: string
       saveBeforeTest: string
+      cardPaymentsOffTitle: string
+      cardPaymentsOffDescription: string
       lastStripeTest: string
       lastStripeTestNever: string
       errors: {
