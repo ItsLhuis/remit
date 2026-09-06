@@ -37,13 +37,15 @@ export type ExportTableManifest = {
 //
 // Two lines are drawn deliberately, and both are narrower than "everything the owner may see":
 //
-// 1. `settings` exports the business identity, locale, and document-numbering columns only. Every
-//    email, payment-provider, and backup column is excluded — including the non-secret halves such
-//    as `smtpHost` and `stripePublishableKey`, and including `paymentIban`. Those are configuration
-//    an operator re-enters, not business records the owner needs to take elsewhere, and one boundary
-//    around the whole configuration surface is auditable in a way a per-field allowlist is not: the
-//    alternative, filtering only the `encryptedColumn()` fields, grows a new leak every time a
-//    provider setting is added beside them.
+// 1. `settings` exports the business identity, locale, and billing-terms columns only — the last of
+//    those being payment terms, proposal validity, the default hourly rate, the numbering counters
+//    and the late-fee policy, all of which price or date a document rather than configure a
+//    provider. Every email, payment-provider, and backup column is excluded — including the
+//    non-secret halves such as `smtpHost` and `stripePublishableKey`, and including `paymentIban`.
+//    Those are configuration an operator re-enters, not business records the owner needs to take
+//    elsewhere, and one boundary around the whole configuration surface is auditable in a way a
+//    per-field allowlist is not: the alternative, filtering only the `encryptedColumn()` fields,
+//    grows a new leak every time a provider setting is added beside them.
 // 2. Public document tokens are excluded everywhere. They are bearer credentials for `/i/[token]`,
 //    `/p/[token]`, and `/c/[token]`; an archive that carries them hands anyone holding the zip a
 //    live, unauthenticated route into the instance.

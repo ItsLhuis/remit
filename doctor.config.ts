@@ -74,7 +74,9 @@ const config = {
         // reconcile a three-entry list at boot where concurrency buys nothing. Serial also keeps the
         // per-entity failure isolated: one bad row logs and the loop continues, which is what makes
         // a sweep safe to retry (ADR-0023).
-        files: ["lib/jobs/schedules.ts", "features/*/jobs.ts"],
+        // `features/invoices/lateFees.ts` is the same sweep: it is a separate module only because
+        // `features/invoices/jobs.ts` sits near the 500-line ceiling.
+        files: ["lib/jobs/schedules.ts", "features/*/jobs.ts", "features/invoices/lateFees.ts"],
         rules: ["react-doctor/async-await-in-loop"]
       },
       {
@@ -133,6 +135,7 @@ const config = {
     "requireInvoiceMarkPaid",
     "requireInvoiceDelete",
     "requireInvoicePublicLink",
+    "requireInvoiceLateFee",
     "requirePaymentWrite",
     "requirePaymentDelete",
     "requireCreditNoteWrite",

@@ -132,6 +132,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0034](0034-public-client-portal.md)            | Public client portal                           | 2026-09-05 | Complete with known gaps | ADR-0029, ADR-0030                               |
 | [0035](0035-billing-time-and-expenses.md)       | Billing time and expenses onto an invoice      | 2026-09-05 | Complete with known gaps | ADR-0007, ADR-0009, ADR-0017, ADR-0026, ADR-0031 |
 | [0036](0036-stripe-hosted-checkout.md)          | Stripe hosted checkout                         | 2026-09-06 | Complete with known gaps | ADR-0009, ADR-0016, ADR-0018, ADR-0032           |
+| [0037](0037-late-fees.md)                       | Automatic late fees                            | 2026-09-06 | Complete with known gaps | ADR-0007, ADR-0009, ADR-0023, ADR-0033           |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
-`DR-0035` and `DR-0036`, which were written at delivery time.
+`DR-0035`, `DR-0036` and `DR-0037`, which were written at delivery time.

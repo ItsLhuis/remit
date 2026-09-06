@@ -46,3 +46,4 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0030](0030-client-portal-exposure.md)           | Client portal exposure — an index, and never a signing link                            | Accepted |
 | [0031](0031-billing-conversion-provenance.md)    | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
 | [0032](0032-card-payment-recording-authority.md) | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
+| [0033](0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |

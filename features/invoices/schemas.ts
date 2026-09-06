@@ -254,6 +254,35 @@ export const invoiceIdSchema = z.object({
 
 export type InvoiceIdValues = z.infer<typeof invoiceIdSchema>
 
+// The amount stays the string the control holds and becomes cents on the server, the way every other
+// money field in this feature travels (`forms.md`). An empty string is refused rather than read as
+// "no fee": waiving is an explicit `0`.
+export const adjustInvoiceLateFeeSchema = z.object({
+  id: z.uuid(i18n.t("invoices.validation.idInvalid")),
+  lateFee: z
+    .string()
+    .trim()
+    .refine((value) => parseAmountToCents(value) !== null, {
+      message: i18n.t("invoices.validation.lateFeeInvalid")
+    })
+})
+
+export type AdjustInvoiceLateFeeValues = z.infer<typeof adjustInvoiceLateFeeSchema>
+
+// The shape `features/invoices/lateFees.ts` writes into `audit_logs.metadata`, read back by
+// `getInvoiceDetail` so the detail screen can state which terms a fee was charged under. It is a
+// JSONB column typed `unknown`, so it is parsed rather than cast — an entry written by an older
+// version simply yields no origin.
+export const lateFeeAuditMetadataSchema = z.object({
+  daysLate: z.number().int().nonnegative(),
+  policy: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("percentage"), percentage: z.number() }),
+    z.object({ kind: z.literal("fixed"), amountCents: z.number().int() })
+  ])
+})
+
+export type LateFeeAuditMetadata = z.infer<typeof lateFeeAuditMetadataSchema>
+
 export const invoiceListParamsSchema = z.object({
   projectId: z.uuid(i18n.t("invoices.validation.projectRequired"))
 })

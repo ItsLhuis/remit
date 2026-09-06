@@ -468,6 +468,11 @@ active ──► paused ──► active
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
   EUR/USD). The ISO 4217 currency code lives on the parent entity, never on individual money
   columns.
+- An invoice's `totalCents` is the whole of what the client owes, and it is the single figure every
+  surface reads to answer that question. It is the line items plus tax less discounts, and — once
+  the nightly overdue sweep charges one — the late fee as well, which `invoices.lateFeeCents`
+  records separately so the document can print it on its own line. Nothing else moves the total
+  after issuance. See [ADR-0033](adr/0033-late-fee-placement.md).
 - Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. The
   single-instance model is structural — see the Design philosophy and Multi-user model sections.
 - All domain tables carry `createdAt` and `updatedAt` timestamps (via the `timestamps` helper) and a
@@ -1815,6 +1820,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0030](adr/0030-client-portal-exposure.md)           | Client portal exposure — an index, and never a signing link                            | Accepted |
 | [0031](adr/0031-billing-conversion-provenance.md)    | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
 | [0032](adr/0032-card-payment-recording-authority.md) | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
+| [0033](adr/0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
 
 ---
 

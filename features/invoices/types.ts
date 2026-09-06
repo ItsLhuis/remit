@@ -110,6 +110,22 @@ export type InvoiceDetailLineItem = {
 // decoy token in each `publicQueries.ts`, because no feature may reach into another's read models.
 export type PublicLinkState = "unissued" | "live" | "revoked"
 
+// What the detail screen needs to say where a late fee came from. `appliedAt` and `policy` are read
+// back out of the `invoice.late_fee.applied` audit entry rather than stored on the invoice: the
+// audit row already holds them, and a settings change afterwards must not rewrite the terms an
+// invoice was charged under. Both are null when that entry is gone — the fee itself still stands,
+// and the card says only what it can prove.
+export type InvoiceLateFeePolicySnapshot =
+  | { kind: "percentage"; percentage: number }
+  | { kind: "fixed"; amountCents: number }
+
+export type InvoiceLateFee = {
+  feeCents: number
+  appliedAt: Date | null
+  daysLate: number | null
+  policy: InvoiceLateFeePolicySnapshot | null
+}
+
 export type InvoiceDetail = {
   id: string
   projectId: string | null
@@ -138,6 +154,9 @@ export type InvoiceDetail = {
   // queries.ts.
   publicPath: string | null
   publicLinkState: PublicLinkState
+  // Null until the nightly sweep charges one. A waived fee is `feeCents: 0` rather than null, so the
+  // card can say a fee was charged and then waived (see `assessLateFee` in services/lateFee.ts).
+  lateFee: InvoiceLateFee | null
   lineItems: InvoiceDetailLineItem[]
   defaults: InvoiceDefaults
 }
@@ -201,6 +220,10 @@ export type MarkInvoicePaidResult = { data: { id: string } } | { error: string }
 export type DeleteInvoiceResult = { data: { id: string } } | { error: string }
 
 export type InvoicePublicLinkResult = { data: { id: string } } | { error: string }
+
+export type AdjustInvoiceLateFeeResult =
+  | { data: { id: string; lateFeeCents: number } }
+  | { error: string }
 
 // An accepted proposal that has not been turned into an invoice yet. `totalCents` and `currency`
 // travel with it so the conversion dialog can show what the invoice will be worth before the write.

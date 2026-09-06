@@ -4,6 +4,7 @@ import { formatCentsForInput } from "@/lib/utils"
 
 import { database } from "@/database"
 import {
+  auditLogs,
   clients,
   invoices,
   lineItems,
@@ -16,8 +17,10 @@ import {
 import {
   invoiceIdSchema,
   invoiceListParamsSchema,
+  lateFeeAuditMetadataSchema,
   type InvoiceDiscountKind,
-  type InvoiceStatus
+  type InvoiceStatus,
+  type LateFeeAuditMetadata
 } from "./schemas"
 import { summarizeInvoices } from "./services"
 import {
@@ -28,6 +31,7 @@ import {
   type InvoiceDetailLineItem,
   type InvoiceEditorData,
   type InvoiceFormData,
+  type InvoiceLateFee,
   type InvoiceListItem,
   type InvoiceListPageData,
   type InvoiceTaxRateOption,
@@ -153,7 +157,7 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
 
   if (!invoice) return null
 
-  const [project, client, template, rows, defaults] = await Promise.all([
+  const [project, client, template, rows, defaults, lateFee] = await Promise.all([
     invoice.projectId
       ? database.query.projects.findFirst({
           where: eq(projects.id, invoice.projectId),
@@ -173,7 +177,8 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
         })
       : Promise.resolve(undefined),
     listInvoiceLineItems(invoice.id),
-    getInvoiceDefaults()
+    getInvoiceDefaults(),
+    getInvoiceLateFee(invoice.id, invoice.lateFeeCents)
   ])
 
   return {
@@ -208,9 +213,45 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
     // a draft would resolve to the "unavailable" panel. A revoked invoice has no token at all.
     publicPath: toInvoicePublicPath(invoice),
     publicLinkState: toPublicLinkState(invoice),
+    lateFee,
     lineItems: rows.map(toInvoiceDetailLineItem),
     defaults
   }
+}
+
+// The fee itself comes off the invoice; when and under what terms it was charged comes off the
+// audit entry, which is the only record of the policy as it stood that night. `audit_logs` is
+// insert-only and one fee is charged per invoice, so the newest matching row is the charge — a later
+// owner adjustment writes `invoice.late_fee.adjusted` and does not overwrite this one.
+async function getInvoiceLateFee(
+  invoiceId: string,
+  lateFeeCents: number | null
+): Promise<InvoiceLateFee | null> {
+  if (lateFeeCents === null) return null
+
+  const [applied] = await database
+    .select({ createdAt: auditLogs.createdAt, metadata: auditLogs.metadata })
+    .from(auditLogs)
+    .where(
+      and(eq(auditLogs.event, "invoice.late_fee.applied"), eq(auditLogs.targetEntityId, invoiceId))
+    )
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(1)
+
+  const origin = toLateFeeOrigin(applied?.metadata)
+
+  return {
+    feeCents: Number(lateFeeCents),
+    appliedAt: applied?.createdAt ?? null,
+    daysLate: origin?.daysLate ?? null,
+    policy: origin?.policy ?? null
+  }
+}
+
+function toLateFeeOrigin(metadata: unknown): LateFeeAuditMetadata | null {
+  const parsed = lateFeeAuditMetadataSchema.safeParse(metadata)
+
+  return parsed.success ? parsed.data : null
 }
 
 // The two link fields are derived together so the path and the state can never disagree: a `live`

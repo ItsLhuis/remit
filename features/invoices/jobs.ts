@@ -23,6 +23,7 @@ import { renderEmailTemplate } from "@/features/templates/server"
 import { buildInvoiceDocumentData } from "./documentData"
 import { sendInvoiceEmail } from "./emailJob"
 import { emitInvoiceOverdue, emitInvoiceReminderSent } from "./events"
+import { applyLateFees } from "./lateFees"
 import { renderInvoicePdf } from "./pdfRenderJob"
 import {
   getReminderWindowDays,
@@ -83,6 +84,12 @@ async function runOverdueSweep(): Promise<void> {
 
     await announceOverdue(row, now)
   }
+
+  // Charging runs after announcing rather than beside it: the announcement is what the dashboard and
+  // the activity feed react to, and it must not be held up by, or lost to, a failure in the money
+  // write. `lateFees.ts` re-derives its own candidates because its predicate is narrower — an
+  // invoice already assessed is not a candidate at all.
+  await applyLateFees(now)
 }
 
 // The dedupe key is the audit trail itself rather than a column on the invoice. `audit_log` is
@@ -164,6 +171,7 @@ type ReminderTarget = {
   number: string
   totalCents: number
   amountPaidCents: number
+  lateFeeCents: number | null
   currency: string
   dueDate: Date
   publicToken: string
@@ -331,6 +339,7 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
       number: invoices.number,
       totalCents: invoices.totalCents,
       amountPaidCents: invoices.amountPaidCents,
+      lateFeeCents: invoices.lateFeeCents,
       currency: invoices.currency,
       dueDate: invoices.dueDate,
       publicToken: invoices.publicToken,
@@ -357,6 +366,7 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
     number: row.number,
     totalCents: Number(row.totalCents),
     amountPaidCents: Number(row.amountPaidCents),
+    lateFeeCents: row.lateFeeCents === null ? null : Number(row.lateFeeCents),
     currency: row.currency,
     dueDate: row.dueDate,
     publicToken: row.publicToken,
@@ -391,9 +401,21 @@ function renderReminderBody(
     businessName: instance.businessName ?? "Remit"
   }
 
-  return payload.phase === "before"
-    ? t("invoices.reminders.bodyBefore", values)
-    : t("invoices.reminders.bodyAfter", values)
+  if (payload.phase === "before") return t("invoices.reminders.bodyBefore", values)
+
+  // The amount above is what is still owed, which already includes any late fee — the sweep adds the
+  // fee into `total_cents`. The extra sentence names it, because a client asked for more than the
+  // invoice they hold says has to be told why.
+  const lateFeeNotice =
+    target.lateFeeCents !== null && target.lateFeeCents > 0
+      ? `
+
+${t("invoices.reminders.lateFeeNotice", {
+  amount: formatCurrency(target.lateFeeCents, target.currency, locale)
+})}`
+      : ""
+
+  return `${t("invoices.reminders.bodyAfter", values)}${lateFeeNotice}`
 }
 
 function toUtcDay(value: Date): Date {

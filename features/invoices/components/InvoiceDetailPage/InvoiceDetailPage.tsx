@@ -49,6 +49,7 @@ import { InvoiceStatusBadge } from "../InvoiceStatusBadge"
 import { MarkInvoicePaidDialog } from "../MarkInvoicePaidDialog"
 import { SendInvoiceDialog } from "../SendInvoiceDialog"
 
+import { InvoiceLateFeeCard } from "./InvoiceLateFeeCard"
 import { InvoicePublicLinkCard } from "./InvoicePublicLinkCard"
 import { InvoiceSummaryCard } from "./InvoiceSummaryCard"
 
@@ -277,6 +278,15 @@ const InvoiceDetailPage = ({
               creditedCents={creditedCents}
               outstandingCents={outstandingCents}
             />
+            {invoice.lateFee ? (
+              <InvoiceLateFeeCard
+                invoiceId={invoice.id}
+                currency={invoice.currency}
+                locale={locale}
+                timeZone={invoice.defaults.defaultTimezone}
+                lateFee={invoice.lateFee}
+              />
+            ) : null}
             <InvoicePublicLinkCard
               invoiceId={invoice.id}
               publicPath={invoice.publicPath}

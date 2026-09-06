@@ -80,6 +80,13 @@ const InvoiceSummaryCard = ({
           value={formatCurrency(invoice.taxAmountCents, invoice.currency, locale)}
           mono
         />
+        {invoice.lateFee ? (
+          <InvoiceDetailRow
+            label={t("invoices.totals.lateFee")}
+            value={formatCurrency(invoice.lateFee.feeCents, invoice.currency, locale)}
+            mono
+          />
+        ) : null}
         <Separator />
         <div className="flex items-baseline justify-between gap-4">
           <Typography affects={["small", "medium"]}>{t("invoices.totals.total")}</Typography>

@@ -90,7 +90,10 @@ user-agent, timestamp, typed full name) and a generated signed PDF.
 **Invoices.** Generate manually or from an accepted proposal. Per-item discounts (percentage or
 fixed), configurable tax rates, multi-currency with exchange rate snapshot. Lifecycle: Draft → Sent
 → Paid, with `overdue` and `partially_paid` computed at read time. Configurable reminder cadence
-before and after the due date, sent by a background job.
+before and after the due date, sent by a background job. Automatic late fees — a percentage of what
+is still owed or a flat amount, with a grace period and an optional cap — charged once by that same
+nightly job and added to the invoice total, and waivable by you afterwards. Off until you turn it
+on.
 
 **Recurring invoices and retainers.** Schedules generate invoices automatically (weekly, monthly,
 quarterly, yearly). Retainer model with included hours per period and overage rate. End conditions

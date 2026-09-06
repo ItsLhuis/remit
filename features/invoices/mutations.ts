@@ -4,12 +4,15 @@ import { and, eq, inArray, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
+import { parseAmountToCents } from "@/lib/utils"
+
 import { enqueueJob } from "@/lib/jobs"
 import { mintPublicToken } from "@/lib/publicToken"
 
 import { database } from "@/database"
 import { invoices, lineItems, projects, taxRates } from "@/database/schema"
 
+import { evaluateInvoiceSettlement } from "@/features/payments"
 import { recordInvoiceSettlement } from "@/features/payments/server"
 
 import {
@@ -26,6 +29,7 @@ import {
   handleInvoiceActionError,
   loadInvoiceResult,
   requireInvoiceDelete,
+  requireInvoiceLateFee,
   requireInvoiceMarkPaid,
   requireInvoiceSend,
   requireInvoiceWrite,
@@ -34,6 +38,7 @@ import {
   ExpectedInvoiceError
 } from "./mutationContext"
 import {
+  adjustInvoiceLateFeeSchema,
   createInvoiceSchema,
   invoiceIdSchema,
   updateInvoiceSchema,
@@ -50,6 +55,7 @@ import {
   type InvoiceLineItemInput
 } from "./services"
 import {
+  type AdjustInvoiceLateFeeResult,
   type DeleteInvoiceResult,
   type InvoiceMutationResult,
   type MarkInvoicePaidResult,
@@ -432,6 +438,106 @@ export async function softDeleteInvoice(input: unknown): Promise<DeleteInvoiceRe
       userId: context.userId,
       invoiceId: parsed.data.id,
       fallbackMessage: t("invoices.errors.deleteFailed")
+    })
+  }
+}
+
+export async function adjustInvoiceLateFee(input: unknown): Promise<AdjustInvoiceLateFeeResult> {
+  const gate = await requireInvoiceLateFee()
+
+  if ("error" in gate) return gate
+
+  const parsed = adjustInvoiceLateFeeSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  const feeCents = parseAmountToCents(parsed.data.lateFee)
+
+  if (feeCents === null || feeCents < 0) {
+    return { error: t("invoices.validation.lateFeeInvalid") }
+  }
+
+  try {
+    const adjusted = await database.transaction(async (transaction) => {
+      // `FOR UPDATE` for the same reason `features/payments/paymentWrites.ts` takes it: this write
+      // moves `total_cents`, and a payment landing between the read and the write would evaluate
+      // settlement against a total that no longer exists.
+      const [existing] = await transaction
+        .select({
+          id: invoices.id,
+          status: invoices.status,
+          projectId: invoices.projectId,
+          clientId: invoices.clientId,
+          totalCents: invoices.totalCents,
+          amountPaidCents: invoices.amountPaidCents,
+          lateFeeCents: invoices.lateFeeCents,
+          paidAt: invoices.paidAt
+        })
+        .from(invoices)
+        .where(and(eq(invoices.id, parsed.data.id), isNull(invoices.deletedAt)))
+        .for("update")
+
+      if (!existing) throw new ExpectedInvoiceError(t("invoices.errors.notFound"))
+
+      if (existing.lateFeeCents === null) {
+        throw new ExpectedInvoiceError(t("invoices.errors.lateFeeNotCharged"))
+      }
+
+      const previousCents = Number(existing.lateFeeCents)
+      const totalCents = Number(existing.totalCents) - previousCents + feeCents
+      const amountPaidCents = Number(existing.amountPaidCents)
+      const settlement = evaluateInvoiceSettlement({ amountPaidCents, totalCents })
+
+      // Reducing a fee the client has already paid would leave money recorded against an invoice
+      // that no longer asks for it, which `chk_invoices_amount_paid` refuses outright. Returning it
+      // is a credit note or a refund, not an edit to the invoice.
+      if (settlement.outcome === "overpaid") {
+        throw new ExpectedInvoiceError(t("invoices.errors.lateFeeBelowPaid"))
+      }
+
+      // The settlement follows the total the same way it follows the aggregate in
+      // `features/payments/paymentWrites.ts`: waiving the fee on an invoice a client has otherwise
+      // paid in full settles it, and re-charging one on a settled invoice reopens it, because
+      // leaving `status` where it was would make it disagree with the amounts beside it. Both
+      // decisions come from `evaluateInvoiceSettlement`, so the two write paths cannot diverge.
+      const settled = settlement.outcome === "settled"
+
+      await transaction
+        .update(invoices)
+        .set({
+          lateFeeCents: feeCents,
+          totalCents,
+          status: settled ? "paid" : existing.status === "paid" ? "sent" : existing.status,
+          paidAt: settled ? (existing.paidAt ?? new Date()) : null
+        })
+        .where(eq(invoices.id, existing.id))
+
+      return {
+        id: existing.id,
+        projectId: existing.projectId,
+        clientId: existing.clientId,
+        previousCents
+      }
+    })
+
+    await writeInvoiceAudit(context, "invoice.late_fee.adjusted", adjusted.id, {
+      projectId: adjusted.projectId,
+      clientId: adjusted.clientId,
+      previousCents: adjusted.previousCents,
+      feeCents
+    })
+
+    revalidateInvoicePaths(adjusted)
+
+    return { data: { id: adjusted.id, lateFeeCents: feeCents } }
+  } catch (error) {
+    return handleInvoiceActionError(error, {
+      action: "adjustInvoiceLateFee",
+      userId: context.userId,
+      invoiceId: parsed.data.id,
+      fallbackMessage: t("invoices.errors.lateFeeUpdateFailed")
     })
   }
 }
