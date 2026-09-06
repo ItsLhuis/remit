@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -17,6 +17,8 @@ import {
   Typography,
   toast
 } from "@/components/ui"
+
+import { BillableWorkSheet, type BillableTimeEntryRow } from "@/features/invoices"
 
 import { useDataTable, type ColumnDef } from "@/hooks"
 
@@ -50,6 +52,21 @@ function toEditFormData(entry: TimeEntryListItem | null) {
   }
 }
 
+function toBillableTimeEntry(entry: TimeEntryListItem): BillableTimeEntryRow {
+  return {
+    id: entry.id,
+    clientId: entry.clientId,
+    projectId: entry.projectId,
+    projectName: entry.projectName,
+    taskId: entry.taskId,
+    taskTitle: entry.taskTitle,
+    description: entry.description,
+    durationSeconds: entry.durationSeconds ?? 0,
+    hourlyRateSnapshotCents: entry.hourlyRateSnapshotCents,
+    currency: entry.currency
+  }
+}
+
 type TimeTrackingPageProps = {
   data: TimeTrackingPageData
 }
@@ -67,6 +84,8 @@ const TimeTrackingPage = ({ data }: TimeTrackingPageProps) => {
   const [editEntry, setEditEntry] = useState<TimeEntryListItem | null>(null)
   const [deleteIds, setDeleteIds] = useState<string[]>([])
   const [isDeleting, startDeleting] = useTransition()
+
+  const [billEntries, setBillEntries] = useState<TimeEntryListItem[]>([])
 
   const locale = data.defaults.defaultLocale
   const timeZone = data.defaults.defaultTimezone
@@ -180,15 +199,21 @@ const TimeTrackingPage = ({ data }: TimeTrackingPageProps) => {
           getRowClassName={(entry) => (entry.deletedAt ? "opacity-50" : "")}
           isLoading={isPending}
           actionBar={({ selectedRows }) => (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={isDeleting}
-              onClick={() => setDeleteIds(selectedRows.map((entry) => entry.id))}
-            >
-              <Icon name="Trash2" aria-hidden="true" />
-              {t("timeTracking.list.bulkDelete")} ({selectedRows.length})
-            </Button>
+            <Fragment>
+              <Button size="sm" onClick={() => setBillEntries(selectedRows)}>
+                <Icon name="ReceiptText" aria-hidden="true" />
+                {t("timeTracking.list.bulkBill")} ({selectedRows.length})
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isDeleting}
+                onClick={() => setDeleteIds(selectedRows.map((entry) => entry.id))}
+              >
+                <Icon name="Trash2" aria-hidden="true" />
+                {t("timeTracking.list.bulkDelete")} ({selectedRows.length})
+              </Button>
+            </Fragment>
           )}
           empty={
             <TimeTrackingEmpty
@@ -234,6 +259,20 @@ const TimeTrackingPage = ({ data }: TimeTrackingPageProps) => {
             onSuccess={() => router.refresh()}
           />
         ) : null}
+        <BillableWorkSheet
+          open={billEntries.length > 0}
+          timeEntries={billEntries.map(toBillableTimeEntry)}
+          expenses={[]}
+          targets={data.billableTargets}
+          locale={locale}
+          onOpenChange={(open) => {
+            if (!open) setBillEntries([])
+          }}
+          onSuccess={() => {
+            table.resetRowSelection()
+            router.refresh()
+          }}
+        />
         <DeleteTimeEntryDialog
           open={deleteIds.length > 0}
           isDeleting={isDeleting}

@@ -14,7 +14,8 @@ export {
   getTimeEntryForEdit,
   getTimeTrackingDefaults,
   getTimeTrackingPageData,
-  listTimeEntries
+  listTimeEntries,
+  listUnbilledTimeEntries
 } from "./queries"
 
 export { emitTimeLogged } from "./events"

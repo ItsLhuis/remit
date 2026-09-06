@@ -1,3 +1,5 @@
+import { type BillableTargetInvoice } from "@/features/invoices"
+
 import {
   type TimeEntryFormInputValues,
   type TimeEntryListQuery,
@@ -6,6 +8,7 @@ import {
 
 export type TimeEntryListItem = {
   id: string
+  clientId: string
   projectId: string
   projectName: string
   clientName: string
@@ -67,6 +70,7 @@ export type TimeTrackingDefaults = {
 
 export type TimeTrackingPageData = {
   entries: TimeEntryListItem[]
+  billableTargets: BillableTargetInvoice[]
   rowCount: number
   runningTimer: RunningTimer | null
   summary: TimeTrackingSummary
@@ -83,4 +87,17 @@ export type TimeEntryFormData = Omit<TimeEntryFormInputValues, "startedAt" | "en
   id: string
   startedAt: string
   endedAt: string
+}
+
+export type UnbilledTimeEntry = {
+  id: string
+  clientId: string
+  projectId: string
+  projectName: string
+  taskId: string | null
+  taskTitle: string | null
+  description: string
+  durationSeconds: number
+  hourlyRateSnapshotCents: number
+  currency: string
 }

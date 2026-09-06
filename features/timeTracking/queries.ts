@@ -22,9 +22,12 @@ import { formatCentsForInput } from "@/lib/utils"
 import { database } from "@/database"
 import { clients, projects, tasks, timeEntries } from "@/database/schema"
 
+import { listBillableTargetInvoices } from "@/features/invoices/server"
+
 import {
   parseTimeEntryListQuery,
   timeEntryIdSchema,
+  timeEntryIdsSchema,
   type TimeEntryListQuery,
   type TimeEntrySortField
 } from "./schemas"
@@ -37,11 +40,13 @@ import {
   type TimeTrackingPageData,
   type TimeTrackingProjectOption,
   type TimeTrackingSummary,
-  type TimeTrackingTaskOption
+  type TimeTrackingTaskOption,
+  type UnbilledTimeEntry
 } from "./types"
 
 type TimeEntryRow = {
   id: string
+  clientId: string
   projectId: string
   projectName: string
   projectCurrency: string | null
@@ -62,6 +67,7 @@ type TimeEntryRow = {
 
 const timeEntryListColumns = {
   id: timeEntries.id,
+  clientId: projects.clientId,
   projectId: timeEntries.projectId,
   projectName: projects.name,
   projectCurrency: projects.currency,
@@ -85,16 +91,19 @@ export async function getTimeTrackingPageData(input: unknown): Promise<TimeTrack
   const session = await getSession()
   const defaults = await getTimeTrackingDefaults()
 
-  const [list, runningTimer, summary, projectOptions, taskOptions] = await Promise.all([
-    listTimeEntries(query, defaults.defaultCurrency),
-    getRunningTimer(session?.user.id ?? null, defaults.defaultCurrency),
-    getTimeTrackingSummary(defaults.defaultCurrency),
-    listTimeTrackingProjectOptions(defaults.defaultCurrency),
-    listTimeTrackingTaskOptions()
-  ])
+  const [list, runningTimer, summary, projectOptions, taskOptions, billableTargets] =
+    await Promise.all([
+      listTimeEntries(query, defaults.defaultCurrency),
+      getRunningTimer(session?.user.id ?? null, defaults.defaultCurrency),
+      getTimeTrackingSummary(defaults.defaultCurrency),
+      listTimeTrackingProjectOptions(defaults.defaultCurrency),
+      listTimeTrackingTaskOptions(),
+      listBillableTargetInvoices()
+    ])
 
   return {
     entries: list.rows,
+    billableTargets,
     rowCount: list.rowCount,
     runningTimer,
     summary,
@@ -220,6 +229,59 @@ export async function getTimeEntryForEdit(input: unknown): Promise<TimeEntryForm
     billable: row.billable,
     hourlyRate: formatCentsForInput(row.hourlyRateOverrideCents)
   }
+}
+
+// The billing read: only entries that can still be charged to somebody. `ended_at IS NOT NULL` is
+// what excludes a timer still running — an entry with no end has no duration to bill and would price
+// as zero — and is a stricter condition than `time_entries_unbilled_idx` covers, so that index still
+// serves the project/billable/unbilled part of the scan and no second one is added for it.
+export async function listUnbilledTimeEntries(input: unknown): Promise<UnbilledTimeEntry[]> {
+  const parsed = timeEntryIdsSchema.safeParse(input)
+
+  if (!parsed.success || parsed.data.ids.length === 0) return []
+
+  const [rows, defaults] = await Promise.all([
+    database
+      .select({
+        id: timeEntries.id,
+        clientId: projects.clientId,
+        projectId: timeEntries.projectId,
+        projectName: projects.name,
+        taskId: timeEntries.taskId,
+        taskTitle: tasks.title,
+        description: timeEntries.description,
+        durationSeconds: timeEntries.durationSeconds,
+        hourlyRateSnapshotCents: timeEntries.hourlyRateSnapshotCents,
+        currency: projects.currency
+      })
+      .from(timeEntries)
+      .innerJoin(projects, eq(projects.id, timeEntries.projectId))
+      .leftJoin(tasks, eq(tasks.id, timeEntries.taskId))
+      .where(
+        and(
+          inArray(timeEntries.id, parsed.data.ids),
+          eq(timeEntries.billable, true),
+          isNull(timeEntries.invoicedInId),
+          isNotNull(timeEntries.endedAt),
+          isNull(timeEntries.deletedAt),
+          isNull(projects.deletedAt)
+        )
+      ),
+    getTimeTrackingDefaults()
+  ])
+
+  return rows.map((row) => ({
+    id: row.id,
+    clientId: row.clientId,
+    projectId: row.projectId,
+    projectName: row.projectName,
+    taskId: row.taskId,
+    taskTitle: row.taskTitle,
+    description: row.description ?? "",
+    durationSeconds: row.durationSeconds ?? 0,
+    hourlyRateSnapshotCents: Number(row.hourlyRateSnapshotCents),
+    currency: row.currency ?? defaults.defaultCurrency
+  }))
 }
 
 export async function getTimeTrackingDefaults(): Promise<TimeTrackingDefaults> {
@@ -361,6 +423,7 @@ function toTimeEntryListItem(row: TimeEntryRow, defaultCurrency: string): TimeEn
 
   return {
     id: row.id,
+    clientId: row.clientId,
     projectId: row.projectId,
     projectName: row.projectName,
     clientName: row.clientName,

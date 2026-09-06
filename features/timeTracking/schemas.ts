@@ -130,6 +130,10 @@ export const timeEntryIdSchema = z.object({
 
 export type TimeEntryIdValues = z.infer<typeof timeEntryIdSchema>
 
+export const timeEntryIdsSchema = z.object({
+  ids: z.array(z.uuid(i18n.t("timeTracking.validation.idInvalid")))
+})
+
 const timeEntrySortItemSchema = z.object({
   id: z.enum(TIME_ENTRY_SORT_FIELDS),
   desc: z.boolean()
