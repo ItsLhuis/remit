@@ -1,5 +1,7 @@
 import { type AttachmentListItem } from "@/features/attachments"
 
+import { type BillableTargetInvoice } from "@/features/invoices"
+
 import { type ExpenseFormInputValues, type ExpenseListQuery } from "./schemas"
 
 export type ExpenseReceiptFile = {
@@ -57,6 +59,7 @@ export type ExpensesDefaults = {
 
 export type ExpensesPageData = {
   expenses: ExpenseListItem[]
+  billableTargets: BillableTargetInvoice[]
   rowCount: number
   summary: ExpensesSummary
   query: ExpenseListQuery
@@ -71,4 +74,15 @@ export type ExpensesPageData = {
 
 export type ExpenseFormData = ExpenseFormInputValues & {
   id: string
+}
+
+export type UnbilledExpense = {
+  id: string
+  clientId: string
+  projectId: string | null
+  description: string
+  amountCents: number
+  rebillableCents: number
+  markupPercentage: number | null
+  currency: string
 }

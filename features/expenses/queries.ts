@@ -22,8 +22,11 @@ import { clients, expenses, projects, uploads } from "@/database/schema"
 
 import { canWriteAttachments, listAttachmentsByParents } from "@/features/attachments/server"
 
+import { listBillableTargetInvoices } from "@/features/invoices/server"
+
 import {
   expenseIdSchema,
+  expenseIdsSchema,
   parseExpenseListQuery,
   type ExpenseListQuery,
   type ExpenseSortField
@@ -36,7 +39,8 @@ import {
   type ExpenseProjectOption,
   type ExpensesDefaults,
   type ExpensesPageData,
-  type ExpensesSummary
+  type ExpensesSummary,
+  type UnbilledExpense
 } from "./types"
 
 type ExpenseRow = {
@@ -87,15 +91,23 @@ export async function getExpensesPageData(input: unknown): Promise<ExpensesPageD
   const query = parseExpenseListQuery(input)
   const defaults = await getExpensesDefaults()
 
-  const [list, summary, projectOptions, clientOptions, categoryOptions, currencyOptions] =
-    await Promise.all([
-      listExpenses(query, defaults.defaultCurrency),
-      getExpensesSummary(defaults.defaultCurrency),
-      listExpenseProjectOptions(),
-      listExpenseClientOptions(),
-      listExpenseCategoryOptions(),
-      listExpenseCurrencyOptions()
-    ])
+  const [
+    list,
+    summary,
+    projectOptions,
+    clientOptions,
+    categoryOptions,
+    currencyOptions,
+    billableTargets
+  ] = await Promise.all([
+    listExpenses(query, defaults.defaultCurrency),
+    getExpensesSummary(defaults.defaultCurrency),
+    listExpenseProjectOptions(),
+    listExpenseClientOptions(),
+    listExpenseCategoryOptions(),
+    listExpenseCurrencyOptions(),
+    listBillableTargetInvoices()
+  ])
 
   // Batched after the list rather than beside it: the ids come from `list.rows`, and an expense has
   // no detail page, so its files panel lives in the edit sheet and needs the attachments already on
@@ -110,6 +122,7 @@ export async function getExpensesPageData(input: unknown): Promise<ExpensesPageD
 
   return {
     expenses: list.rows,
+    billableTargets,
     rowCount: list.rowCount,
     summary,
     query,
@@ -195,6 +208,57 @@ export async function getExpenseForEdit(input: unknown): Promise<ExpenseFormData
         }
       : null
   }
+}
+
+// A rebillable expense with no client has nobody to bill: `expenses.client_id` is nullable on
+// purpose — a bank fee belongs to nobody — so the join is inner rather than left, and such an expense
+// simply never appears here.
+export async function listUnbilledExpenses(input: unknown): Promise<UnbilledExpense[]> {
+  const parsed = expenseIdsSchema.safeParse(input)
+
+  if (!parsed.success || parsed.data.ids.length === 0) return []
+
+  const rows = await database
+    .select({
+      id: expenses.id,
+      clientId: clients.id,
+      projectId: expenses.projectId,
+      description: expenses.description,
+      amountCents: expenses.amountCents,
+      markupPercentage: expenses.markupPercentage,
+      currency: expenses.currency
+    })
+    .from(expenses)
+    .innerJoin(clients, eq(clients.id, expenses.clientId))
+    .where(
+      and(
+        inArray(expenses.id, parsed.data.ids),
+        eq(expenses.rebillable, true),
+        isNull(expenses.invoicedInId),
+        isNull(expenses.deletedAt),
+        isNull(clients.deletedAt)
+      )
+    )
+
+  return rows.map((row) => {
+    const amountCents = Number(row.amountCents)
+    const markupPercentage = row.markupPercentage === null ? null : Number(row.markupPercentage)
+
+    return {
+      id: row.id,
+      clientId: row.clientId,
+      projectId: row.projectId,
+      description: row.description,
+      amountCents,
+      rebillableCents: calculateRebillableCents({
+        amountCents,
+        rebillable: true,
+        markupPercentage
+      }),
+      markupPercentage,
+      currency: row.currency
+    }
+  })
 }
 
 export async function getExpensesDefaults(): Promise<ExpensesDefaults> {

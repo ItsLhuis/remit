@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -18,6 +18,8 @@ import {
   toast
 } from "@/components/ui"
 
+import { BillableWorkSheet, type BillableExpenseRow } from "@/features/invoices"
+
 import { useDataTable, type ColumnDef } from "@/hooks"
 
 import { useExpenseListState } from "../../hooks"
@@ -30,6 +32,28 @@ import { getExpenseColumns } from "./columns"
 import { ExpensesEmpty } from "./ExpensesEmpty"
 import { ExpensesFilters } from "./ExpensesFilters"
 import { ExpensesSummaryBand } from "./ExpensesSummaryBand"
+
+// The count on the button is the count that will actually be billed, not the count selected: a
+// non-rebillable expense is the freelancer's own cost and is dropped from the selection, so showing
+// the wider number would promise a line the invoice never gets.
+function toRebillable(expenses: ExpenseListItem[]): ExpenseListItem[] {
+  return expenses.filter((expense) => expense.rebillable)
+}
+
+function toBillableExpense(
+  expense: ExpenseListItem,
+  markupSuffix: string | null
+): BillableExpenseRow {
+  return {
+    id: expense.id,
+    clientId: expense.clientId ?? "",
+    projectId: expense.projectId,
+    description: expense.description,
+    rebillableCents: expense.rebillableCents,
+    descriptionSuffix: markupSuffix,
+    currency: expense.currency
+  }
+}
 
 // The sheet is fed from the list row rather than from a fresh read: the row already carries every
 // field the form binds, and `updateExpense` re-validates all of them at the trust boundary.
@@ -75,6 +99,8 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
   const [editExpense, setEditExpense] = useState<ExpenseListItem | null>(null)
   const [deleteIds, setDeleteIds] = useState<string[]>([])
   const [isDeleting, startDeleting] = useTransition()
+
+  const [billExpenses, setBillExpenses] = useState<ExpenseListItem[]>([])
   const [isExporting, startExporting] = useTransition()
 
   const locale = data.defaults.defaultLocale
@@ -212,15 +238,25 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
           getRowClassName={(expense) => (expense.deletedAt ? "opacity-50" : "")}
           isLoading={isPending}
           actionBar={({ selectedRows }) => (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={isDeleting}
-              onClick={() => setDeleteIds(selectedRows.map((expense) => expense.id))}
-            >
-              <Icon name="Trash2" aria-hidden="true" />
-              {t("expenses.list.bulkDelete")} ({selectedRows.length})
-            </Button>
+            <Fragment>
+              <Button
+                size="sm"
+                disabled={toRebillable(selectedRows).length === 0}
+                onClick={() => setBillExpenses(toRebillable(selectedRows))}
+              >
+                <Icon name="ReceiptText" aria-hidden="true" />
+                {t("expenses.list.bulkBill")} ({toRebillable(selectedRows).length})
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isDeleting}
+                onClick={() => setDeleteIds(selectedRows.map((expense) => expense.id))}
+              >
+                <Icon name="Trash2" aria-hidden="true" />
+                {t("expenses.list.bulkDelete")} ({selectedRows.length})
+              </Button>
+            </Fragment>
           )}
           empty={
             <ExpensesEmpty
@@ -275,6 +311,27 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
             onSuccess={() => router.refresh()}
           />
         ) : null}
+        <BillableWorkSheet
+          open={billExpenses.length > 0}
+          timeEntries={[]}
+          expenses={billExpenses.map((expense) =>
+            toBillableExpense(
+              expense,
+              expense.markupPercentage === null || expense.markupPercentage === 0
+                ? null
+                : t("invoices.billable.markupSuffix", { percentage: expense.markupPercentage })
+            )
+          )}
+          targets={data.billableTargets}
+          locale={locale}
+          onOpenChange={(open) => {
+            if (!open) setBillExpenses([])
+          }}
+          onSuccess={() => {
+            table.resetRowSelection()
+            router.refresh()
+          }}
+        />
         <DeleteExpenseDialog
           open={deleteIds.length > 0}
           isDeleting={isDeleting}

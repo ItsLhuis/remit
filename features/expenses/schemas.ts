@@ -194,6 +194,10 @@ export const expenseIdSchema = z.object({
 
 export type ExpenseIdValues = z.infer<typeof expenseIdSchema>
 
+export const expenseIdsSchema = z.object({
+  ids: z.array(z.uuid(i18n.t("expenses.validation.idInvalid")))
+})
+
 const expenseSortItemSchema = z.object({
   id: z.enum(EXPENSE_SORT_FIELDS),
   desc: z.boolean()
