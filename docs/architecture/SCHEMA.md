@@ -794,10 +794,12 @@ resolved source is `"none"` — no default is invented.
 **`invoiced_in_id` is the canonical "this was billed, on that invoice" link**, and the one the
 `time_entries_unbilled_idx` and `expenses_unbilled_rebillable_idx` partial indexes rely on.
 `line_items.source_time_entry_id` and `line_items.source_expense_id` are optional per-line
-provenance, not a mirror of it: `features/recurringInvoices/jobs.ts` writes the first and not the
-second, so the two are not interchangeable and neither may be derived from the other. Nothing
-enforces this — there is no constraint and no trigger, because the flow that would write both does
-not exist yet.
+provenance, not a mirror of it, and neither may be derived from the other.
+`features/invoices/billing.ts` writes both, in one transaction: `invoiced_in_id` on every row it
+bills, and the per-line column only where a line came from exactly one row. A line grouped from
+several rows carries neither, and `features/recurringInvoices/jobs.ts`'s aggregate overage line
+carries neither for the same reason. No constraint or trigger enforces the pair, because there is no
+pair to enforce — the two columns answer different questions.
 
 Indexes: `time_entries_project_id_idx`, `time_entries_task_id_idx`, `time_entries_user_id_idx`,
 `time_entries_started_at_idx` on `started_at DESC`, `time_entries_unbilled_idx` on `project_id`
@@ -1169,6 +1171,11 @@ Polymorphic — belongs to a proposal, invoice, or credit note via mutually-excl
 | total_cents             | bigint         | no   | `0`                 | ≥ 0                                             |
 | source_time_entry_id    | uuid           | yes  |                     | FK → `time_entries.id` (set null) — provenance  |
 | source_expense_id       | uuid           | yes  |                     | FK → `expenses.id` (set null) — provenance      |
+
+The two `source_*_id` columns are written by `features/invoices/billing.ts` when a converted line is
+drawn from exactly one time entry or expense, and left null when the line aggregates several. They
+are provenance for that line, never a mirror of `time_entries.invoiced_in_id` /
+`expenses.invoiced_in_id` — see section 16.
 
 Standard `timestamps` and `softDelete`.
 

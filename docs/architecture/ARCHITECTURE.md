@@ -454,11 +454,15 @@ active ──► paused ──► active
   `features/projects/mutations.ts` refuses it first with a translated message.
 - `timeEntries.invoicedInId` and `expenses.invoicedInId` are the canonical "this was billed, on that
   invoice" link, and the one the unbilled partial indexes rely on. `lineItems.sourceTimeEntryId` and
-  `lineItems.sourceExpenseId` are optional per-line provenance, not a mirror of it:
-  `features/recurringInvoices/jobs.ts` writes `invoicedInId` on the retainer branch and never writes
-  the per-line columns, so neither may be derived from the other. Nothing in the application writes
-  `lineItems.sourceTimeEntryId` or `lineItems.sourceExpenseId`; the demo seeder is their only
-  writer.
+  `lineItems.sourceExpenseId` are optional per-line provenance, not a mirror of it, and neither may
+  be derived from the other. `features/invoices/billing.ts` is what writes both: it stamps
+  `invoicedInId` on every entry and expense it bills, in the same transaction as the invoice, and
+  sets the per-line column only where a line is drawn from exactly one source row — a line grouped
+  from several carries neither. `features/recurringInvoices/jobs.ts` writes `invoicedInId` on the
+  retainer branch and no per-line column at all, which is the same rule rather than an exception:
+  its overage line aggregates many entries, and the hours inside the retainer pool are billed by the
+  blueprint's own fee line, which has no source row. Nothing is billed twice because the stamp is a
+  conditional update predicated on `invoicedInId IS NULL` whose row count must match the plan.
 - `audit_logs` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
   application level.
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
@@ -1669,6 +1673,7 @@ Tier 3 - E2E (Playwright)
   tests/e2e/auth.spec.ts       Register → business setup → the TOTP QR step, and the
                                login page's CLI-reset help when SMTP is unconfigured.
   tests/e2e/health.spec.ts     The public health endpoint.
+  tests/e2e/timeToInvoice      Time entry → billed onto an invoice → sent → marked paid.
   tests/e2e/templateEditor*    Eleven specs over the canvas engine's pointer gestures,
                                which is the one surface whose behaviour only a real
                                browser can assert (ADR-0024).
@@ -1688,8 +1693,9 @@ Tier 5 - Never tested
 ```
 
 `.agents/rules/testing.md` names five canonical end-to-end flows this suite is held to. The first
-runs as far as the TOTP QR step; the other four have no spec. That commitment lives in the rule
-file, which is where a coverage target belongs — this document records the specs that exist.
+runs as far as the TOTP QR step and the third runs end to end; the remaining three have no spec.
+That commitment lives in the rule file, which is where a coverage target belongs — this document
+records the specs that exist.
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
 `.agents/rules/testing.md`. The project ships Vitest unit tests, Vitest integration tests against
@@ -1765,38 +1771,39 @@ An ADR records why a decision was taken. What was subsequently built against it 
 implementation shape, the evidence and the gaps left open on the day — is recorded separately, one
 sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 
-| ADR                                                 | Title                                                                       | Status   |
-| --------------------------------------------------- | --------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)               | No cookies for routing state                                                | Accepted |
-| [0002](adr/0002-single-instance-model.md)           | Single-instance model is structural                                         | Accepted |
-| [0003](adr/0003-mandatory-totp.md)                  | Mandatory TOTP — no opt-out                                                 | Accepted |
-| [0004](adr/0004-feature-module-structure.md)        | Closed feature modules with ESLint enforcement                              | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)              | AES-256-GCM encryption via Drizzle column helper                            | Accepted |
-| [0006](adr/0006-internal-event-bus.md)              | Typed in-process event bus for cross-feature effects                        | Accepted |
-| [0007](adr/0007-pure-services.md)                   | Pure business logic in `services/` — no framework imports                   | Accepted |
-| [0008](adr/0008-email-adapters.md)                  | SMTP and Resend as interchangeable adapter implementations                  | Accepted |
-| [0009](adr/0009-money-as-integer-minor-units.md)    | Money stored as integer minor units — no floating-point                     | Accepted |
-| [0010](adr/0010-soft-delete.md)                     | Soft delete by default — hard delete after retention window                 | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)               | Single Next.js app until a second artefact requires its own build           | Accepted |
-| [0012](adr/0012-password-reset-paths.md)            | Password reset via email when available, CLI fallback otherwise             | Accepted |
-| [0013](adr/0013-better-auth-organization.md)        | Better Auth organization plugin for multi-user role storage                 | Accepted |
-| [0014](adr/0014-hosted-offering.md)                 | Hosted offering as per-instance isolation, not row-level tenancy            | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)              | i18next + ICU with TypeScript-typed message keys                            | Accepted |
-| [0016](adr/0016-server-actions-canonical.md)        | Server actions as canonical write path; API routes for public/webhooks only | Accepted |
-| [0017](adr/0017-polymorphic-line-items.md)          | Polymorphic line items via mutually-exclusive parent FKs                    | Accepted |
-| [0018](adr/0018-no-telemetry.md)                    | No telemetry or analytics by default                                        | Accepted |
-| [0019](adr/0019-storage-backend-adapters.md)        | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in | Accepted |
-| [0020](adr/0020-operational-cli-contract.md)        | Operational CLI contract                                                    | Accepted |
-| [0021](adr/0021-encryption-key-rotation.md)         | Encryption key rotation                                                     | Accepted |
-| [0022](adr/0022-pdf-rendering-engine.md)            | Headless-browser PDF rendering (Puppeteer/Playwright)                       | Accepted |
-| [0023](adr/0023-job-scheduling-bullmq-redis.md)     | Background jobs and scheduling via BullMQ + Redis                           | Accepted |
-| [0024](adr/0024-template-editor-canvas.md)          | Template editor — free collision-aware page-clamped canvas                  | Accepted |
-| [0025](adr/0025-instance-data-reset-scope.md)       | Instance data reset — domain data versus instance state                     | Accepted |
-| [0026](adr/0026-document-parentage.md)              | Document parentage — optional project, agreeing client, composite key       | Accepted |
-| [0027](adr/0027-contact-identity.md)                | Contact identity — delivery target and acceptance identity, never an entity | Accepted |
-| [0028](adr/0028-attachments-and-visual-identity.md) | Attachments — one table, one foreign key per parent, private bucket         | Accepted |
-| [0029](adr/0029-public-token-lifecycle.md)          | Public token lifecycle — one minter, and revocation as an absent token      | Accepted |
-| [0030](adr/0030-client-portal-exposure.md)          | Client portal exposure — an index, and never a signing link                 | Accepted |
+| ADR                                                 | Title                                                                                | Status   |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------ | -------- |
+| [0001](adr/0001-no-cookie-routing.md)               | No cookies for routing state                                                         | Accepted |
+| [0002](adr/0002-single-instance-model.md)           | Single-instance model is structural                                                  | Accepted |
+| [0003](adr/0003-mandatory-totp.md)                  | Mandatory TOTP — no opt-out                                                          | Accepted |
+| [0004](adr/0004-feature-module-structure.md)        | Closed feature modules with ESLint enforcement                                       | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)              | AES-256-GCM encryption via Drizzle column helper                                     | Accepted |
+| [0006](adr/0006-internal-event-bus.md)              | Typed in-process event bus for cross-feature effects                                 | Accepted |
+| [0007](adr/0007-pure-services.md)                   | Pure business logic in `services/` — no framework imports                            | Accepted |
+| [0008](adr/0008-email-adapters.md)                  | SMTP and Resend as interchangeable adapter implementations                           | Accepted |
+| [0009](adr/0009-money-as-integer-minor-units.md)    | Money stored as integer minor units — no floating-point                              | Accepted |
+| [0010](adr/0010-soft-delete.md)                     | Soft delete by default — hard delete after retention window                          | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)               | Single Next.js app until a second artefact requires its own build                    | Accepted |
+| [0012](adr/0012-password-reset-paths.md)            | Password reset via email when available, CLI fallback otherwise                      | Accepted |
+| [0013](adr/0013-better-auth-organization.md)        | Better Auth organization plugin for multi-user role storage                          | Accepted |
+| [0014](adr/0014-hosted-offering.md)                 | Hosted offering as per-instance isolation, not row-level tenancy                     | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)              | i18next + ICU with TypeScript-typed message keys                                     | Accepted |
+| [0016](adr/0016-server-actions-canonical.md)        | Server actions as canonical write path; API routes for public/webhooks only          | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)          | Polymorphic line items via mutually-exclusive parent FKs                             | Accepted |
+| [0018](adr/0018-no-telemetry.md)                    | No telemetry or analytics by default                                                 | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md)        | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in          | Accepted |
+| [0020](adr/0020-operational-cli-contract.md)        | Operational CLI contract                                                             | Accepted |
+| [0021](adr/0021-encryption-key-rotation.md)         | Encryption key rotation                                                              | Accepted |
+| [0022](adr/0022-pdf-rendering-engine.md)            | Headless-browser PDF rendering (Puppeteer/Playwright)                                | Accepted |
+| [0023](adr/0023-job-scheduling-bullmq-redis.md)     | Background jobs and scheduling via BullMQ + Redis                                    | Accepted |
+| [0024](adr/0024-template-editor-canvas.md)          | Template editor — free collision-aware page-clamped canvas                           | Accepted |
+| [0025](adr/0025-instance-data-reset-scope.md)       | Instance data reset — domain data versus instance state                              | Accepted |
+| [0026](adr/0026-document-parentage.md)              | Document parentage — optional project, agreeing client, composite key                | Accepted |
+| [0027](adr/0027-contact-identity.md)                | Contact identity — delivery target and acceptance identity, never an entity          | Accepted |
+| [0028](adr/0028-attachments-and-visual-identity.md) | Attachments — one table, one foreign key per parent, private bucket                  | Accepted |
+| [0029](adr/0029-public-token-lifecycle.md)          | Public token lifecycle — one minter, and revocation as an absent token               | Accepted |
+| [0030](adr/0030-client-portal-exposure.md)          | Client portal exposure — an index, and never a signing link                          | Accepted |
+| [0031](adr/0031-billing-conversion-provenance.md)   | Billing conversion — grouped lines, single-source provenance, refusal over inference | Accepted |
 
 ---
 

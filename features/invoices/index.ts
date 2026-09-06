@@ -9,9 +9,12 @@ export {
   invoiceListParamsSchema,
   invoiceStatusSchema,
   updateInvoiceSchema,
+  BILLABLE_GROUPINGS,
   INVOICE_DISCOUNT_KINDS,
   INVOICE_STATUS_VALUES,
   INVOICE_VIEW_STATUS_VALUES,
+  type BillableGroupingValue,
+  type ConvertBillableWorkValues,
   type CreateInvoiceFromProposalValues,
   type CreateInvoiceValues,
   type InvoiceDiscountKind,
@@ -29,6 +32,7 @@ export {
 export {
   calculateInvoiceLineTotals,
   calculateInvoiceTotal,
+  planBillableConversion,
   canTransitionInvoiceStatus,
   deriveInvoiceStatusView,
   generateInvoiceNumber,
@@ -39,6 +43,11 @@ export {
   isInvoicePartiallyPaid,
   resolveInvoiceIssueDates,
   summarizeInvoices,
+  type BillableConversionPlan,
+  type BillableExpenseRow,
+  type BillableGrouping,
+  type BillableLineDraft,
+  type BillableTimeEntryRow,
   type InvoiceDiscount,
   type InvoiceLineItemInput,
   type InvoiceOutstandingValue,
@@ -48,6 +57,7 @@ export {
 } from "./services"
 
 export {
+  type BillableTargetInvoice,
   type ConvertibleProposalOption,
   type DeleteInvoiceResult,
   type InvoiceDefaults,

@@ -21,6 +21,7 @@ import {
 } from "./schemas"
 import { summarizeInvoices } from "./services"
 import {
+  type BillableTargetInvoice,
   type ConvertibleProposalOption,
   type InvoiceDefaults,
   type InvoiceDetail,
@@ -382,6 +383,34 @@ export async function getProposalInvoiceSnapshot(
       taxPercentage: Number(row.taxPercentageSnapshot)
     }))
   }
+}
+
+// Every draft an appended line could legally join, carrying the client and currency the sheet
+// narrows them by. A sent or paid invoice is never here: it is a document the client has already
+// read, and appending to one would move a total they have seen — the same reason `isInvoiceEditable`
+// refuses the editor. Narrowing happens in the sheet rather than here because the selection that
+// decides it is assembled in the browser; features/invoices/billing.ts re-checks the chosen target
+// against the confirmed selection anyway, so this list is a convenience and never a permission.
+export async function listBillableTargetInvoices(): Promise<BillableTargetInvoice[]> {
+  const rows = await database
+    .select({
+      id: invoices.id,
+      number: invoices.number,
+      clientId: invoices.clientId,
+      currency: invoices.currency,
+      totalCents: invoices.totalCents
+    })
+    .from(invoices)
+    .where(and(eq(invoices.status, "draft"), isNull(invoices.deletedAt)))
+    .orderBy(desc(invoices.createdAt))
+
+  return rows.map((row) => ({
+    id: row.id,
+    number: row.number,
+    clientId: row.clientId,
+    currency: row.currency,
+    totalCents: Number(row.totalCents)
+  }))
 }
 
 export async function listInvoiceLineItems(invoiceId: string): Promise<LineItemRow[]> {

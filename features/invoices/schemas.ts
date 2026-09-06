@@ -228,6 +228,26 @@ export const createInvoiceFromProposalSchema = z.object({
 
 export type CreateInvoiceFromProposalValues = z.infer<typeof createInvoiceFromProposalSchema>
 
+export const BILLABLE_GROUPINGS = ["entry", "task", "project"] as const
+export type BillableGroupingValue = (typeof BILLABLE_GROUPINGS)[number]
+
+// `targetInvoiceId` null means "raise a new draft". The id list is what the browser selected and is
+// re-read and re-checked inside the conversion's transaction; nothing here may be trusted beyond its
+// shape.
+export const convertBillableWorkSchema = z
+  .object({
+    timeEntryIds: z.array(z.uuid(i18n.t("invoices.validation.billableSelectionRequired"))),
+    expenseIds: z.array(z.uuid(i18n.t("invoices.validation.billableSelectionRequired"))),
+    grouping: z.enum(BILLABLE_GROUPINGS, i18n.t("invoices.validation.billableGroupingInvalid")),
+    targetInvoiceId: z.uuid(i18n.t("invoices.validation.billableTargetInvalid")).nullable()
+  })
+  .refine((values) => values.timeEntryIds.length + values.expenseIds.length > 0, {
+    message: i18n.t("invoices.validation.billableSelectionRequired"),
+    path: ["timeEntryIds"]
+  })
+
+export type ConvertBillableWorkValues = z.infer<typeof convertBillableWorkSchema>
+
 export const invoiceIdSchema = z.object({
   id: z.uuid(i18n.t("invoices.validation.idInvalid"))
 })

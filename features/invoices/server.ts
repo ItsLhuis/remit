@@ -28,6 +28,7 @@ export {
   getInvoiceEditorData,
   getInvoiceForEdit,
   getInvoicesPageData,
+  listBillableTargetInvoices,
   listConvertibleProposals,
   listInvoicesByClient,
   listInvoicesByProject

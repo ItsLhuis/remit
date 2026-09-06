@@ -70,10 +70,13 @@ Lightweight task system with kanban view inside each project.
 
 **Time tracking.** Built-in start/stop timer attached to projects and tasks, plus manual entry.
 Hourly rate precedence: entry → task → project → client → instance default. Billable and unbilled
-hours are tracked per project and surfaced on the dashboard.
+hours are tracked per project and surfaced on the dashboard. Select unbilled entries and bill them
+onto a new draft invoice or an existing one, as one line per entry, per task, or per project, priced
+from the rate each entry was logged at.
 
 **Expenses.** Manual entry with receipt attachments, free-text categories that autocomplete from the
-ones you have already used, and a re-billable flag with a markup percentage. CSV export for
+ones you have already used, and a re-billable flag with a markup percentage. Re-billable expenses
+bill onto an invoice the same way time does, one line each, at the marked-up amount. CSV export for
 accountants.
 
 **Proposals.** Per-project proposals with line items (description, quantity, unit price, per-item

@@ -247,3 +247,11 @@ export type InvoiceEditorData = {
   taxRates: InvoiceTaxRateOption[]
   templates: InvoiceTemplateOption[]
 }
+
+export type BillableTargetInvoice = {
+  id: string
+  number: string
+  clientId: string | null
+  currency: string
+  totalCents: number
+}

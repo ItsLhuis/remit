@@ -43,6 +43,14 @@ export default defineConfig({
       dependencies: ["auth"],
       use: { ...devices["Desktop Chrome"] }
     },
+    // The canonical money flow (.agents/rules/testing.md's flow 3) needs the same authenticated
+    // owner the editor specs do, and nothing else, so it hangs off `provision` rather than off them.
+    {
+      name: "flows",
+      testMatch: /timeToInvoice\.spec\.ts$/,
+      dependencies: ["provision"],
+      use: { ...devices["Desktop Chrome"] }
+    },
     {
       name: "editor",
       testMatch: /templateEditor(?!FrameContinuity).*\.spec\.ts$/,
