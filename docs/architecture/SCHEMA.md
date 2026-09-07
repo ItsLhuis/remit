@@ -330,6 +330,8 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | late_fee_amount_cents      | bigint           | yes  | ≥ 0 if not null. The flat fee.                                                                                                                                                           |
 |                  | late_fee_grace_days        | integer          | no   | Default `0`. 0–365. Whole days after the due date before a fee applies; `0` charges on the first day late.                                                                               |
 |                  | late_fee_max_cents         | bigint           | yes  | ≥ 0 if not null. Caps the computed fee. Null means no cap.                                                                                                                               |
+| Retention        | retention_trash_days       | integer          | yes  | Null means never purge. 1–3650. Days a deleted general record stays restorable before the retention sweep removes it permanently.                                                        |
+|                  | retention_financial_days   | integer          | yes  | Null means never purge. 1–3650, and never shorter than `retention_trash_days`. Governs invoices, credit notes, payments, contracts and expenses.                                         |
 | Time tracking    | default_hourly_rate_cents  | bigint           | yes  | Last rung of the time-entry rate precedence ladder. Null = no instance rate configured; deliberately not defaulted. ≥ 0 if not null.                                                     |
 | Payments         | payment_iban               | text (encrypted) | yes  |                                                                                                                                                                                          |
 |                  | payment_bank_name          | text             | yes  |                                                                                                                                                                                          |
@@ -392,6 +394,10 @@ Constraints (named):
 - `chk_settings_late_fee_amount` — null or `>= 0`.
 - `chk_settings_late_fee_grace_days` — `>= 0 AND <= 365`.
 - `chk_settings_late_fee_max` — null or `>= 0`.
+- `chk_settings_retention_trash_days` — null or `>= 1 AND <= 3650`.
+- `chk_settings_retention_financial_days` — null or `>= 1 AND <= 3650`.
+- `chk_settings_retention_window_order` — either window may be null; when both are set,
+  `retention_financial_days >= retention_trash_days`.
 
 No FK to `user` — settings are instance-scoped, not user-scoped.
 

@@ -1101,9 +1101,40 @@ scopes everything else to that client's subgraph.
 excludes rows where it is set. Deleting from the application is always this soft delete: the row
 stays, and financial records survive the deletion for the retention their legal context requires.
 The rows remain in a data export, with `deleted_at` intact, because they still exist in the
-instance. [ADR-0010](adr/0010-soft-delete.md) records the decision, including the parts of it —
-restoring a soft-deleted record, and hard-deleting it once a retention window has passed — that are
-decided and not built.
+instance. [ADR-0010](adr/0010-soft-delete.md) records the decision and
+[ADR-0034](adr/0034-retention-and-erasure.md) refines it with the three parts below.
+
+**Trash and restore.** `/settings/data` lists every deleted record the owner can bring back — what
+it is, what it hung off, when it was deleted and the day it will be removed permanently — and
+restores it in place. Soft delete stamps one row and never cascades, so a restore clears one row and
+never cascades either. A restore that would leave a live record under a deleted parent is refused by
+`features/trash/services/restoreEligibility.ts` before any write, naming the parent to restore
+first; Postgres would not object, because both rows exist. Restore is owner-only, the same gate as
+delete, and writes an audit entry on the same footing as the deletion it reverses.
+
+**Retention.** `settings.retention_trash_days` and `settings.retention_financial_days` are the two
+windows, both null by default, which is "never purge" — so an upgrade destroys nothing and a window
+is something an owner turns on after reading the dates it implies. The financial window covers
+invoices, credit notes, payments, contracts and expenses and can never be shorter than the general
+one. `retention.purge.sweep` enforces them nightly on BullMQ, walking the same FK-safe delete order
+in `scripts/core/domainData/inventory.ts` that the seed and reset commands walk, with its delete and
+its audit entry in one transaction. It never touches `audit_logs` or `contract_signatures`, never
+rewinds document numbering, and never purges a countersigned contract, because deleting one would
+cascade into a signature no code path may delete. Nor does it purge a client while an invoice,
+proposal or contract still names it: removing the client would null that document's `client_id`, and
+`chk_contracts_parent` and its siblings would reject the statement. It deletes rows only; storage
+objects are left, for the reason ADR-0025 gives for the reset command.
+
+**The right to be forgotten.** Hard-deleting a client is a separate owner-only operation, confirmed
+by typing the client's name, preceded by a prompt to export that client's data first, and applied
+regardless of any retention window. It destroys the client, its contacts, projects, tasks,
+proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments,
+data-export records, and the activity and email log rows naming them. The `audit_logs` trail
+survives, and its entry names the event, the actor, the client id and per-table counts but no
+personal detail. The operation is refused outright while the client has a countersigned contract:
+that contract cannot be deleted, because the delete cascades into an insert-only signature, and it
+cannot be left behind either, because the erasure removes both parents `chk_contracts_parent`
+accepts.
 
 ---
 
@@ -1821,6 +1852,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0031](adr/0031-billing-conversion-provenance.md)    | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
 | [0032](adr/0032-card-payment-recording-authority.md) | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
 | [0033](adr/0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
+| [0034](adr/0034-retention-and-erasure.md)            | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
 
 ---
 

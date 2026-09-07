@@ -2,6 +2,8 @@ import { t } from "@/lib/i18n/server"
 
 import { SettingsPageHeader } from "@/components/layout"
 
+import { TrashSection } from "@/features/trash/server"
+
 import { getDataExportPageData } from "../../queries"
 
 import { DataExportContentsCard } from "./DataExportContentsCard"
@@ -25,6 +27,7 @@ const DataSettingsPage = async () => {
         timeZone={pageData.timeZone}
       />
       <DataExportContentsCard />
+      <TrashSection />
     </div>
   )
 }

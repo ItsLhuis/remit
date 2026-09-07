@@ -98,6 +98,21 @@ const config = {
           "features/templates/components/TemplateEditorPage/CanvasTextEditor.tsx"
         ],
         rules: ["react-doctor/exhaustive-deps"]
+      },
+      {
+        // The purge walks the domain inventory in its declared order because that order is the
+        // foreign-key-safe delete order: a parent deleted before its children fails the whole
+        // transaction. Sequencing is the contract, and every statement shares one transaction, so
+        // there is no connection to run a second query on anyway.
+        files: ["features/trash/purge.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
+        // The two reads are logically independent but cannot overlap: every statement here runs on
+        // the erasure's single transaction connection, and postgres.js serialises them regardless.
+        // `Promise.all` would only hide that behind a shape that reads as concurrency.
+        files: ["features/clients/forget.ts"],
+        rules: ["react-doctor/server-sequential-independent-await"]
       }
     ]
   },

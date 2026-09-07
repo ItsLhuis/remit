@@ -162,6 +162,18 @@ Security is treated as a first-class feature, not a checklist.
   uploaded file and every generated PDF, assembled by a background job into an archive only the
   owner can download. The export is an allowlist of table _and_ column, with a test that fails when
   a new schema column is neither included nor explicitly excluded.
+- Deleting a record hides it rather than destroying it, and `/settings/data` is where deleted
+  records come back from — with the date each one will be removed permanently. Two configurable
+  retention windows, one for general records and a longer one for financial ones, decide that date;
+  both start unset, so nothing is ever destroyed until an owner asks for it.
+- The right to be forgotten: hard-deleting a client destroys that client and everything attached to
+  them — contacts, projects, tasks, proposals, contracts, invoices, credit notes, payments, time
+  entries, expenses, attachments, and the activity and email records naming them — behind a
+  typed-name confirmation and a prompt to export the data first. The append-only audit trail
+  survives, recording that the erasure happened and by whom, with no personal detail. A client with
+  a countersigned contract cannot be erased at all, and Remit says so rather than half-erasing: a
+  counterparty's signature is a record Remit may not destroy, and a contract cannot outlive both of
+  its parents. Stored files are not deleted from object storage.
 
 ## Self-hosting
 

@@ -86,7 +86,12 @@ export const EXPORT_INSTANCE_TABLES: readonly ExportTableManifest[] = [
       { column: "backupS3Endpoint", reason: "configuration" },
       { column: "backupLastSuccessAt", reason: "configuration" },
       { column: "backupLastFailureAt", reason: "configuration" },
-      { column: "backupLastFailureReason", reason: "configuration" }
+      { column: "backupLastFailureReason", reason: "configuration" },
+      // Operating policy rather than a business record: the two windows describe how long this
+      // instance keeps deleted rows, which says nothing about the client or the work and means
+      // nothing in the instance the archive is restored into.
+      { column: "retentionTrashDays", reason: "configuration" },
+      { column: "retentionFinancialDays", reason: "configuration" }
     ]
   },
   {

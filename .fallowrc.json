@@ -23,7 +23,8 @@
     "features/activityLog/events.ts",
     "features/proposals/jobs.ts",
     "features/creditNotes/jobs.ts",
-    "features/contracts/jobs.ts"
+    "features/contracts/jobs.ts",
+    "features/trash/jobs.ts"
   ],
   "rules": {
     "unused-exports": "warn",
