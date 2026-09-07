@@ -812,6 +812,24 @@ export const english: Language = {
         confirm: "Delete client",
         deleted: "Client deleted"
       },
+      forget: {
+        title: "Delete permanently",
+        description:
+          "Permanently deletes {name} and everything attached to them: contacts, projects, tasks, proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments, and the activity and email records naming them. This cannot be undone and no retention window applies.",
+        warning: "Export this client's data first if you still need it.",
+        exportPrompt: "Export this client",
+        confirmationLabel: "Type {name} to confirm",
+        confirm: "Delete permanently",
+        forgotten: "Client permanently deleted",
+        survives:
+          "The security audit trail keeps a record that the deletion happened. It holds the event, who performed it and the identifiers involved, never the client's personal details.",
+        errors: {
+          confirmationMismatch: "The name does not match",
+          failed: "Could not delete the client permanently",
+          signedContract:
+            "{count, plural, one {# signed contract} other {# signed contracts}} must be kept, so this client cannot be permanently deleted. A counterparty's signature cannot be destroyed, and a contract cannot exist without its client."
+        }
+      },
       detail: {
         profileTitle: "Profile",
         profileDescription: "Contact and billing details for this client.",
@@ -4459,6 +4477,75 @@ export const english: Language = {
       },
       system: {
         title: "System"
+      }
+    },
+    trash: {
+      title: "Trash",
+      description:
+        "Records you deleted. Restore one, or leave it for the retention window to remove.",
+      empty: {
+        title: "Nothing in the trash",
+        description: "Deleted records appear here until a retention window removes them."
+      },
+      columns: {
+        record: "Record",
+        type: "Type",
+        deletedAt: "Deleted",
+        purgeDueAt: "Removed permanently"
+      },
+      purgeNever: "Kept until a retention window is set",
+      actions: {
+        restore: "Restore"
+      },
+      restored: "Record restored",
+      entities: {
+        client: "Client",
+        clientContact: "Contact",
+        contract: "Contract",
+        creditNote: "Credit note",
+        expense: "Expense",
+        invoice: "Invoice",
+        lead: "Lead",
+        payment: "Payment",
+        project: "Project",
+        proposal: "Proposal",
+        recurringInvoice: "Recurring invoice",
+        task: "Task",
+        taxRate: "Tax rate",
+        template: "Template",
+        timeEntry: "Time entry"
+      },
+      errors: {
+        restoreBlocked: "Restore the {parent} this record belongs to first",
+        restoreFailed: "Could not restore the record"
+      },
+      validation: {
+        kindInvalid: "Unknown record type.",
+        idInvalid: "Invalid record."
+      },
+      retention: {
+        title: "Retention",
+        description:
+          "How long a deleted record stays in the trash before it is removed permanently. Leave a window empty to keep deleted records forever.",
+        trashLabel: "General records (days)",
+        trashDescription:
+          "Applies to clients, contacts, leads, projects, tasks, proposals, schedules, time entries, tax rates and templates.",
+        financialLabel: "Financial records (days)",
+        financialDescription:
+          "Applies to invoices, credit notes, payments, contracts and expenses, and can never be shorter than the general window.",
+        neverPlaceholder: "Never",
+        saved: "Retention window saved",
+        preview:
+          "With the saved windows, the next nightly run removes {count, plural, one {# record} other {# records}} permanently.",
+        previewEmpty: "With the saved windows, the next nightly run removes nothing.",
+        dueSoon: "Removed permanently on {date}",
+        validation: {
+          rangeInvalid: "Enter between 1 and 3650 days, or leave empty to keep records forever.",
+          orderInvalid: "The financial window cannot be shorter than the general window."
+        },
+        errors: {
+          saveFailed: "Could not save the retention window"
+        }
       }
     }
   }

@@ -784,6 +784,21 @@ export type Translations = {
       confirm: string
       deleted: string
     }
+    forget: {
+      title: string
+      description: string
+      warning: string
+      exportPrompt: string
+      confirmationLabel: string
+      confirm: string
+      forgotten: string
+      survives: string
+      errors: {
+        confirmationMismatch: string
+        failed: string
+        signedContract: string
+      }
+    }
     detail: {
       profileTitle: string
       profileDescription: string
@@ -4306,6 +4321,70 @@ export type Translations = {
     }
     system: {
       title: string
+    }
+  }
+  trash: {
+    title: string
+    description: string
+    empty: {
+      title: string
+      description: string
+    }
+    columns: {
+      record: string
+      type: string
+      deletedAt: string
+      purgeDueAt: string
+    }
+    purgeNever: string
+    actions: {
+      restore: string
+    }
+    restored: string
+    entities: {
+      client: string
+      clientContact: string
+      contract: string
+      creditNote: string
+      expense: string
+      invoice: string
+      lead: string
+      payment: string
+      project: string
+      proposal: string
+      recurringInvoice: string
+      task: string
+      taxRate: string
+      template: string
+      timeEntry: string
+    }
+    errors: {
+      restoreBlocked: string
+      restoreFailed: string
+    }
+    validation: {
+      kindInvalid: string
+      idInvalid: string
+    }
+    retention: {
+      title: string
+      description: string
+      trashLabel: string
+      trashDescription: string
+      financialLabel: string
+      financialDescription: string
+      neverPlaceholder: string
+      saved: string
+      preview: string
+      previewEmpty: string
+      dueSoon: string
+      validation: {
+        rangeInvalid: string
+        orderInvalid: string
+      }
+      errors: {
+        saveFailed: string
+      }
     }
   }
 }
