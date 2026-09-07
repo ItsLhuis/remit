@@ -3,6 +3,7 @@ export {
   createRecurringInvoice,
   pauseRecurringInvoice,
   resumeRecurringInvoice,
+  restoreRecurringInvoice,
   softDeleteRecurringInvoice,
   updateRecurringInvoice
 } from "./mutations"

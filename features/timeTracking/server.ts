@@ -1,5 +1,6 @@
 export {
   createManualTimeEntry,
+  restoreTimeEntry,
   softDeleteTimeEntry,
   startTimer,
   stopTimer,

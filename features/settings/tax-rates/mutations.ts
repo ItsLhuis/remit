@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -46,6 +46,7 @@ type TaxRateAuditEvent =
   | "settings.taxRates.updated"
   | "settings.taxRates.defaultChanged"
   | "settings.taxRates.deleted"
+  | "settings.taxRates.restored"
 
 const taxRatesPath = "/settings/tax-rates"
 
@@ -168,6 +169,41 @@ export async function setDefaultTaxRate(input: unknown): Promise<TaxRateWriteRes
     return { data: { taxRate: toTaxRateListItem(defaultTaxRate) } }
   } catch (error) {
     return handleTaxRateActionError(error, "setDefaultTaxRate", context.userId)
+  }
+}
+
+export async function restoreTaxRate(input: unknown): Promise<DeleteTaxRateResult> {
+  const gate = await requireTaxRatesWrite()
+
+  if ("error" in gate) return gate
+
+  const parsed = taxRateIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    // `is_default` is not restored with the row. `deleteTaxRate` cleared it, another rate may hold
+    // the slot now, and `uq_tax_rates_default` ignores soft-deleted rows — so returning the flag as
+    // it stood would either violate the index or silently move the default nobody asked to move.
+    const [restoredTaxRate] = await database
+      .update(taxRates)
+      .set({ deletedAt: null })
+      .where(and(eq(taxRates.id, parsed.data.id), isNotNull(taxRates.deletedAt)))
+      .returning({ id: taxRates.id })
+
+    if (!restoredTaxRate) throw new ExpectedTaxRateError(t("settings.taxRates.errors.notFound"))
+
+    await writeTaxRateAudit(context, "settings.taxRates.restored", restoredTaxRate.id, {
+      changedFields: ["deletedAt"]
+    })
+
+    revalidatePath(taxRatesPath)
+
+    return { data: { id: restoredTaxRate.id } }
+  } catch (error) {
+    return handleTaxRateActionError(error, "restoreTaxRate", context.userId)
   }
 }
 

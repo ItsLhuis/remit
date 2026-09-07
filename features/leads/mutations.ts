@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -61,6 +61,7 @@ type LeadAuditEvent =
   | "lead.created"
   | "lead.updated"
   | "lead.deleted"
+  | "lead.restored"
   | "lead.stage_changed"
   | "lead.converted"
 
@@ -268,6 +269,37 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
     return { data: { clientId } }
   } catch (error) {
     return handleLeadActionError(error, "convertLeadToClient", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreLead(input: unknown): Promise<DeleteLeadResult> {
+  const gate = await requireLeadDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = leadIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [restored] = await database
+      .update(leads)
+      .set({ deletedAt: null })
+      .where(and(eq(leads.id, parsed.data.id), isNotNull(leads.deletedAt)))
+      .returning({ id: leads.id })
+
+    if (!restored) throw new ExpectedLeadError(t("leads.errors.notFound"))
+
+    await writeLeadAudit(context, "lead.restored", restored.id, {})
+
+    revalidatePath(leadsPath)
+    revalidatePath(`${leadsPath}/${restored.id}`)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleLeadActionError(error, "restoreLead", context.userId, parsed.data.id)
   }
 }
 

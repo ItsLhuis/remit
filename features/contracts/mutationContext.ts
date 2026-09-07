@@ -31,6 +31,7 @@ export type ContractAuditEvent =
   | "contract.sent"
   | "contract.terminated"
   | "contract.deleted"
+  | "contract.restored"
   | "contract.public_link.rotated"
   | "contract.public_link.revoked"
 

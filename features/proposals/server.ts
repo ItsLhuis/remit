@@ -8,6 +8,8 @@ export {
   type SendProposalResult
 } from "./mutations"
 
+export { restoreProposal } from "./restoreMutations"
+
 export { getPublicProposal } from "./publicQueries"
 
 export { requestProposalOtp, verifyProposalOtp } from "./publicResponse"

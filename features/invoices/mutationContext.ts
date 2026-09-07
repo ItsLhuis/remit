@@ -41,6 +41,7 @@ export type InvoiceAuditEvent =
   | "invoice.sent"
   | "invoice.paid"
   | "invoice.deleted"
+  | "invoice.restored"
   | "invoice.public_link.rotated"
   | "invoice.public_link.revoked"
   | "invoice.late_fee.adjusted"

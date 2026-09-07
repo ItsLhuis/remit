@@ -1,5 +1,6 @@
 export {
   createProject,
+  restoreProject,
   softDeleteProject,
   updateProject,
   updateProjectStatus,

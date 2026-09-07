@@ -5,5 +5,7 @@ export { PaymentSettingsPage } from "./payment/components"
 export { ProfileSettingsPage } from "./profile/components"
 export { TaxRatesSettingsPage } from "./tax-rates/components"
 
+export { restoreTaxRate } from "./tax-rates/mutations"
+
 export { getPublicPaymentBlock, type PublicPaymentBlock } from "./payment/queries"
 export { getProfileEmailConfigured } from "./profile/queries"

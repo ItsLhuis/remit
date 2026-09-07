@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -19,6 +19,8 @@ import { getIpAddress } from "@/lib/utils"
 
 import { database } from "@/database"
 import { clients, projects, tasks, timeEntries } from "@/database/schema"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import { emitTimeLogged } from "./events"
 import { getTimeEntryForEdit } from "./queries"
@@ -55,6 +57,7 @@ type TimeEntryAuditEvent =
   | "time_entry.created"
   | "time_entry.updated"
   | "time_entry.deleted"
+  | "time_entry.restored"
 
 type RateContext = {
   projectId: string
@@ -301,6 +304,61 @@ export async function updateTimeEntry(input: unknown): Promise<TimeEntryMutation
     return await loadTimeEntryResult(updated.id)
   } catch (error) {
     return handleTimeEntryError(error, "updateTimeEntry", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreTimeEntry(input: unknown): Promise<DeleteTimeEntryResult> {
+  const gate = await requireTimeEntryDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = timeEntryIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: timeEntries.id,
+        projectId: timeEntries.projectId,
+        projectDeletedAt: projects.deletedAt,
+        taskDeletedAt: tasks.deletedAt
+      })
+      .from(timeEntries)
+      .leftJoin(projects, eq(projects.id, timeEntries.projectId))
+      .leftJoin(tasks, eq(tasks.id, timeEntries.taskId))
+      .where(and(eq(timeEntries.id, parsed.data.id), isNotNull(timeEntries.deletedAt)))
+
+    if (!existing) throw new ExpectedTimeEntryError(t("timeTracking.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.project"), deletedAt: existing.projectDeletedAt },
+      { label: t("trash.entities.task"), deletedAt: existing.taskDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedTimeEntryError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(timeEntries)
+      .set({ deletedAt: null })
+      .where(and(eq(timeEntries.id, existing.id), isNotNull(timeEntries.deletedAt)))
+      .returning({ id: timeEntries.id })
+
+    if (!restored) throw new ExpectedTimeEntryError(t("timeTracking.errors.notFound"))
+
+    await writeTimeEntryAudit(context, "time_entry.restored", restored.id, {
+      projectId: existing.projectId
+    })
+
+    revalidatePath(timeTrackingPath)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleTimeEntryError(error, "restoreTimeEntry", context.userId, parsed.data.id)
   }
 }
 

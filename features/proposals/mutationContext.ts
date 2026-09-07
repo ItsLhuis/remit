@@ -30,6 +30,7 @@ export type ProposalAuditEvent =
   | "proposal.updated"
   | "proposal.sent"
   | "proposal.deleted"
+  | "proposal.restored"
   | "proposal.public_link.rotated"
   | "proposal.public_link.revoked"
 

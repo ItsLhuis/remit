@@ -4,7 +4,7 @@ import { type InferInsertModel } from "drizzle-orm"
 
 import { mintPublicToken } from "@/lib/publicToken"
 
-import { contracts } from "@/database/schema"
+import { contracts, contractSignatures } from "@/database/schema"
 
 import { database } from "@/tests/integration/database"
 
@@ -36,4 +36,27 @@ export async function makeContract(overrides?: Partial<InferInsertModel<typeof c
   if (!contract) throw new Error("makeContract: insert failed")
 
   return contract
+}
+
+export async function makeContractSignature(
+  overrides?: Partial<InferInsertModel<typeof contractSignatures>>
+) {
+  const contractId = overrides?.contractId ?? (await makeContract()).id
+
+  const [signature] = await database
+    .insert(contractSignatures)
+    .values({
+      signerName: faker.person.fullName(),
+      signerEmail: faker.internet.email(),
+      consentText: "I agree to the terms of this contract.",
+      ipAddress: faker.internet.ipv4(),
+      userAgent: "Vitest",
+      ...overrides,
+      contractId
+    })
+    .returning()
+
+  if (!signature) throw new Error("makeContractSignature: insert failed")
+
+  return signature
 }

@@ -1,6 +1,7 @@
 export {
   createTask,
   reorderTask,
+  restoreTask,
   softDeleteTask,
   updateTask,
   updateTaskStatus,

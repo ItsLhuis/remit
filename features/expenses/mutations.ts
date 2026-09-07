@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -22,6 +22,8 @@ import { verifyUploadedObject } from "@/lib/storage/verifyUploadedObject"
 
 import { database } from "@/database"
 import { clients, expenses, projects, uploads } from "@/database/schema"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import { emitExpenseCreated } from "./events"
 import { getExpenseForEdit, getExpensesDefaults, listExpensesForExport } from "./queries"
@@ -60,6 +62,7 @@ type ExpenseAuditEvent =
   | "expense.created"
   | "expense.updated"
   | "expense.deleted"
+  | "expense.restored"
   | "expense.exported"
 
 type ExpenseScope = {
@@ -183,6 +186,63 @@ export async function updateExpense(input: unknown): Promise<ExpenseMutationResu
     return await loadExpenseResult(updated.id)
   } catch (error) {
     return handleExpenseError(error, "updateExpense", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreExpense(input: unknown): Promise<DeleteExpenseResult> {
+  const gate = await requireExpenseDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = expenseIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: expenses.id,
+        projectId: expenses.projectId,
+        clientId: expenses.clientId,
+        clientDeletedAt: clients.deletedAt,
+        projectDeletedAt: projects.deletedAt
+      })
+      .from(expenses)
+      .leftJoin(clients, eq(clients.id, expenses.clientId))
+      .leftJoin(projects, eq(projects.id, expenses.projectId))
+      .where(and(eq(expenses.id, parsed.data.id), isNotNull(expenses.deletedAt)))
+
+    if (!existing) throw new ExpectedExpenseError(t("expenses.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.client"), deletedAt: existing.clientDeletedAt },
+      { label: t("trash.entities.project"), deletedAt: existing.projectDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedExpenseError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(expenses)
+      .set({ deletedAt: null })
+      .where(and(eq(expenses.id, existing.id), isNotNull(expenses.deletedAt)))
+      .returning({ id: expenses.id })
+
+    if (!restored) throw new ExpectedExpenseError(t("expenses.errors.notFound"))
+
+    await writeExpenseAudit(context, "expense.restored", restored.id, {
+      projectId: existing.projectId,
+      clientId: existing.clientId
+    })
+
+    revalidatePath(expensesPath)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleExpenseError(error, "restoreExpense", context.userId, parsed.data.id)
   }
 }
 

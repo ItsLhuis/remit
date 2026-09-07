@@ -34,6 +34,7 @@ export type RecurringInvoiceAuditEvent =
   | "recurring_invoice.resumed"
   | "recurring_invoice.cancelled"
   | "recurring_invoice.deleted"
+  | "recurring_invoice.restored"
 
 export type RecurringInvoiceActionErrorContext = {
   action: string

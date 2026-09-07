@@ -1,4 +1,4 @@
-export { createCreditNote, softDeleteCreditNote } from "./mutations"
+export { createCreditNote, restoreCreditNote, softDeleteCreditNote } from "./mutations"
 
 export {
   getCreditNoteDefaults,

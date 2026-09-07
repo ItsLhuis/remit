@@ -16,6 +16,7 @@ import {
 } from "./mutationContext"
 import {
   recordPaymentWrite,
+  restorePaymentWrite,
   settleInvoiceWrite,
   softDeletePaymentWrite,
   updatePaymentWrite
@@ -140,6 +141,46 @@ export async function updatePayment(input: unknown): Promise<PaymentMutationResu
       action: "updatePayment",
       userId: context.userId,
       fallbackMessage: t("payments.errors.updateFailed")
+    })
+  }
+}
+
+export async function restorePayment(input: unknown): Promise<PaymentMutationResult> {
+  const gate = await requirePaymentDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = paymentIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const result = await restorePaymentWrite(parsed.data.id)
+
+    if (result.status === "rejected") return { error: toPaymentErrorMessage(result.reason) }
+
+    const { payment } = result
+
+    await writePaymentAudit(context, "payment.restored", payment.paymentId, {
+      invoiceId: payment.invoiceId,
+      amountCents: payment.amountCents,
+      amountPaidCents: payment.amountPaidCents
+    })
+
+    revalidatePaymentPaths({
+      id: payment.invoiceId,
+      projectId: payment.projectId,
+      clientId: payment.clientId
+    })
+
+    return { data: { id: payment.paymentId } }
+  } catch (error) {
+    return handlePaymentActionError(error, {
+      action: "restorePayment",
+      userId: context.userId,
+      fallbackMessage: t("payments.errors.deleteFailed")
     })
   }
 }

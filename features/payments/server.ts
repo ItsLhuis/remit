@@ -1,6 +1,7 @@
 export {
   recordInvoiceSettlement,
   recordPayment,
+  restorePayment,
   softDeletePayment,
   updatePayment
 } from "./mutations"

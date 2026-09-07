@@ -33,7 +33,10 @@ export type CreditNoteWriteContext = {
 
 export type CreditNoteWriteGate = { context: CreditNoteWriteContext } | { error: string }
 
-export type CreditNoteAuditEvent = "credit_note.created" | "credit_note.deleted"
+export type CreditNoteAuditEvent =
+  | "credit_note.created"
+  | "credit_note.deleted"
+  | "credit_note.restored"
 
 export type CreditNoteActionErrorContext = {
   action: string

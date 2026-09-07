@@ -21,7 +21,11 @@ import { type PaymentActor } from "./types"
 // but async functions — the synchronous helpers and the types below could not live there.
 export type PaymentWriteGate = { context: PaymentActor } | { error: string }
 
-export type PaymentAuditEvent = "payment.recorded" | "payment.updated" | "payment.deleted"
+export type PaymentAuditEvent =
+  | "payment.recorded"
+  | "payment.updated"
+  | "payment.deleted"
+  | "payment.restored"
 
 export type PaymentInvoiceRef = {
   id: string
@@ -62,6 +66,8 @@ export async function writePaymentAudit(
 // only route to reducing what a client owes.
 export function toPaymentErrorMessage(reason: PaymentRejectionReason): string {
   switch (reason) {
+    case "invoice_deleted":
+      return t("trash.errors.restoreBlocked", { parent: t("trash.entities.invoice") })
     case "invoice_not_found":
       return t("payments.errors.invoiceNotFound")
     case "invoice_not_issued":

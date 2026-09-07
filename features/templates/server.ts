@@ -1,6 +1,7 @@
 export {
   createTemplate,
   setDefaultTemplate,
+  restoreTemplate,
   softDeleteTemplate,
   updateTemplate,
   type DeleteTemplateResult,

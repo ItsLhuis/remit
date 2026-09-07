@@ -1,11 +1,13 @@
 "use server"
 
-import { and, eq, inArray, isNull } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
 import { clients, projects, recurringInvoices, taxRates } from "@/database/schema"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import {
   emptyToNull,
@@ -185,6 +187,68 @@ export async function cancelRecurringInvoice(
     event: "recurring_invoice.cancelled",
     action: "cancelRecurringInvoice"
   })
+}
+
+export async function restoreRecurringInvoice(
+  input: unknown
+): Promise<RecurringInvoiceMutationResult> {
+  const gate = await requireRecurringInvoiceDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = recurringInvoiceIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: recurringInvoices.id,
+        clientId: recurringInvoices.clientId,
+        clientDeletedAt: clients.deletedAt,
+        projectDeletedAt: projects.deletedAt
+      })
+      .from(recurringInvoices)
+      .leftJoin(clients, eq(clients.id, recurringInvoices.clientId))
+      .leftJoin(projects, eq(projects.id, recurringInvoices.projectId))
+      .where(and(eq(recurringInvoices.id, parsed.data.id), isNotNull(recurringInvoices.deletedAt)))
+
+    if (!existing) throw new ExpectedRecurringInvoiceError(t("recurringInvoices.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.client"), deletedAt: existing.clientDeletedAt },
+      { label: t("trash.entities.project"), deletedAt: existing.projectDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedRecurringInvoiceError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(recurringInvoices)
+      .set({ deletedAt: null })
+      .where(and(eq(recurringInvoices.id, existing.id), isNotNull(recurringInvoices.deletedAt)))
+      .returning({ id: recurringInvoices.id, clientId: recurringInvoices.clientId })
+
+    if (!restored) throw new ExpectedRecurringInvoiceError(t("recurringInvoices.errors.notFound"))
+
+    await writeRecurringInvoiceAudit(context, "recurring_invoice.restored", restored.id, {
+      clientId: restored.clientId
+    })
+
+    revalidateRecurringInvoicePaths(restored)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleRecurringInvoiceActionError(error, {
+      action: "restoreRecurringInvoice",
+      userId: context.userId,
+      recurringInvoiceId: parsed.data.id,
+      fallbackMessage: t("recurringInvoices.errors.deleteFailed")
+    })
+  }
 }
 
 export async function softDeleteRecurringInvoice(

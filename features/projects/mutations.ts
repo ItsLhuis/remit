@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -19,6 +19,7 @@ import { getIpAddress } from "@/lib/utils"
 
 import { database } from "@/database"
 import {
+  clients,
   contracts,
   expenses,
   invoices,
@@ -28,6 +29,8 @@ import {
 } from "@/database/schema"
 
 import { getClient } from "@/features/clients/server"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import {
   emitProjectCreated,
@@ -64,6 +67,7 @@ type ProjectAuditEvent =
   | "project.created"
   | "project.updated"
   | "project.deleted"
+  | "project.restored"
   | "project.status_changed"
 
 type ProjectWriteValues = {
@@ -232,6 +236,60 @@ export async function updateProjectStatus(input: unknown): Promise<ProjectMutati
     return await loadProjectResult(updatedProject.id)
   } catch (error) {
     return handleProjectActionError(error, "updateProjectStatus", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreProject(input: unknown): Promise<DeleteProjectResult> {
+  const gate = await requireProjectDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = projectIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: projects.id,
+        clientId: projects.clientId,
+        clientDeletedAt: clients.deletedAt
+      })
+      .from(projects)
+      .leftJoin(clients, eq(clients.id, projects.clientId))
+      .where(and(eq(projects.id, parsed.data.id), isNotNull(projects.deletedAt)))
+
+    if (!existing) throw new ExpectedProjectError(t("projects.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.client"), deletedAt: existing.clientDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedProjectError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(projects)
+      .set({ deletedAt: null })
+      .where(and(eq(projects.id, existing.id), isNotNull(projects.deletedAt)))
+      .returning({ id: projects.id, clientId: projects.clientId })
+
+    if (!restored) throw new ExpectedProjectError(t("projects.errors.notFound"))
+
+    await writeProjectAudit(context, "project.restored", restored.id, {
+      clientId: restored.clientId
+    })
+
+    revalidatePath(projectsPath)
+    revalidatePath(`${projectsPath}/${restored.id}`)
+    revalidatePath(`/clients/${restored.clientId}`)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleProjectActionError(error, "restoreProject", context.userId, parsed.data.id)
   }
 }
 

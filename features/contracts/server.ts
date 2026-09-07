@@ -11,6 +11,8 @@ export {
   type TerminateContractResult
 } from "./mutations"
 
+export { restoreContract } from "./restoreMutations"
+
 export {
   getContractDefaults,
   getContractDetail,

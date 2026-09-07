@@ -6,6 +6,8 @@ export {
   updateInvoice
 } from "./mutations"
 
+export { restoreInvoice } from "./restoreMutations"
+
 export { createInvoiceFromProposal } from "./conversion"
 
 export {

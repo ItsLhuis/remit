@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, eq, inArray, isNull } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -66,6 +66,7 @@ type TemplateAuditEvent =
   | "template.created"
   | "template.updated"
   | "template.deleted"
+  | "template.restored"
   | "template.default_changed"
 
 const templatesPath = "/templates"
@@ -164,6 +165,37 @@ export async function updateTemplate(input: unknown): Promise<TemplateMutationRe
     return { data: { template: toTemplateEditorData(updated) } }
   } catch (error) {
     return handleTemplateActionError(error, "updateTemplate", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreTemplate(input: unknown): Promise<DeleteTemplateResult> {
+  const gate = await requireTemplateDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = templateIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [restored] = await database
+      .update(templates)
+      .set({ deletedAt: null })
+      .where(and(eq(templates.id, parsed.data.id), isNotNull(templates.deletedAt)))
+      .returning({ id: templates.id })
+
+    if (!restored) throw new ExpectedTemplateError(t("templates.errors.notFound"))
+
+    await writeTemplateAudit(context, "template.restored", restored.id, {})
+
+    revalidatePath(templatesPath)
+    revalidatePath(`${templatesPath}/${restored.id}`)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleTemplateActionError(error, "restoreTemplate", context.userId, parsed.data.id)
   }
 }
 

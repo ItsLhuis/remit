@@ -1,6 +1,6 @@
 "use server"
 
-import { and, eq, inArray, isNull } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -8,6 +8,8 @@ import { enqueueJob } from "@/lib/jobs"
 
 import { database } from "@/database"
 import { creditNotes, invoices, lineItems, taxRates } from "@/database/schema"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import { emitCreditNoteDeleted, emitCreditNoteIssued } from "./events"
 import {
@@ -114,6 +116,71 @@ export async function createCreditNote(input: unknown): Promise<CreditNoteMutati
       action: "createCreditNote",
       userId: context.userId,
       fallbackMessage: t("creditNotes.errors.createFailed")
+    })
+  }
+}
+
+export async function restoreCreditNote(input: unknown): Promise<CreditNoteMutationResult> {
+  const gate = await requireCreditNoteDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = creditNoteIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: creditNotes.id,
+        invoiceId: creditNotes.invoiceId,
+        number: creditNotes.number,
+        invoiceDeletedAt: invoices.deletedAt,
+        projectId: invoices.projectId,
+        clientId: invoices.clientId
+      })
+      .from(creditNotes)
+      .leftJoin(invoices, eq(invoices.id, creditNotes.invoiceId))
+      .where(and(eq(creditNotes.id, parsed.data.id), isNotNull(creditNotes.deletedAt)))
+
+    if (!existing) throw new ExpectedCreditNoteError(t("creditNotes.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.invoice"), deletedAt: existing.invoiceDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedCreditNoteError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(creditNotes)
+      .set({ deletedAt: null })
+      .where(and(eq(creditNotes.id, existing.id), isNotNull(creditNotes.deletedAt)))
+      .returning({ id: creditNotes.id, invoiceId: creditNotes.invoiceId })
+
+    if (!restored) throw new ExpectedCreditNoteError(t("creditNotes.errors.notFound"))
+
+    await writeCreditNoteAudit(context, "credit_note.restored", restored.id, {
+      invoiceId: restored.invoiceId,
+      number: existing.number
+    })
+
+    revalidateCreditNotePaths({
+      id: existing.invoiceId,
+      projectId: existing.projectId,
+      clientId: existing.clientId
+    })
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleCreditNoteActionError(error, {
+      action: "restoreCreditNote",
+      userId: context.userId,
+      creditNoteId: parsed.data.id,
+      fallbackMessage: t("creditNotes.errors.deleteFailed")
     })
   }
 }

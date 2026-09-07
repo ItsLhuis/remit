@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { headers } from "next/headers"
 
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -19,6 +19,8 @@ import { getIpAddress } from "@/lib/utils"
 
 import { database } from "@/database"
 import { projects, tasks } from "@/database/schema"
+
+import { resolveRestoreBlocker } from "@/features/trash"
 
 import { emitTaskCreated, emitTaskDeleted, emitTaskStatusChanged, emitTaskUpdated } from "./events"
 import { getTaskForEdit } from "./queries"
@@ -47,7 +49,12 @@ type TaskWriteContext = {
 
 type TaskWriteGate = { context: TaskWriteContext } | { error: string }
 
-type TaskAuditEvent = "task.created" | "task.updated" | "task.deleted" | "task.status_changed"
+type TaskAuditEvent =
+  | "task.created"
+  | "task.updated"
+  | "task.deleted"
+  | "task.restored"
+  | "task.status_changed"
 
 type TaskWriteValues = {
   title: string
@@ -301,6 +308,58 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
     return await loadTaskResult(existing.id)
   } catch (error) {
     return handleTaskActionError(error, "reorderTask", context.userId, parsed.data.id)
+  }
+}
+
+export async function restoreTask(input: unknown): Promise<DeleteTaskResult> {
+  const gate = await requireTaskDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = taskIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [existing] = await database
+      .select({
+        id: tasks.id,
+        projectId: tasks.projectId,
+        projectDeletedAt: projects.deletedAt
+      })
+      .from(tasks)
+      .leftJoin(projects, eq(projects.id, tasks.projectId))
+      .where(and(eq(tasks.id, parsed.data.id), isNotNull(tasks.deletedAt)))
+
+    if (!existing) throw new ExpectedTaskError(t("tasks.errors.notFound"))
+
+    const blocker = resolveRestoreBlocker([
+      { label: t("trash.entities.project"), deletedAt: existing.projectDeletedAt }
+    ])
+
+    if (blocker) {
+      throw new ExpectedTaskError(t("trash.errors.restoreBlocked", { parent: blocker }))
+    }
+
+    const [restored] = await database
+      .update(tasks)
+      .set({ deletedAt: null })
+      .where(and(eq(tasks.id, existing.id), isNotNull(tasks.deletedAt)))
+      .returning({ id: tasks.id, projectId: tasks.projectId })
+
+    if (!restored) throw new ExpectedTaskError(t("tasks.errors.notFound"))
+
+    await writeTaskAudit(context, "task.restored", restored.id, {
+      projectId: restored.projectId
+    })
+
+    revalidateTaskPaths(restored.projectId)
+
+    return { data: { id: restored.id } }
+  } catch (error) {
+    return handleTaskActionError(error, "restoreTask", context.userId, parsed.data.id)
   }
 }
 

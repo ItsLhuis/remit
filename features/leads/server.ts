@@ -1,6 +1,7 @@
 export {
   convertLeadToClient,
   createLead,
+  restoreLead,
   softDeleteLead,
   updateLead,
   updateLeadStatus,

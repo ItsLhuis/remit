@@ -1,6 +1,7 @@
 export {
   createExpense,
   exportExpensesCsv,
+  restoreExpense,
   softDeleteExpense,
   updateExpense,
   type DeleteExpenseResult,

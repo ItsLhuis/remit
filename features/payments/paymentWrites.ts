@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne, sql } from "drizzle-orm"
+import { and, eq, isNotNull, isNull, ne, sql } from "drizzle-orm"
 
 import { database } from "@/database"
 import { invoices, payments } from "@/database/schema"
@@ -16,6 +16,7 @@ import { evaluateInvoiceSettlement, type InvoiceSettlement } from "./services"
 // its callers are server modules rather than the client.
 
 export type PaymentRejectionReason =
+  | "invoice_deleted"
   | "invoice_not_found"
   | "invoice_not_issued"
   | "currency_mismatch"
@@ -207,6 +208,68 @@ export async function updatePaymentWrite(
       payment: toAppliedPayment(invoice, {
         paymentId: input.id,
         amountCents: input.amountCents,
+        amountPaidCents,
+        settlement
+      })
+    }
+  })
+}
+
+export async function restorePaymentWrite(paymentId: string): Promise<PaymentWriteResult> {
+  return database.transaction(async (transaction) => {
+    const owner = await transaction.query.payments.findFirst({
+      where: and(eq(payments.id, paymentId), isNotNull(payments.deletedAt)),
+      columns: { invoiceId: true, amountCents: true }
+    })
+
+    if (!owner) return { status: "rejected", reason: "payment_not_found" }
+
+    // `lockInvoice` refuses a soft-deleted invoice, which is the right answer for every other caller
+    // and the wrong message for this one: a restore blocked by a deleted parent has to say so
+    // (`trash.errors.restoreBlocked`) rather than claim the invoice does not exist.
+    const parent = await transaction.query.invoices.findFirst({
+      where: eq(invoices.id, owner.invoiceId),
+      columns: { deletedAt: true }
+    })
+
+    if (!parent) return { status: "rejected", reason: "invoice_not_found" }
+    if (parent.deletedAt) return { status: "rejected", reason: "invoice_deleted" }
+
+    const invoice = await lockInvoice(transaction, owner.invoiceId)
+
+    if (!invoice) return { status: "rejected", reason: "invoice_not_found" }
+
+    const amountCents = Number(owner.amountCents)
+    const amountPaidCents = (await sumRecordedPayments(transaction, invoice.id)) + amountCents
+    const settlement = evaluateInvoiceSettlement({
+      amountPaidCents,
+      totalCents: invoice.totalCents
+    })
+
+    // The same guard `addPayment` applies, and it is load-bearing here rather than defensive: money
+    // may have arrived by another route while this payment sat in the trash, so a restore is capable
+    // of overpaying an invoice that balanced perfectly a moment ago.
+    if (settlement.outcome === "overpaid") return { status: "rejected", reason: "overpaid" }
+
+    const [restored] = await transaction
+      .update(payments)
+      .set({ deletedAt: null })
+      .where(and(eq(payments.id, paymentId), isNotNull(payments.deletedAt)))
+      .returning({ id: payments.id })
+
+    if (!restored) return { status: "rejected", reason: "payment_not_found" }
+
+    await applyInvoiceAggregate(transaction, invoice, {
+      amountPaidCents,
+      settlement,
+      settledAt: new Date()
+    })
+
+    return {
+      status: "applied",
+      payment: toAppliedPayment(invoice, {
+        paymentId: restored.id,
+        amountCents,
         amountPaidCents,
         settlement
       })
