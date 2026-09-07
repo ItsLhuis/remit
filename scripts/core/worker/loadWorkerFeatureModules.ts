@@ -21,6 +21,7 @@ export async function loadWorkerFeatureModules(): Promise<void> {
     import("@/features/contracts/jobs"),
     import("@/features/recurringInvoices/jobs"),
     import("@/features/dataExport/jobs"),
+    import("@/features/trash/jobs"),
     import("@/features/activityLog/events")
   ])
 }
