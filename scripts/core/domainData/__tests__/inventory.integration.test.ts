@@ -85,3 +85,36 @@ test("orders children before the parents they reference", () => {
   expect(positionOf("projects")).toBeLessThan(positionOf("clients"))
   expect(positionOf("clients")).toBeLessThan(positionOf("uploads"))
 })
+
+test("classifies as restorable exactly the tables that carry a deleted_at column", () => {
+  const restorableOrCascade = DOMAIN_DATA_INVENTORY.filter((entry) => entry.trash !== "none")
+    .map((entry) => entry.table)
+    .sort()
+
+  const softDeleting = Object.values(schema)
+    .filter((value) => is(value, PgTable))
+    .filter((table) => "deletedAt" in table)
+    .map((table) => getTableName(table))
+    .sort()
+
+  expect(restorableOrCascade).toEqual(softDeleting)
+})
+
+test("gives every restorable table a retention window and every other table none", () => {
+  for (const entry of DOMAIN_DATA_INVENTORY) {
+    if (entry.trash === "restorable") {
+      expect(entry.retention).not.toBeNull()
+      continue
+    }
+
+    expect(entry.retention).toBeNull()
+  }
+})
+
+test("keeps line items out of the trash surface because they have no life apart from a document", () => {
+  const cascadeOnly = DOMAIN_DATA_INVENTORY.filter((entry) => entry.trash === "cascade").map(
+    (entry) => entry.table
+  )
+
+  expect(cascadeOnly).toEqual(["line_items"])
+})
