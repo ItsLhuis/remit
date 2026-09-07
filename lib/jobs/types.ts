@@ -68,6 +68,10 @@ export type JobMap = {
   }
   "invoice.overdue.sweep": Record<string, never>
   "invoice.reminder.sweep": Record<string, never>
+  // Reads the retention windows from `settings` itself rather than carrying them, so a window
+  // changed between the schedule firing and the handler running is honoured by the run that
+  // destroys rows rather than by the one that queued it.
+  "retention.purge.sweep": Record<string, never>
   "invoice.reminder.send": {
     invoiceId: string
     // Days relative to the due date, always positive; `phase` carries the direction. Splitting them
@@ -99,7 +103,8 @@ const JOB_NAME_KEYS: Record<JobName, true> = {
   "data_export.assemble": true,
   "invoice.overdue.sweep": true,
   "invoice.reminder.sweep": true,
-  "invoice.reminder.send": true
+  "invoice.reminder.send": true,
+  "retention.purge.sweep": true
 }
 
 export const JOB_NAMES = Object.keys(JOB_NAME_KEYS) as JobName[]

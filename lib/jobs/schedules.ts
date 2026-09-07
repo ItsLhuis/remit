@@ -15,7 +15,8 @@ type RepeatableJob = {
 const REPEATABLE_JOBS: RepeatableJob[] = [
   { name: "recurring.schedule.sweep", pattern: "0 0 2 * * *" },
   { name: "invoice.overdue.sweep", pattern: "0 15 2 * * *" },
-  { name: "invoice.reminder.sweep", pattern: "0 0 8 * * *" }
+  { name: "invoice.reminder.sweep", pattern: "0 0 8 * * *" },
+  { name: "retention.purge.sweep", pattern: "0 30 2 * * *" }
 ]
 
 export async function registerRepeatableJobs(): Promise<void> {
