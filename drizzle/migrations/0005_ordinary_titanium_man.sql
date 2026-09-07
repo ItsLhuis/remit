@@ -1,0 +1,5 @@
+ALTER TABLE "settings" ADD COLUMN "retention_trash_days" integer;--> statement-breakpoint
+ALTER TABLE "settings" ADD COLUMN "retention_financial_days" integer;--> statement-breakpoint
+ALTER TABLE "settings" ADD CONSTRAINT "chk_settings_retention_trash_days" CHECK ("settings"."retention_trash_days" IS NULL OR ("settings"."retention_trash_days" >= 1 AND "settings"."retention_trash_days" <= 3650));--> statement-breakpoint
+ALTER TABLE "settings" ADD CONSTRAINT "chk_settings_retention_financial_days" CHECK ("settings"."retention_financial_days" IS NULL OR ("settings"."retention_financial_days" >= 1 AND "settings"."retention_financial_days" <= 3650));--> statement-breakpoint
+ALTER TABLE "settings" ADD CONSTRAINT "chk_settings_retention_window_order" CHECK ("settings"."retention_trash_days" IS NULL OR "settings"."retention_financial_days" IS NULL OR "settings"."retention_financial_days" >= "settings"."retention_trash_days");

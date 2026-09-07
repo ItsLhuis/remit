@@ -72,6 +72,22 @@ export const settings = pgTable(
     lateFeeGraceDays: integer("late_fee_grace_days").notNull().default(0),
     lateFeeMaxCents: bigint("late_fee_max_cents", { mode: "number" }),
 
+    // Retention
+    //
+    // Both windows are nullable and both default to null, which is "never purge". These columns
+    // arrive on instances already holding years of soft-deleted rows, so a default naming any
+    // number would hard-delete them on the first sweep after an upgrade the operator only meant as
+    // an upgrade. Turning a window on is a deliberate act, and the trash surface states the date it
+    // implies for every row before it arrives.
+    //
+    // Two windows rather than one because README's promise is a *fiscal* retention window, and the
+    // duration a deleted draft is worth keeping is not the duration a tax authority expects an
+    // invoice to survive. `retentionFinancialDays` governs the money records named by the
+    // inventory's `retention` decision in scripts/core/domainData/inventory.ts; the other window
+    // governs everything else.
+    retentionTrashDays: integer("retention_trash_days"),
+    retentionFinancialDays: integer("retention_financial_days"),
+
     // Time tracking
     defaultHourlyRateCents: bigint("default_hourly_rate_cents", { mode: "number" }),
 
@@ -184,6 +200,20 @@ export const settings = pgTable(
     check(
       "chk_settings_late_fee_max",
       sql`${table.lateFeeMaxCents} IS NULL OR ${table.lateFeeMaxCents} >= 0`
+    ),
+    check(
+      "chk_settings_retention_trash_days",
+      sql`${table.retentionTrashDays} IS NULL OR (${table.retentionTrashDays} >= 1 AND ${table.retentionTrashDays} <= 3650)`
+    ),
+    check(
+      "chk_settings_retention_financial_days",
+      sql`${table.retentionFinancialDays} IS NULL OR (${table.retentionFinancialDays} >= 1 AND ${table.retentionFinancialDays} <= 3650)`
+    ),
+    // A financial window shorter than the general one would destroy an invoice while the note
+    // attached to a lead outlived it, which is the opposite of what the two windows exist to say.
+    check(
+      "chk_settings_retention_window_order",
+      sql`${table.retentionTrashDays} IS NULL OR ${table.retentionFinancialDays} IS NULL OR ${table.retentionFinancialDays} >= ${table.retentionTrashDays}`
     )
   ]
 )
