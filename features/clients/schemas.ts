@@ -166,6 +166,14 @@ export const clientContactIdSchema = z.object({
   id: z.uuid(i18n.t("clients.validation.contactIdInvalid"))
 })
 
+// A typed phrase rather than a yes/no, following `scripts/core/resetData/confirm.ts`: the operation
+// puts nothing back in place of what it removes, and the phrase is the client's own name so the
+// confirmation names the record being destroyed rather than agreeing with a generic word.
+export const forgetClientSchema = z.object({
+  id: z.uuid(i18n.t("clients.validation.idInvalid")),
+  confirmation: z.string().min(1, i18n.t("clients.forget.errors.confirmationMismatch"))
+})
+
 export const CLIENT_HEALTH_VALUES = ["owing", "settled", "dormant"] as const
 export const CLIENT_SORT_FIELDS = ["name", "currency", "joined", "outstanding"] as const
 

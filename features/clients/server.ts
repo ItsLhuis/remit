@@ -12,6 +12,10 @@ export {
   type DeleteClientResult
 } from "./mutations"
 
+export { restoreClient, restoreClientContact } from "./restoreMutations"
+
+export { forgetClient } from "./forgetMutations"
+
 export { getClientPortal } from "./publicQueries"
 
 export {

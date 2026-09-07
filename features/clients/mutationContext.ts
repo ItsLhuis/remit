@@ -16,6 +16,10 @@ import { getIpAddress } from "@/lib/utils"
 // `"use server"` module may export nothing but async functions, so the synchronous helpers, the
 // types and the error class below could not live there. Splitting it also keeps `mutations.ts` and
 // `imageMutations.ts` reading from one gate instead of two copies.
+// Shared by mutations.ts, restoreMutations.ts and forgetMutations.ts, which all revalidate the same
+// two routes.
+export const clientsPath = "/clients"
+
 export type ClientWriteContext = {
   userId: string
   role: Role
@@ -29,6 +33,8 @@ export type ClientAuditEvent =
   | "client.created"
   | "client.updated"
   | "client.deleted"
+  | "client.restored"
+  | "client.forgotten"
   | "client.portal_link.rotated"
   | "client.portal_link.revoked"
 
@@ -39,6 +45,7 @@ export type ClientContactAuditEvent =
   | "client_contact.created"
   | "client_contact.updated"
   | "client_contact.deleted"
+  | "client_contact.restored"
   | "client_contact.primary_changed"
 
 // Thrown for the states a caller can act on, so `handleClientActionError` can tell them from the
@@ -125,4 +132,48 @@ async function getClientActionContext(): Promise<ClientWriteGate> {
 
 function isRole(value: string | null | undefined): value is Role {
   return value === "owner" || value === "accountant" || value === "assistant"
+}
+
+export async function writeClientContactAudit(
+  context: ClientWriteContext,
+  event: ClientContactAuditEvent,
+  contactId: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  await writeAudit(event, {
+    actorUserId: context.userId,
+    actorRole: context.role,
+    targetEntityType: "client_contact",
+    targetEntityId: contactId,
+    metadata,
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent
+  })
+}
+
+export function handleClientContactActionError(
+  error: unknown,
+  action: string,
+  userId: string | null,
+  clientId?: string
+): { error: string } {
+  if (error instanceof ExpectedClientError) return { error: error.message }
+
+  // The one raw driver error this feature can actually produce. `uq_client_contacts_primary` is
+  // what serializes concurrent promotions, so the loser arrives here as a unique violation and has
+  // to leave as a sentence the freelancer can act on.
+  if (isPrimaryContactConflict(error)) return { error: t("clients.errors.contactPrimaryConflict") }
+
+  logger.error({ action, userId, clientId, err: error }, "Client contact action failed")
+
+  return { error: t("clients.errors.contactUpdateFailed") }
+}
+
+function isPrimaryContactConflict(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23505"
+  )
 }

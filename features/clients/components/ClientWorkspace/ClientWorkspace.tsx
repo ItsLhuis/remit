@@ -45,12 +45,14 @@ import { ClientInvoicesPanel, type InvoiceListItem } from "@/features/invoices"
 
 import { ClientProjectsPanel, type ProjectListItem } from "@/features/projects"
 
+import { forgetClient } from "../../forgetMutations"
 import { softDeleteClient } from "../../mutations"
 import { formatLocation } from "../../services"
 import { type ClientContact, type ClientDetail, type ClientFormData } from "../../types"
 import { ClientContactsPanel } from "../ClientContactsPanel"
 import { ClientFormSheet } from "../ClientFormSheet"
 import { DeleteClientDialog } from "../DeleteClientDialog"
+import { ForgetClientDialog } from "../ForgetClientDialog"
 
 import { ClientImageSection } from "./ClientImageSection"
 import { ClientPortalCard } from "./ClientPortalCard"
@@ -101,6 +103,8 @@ const ClientWorkspace = ({
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, startDelete] = useTransition()
+  const [forgetOpen, setForgetOpen] = useState(false)
+  const [isForgetting, startForget] = useTransition()
 
   const onDelete = () => {
     if (isDeleting) return
@@ -117,6 +121,28 @@ const ClientWorkspace = ({
       toast.success(t("clients.delete.deleted"))
 
       setDeleteOpen(false)
+
+      router.push("/clients")
+
+      router.refresh()
+    })
+  }
+
+  const onForget = (confirmation: string) => {
+    if (isForgetting) return
+
+    startForget(async () => {
+      const result = await forgetClient({ id: client.id, confirmation })
+
+      if ("error" in result) {
+        toast.error(result.error)
+
+        return
+      }
+
+      toast.success(t("clients.forget.forgotten"))
+
+      setForgetOpen(false)
 
       router.push("/clients")
 
@@ -163,6 +189,7 @@ const ClientWorkspace = ({
               onEdit={() => setEditOpen(true)}
               onCopyEmail={onCopyEmail}
               onRequestDelete={() => setDeleteOpen(true)}
+              onRequestForget={() => setForgetOpen(true)}
             />
             <ClientPortalCard clientId={client.id} portalPath={client.portalPath} />
           </div>
@@ -398,6 +425,15 @@ const ClientWorkspace = ({
           if (!isDeleting) setDeleteOpen(open)
         }}
         onConfirm={onDelete}
+      />
+      <ForgetClientDialog
+        clientName={client.name}
+        open={forgetOpen}
+        isForgetting={isForgetting}
+        onOpenChange={(open) => {
+          if (!isForgetting) setForgetOpen(open)
+        }}
+        onConfirm={onForget}
       />
     </ScrollArea>
   )

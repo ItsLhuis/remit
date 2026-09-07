@@ -36,6 +36,7 @@ type ClientSummaryCardProps = {
   onEdit: () => void
   onCopyEmail: () => void
   onRequestDelete: () => void
+  onRequestForget: () => void
 }
 
 const ClientSummaryCard = ({
@@ -45,7 +46,8 @@ const ClientSummaryCard = ({
   websiteHref,
   onEdit,
   onCopyEmail,
-  onRequestDelete
+  onRequestDelete,
+  onRequestForget
 }: ClientSummaryCardProps) => {
   const { t } = useTranslation()
 
@@ -98,6 +100,10 @@ const ClientSummaryCard = ({
             <DropdownMenuItem variant="destructive" onSelect={onRequestDelete}>
               <Icon name="Trash2" aria-hidden="true" />
               {t("clients.actions.delete")}
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onSelect={onRequestForget}>
+              <Icon name="ShieldX" aria-hidden="true" />
+              {t("clients.forget.title")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

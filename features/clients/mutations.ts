@@ -6,10 +6,6 @@ import { and, eq, isNull, ne } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
-
-import { logger } from "@/lib/logger"
-
 import { parseAmountToCents } from "@/lib/utils"
 
 import { mintPublicToken } from "@/lib/publicToken"
@@ -19,14 +15,15 @@ import { clientContacts, clients } from "@/database/schema"
 
 import { emitClientCreated, emitClientDeleted, emitClientUpdated } from "./events"
 import {
+  clientsPath,
   ExpectedClientError,
   handleClientActionError,
+  handleClientContactActionError,
   requireClientDelete,
   requireClientPortalLink,
   requireClientWrite,
   writeClientAudit,
-  type ClientContactAuditEvent,
-  type ClientWriteContext
+  writeClientContactAudit
 } from "./mutationContext"
 import { toClientFormData } from "./queries"
 import {
@@ -64,8 +61,6 @@ type ClientAuditField =
   | "postalCode"
   | "country"
   | "website"
-
-const clientsPath = "/clients"
 
 const clientReturnColumns = {
   id: clients.id,
@@ -583,23 +578,6 @@ async function demotePrimaryContacts(
     .where(and(...scope, ...(exceptContactId ? [ne(clientContacts.id, exceptContactId)] : [])))
 }
 
-async function writeClientContactAudit(
-  context: ClientWriteContext,
-  event: ClientContactAuditEvent,
-  contactId: string,
-  metadata: Record<string, unknown>
-): Promise<void> {
-  await writeAudit(event, {
-    actorUserId: context.userId,
-    actorRole: context.role,
-    targetEntityType: "client_contact",
-    targetEntityId: contactId,
-    metadata,
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent
-  })
-}
-
 function toContactWriteValues(
   values: Omit<ClientContactFormValues, "isPrimary">
 ): Pick<typeof clientContacts.$inferInsert, "name" | "email" | "phone" | "role"> {
@@ -609,31 +587,4 @@ function toContactWriteValues(
     phone: emptyToNull(values.phone),
     role: emptyToNull(values.role)
   }
-}
-
-function handleClientContactActionError(
-  error: unknown,
-  action: string,
-  userId: string | null,
-  clientId?: string
-): { error: string } {
-  if (error instanceof ExpectedClientError) return { error: error.message }
-
-  // The one raw driver error this feature can actually produce. `uq_client_contacts_primary` is
-  // what serializes concurrent promotions, so the loser arrives here as a unique violation and has
-  // to leave as a sentence the freelancer can act on.
-  if (isPrimaryContactConflict(error)) return { error: t("clients.errors.contactPrimaryConflict") }
-
-  logger.error({ action, userId, clientId, err: error }, "Client contact action failed")
-
-  return { error: t("clients.errors.contactUpdateFailed") }
-}
-
-function isPrimaryContactConflict(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "23505"
-  )
 }
