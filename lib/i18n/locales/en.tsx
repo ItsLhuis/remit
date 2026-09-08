@@ -3256,7 +3256,8 @@ export const english: Language = {
         list: "Reports"
       },
       actions: {
-        export: "Export CSV"
+        export: "Export CSV",
+        exportPdf: "Export PDF"
       },
       kinds: {
         revenueByClient: {
@@ -3351,8 +3352,26 @@ export const english: Language = {
         billable: "Billable",
         nonBillable: "Non-billable"
       },
+      document: {
+        generatedAt: "Generated",
+        rows: "Rows",
+        dateRange: "Date range",
+        rangeAll: "All time",
+        rangeBetween: "{from} to {to}",
+        rangeFrom: "From {from}",
+        rangeUntil: "Until {to}",
+        empty: "No rows match these filters",
+        page: "Page {page} of {pages}"
+      },
       export: {
         exported: "{count, plural, one {# row exported} other {# rows exported}}",
+        pdfRequested: "Preparing the PDF",
+        pdfPending: "Preparing the PDF. The download starts when it is ready",
+        pdfReady: "Report PDF ready",
+        failures: {
+          renderFailed: "The report could not be rendered",
+          storageFailed: "The report was rendered but could not be stored"
+        },
         columns: {
           detail: "Detail",
           currency: "Currency",
@@ -3366,7 +3385,8 @@ export const english: Language = {
         filteredDescription: "Widen the date range or clear the filters to see more."
       },
       errors: {
-        exportFailed: "Failed to export the report"
+        exportFailed: "Failed to export the report",
+        pdfExportFailed: "Failed to export the report as a PDF"
       }
     },
     templates: {

@@ -3150,6 +3150,7 @@ export type Translations = {
     }
     actions: {
       export: string
+      exportPdf: string
     }
     kinds: {
       revenueByClient: {
@@ -3242,8 +3243,26 @@ export type Translations = {
       billable: string
       nonBillable: string
     }
+    document: {
+      generatedAt: string
+      rows: string
+      dateRange: string
+      rangeAll: string
+      rangeBetween: string
+      rangeFrom: string
+      rangeUntil: string
+      empty: string
+      page: string
+    }
     export: {
       exported: string
+      pdfRequested: string
+      pdfPending: string
+      pdfReady: string
+      failures: {
+        renderFailed: string
+        storageFailed: string
+      }
       columns: {
         detail: string
         currency: string
@@ -3258,6 +3277,7 @@ export type Translations = {
     }
     errors: {
       exportFailed: string
+      pdfExportFailed: string
     }
   }
   templates: {

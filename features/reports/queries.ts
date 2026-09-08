@@ -13,6 +13,7 @@ import {
   invoices,
   lineItems,
   projects,
+  reportExports,
   taxRates,
   timeEntries
 } from "@/database/schema"
@@ -21,20 +22,29 @@ import { calculateRebillableCents } from "@/features/expenses"
 
 import { calculateEntryAmountCents } from "@/features/timeTracking"
 
-import { parseReportQuery, type ReportQuery } from "./schemas"
+import { parseReportQuery, reportQuerySchema, type ReportQuery } from "./schemas"
 import {
   aggregateExpensesByCategory,
   aggregateRevenue,
   aggregateRevenueByTaxRate,
   aggregateTaxSummary,
   aggregateTimeByProject,
+  buildReportExportDownloadPath,
+  buildReportExportFilename,
   resolveReportWindow,
+  toReportExportFailureReason,
   toUtcMonthKey,
   type ReportResult,
   type RevenueReportRow,
   type TaxReportRow
 } from "./services"
-import { type ReportDefaults, type ReportFilterOptions, type ReportsPageData } from "./types"
+import {
+  type ReportDefaults,
+  type ReportExportArtifact,
+  type ReportExportState,
+  type ReportFilterOptions,
+  type ReportsPageData
+} from "./types"
 
 // Only issued documents are reported on. A draft has not been shown to anyone, so counting it as
 // revenue or as a tax liability would report money that was never charged.
@@ -97,6 +107,46 @@ export async function getReportResult(
       return aggregateExpensesByCategory(await listExpenseRows(query))
     case "taxSummary":
       return aggregateTaxSummary(await listTaxRows(query))
+  }
+}
+
+// The poll behind the reports page's PDF control. It reads the row the worker writes and nothing
+// else: the artifact itself never travels through a server action, only the path that can serve it.
+export async function getReportExportState(id: string): Promise<ReportExportState | null> {
+  const row = await database.query.reportExports.findFirst({
+    columns: { id: true, status: true, failureReason: true },
+    where: eq(reportExports.id, id)
+  })
+
+  if (!row) return null
+
+  return {
+    id: row.id,
+    status: row.status,
+    failureReason: toReportExportFailureReason(row.failureReason),
+    downloadPath: row.status === "ready" ? buildReportExportDownloadPath(row.id) : null
+  }
+}
+
+// The download route's read. A row that is not `ready` has no object behind it, so it resolves to
+// nothing rather than to a key the route would then fail to fetch — the same answer as an id that
+// does not exist, which is what keeps the route from reporting whether a render is in progress.
+//
+// The filename is rebuilt from the row rather than stored: `report` and `created_at` are already
+// there, and a third copy of the name could disagree with them.
+export async function getReportExportArtifact(id: string): Promise<ReportExportArtifact | null> {
+  const row = await database.query.reportExports.findFirst({
+    columns: { report: true, status: true, storageKey: true, createdAt: true },
+    where: eq(reportExports.id, id)
+  })
+
+  if (row?.status !== "ready" || !row.storageKey) return null
+
+  const report = reportQuerySchema.shape.report.parse(row.report)
+
+  return {
+    filename: buildReportExportFilename(report, row.createdAt, "pdf"),
+    storageKey: row.storageKey
   }
 }
 
