@@ -9,11 +9,14 @@ import { activityLogs } from "@/database/schema"
 import {
   makeClient,
   makeContract,
+  makeCreditNote,
   makeExpense,
   makeInvoice,
+  makeLead,
   makePayment,
   makeProject,
   makeProposal,
+  makeRecurringInvoice,
   makeTimeEntry
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
@@ -231,6 +234,142 @@ describe("activity log subscriptions", () => {
     })
   })
 
+  test("writes a lead row naming the lead when a lead becomes a client", async () => {
+    const lead = await makeLead({ firstName: "Mara", lastName: "Vance" })
+
+    await emit("lead.converted", {
+      leadId: lead.id,
+      userId: "user-1",
+      clientId: crypto.randomUUID()
+    })
+
+    const [row] = await listRows()
+
+    expect(row).toMatchObject({
+      entityType: "lead",
+      entityId: lead.id,
+      action: "converted",
+      messageKey: "activity.messages.leadConverted",
+      messageArgs: { name: "Mara Vance" }
+    })
+  })
+
+  test("falls back to the company when a converted lead has no person name", async () => {
+    const lead = await makeLead({ firstName: null, lastName: null, company: "Northwind Ltd" })
+
+    await emit("lead.converted", {
+      leadId: lead.id,
+      userId: "user-1",
+      clientId: crypto.randomUUID()
+    })
+
+    const [row] = await listRows()
+
+    expect(row?.messageArgs).toEqual({ name: "Northwind Ltd" })
+  })
+
+  test("names both documents when a credit note is issued", async () => {
+    const invoice = await makeInvoice({ status: "sent" })
+    const creditNote = await makeCreditNote({ invoiceId: invoice.id, number: "CN-0007" })
+
+    await emit("credit_note.issued", {
+      creditNoteId: creditNote.id,
+      invoiceId: invoice.id,
+      userId: "user-1"
+    })
+
+    const [row] = await listRows()
+
+    expect(row).toMatchObject({
+      entityType: "credit_note",
+      entityId: creditNote.id,
+      action: "issued",
+      messageKey: "activity.messages.creditNoteIssued",
+      messageArgs: { number: "CN-0007", invoiceNumber: invoice.number }
+    })
+  })
+
+  test("files an exhausted retainer under the schedule that ran out", async () => {
+    const schedule = await makeRecurringInvoice({ name: "Support retainer" })
+
+    await emit("retainer.pool_exhausted", {
+      recurringInvoiceId: schedule.id,
+      clientId: schedule.clientId,
+      includedHours: 10,
+      consumedHours: 13.5
+    })
+
+    const [row] = await listRows()
+
+    expect(row).toMatchObject({
+      entityType: "recurring_invoice",
+      entityId: schedule.id,
+      action: "pool_exhausted",
+      messageKey: "activity.messages.retainerPoolExhausted",
+      messageArgs: { name: "Support retainer", includedHours: 10, consumedHours: 13.5 }
+    })
+  })
+
+  // A generated run announces the invoice and nothing else. The schedule earns a row only when its
+  // pool runs out, which is a fact the invoice does not carry — so a run that exhausts its retainer
+  // writes two rows about two different things, and an ordinary run writes exactly one.
+  test("writes one row for a generated run that does not exhaust its retainer", async () => {
+    const invoice = await makeInvoice()
+    const schedule = await makeRecurringInvoice()
+
+    await emit("recurring.invoice_generated", {
+      recurringInvoiceId: schedule.id,
+      invoiceId: invoice.id,
+      clientId: schedule.clientId,
+      projectId: null,
+      occurrence: 2
+    })
+
+    const rows = await listRows()
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.entityType).toBe("invoice")
+  })
+
+  // The column stores ICU arguments so a row re-renders in whatever locale reads it. A number that
+  // arrived here already formatted would freeze one locale's separators and currency into history,
+  // and nothing downstream could tell it apart from a name.
+  test("stores no locale-formatted value in any message argument", async () => {
+    const lead = await makeLead({ firstName: "Mara", lastName: "Vance" })
+    const invoice = await makeInvoice({ status: "sent" })
+    const creditNote = await makeCreditNote({ invoiceId: invoice.id })
+    const schedule = await makeRecurringInvoice({ name: "Support retainer" })
+
+    await emit("lead.converted", {
+      leadId: lead.id,
+      userId: "user-1",
+      clientId: crypto.randomUUID()
+    })
+    await emit("credit_note.issued", {
+      creditNoteId: creditNote.id,
+      invoiceId: invoice.id,
+      userId: "user-1"
+    })
+    await emit("retainer.pool_exhausted", {
+      recurringInvoiceId: schedule.id,
+      clientId: schedule.clientId,
+      includedHours: 10,
+      consumedHours: 13.5
+    })
+
+    const values = (await listRows()).flatMap((row) => Object.values(row.messageArgs ?? {}))
+
+    expect(values).not.toHaveLength(0)
+
+    for (const value of values) {
+      expect(["string", "number"]).toContain(typeof value)
+
+      if (typeof value === "string") {
+        expect(value).not.toMatch(/[€$£¥]|\d[.,]\d{3}\b|\d+[.,]\d{2}\s*[A-Z]{3}/)
+      }
+    }
+  })
+
   test("writes nothing when the record the event names no longer exists", async () => {
     await emit("invoice.paid", { invoiceId: crypto.randomUUID(), userId: null })
 
@@ -241,6 +380,21 @@ describe("activity log subscriptions", () => {
   test("resolves rather than rejecting when the write fails", async () => {
     await expect(
       emit("client.created", { clientId: "not-a-uuid", userId: "user-1" })
+    ).resolves.toBeUndefined()
+
+    expect(await listRows()).toHaveLength(0)
+    expect(mocks.loggerError).toHaveBeenCalledOnce()
+  })
+
+  // `lib/events/bus.ts` catches nothing, so a handler that let this escape would fail the mutation
+  // that issued the credit note for the sake of a history row.
+  test("does not break the emitting action when a new handler fails", async () => {
+    await expect(
+      emit("credit_note.issued", {
+        creditNoteId: "not-a-uuid",
+        invoiceId: crypto.randomUUID(),
+        userId: "user-1"
+      })
     ).resolves.toBeUndefined()
 
     expect(await listRows()).toHaveLength(0)

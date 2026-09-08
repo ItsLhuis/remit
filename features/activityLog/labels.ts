@@ -9,11 +9,14 @@ type ActivityMessagePresentation = {
     | "Clock"
     | "FileSignature"
     | "FolderPlus"
+    | "HandCoins"
     | "RefreshCw"
     | "Repeat"
     | "Send"
+    | "TimerOff"
     | "TriangleAlert"
     | "UserPlus"
+    | "UserRoundCheck"
     | "Wallet"
 }
 
@@ -24,6 +27,7 @@ type ActivityMessagePresentation = {
 export const activityMessagePresentation: Record<ActivityMessageKey, ActivityMessagePresentation> =
   {
     "activity.messages.clientCreated": { icon: "UserPlus" },
+    "activity.messages.leadConverted": { icon: "UserRoundCheck" },
     "activity.messages.projectCreated": { icon: "FolderPlus" },
     "activity.messages.projectStatusChanged": { icon: "RefreshCw" },
     "activity.messages.proposalSent": { icon: "Send" },
@@ -35,6 +39,8 @@ export const activityMessagePresentation: Record<ActivityMessageKey, ActivityMes
     "activity.messages.invoiceOverdue": { icon: "TriangleAlert" },
     "activity.messages.invoiceLateFeeApplied": { icon: "TriangleAlert" },
     "activity.messages.invoiceGenerated": { icon: "Repeat" },
+    "activity.messages.retainerPoolExhausted": { icon: "TimerOff" },
+    "activity.messages.creditNoteIssued": { icon: "HandCoins" },
     "activity.messages.paymentReceived": { icon: "Banknote" },
     "activity.messages.timeLogged": { icon: "Clock" },
     "activity.messages.expenseCreated": { icon: "Wallet" }
@@ -42,11 +48,13 @@ export const activityMessagePresentation: Record<ActivityMessageKey, ActivityMes
 
 export const activityEntityTypeLabelKeys: Record<ActivityEntityType, ActivityEntityTypeLabelKey> = {
   client: "activity.entityTypes.client",
+  lead: "activity.entityTypes.lead",
   project: "activity.entityTypes.project",
   proposal: "activity.entityTypes.proposal",
   invoice: "activity.entityTypes.invoice",
   contract: "activity.entityTypes.contract",
-  task: "activity.entityTypes.task",
+  credit_note: "activity.entityTypes.creditNote",
+  recurring_invoice: "activity.entityTypes.recurringInvoice",
   time_entry: "activity.entityTypes.timeEntry",
   expense: "activity.entityTypes.expense",
   payment: "activity.entityTypes.payment"
@@ -56,24 +64,30 @@ export function isActivityMessageKey(value: string): value is ActivityMessageKey
   return Object.hasOwn(activityMessagePresentation, value)
 }
 
-// Proposals, invoices, payments and tasks have no detail route of their own — each is edited from a
-// sheet on its list page — so the list is the closest addressable surface an entry can link to.
-// Adding a detail route later is the moment to revisit its arm, not a reason to add a fallback now.
+// Proposals, invoices and payments have no detail route of their own — each is edited from a sheet
+// on its list page — so the list is the closest addressable surface an entry can link to. A credit
+// note does have one, but only under its invoice's project, and a feed row carries no parent ids;
+// the global list is what it can reach. Adding a detail route later is the moment to revisit an arm,
+// not a reason to add a fallback now.
 export function getActivityEntityHref(entityType: ActivityEntityType, entityId: string): string {
   switch (entityType) {
     case "client":
       return `/clients/${entityId}`
+    case "lead":
+      return `/leads/${entityId}`
     case "project":
       return `/projects/${entityId}`
     case "contract":
       return `/contracts/${entityId}`
+    case "recurring_invoice":
+      return `/recurring-invoices/${entityId}`
     case "proposal":
       return "/proposals"
     case "invoice":
     case "payment":
       return "/invoices"
-    case "task":
-      return "/projects"
+    case "credit_note":
+      return "/credit-notes"
     case "time_entry":
       return "/time"
     case "expense":

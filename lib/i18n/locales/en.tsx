@@ -3212,17 +3212,20 @@ export const english: Language = {
       },
       entityTypes: {
         client: "Client",
+        lead: "Lead",
         project: "Project",
         proposal: "Proposal",
         invoice: "Invoice",
         contract: "Contract",
-        task: "Task",
+        creditNote: "Credit note",
+        recurringInvoice: "Recurring invoice",
         timeEntry: "Time entry",
         expense: "Expense",
         payment: "Payment"
       },
       messages: {
         clientCreated: "Client {name} was added",
+        leadConverted: "Lead {name} became a client",
         projectCreated: "Project {name} was created",
         projectStatusChanged:
           "Project {name} moved to {status, select, active {Active} completed {Completed} on_hold {On hold} cancelled {Cancelled} other {Unknown}}",
@@ -3235,6 +3238,9 @@ export const english: Language = {
         invoiceOverdue: "Invoice {number} is {days, plural, one {# day} other {# days}} overdue",
         invoiceLateFeeApplied: "Late fee charged on invoice {number}",
         invoiceGenerated: "Invoice {number} was generated automatically (run {occurrence, number})",
+        retainerPoolExhausted:
+          "Retainer {name} used all {includedHours, number} included {includedHours, plural, one {hour} other {hours}} ({consumedHours, number} logged)",
+        creditNoteIssued: "Credit note {number} was issued against invoice {invoiceNumber}",
         paymentReceived: "Payment received for invoice {number}",
         timeLogged: "Logged {hours, number} h on {project}",
         expenseCreated: "Expense recorded: {category}"

@@ -9,13 +9,20 @@ import {
   activityLogs,
   clients,
   contracts,
+  creditNotes,
   expenses,
   invoices,
+  leads,
   payments,
   projects,
   proposals,
+  recurringInvoices,
   timeEntries
 } from "@/database/schema"
+
+// Through the server barrel rather than the client-safe root one: this file is bundled into the
+// worker process, and `features/leads/index.ts` re-exports the feature's React components.
+import { formatLeadName } from "@/features/leads/server"
 
 import { type ActivityEntityType, type ActivityMessageArgs } from "./schemas"
 import { type ActivityMessageKey } from "./types"
@@ -36,10 +43,19 @@ const SECONDS_PER_HOUR = 3600
 // imports this file for the Next server runtime and `scripts/worker.ts` for the job process, because
 // nothing under `lib/` may reach into a feature.
 //
-// Only events whose subject maps onto the `entity_type` enum can be carried: a lead, a credit note
-// or a recurring schedule has no member there, so those stay out of the feed rather than being
-// filed under a neighbouring type.
+// Every value of the `entity_type` enum is written here and no other, which is what lets the feed's
+// type filter be generated from the enum instead of hand-listed. Tasks are the deliberate absence:
+// they are the highest-volume record in the product, and a feed that announced them would bury the
+// documents and money it exists to show, so `task` was removed from the enum rather than left as a
+// filter option that can never match.
 on("client.created", ({ clientId }) => record("client.created", () => buildClientCreated(clientId)))
+
+// A conversion writes this row and, through `createClient`, a `client.created` row too. They are two
+// facts about two records with two click-throughs — a pursuit ended, and a client now exists — which
+// is the same shape as a settling payment writing both a `payment` and an `invoice` row. Only the
+// intermediate lead stages are refused: five of them per lead would crowd out everything else, and
+// the leads board already shows and filters on that status.
+on("lead.converted", ({ leadId }) => record("lead.converted", () => buildLeadConverted(leadId)))
 
 on("project.created", ({ projectId }) =>
   record("project.created", () => buildProjectCreated(projectId))
@@ -85,8 +101,21 @@ on("invoice.late_fee_applied", ({ invoiceId }) =>
   record("invoice.late_fee_applied", () => buildInvoiceLateFeeApplied(invoiceId))
 )
 
+// Filed under the invoice the run produced, not under the schedule: the invoice is what the reader
+// acts on, and a second row naming the schedule would announce one overnight run twice. The schedule
+// gets its own row only for exhaustion below, which is a different fact the invoice does not carry.
 on("recurring.invoice_generated", ({ invoiceId, occurrence }) =>
   record("recurring.invoice_generated", () => buildInvoiceGenerated(invoiceId, occurrence))
+)
+
+on("retainer.pool_exhausted", ({ recurringInvoiceId, includedHours, consumedHours }) =>
+  record("retainer.pool_exhausted", () =>
+    buildRetainerPoolExhausted(recurringInvoiceId, includedHours, consumedHours)
+  )
+)
+
+on("credit_note.issued", ({ creditNoteId, invoiceId }) =>
+  record("credit_note.issued", () => buildCreditNoteIssued(creditNoteId, invoiceId))
 )
 
 on("payment.received", ({ paymentId, invoiceId }) =>
@@ -132,6 +161,30 @@ async function buildClientCreated(clientId: string): Promise<ActivityRecord | nu
     action: "created",
     messageKey: "activity.messages.clientCreated",
     messageArgs: { name: row.name }
+  }
+}
+
+async function buildLeadConverted(leadId: string): Promise<ActivityRecord | null> {
+  const row = await database.query.leads.findFirst({
+    where: eq(leads.id, leadId),
+    columns: { firstName: true, lastName: true, company: true, email: true }
+  })
+
+  if (!row) return null
+
+  return {
+    entityType: "lead",
+    entityId: leadId,
+    action: "converted",
+    messageKey: "activity.messages.leadConverted",
+    messageArgs: {
+      name: formatLeadName({
+        firstName: row.firstName ?? "",
+        lastName: row.lastName ?? "",
+        company: row.company ?? "",
+        email: row.email
+      })
+    }
   }
 }
 
@@ -273,6 +326,53 @@ async function buildInvoiceGenerated(
     action: "generated",
     messageKey: "activity.messages.invoiceGenerated",
     messageArgs: { number, occurrence }
+  }
+}
+
+async function buildRetainerPoolExhausted(
+  recurringInvoiceId: string,
+  includedHours: number,
+  consumedHours: number
+): Promise<ActivityRecord | null> {
+  const row = await database.query.recurringInvoices.findFirst({
+    where: eq(recurringInvoices.id, recurringInvoiceId),
+    columns: { name: true }
+  })
+
+  if (!row) return null
+
+  return {
+    entityType: "recurring_invoice",
+    entityId: recurringInvoiceId,
+    action: "pool_exhausted",
+    messageKey: "activity.messages.retainerPoolExhausted",
+    messageArgs: { name: row.name, includedHours, consumedHours }
+  }
+}
+
+// Carries the two document numbers and no amount, for the reason `invoiceLateFeeApplied` carries
+// none: the feed shows no currency, and a credit note priced in its invoice's currency would read as
+// the wrong figure beside a row from a client billed in another.
+async function buildCreditNoteIssued(
+  creditNoteId: string,
+  invoiceId: string
+): Promise<ActivityRecord | null> {
+  const [creditNote, invoiceNumber] = await Promise.all([
+    database.query.creditNotes.findFirst({
+      where: eq(creditNotes.id, creditNoteId),
+      columns: { number: true }
+    }),
+    findInvoiceNumber(invoiceId)
+  ])
+
+  if (!creditNote || invoiceNumber === null) return null
+
+  return {
+    entityType: "credit_note",
+    entityId: creditNoteId,
+    action: "issued",
+    messageKey: "activity.messages.creditNoteIssued",
+    messageArgs: { number: creditNote.number, invoiceNumber }
   }
 }
 

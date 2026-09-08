@@ -269,21 +269,26 @@ log re-renders correctly when the user changes locale.
 
 ### `activity_logs`
 
-| Column       | Type        | Null | Default             | Notes                                             |
-| ------------ | ----------- | ---- | ------------------- | ------------------------------------------------- |
-| id           | uuid        | no   | `gen_random_uuid()` | PK                                                |
-| entity_type  | enum        | no   |                     | `client \| project \| proposal \| invoice \| ...` |
-| entity_id    | uuid        | no   |                     |                                                   |
-| action       | text        | no   |                     | `created`, `sent`, `paid`, etc.                   |
-| message_key  | text        | no   |                     | Reference into the `Translations` type            |
-| message_args | jsonb       | yes  |                     | ICU parameters for the message                    |
-| read_at      | timestamptz | yes  |                     |                                                   |
-| created_at   | timestamptz | no   | `now()`             |                                                   |
+| Column       | Type        | Null | Default             | Notes                                          |
+| ------------ | ----------- | ---- | ------------------- | ---------------------------------------------- |
+| id           | uuid        | no   | `gen_random_uuid()` | PK                                             |
+| entity_type  | enum        | no   |                     | `client \| lead \| project \| proposal \| ...` |
+| entity_id    | uuid        | no   |                     |                                                |
+| action       | text        | no   |                     | `created`, `sent`, `paid`, etc.                |
+| message_key  | text        | no   |                     | Reference into the `Translations` type         |
+| message_args | jsonb       | yes  |                     | ICU parameters for the message                 |
+| read_at      | timestamptz | yes  |                     |                                                |
+| created_at   | timestamptz | no   | `now()`             |                                                |
 
 Indexes: `activity_logs_created_at_idx` on `created_at DESC`, `activity_logs_entity_idx` on
 `(entity_type, entity_id)`, `activity_logs_unread_idx` on `id` where `read_at IS NULL`.
 
 **No `updated_at`. No `deleted_at`.** Editing means delete + insert at the application level.
+
+Every value of `entity_type` is written by a handler in `features/activityLog/events.ts`, and the
+feed's type filter is generated from the enum, so a value with no writer would be a filter option
+that can never match. Adding a value therefore means adding the handler that writes it in the same
+change.
 
 ---
 
@@ -1429,7 +1434,7 @@ All enum types declared in `database/schema/enums.ts`.
 | `email_status`             | `pending`, `sent`, `failed`                                                                                                                                                                          |
 | `discount_type`            | `percentage`, `fixed`                                                                                                                                                                                |
 | `late_fee_type`            | `percentage`, `fixed`                                                                                                                                                                                |
-| `entity_type`              | `client`, `project`, `proposal`, `invoice`, `contract`, `task`, `time_entry`, `expense`, `payment`                                                                                                   |
+| `entity_type`              | `client`, `lead`, `project`, `proposal`, `invoice`, `contract`, `credit_note`, `recurring_invoice`, `time_entry`, `expense`, `payment`                                                               |
 | `document_type`            | `proposal`, `invoice`, `contract`                                                                                                                                                                    |
 | `template_type`            | `invoice`, `proposal`, `contract`, `credit_note`, `email_invoice_send`, `email_proposal_send`, `email_contract_send`, `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated` |
 | `storage_bucket`           | `public`, `documents`                                                                                                                                                                                |
@@ -1448,11 +1453,14 @@ and `paid_at IS NULL`, and `partially_paid` when
 organization-plugin tables (`member.role`, `invitation.role`, `invitation.status`) are stored as
 `text` to match the plugin contract.
 
-`entity_type` and the activity feed do not line up in either direction, and both halves matter to
-anyone extending the feed. `features/activityLog/events.ts` writes eight of its nine values and
-never writes `task`. The four domain nouns it cannot hold at all — a lead, a credit note, a
-recurring invoice and a client contact — are why none of those appear in the feed; admitting one
-needs a migration that adds the value.
+`entity_type` lines up with the activity feed exactly: `features/activityLog/events.ts` writes all
+eleven of its values and nothing else writes any of them, which is what lets the feed's type filter
+be generated from the enum. `task` was a value until it became clear nothing should write it — tasks
+are the highest-volume record in the product and Remit is not a project management platform — and it
+was removed rather than left as a filter option that can never match. A client contact is the one
+domain noun still absent, deliberately: ADR-0027 makes a contact a capability of a client rather
+than an entity, and it has no route to link a feed row to. Admitting any new noun means a migration
+plus the handler that writes it, in the same change.
 
 ---
 

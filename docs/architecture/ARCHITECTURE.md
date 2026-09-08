@@ -801,7 +801,7 @@ proposal.accepted      proposal.rejected
 contract.created       contract.updated       contract.deleted        contract.sent
 contract.signed        contract.terminated
 invoice.created        invoice.updated        invoice.deleted         invoice.sent
-invoice.paid           invoice.overdue        invoice.reminder_sent
+invoice.paid           invoice.overdue        invoice.reminder_sent   invoice.late_fee_applied
 credit_note.issued     credit_note.deleted
 payment.received
 time.logged            expense.created
@@ -814,9 +814,17 @@ member.invited         member.accepted        member.removed          invitation
 
 ### Who subscribes
 
-`features/activityLog/events.ts` is the bus's only subscriber. It registers fourteen handlers, each
+`features/activityLog/events.ts` is the bus's only subscriber. It registers eighteen handlers, each
 of which turns one domain event into a row in the user-facing feed, and it is imported for that side
-effect by `instrumentation.ts` so the handlers exist before the first request.
+effect by `instrumentation.ts` so the handlers exist before the first request and by
+`scripts/worker.ts` so they exist in the job process too.
+
+Those eighteen are a deliberate subset of the vocabulary above, and the `entity_type` enum is the
+record of the choice: every value of that enum has a handler here and no other, so the feed's type
+filter is generated from the enum rather than hand-listed. What the feed refuses is as considered as
+what it carries — intermediate lead stages, every entity's `updated` and `deleted`, and tasks, which
+are the highest-volume record in the product and would bury the documents and money the feed exists
+to show.
 
 Every other `features/*/events.ts` is emit-only: a thin typed wrapper such as
 `features/payments/events.ts`'s `emitInvoiceSettled`, which exists so a feature's own name for what

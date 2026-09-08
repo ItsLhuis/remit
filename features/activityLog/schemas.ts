@@ -9,11 +9,13 @@ import { readIntParam, readStringParam, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from 
 // bundle. types.ts carries the compile-time tie that stops the two drifting.
 export const ACTIVITY_ENTITY_TYPES = [
   "client",
+  "lead",
   "project",
   "proposal",
   "invoice",
   "contract",
-  "task",
+  "credit_note",
+  "recurring_invoice",
   "time_entry",
   "expense",
   "payment"

@@ -24,8 +24,10 @@ describe("parseActivityListQuery", () => {
     expect(query.page).toBe(3)
   })
 
+  // `task` specifically, because it was an `entity_type` value until nothing was found to write it:
+  // a bookmarked feed URL filtering on it must degrade to "all types" rather than to a parse error.
   test("drops an entity type that is not part of the enum", () => {
-    const query = parseActivityListQuery({ type: "lead" })
+    const query = parseActivityListQuery({ type: "task" })
 
     expect(query.entityType).toBeNull()
   })

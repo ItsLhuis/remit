@@ -3106,17 +3106,20 @@ export type Translations = {
     }
     entityTypes: {
       client: string
+      lead: string
       project: string
       proposal: string
       invoice: string
       contract: string
-      task: string
+      creditNote: string
+      recurringInvoice: string
       timeEntry: string
       expense: string
       payment: string
     }
     messages: {
       clientCreated: string
+      leadConverted: string
       projectCreated: string
       projectStatusChanged: string
       proposalSent: string
@@ -3128,6 +3131,8 @@ export type Translations = {
       invoiceOverdue: string
       invoiceLateFeeApplied: string
       invoiceGenerated: string
+      retainerPoolExhausted: string
+      creditNoteIssued: string
       paymentReceived: string
       timeLogged: string
       expenseCreated: string
