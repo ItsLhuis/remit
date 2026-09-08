@@ -50,6 +50,13 @@
       "when": 1788850271734,
       "tag": "0006_many_jean_grey",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788885459360,
+      "tag": "0007_tricky_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

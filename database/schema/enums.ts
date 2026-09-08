@@ -31,13 +31,19 @@ export const discountType = pgEnum("discount_type", ["percentage", "fixed"])
 // later change to either one move both.
 export const lateFeeType = pgEnum("late_fee_type", ["percentage", "fixed"])
 
+// Every value here has a writer in `features/activityLog/events.ts`, and the feed's type filter is
+// built from this list — a value nothing writes is a filter option that can never match, which is
+// why `task` was removed rather than left permitted. Tasks stay out of the feed deliberately: they
+// are the highest-volume record in the product and Remit is not a project management platform.
 export const entityType = pgEnum("entity_type", [
   "client",
+  "lead",
   "project",
   "proposal",
   "invoice",
   "contract",
-  "task",
+  "credit_note",
+  "recurring_invoice",
   "time_entry",
   "expense",
   "payment"
