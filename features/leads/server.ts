@@ -19,6 +19,8 @@ export {
   listLeads
 } from "./queries"
 
+export { formatLeadName, type LeadNameParts } from "./services"
+
 export {
   emitLeadConverted,
   emitLeadCreated,
