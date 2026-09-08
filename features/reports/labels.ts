@@ -1,5 +1,5 @@
 import { type ReportFilterId, type ReportKind } from "./schemas"
-import { type ReportColumnId } from "./services"
+import { type ReportColumnId, type ReportExportFailureReason } from "./services"
 
 type ReportPresentation = {
   titleKey: string
@@ -99,3 +99,8 @@ export const reportColumnLabelKeys = {
   creditedTax: "reports.columns.creditedTax",
   netTaxDue: "reports.columns.netTaxDue"
 } as const satisfies Record<ReportColumnId, string>
+
+export const reportExportFailureLabelKeys = {
+  renderFailed: "reports.export.failures.renderFailed",
+  storageFailed: "reports.export.failures.storageFailed"
+} as const satisfies Record<ReportExportFailureReason, string>

@@ -60,6 +60,39 @@ export function scopeReportFilters(query: ReportQuery): ReportQuery {
   }
 }
 
+// A union rather than a runtime array, for the same reason `ReportFilterId` above is one: nothing
+// iterates every status, and the values are already enforced where they are written — by the
+// `report_export_status` enum in the database.
+export type ReportExportStatus = "pending" | "running" | "ready" | "failed"
+
+export const reportExportIdSchema = z.object({ id: z.uuid() })
+
+// The same query, read back off `report_exports.filters` instead of out of a request, and it differs
+// from the schema above in both directions on purpose.
+//
+// The dates coerce because jsonb has no date type: a `Date` written there returns as an ISO string
+// that `reportQuerySchema` would reject and `.catch(null)` would then silently widen to all time.
+//
+// The report does *not* fall back. A hand-edited URL naming an unknown report should land on the
+// default rather than error, which is what the `.catch` above is for; a stored row naming one is a
+// different situation, because rendering a report nobody asked for and calling it ready is worse
+// than failing the export.
+export const storedReportQuerySchema = reportQuerySchema.extend({
+  report: z.enum(REPORT_KINDS),
+  from: z.coerce.date().nullable().catch(null),
+  to: z.coerce.date().nullable().catch(null)
+})
+
+export function toReportFilterSnapshot(query: ReportQuery): Record<string, unknown> {
+  return {
+    from: query.from?.toISOString() ?? null,
+    to: query.to?.toISOString() ?? null,
+    clientId: query.clientId,
+    projectId: query.projectId,
+    taxRateId: query.taxRateId
+  }
+}
+
 export function parseReportQuery(input: unknown): ReportQuery {
   return scopeReportFilters(
     reportQuerySchema.parse({

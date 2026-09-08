@@ -1,5 +1,5 @@
-import { type ReportQuery } from "./schemas"
-import { type ReportResult } from "./services"
+import { type ReportExportStatus, type ReportQuery } from "./schemas"
+import { type ReportExportFailureReason, type ReportResult } from "./services"
 
 export type ReportDefaults = {
   defaultCurrency: string
@@ -23,4 +23,18 @@ export type ReportsPageData = {
   result: ReportResult
   filterOptions: ReportFilterOptions
   defaults: ReportDefaults
+}
+
+export type ReportExportState = {
+  id: string
+  status: ReportExportStatus
+  failureReason: ReportExportFailureReason | null
+  // Built here rather than in the client component, so the one route that can serve the artifact is
+  // named in one place and a `ready` state always carries the way to fetch it.
+  downloadPath: string | null
+}
+
+export type ReportExportArtifact = {
+  filename: string
+  storageKey: string
 }
