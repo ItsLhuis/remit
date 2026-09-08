@@ -2,21 +2,11 @@
 
 import { useTranslation } from "@/lib/i18n"
 
-import { formatCurrency, formatHours, formatNumber } from "@/lib/utils"
-
 import { StatCard, StatValue } from "@/components/ui"
 
 import { reportColumnLabelKeys, reportHeadlineColumns, reportPresentation } from "../../labels"
 import { type ReportKind } from "../../schemas"
-import { getCellValue, type ReportCell, type ReportResult } from "../../services"
-
-function formatTotal(cell: ReportCell | undefined, currency: string, locale: string): string {
-  if (!cell) return ""
-  if (cell.kind === "money") return formatCurrency(cell.cents, currency, locale)
-  if (cell.kind === "duration") return formatHours(cell.seconds, locale)
-
-  return formatNumber(getCellValue(cell), locale)
-}
+import { formatReportCell, type ReportResult } from "../../services"
 
 type ReportTotalsBandProps = {
   report: ReportKind
@@ -46,7 +36,7 @@ const ReportTotalsBand = ({ report, result, locale }: ReportTotalsBandProps) => 
         >
           <StatValue
             mono
-            value={formatTotal(group.totals[headlineIndex], group.currency, locale)}
+            value={formatReportCell(group.totals[headlineIndex], group.currency, locale)}
             title={t(reportColumnLabelKeys[headlineColumn])}
             hint={t("reports.summary.hint", {
               column: t(reportColumnLabelKeys[headlineColumn]),

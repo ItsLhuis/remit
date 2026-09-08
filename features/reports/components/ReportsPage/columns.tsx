@@ -2,8 +2,6 @@
 
 import { type TFunction } from "@/lib/i18n"
 
-import { formatCurrency, formatHours, formatNumber } from "@/lib/utils"
-
 import { DataTableColumnHeader, Skeleton } from "@/components/ui"
 
 import { type ColumnDef } from "@/hooks"
@@ -11,19 +9,11 @@ import { type ColumnDef } from "@/hooks"
 import { reportColumnLabelKeys, reportDimensionLabelKeys } from "../../labels"
 import { type ReportKind } from "../../schemas"
 import {
+  formatReportCell,
   getCellValue,
-  type ReportCell,
   type ReportColumnId,
   type ReportTableRow
 } from "../../services"
-
-function formatCell(cell: ReportCell | undefined, currency: string, locale: string): string {
-  if (!cell) return ""
-  if (cell.kind === "money") return formatCurrency(cell.cents, currency, locale)
-  if (cell.kind === "duration") return formatHours(cell.seconds, locale)
-
-  return formatNumber(cell.value, locale)
-}
 
 type MetricColumnOptions = {
   t: TFunction
@@ -55,7 +45,7 @@ function toMetricColumn({
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t(reportColumnLabelKeys[columnId])} />
     ),
-    cell: ({ row }) => formatCell(row.original.cells[index], row.original.currency, locale)
+    cell: ({ row }) => formatReportCell(row.original.cells[index], row.original.currency, locale)
   }
 }
 

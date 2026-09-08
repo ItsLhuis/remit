@@ -113,6 +113,14 @@ const config = {
         // `Promise.all` would only hide that behind a shape that reads as concurrency.
         files: ["features/clients/forget.ts"],
         rules: ["react-doctor/server-sequential-independent-await"]
+      },
+      {
+        // `isExporting` and `isExportingPdf` are two independent pending states, not two variants of
+        // one toolbar: a CSV is built inside the request and a PDF is rendered by the worker, so
+        // either can be in flight without the other. The rule's fix — a component per variant —
+        // would duplicate the whole filter row twice over to vary one button each.
+        files: ["features/reports/components/ReportsPage/ReportFilters.tsx"],
+        rules: ["react-doctor/prefer-explicit-variants"]
       }
     ]
   },

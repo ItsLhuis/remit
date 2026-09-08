@@ -163,5 +163,23 @@ export const EXPORT_INSTANCE_TABLES: readonly ExportTableManifest[] = [
       "updatedAt"
     ],
     excludedColumns: [{ column: "storageKey", reason: "internal" }]
+  },
+  {
+    table: "report_exports",
+    file: "data/report-exports.json",
+    scopes: INSTANCE_ONLY,
+    columns: [
+      "id",
+      "report",
+      "filters",
+      "status",
+      "failureReason",
+      "requestedByUserId",
+      "startedAt",
+      "completedAt",
+      "createdAt",
+      "updatedAt"
+    ],
+    excludedColumns: [{ column: "storageKey", reason: "internal" }]
   }
 ]

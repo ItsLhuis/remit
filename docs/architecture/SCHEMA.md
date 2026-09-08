@@ -43,8 +43,9 @@
 25. [Payments](#26-payments)
 26. [Credit notes](#27-credit-notes)
 27. [Data exports](#27-data-exports)
-28. [Attachments](#28-attachments)
-29. [Enum reference](#29-enum-reference)
+28. [Report exports](#28-report-exports)
+29. [Attachments](#29-attachments)
+30. [Enum reference](#30-enum-reference)
 
 ---
 
@@ -1330,7 +1331,38 @@ inclusion and exclusion policy.
 
 ---
 
-## 28. Attachments
+## 28. Report exports
+
+One row per report PDF requested from `/reports`. The render runs in the worker through the
+`report.pdf.render` job (ADR-0022, ADR-0023) and the file is written to the credentialed exports
+bucket, reachable only through `app/api/report-exports/[id]/route.ts`.
+
+### `report_exports`
+
+| Column               | Type        | Null | Default             | Notes                                            |
+| -------------------- | ----------- | ---- | ------------------- | ------------------------------------------------ |
+| id                   | uuid        | no   | `gen_random_uuid()` | PK                                               |
+| report               | text        | no   |                     | A `ReportKind` key, validated by the application |
+| filters              | jsonb       | no   |                     | The scoped query the PDF was rendered from       |
+| status               | enum        | no   | `'pending'`         | `pending \| running \| ready \| failed`          |
+| failure_reason       | text        | yes  |                     | Stable reason code, never a raw error message    |
+| requested_by_user_id | uuid        | yes  |                     | FK → `users.id` (set null)                       |
+| storage_key          | text        | yes  |                     | Object key in the exports bucket                 |
+| started_at           | timestamptz | yes  |                     | Set when the job claims the row                  |
+| completed_at         | timestamptz | yes  |                     | Set on `ready` and on `failed`                   |
+
+Standard `timestamps`. No `softDelete`, for the same reason `data_exports` has none.
+
+No `filename` column: the name is rebuilt from `report` and `created_at` at download time by
+`features/reports/services/reportFilename.ts`, so it cannot disagree with the row it names.
+
+`report` is `text` rather than an enum. The report vocabulary belongs to
+`features/reports/schemas.ts`, which validates every value written here, and a Postgres enum would
+put a migration in front of adding a report — the rigidity `entity_type` already demonstrates.
+
+---
+
+## 29. Attachments
 
 Many files per record, for the four entities that carry them in v1: clients, projects, invoices and
 expenses. Every attachment object lives in the private `documents` bucket and is served only through
@@ -1374,7 +1406,7 @@ excludes archives and SVG.
 
 ---
 
-## 29. Enum reference
+## 30. Enum reference
 
 All enum types declared in `database/schema/enums.ts`.
 
@@ -1405,6 +1437,7 @@ All enum types declared in `database/schema/enums.ts`.
 | `backup_cadence`           | `daily`, `weekly`                                                                                                                                                                                    |
 | `data_export_scope`        | `instance`, `client`                                                                                                                                                                                 |
 | `data_export_status`       | `pending`, `running`, `ready`, `failed`                                                                                                                                                              |
+| `report_export_status`     | `pending`, `running`, `ready`, `failed`                                                                                                                                                              |
 
 `overdue` and `partially_paid` for invoices are **computed**, not stored. The stored value remains
 `sent` until the invoice is fully paid; the application surfaces `overdue` when `due_date < now()`

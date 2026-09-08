@@ -10,7 +10,7 @@ import { DataTable, Icon, ScrollArea, SidebarTrigger, Typography, toast } from "
 
 import { useDataTable } from "@/hooks"
 
-import { useReportFilters } from "../../hooks"
+import { useReportFilters, useReportPdfExport } from "../../hooks"
 import { reportHeadlineColumns, reportPresentation } from "../../labels"
 import { exportReportCsv } from "../../mutations"
 import { toReportTableRows } from "../../services"
@@ -33,6 +33,8 @@ const ReportsPage = ({ data }: ReportsPageProps) => {
   const filters = useReportFilters(startTransition)
 
   const [isExporting, startExporting] = useTransition()
+
+  const pdfExport = useReportPdfExport()
 
   const locale = data.defaults.defaultLocale
   const presentation = reportPresentation[data.query.report]
@@ -104,6 +106,11 @@ const ReportsPage = ({ data }: ReportsPageProps) => {
           </div>
         </header>
         <ReportTotalsBand report={data.query.report} result={data.result} locale={locale} />
+        <div aria-live="polite" className="min-h-5">
+          {pdfExport.isWorking ? (
+            <Typography affects={["muted", "small"]}>{t("reports.export.pdfPending")}</Typography>
+          ) : null}
+        </div>
         <DataTable
           table={table}
           caption={t(presentation.titleKey)}
@@ -121,11 +128,13 @@ const ReportsPage = ({ data }: ReportsPageProps) => {
             entityIds={filters.entityIds}
             filterOptions={data.filterOptions}
             isExporting={isExporting}
+            isExportingPdf={pdfExport.isWorking}
             onReportChange={filters.setReport}
             onFromChange={filters.setFrom}
             onToChange={filters.setTo}
             onEntityChange={filters.setEntityId}
             onExport={onExport}
+            onExportPdf={() => pdfExport.request(data.query)}
             onReset={filters.reset}
           />
         </DataTable>

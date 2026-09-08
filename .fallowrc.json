@@ -20,6 +20,7 @@
     "features/invoices/jobs.ts",
     "features/recurringInvoices/jobs.ts",
     "features/dataExport/jobs.ts",
+    "features/reports/jobs.ts",
     "features/activityLog/events.ts",
     "features/proposals/jobs.ts",
     "features/creditNotes/jobs.ts",

@@ -955,6 +955,14 @@ into URLs by `resolveStorageUrl`. The `documents` bucket holds everything else a
 read policy; handing one of its keys to `resolveStorageUrl` is a bug, because the helper would build
 a URL the bucket refuses while telling the caller the object is reachable.
 
+A rendered report PDF is the one generated document that lives in neither bucket. It is a snapshot
+of live figures rather than a business record — nothing points at it and asking again produces a
+fresher one — so it has no `uploads` row, and it lands in the credentialed exports bucket beside
+data-export archives. `app/api/report-exports/[id]/route.ts` is the only path out, open to the same
+owner and accountant roles that may export the same report as CSV. The render itself runs in the
+worker through the `report.pdf.render` job, as every other PDF does
+([ADR-0022](adr/0022-pdf-rendering-engine.md), [ADR-0023](adr/0023-job-scheduling-bullmq-redis.md)).
+
 Every attachment lands in `documents` and is served only by `app/api/attachments/[id]/route.ts`,
 which checks the session before it reads anything and streams the object through the app rather than
 redirecting to storage. No attachment is reachable from a public token route in v1, which is also
@@ -1072,7 +1080,7 @@ Included:
   `email_logs`, `uploads`.
 - `settings` business identity, locale and document-numbering columns, plus `payment_bank_name` and
   `payment_instructions`.
-- `templates`, `tax_rates`, `audit_logs`, `data_exports` — instance scope only.
+- `templates`, `tax_rates`, `audit_logs`, `data_exports`, `report_exports` — instance scope only.
 - Every `uploads` object's bytes, which is also how ADR-0022 PDFs travel once they are stored as
   uploads.
 - Soft-deleted rows, with `deleted_at` intact, because they still exist in the instance.
@@ -1087,15 +1095,15 @@ Excluded:
 - Every Better Auth-owned table: `users`, `sessions`, `accounts`, `verifications`, `two_factors`,
   `organizations`, `members`, `invitations`.
 - `proposal_otps` — single-use acceptance codes.
-- `data_exports.storage_key`, an internal object path.
+- `data_exports.storage_key` and `report_exports.storage_key`, internal object paths.
 
 Two boundaries are deliberately wider than "everything the owner may see". The whole configuration
 surface is excluded rather than filtered field by field, because one auditable boundary does not
 grow a new leak each time a provider setting is added beside a secret; and the Better Auth boundary
 is drawn around the plugin's entire schema rather than around its credential columns, because those
 tables' shape is owned by a dependency that changes across upgrades. A client-scoped export drops
-the instance-wide tables (`settings`, `templates`, `tax_rates`, `audit_logs`, `data_exports`) and
-scopes everything else to that client's subgraph.
+the instance-wide tables (`settings`, `templates`, `tax_rates`, `audit_logs`, `data_exports`,
+`report_exports`) and scopes everything else to that client's subgraph.
 
 **Soft delete.** Domain entities carry `deletedAt` through the `softDelete` helper, and every read
 excludes rows where it is set. Deleting from the application is always this soft delete: the row
@@ -1381,6 +1389,7 @@ application-level interactions. API routes exist only for specific, justified ca
 | `/api/attachments/[id]`      | Session-gated attachment download from the private bucket |
 | `/api/documents/[type]/[id]` | Session-gated rendered-document download                  |
 | `/api/exports/[id]`          | Owner-gated data export archive download                  |
+| `/api/report-exports/[id]`   | Export-role-gated report PDF download                     |
 
 `POST /i/[token]/pay` is the narrowest of these to justify and the reason the list is a list rather
 than a rule. It is a write from an unauthenticated context: the caller is a client with no account,

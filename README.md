@@ -124,7 +124,7 @@ because signing is the one anonymous action with no second factor.
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.
 
 **Reports.** Revenue by client/project/month/tax rate, time by project/client/billable status,
-expenses by category, tax summary by rate. CSV export.
+expenses by category, tax summary by rate. CSV and PDF export.
 
 **Templates.** Block-based visual editor for invoice, proposal, contract, credit note, and email
 templates. Merge variables, custom branding.

@@ -53,11 +53,13 @@ type ReportFiltersProps = {
   entityIds: Record<ReportFilterId, string>
   filterOptions: ReportFilterOptions
   isExporting: boolean
+  isExportingPdf: boolean
   onReportChange: (value: ReportKind) => void
   onFromChange: (value: string) => void
   onToChange: (value: string) => void
   onEntityChange: (filter: ReportFilterId, value: string) => void
   onExport: () => void
+  onExportPdf: () => void
   onReset: () => void
 }
 
@@ -70,11 +72,13 @@ const ReportFilters = ({
   entityIds,
   filterOptions,
   isExporting,
+  isExportingPdf,
   onReportChange,
   onFromChange,
   onToChange,
   onEntityChange,
   onExport,
+  onExportPdf,
   onReset
 }: ReportFiltersProps) => {
   const { t } = useTranslation()
@@ -130,6 +134,15 @@ const ReportFilters = ({
           >
             {isExporting ? <Spinner /> : <Icon name="Download" aria-hidden="true" />}
             {t("reports.actions.export")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExportingPdf || rowCount === 0}
+            onClick={onExportPdf}
+          >
+            {isExportingPdf ? <Spinner /> : <Icon name="FileText" aria-hidden="true" />}
+            {t("reports.actions.exportPdf")}
           </Button>
           <DataTableViewOptions table={table} />
         </div>
