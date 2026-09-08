@@ -66,6 +66,12 @@ export type JobMap = {
   "data_export.assemble": {
     exportId: string
   }
+  // Carries only the `report_exports` row id, for the same reason the export above does: the report
+  // and its filters live on that row, and re-reading them under a conditional claim is what makes a
+  // duplicate delivery a no-op instead of a second browser launch.
+  "report.pdf.render": {
+    reportExportId: string
+  }
   "invoice.overdue.sweep": Record<string, never>
   "invoice.reminder.sweep": Record<string, never>
   // Reads the retention windows from `settings` itself rather than carrying them, so a window
@@ -101,6 +107,7 @@ const JOB_NAME_KEYS: Record<JobName, true> = {
   "recurring.schedule.sweep": true,
   "recurring.invoice.generate": true,
   "data_export.assemble": true,
+  "report.pdf.render": true,
   "invoice.overdue.sweep": true,
   "invoice.reminder.sweep": true,
   "invoice.reminder.send": true,

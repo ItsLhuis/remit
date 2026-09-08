@@ -75,6 +75,16 @@ export const DOMAIN_DATA_INVENTORY = [
     reason: "archive record of exported domain data"
   },
   {
+    key: "reportExports",
+    table: "report_exports",
+    seed: "skip",
+    reseed: "keep",
+    reset: "delete",
+    trash: "none",
+    retention: null,
+    reason: "request record for a rendered report PDF"
+  },
+  {
     key: "attachments",
     table: "attachments",
     seed: "skip",
