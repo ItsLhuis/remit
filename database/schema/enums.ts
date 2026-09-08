@@ -117,3 +117,10 @@ export const dataExportStatus = pgEnum("data_export_status", [
   "ready",
   "failed"
 ])
+
+export const reportExportStatus = pgEnum("report_export_status", [
+  "pending",
+  "running",
+  "ready",
+  "failed"
+])

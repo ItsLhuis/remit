@@ -43,6 +43,13 @@
       "when": 1788764567517,
       "tag": "0005_ordinary_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788850271734,
+      "tag": "0006_many_jean_grey",
+      "breakpoints": true
     }
   ]
 }
