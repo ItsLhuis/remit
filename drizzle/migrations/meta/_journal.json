@@ -57,6 +57,13 @@
       "when": 1788885459360,
       "tag": "0007_tricky_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788954528067,
+      "tag": "0008_gifted_black_panther",
+      "breakpoints": true
     }
   ]
 }

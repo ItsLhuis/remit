@@ -136,6 +136,10 @@ export const settings = pgTable(
     backupS3Endpoint: text("backup_s3_endpoint"),
     backupS3AccessKey: encryptedColumn("backup_s3_access_key"),
     backupS3SecretKey: encryptedColumn("backup_s3_secret_key"),
+    backupTestConnectionAt: timestamp("backup_test_connection_at", {
+      withTimezone: true,
+      mode: "date"
+    }),
     backupLastSuccessAt: timestamp("backup_last_success_at", { withTimezone: true, mode: "date" }),
     backupLastFailureAt: timestamp("backup_last_failure_at", { withTimezone: true, mode: "date" }),
     backupLastFailureReason: text("backup_last_failure_reason"),

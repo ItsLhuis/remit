@@ -84,6 +84,7 @@ export const EXPORT_INSTANCE_TABLES: readonly ExportTableManifest[] = [
       { column: "backupS3Bucket", reason: "configuration" },
       { column: "backupS3Region", reason: "configuration" },
       { column: "backupS3Endpoint", reason: "configuration" },
+      { column: "backupTestConnectionAt", reason: "configuration" },
       { column: "backupLastSuccessAt", reason: "configuration" },
       { column: "backupLastFailureAt", reason: "configuration" },
       { column: "backupLastFailureReason", reason: "configuration" },

@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "backup_test_connection_at" timestamp with time zone;
