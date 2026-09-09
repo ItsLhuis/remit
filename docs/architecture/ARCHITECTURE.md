@@ -1733,13 +1733,17 @@ Tier 2 - Integration (every server action)
   IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
 
 Tier 3 - E2E (Playwright)
-  tests/e2e/auth.spec.ts       Register → business setup → the TOTP QR step, and the
-                               login page's CLI-reset help when SMTP is unconfigured.
-  tests/e2e/health.spec.ts     The public health endpoint.
-  tests/e2e/timeToInvoice      Time entry → billed onto an invoice → sent → marked paid.
-  tests/e2e/templateEditor*    Eleven specs over the canvas engine's pointer gestures,
-                               which is the one surface whose behaviour only a real
-                               browser can assert (ADR-0024).
+  tests/e2e/auth.spec.ts          Register → business setup → the TOTP QR step, and the
+                                  login page's CLI-reset help when SMTP is unconfigured.
+  tests/e2e/health.spec.ts        The public health endpoint.
+  tests/e2e/proposalToPaid        Client → project → proposal → anonymous OTP acceptance →
+                                  converted to an invoice → sent → payment recorded.
+  tests/e2e/timeToInvoice         Time entry → billed onto an invoice → sent → marked paid.
+  tests/e2e/recurringGeneration   A due schedule swept through a real BullMQ worker generates
+                                  one draft; a re-delivered occurrence generates nothing more.
+  tests/e2e/templateEditor*       Eleven specs over the canvas engine's pointer gestures,
+                                  which is the one surface whose behaviour only a real
+                                  browser can assert (ADR-0024).
 
 Tier 4 - Selective component tests
   When: state machine (multi-step dialogs), 3+ conditional branches,
@@ -1755,10 +1759,15 @@ Tier 5 - Never tested
   Snapshot tests of rendered React - banned.
 ```
 
-`.agents/rules/testing.md` names five canonical end-to-end flows this suite is held to. The first
-runs as far as the TOTP QR step and the third runs end to end; the remaining three have no spec.
-That commitment lives in the rule file, which is where a coverage target belongs — this document
-records the specs that exist.
+`.agents/rules/testing.md` names five canonical end-to-end flows this suite is held to. Flows two,
+three and four are Playwright specs; flow five is a Vitest integration test
+(`lib/auth/__tests__/passwordReset.integration.test.ts`) because Remit has exactly one user by
+construction (ADR-0002) — a browser-driven reset would change the credential of the sole owner every
+other spec authenticates as, and on a self-hosted instance that owner is a real account. Flow one is
+covered as far as the TOTP QR step; the recovery codes it shows next are not asserted anywhere,
+because `tests/e2e/support/ownerProvisioning.ts` finishes enrolment through Better Auth's own
+endpoints and never sees that screen. That commitment lives in the rule file, which is where a
+coverage target belongs — this document records the specs that exist.
 
 The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
 `.agents/rules/testing.md`. The project ships Vitest unit tests, Vitest integration tests against

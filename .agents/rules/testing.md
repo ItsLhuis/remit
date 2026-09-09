@@ -44,10 +44,20 @@ shared helper path rather than relying on route-local parsing behavior.
 Keep E2E tests short and focused on flows that cross multiple features:
 
 1. Register -> setup wizard -> TOTP enrollment -> recovery codes -> first dashboard view.
+   `tests/e2e/auth.spec.ts` drives it to the QR step; the recovery-code screen is not asserted.
 2. Client -> project -> proposal -> public acceptance (OTP) -> convert to invoice -> mark paid.
-3. Time entry -> conversion to invoice -> send -> mark paid.
+   `tests/e2e/proposalToPaid.spec.ts`.
+3. Time entry -> conversion to invoice -> send -> mark paid. `tests/e2e/timeToInvoice.spec.ts`.
 4. Recurring invoice generation produces the expected draft on the configured next-run date.
-5. Password reset via recovery code.
+   `tests/e2e/recurringGeneration.spec.ts`.
+5. Password reset, and the second factor still demanded afterwards.
+   `lib/auth/__tests__/passwordReset.integration.test.ts`.
+
+Flow 5 is the one that is not a Playwright spec, and deliberately: Remit has exactly one user by
+construction, so a browser-driven reset would change the credential every other spec authenticates
+as — and on a self-hosted instance that is somebody's real account, with no way to put it back. The
+integration suite creates the account it resets. A flow belonging to this list is a claim about
+coverage, not about which runner provides it.
 
 ### Tier 4 - Selective component tests
 

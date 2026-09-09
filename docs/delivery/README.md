@@ -136,6 +136,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0038](0038-trash-restore-and-retention.md)     | Trash, restore, retention and erasure          | 2026-09-07 | Complete with known gaps | ADR-0010, ADR-0025, ADR-0026, ADR-0028, ADR-0034 |
 | [0039](0039-report-pdf-export.md)               | Report PDF export                              | 2026-09-08 | Complete with known gaps | ADR-0007, ADR-0009, ADR-0019, ADR-0022, ADR-0023 |
 | [0040](0040-activity-feed-coverage.md)          | Activity feed coverage                         | 2026-09-08 | Complete with known gaps | ADR-0006, ADR-0010, ADR-0015, ADR-0027           |
+| [0041](0041-canonical-e2e-flows.md)             | Canonical end-to-end flow coverage             | 2026-09-09 | Complete with known gaps | ADR-0002, ADR-0003, ADR-0012, ADR-0023           |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
-`DR-0035` through `DR-0040`, which were written at delivery time.
+`DR-0035` through `DR-0041`, which were written at delivery time.
