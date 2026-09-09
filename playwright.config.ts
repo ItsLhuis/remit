@@ -51,6 +51,28 @@ export default defineConfig({
       dependencies: ["provision"],
       use: { ...devices["Desktop Chrome"] }
     },
+    // The proposal flow points the instance's own email settings at the mail sink for the length of
+    // the run, so it must not overlap anything that reads them: `auth.spec.ts` asserts the
+    // unconfigured-instance branch of the login page and would silently skip itself if it saw a
+    // configured provider. Running after `provision` puts it past that assertion.
+    {
+      name: "flows-email",
+      testMatch: /proposalToPaid\.spec\.ts$/,
+      dependencies: ["provision"],
+      workers: 1,
+      use: { ...devices["Desktop Chrome"] }
+    },
+    // The recurring-generation flow starts a real BullMQ worker in the Playwright process, which
+    // consumes whatever else is on the shared queue while it runs. It therefore runs alone and after
+    // the other flows, so a PDF render another spec enqueued cannot land in its worker and hold up
+    // the shutdown that waits for in-flight jobs.
+    {
+      name: "flows-jobs",
+      testMatch: /recurringGeneration\.spec\.ts$/,
+      dependencies: ["flows"],
+      workers: 1,
+      use: { ...devices["Desktop Chrome"] }
+    },
     {
       name: "editor",
       testMatch: /templateEditor(?!FrameContinuity).*\.spec\.ts$/,
