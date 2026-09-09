@@ -1214,9 +1214,9 @@ implicit to the instance. See ADR-0013.
 Authorization is implemented as a thin layer in two places:
 
 **Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
-`/settings/system`, and any endpoint that exposes the encryption key fingerprint are owner-only.
-Routes that perform sends or deletions are blocked for `assistant`. All other routes are accessible
-to all roles.
+`/settings/data`, `/settings/backup`, `/settings/system`, and any endpoint that exposes the
+encryption key fingerprint are owner-only. Routes that perform sends or deletions are blocked for
+`assistant`. All other routes are accessible to all roles.
 
 **Action-level (operation gating).** Every server action gates on the active member's role before it
 writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
@@ -1438,8 +1438,8 @@ lib/config/env.ts    Zod-validated deployment configuration. Process exits on fa
 /setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
 /settings/**         Ongoing instance configuration stored in the settings table.
 .env                 Deployment-owned configuration: database URL, auth URL/secret, encryption key,
-                     data/storage bootstrap, Redis, Chromium path, and the three unread variables
-                     named in the Observability and Operating-for-somebody-else sections.
+                     data/storage bootstrap, Redis, Chromium path, and the two unread variables
+                     named in the Observability section.
 ```
 
 No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
@@ -1558,12 +1558,26 @@ Database contents and uploads are replaced by the archive contents after confirm
 safety, refusal rules, data effects, and logging/redaction details live in the
 [Restore runbook](../operations/RESTORE.md).
 
-Backup configuration and status live in the settings schema. `/settings/system` reads the three
-status columns — destination, last success, last failure — and surfaces them. The other backup
-columns, including the destination itself, the cadence, the three retention counts and the five
-S3-compatible credential columns, are written by nothing in the application: an operator sets them
-directly, or takes the defaults, and passes overrides to the command. Backup runs when an operator
-runs `remit:backup`.
+Backup configuration and status live in the settings schema. `/settings/backup` is the owner-only
+surface that writes the configuration: the destination, the bucket, region and endpoint of an
+S3-compatible target, its two `encryptedColumn()` credentials, the cadence, and the three retention
+counts. `scripts/core/backup/` reads exactly those columns, so the command and the page share one
+representation rather than two. `/settings/system` reads the three status columns — destination,
+last success, last failure — and judges freshness; the settings page shows the same last outcome
+beside the configuration that produced it, and defers the verdict to the health check.
+
+The page also verifies a destination before a backup depends on it. The test writes one small object
+and deletes it, under a prefix outside the one retention prunes, because a backup needs write access
+and a listing proves only that the bucket can be read. Success is recorded in
+`backup_test_connection_at`; a failure is reported as a translated message, and the provider's own
+text reaches the log only through the operational redactor.
+
+On a hosted instance (`REMIT_HOSTED_MODE`) the destination belongs to the operator: the page renders
+read-only and says so, and the mutations refuse, because a read-only form is a rendering decision
+and never the authorization.
+
+Nothing schedules a backup. A backup runs when an operator runs `remit:backup`, and `backup_cadence`
+records the intended rhythm for a scheduler that does not exist yet.
 
 ### Updates
 
@@ -1807,9 +1821,11 @@ and add complexity nothing exercises. Everything an operator running a fleet wou
 — provisioning, routing, billing, centralised backups — is operations work outside this repository,
 and no part of it is here.
 
-`lib/config/env.ts` validates a `REMIT_HOSTED_MODE` boolean that no code reads, alongside the two
-observability variables in the Observability section. [ADR-0014](adr/0014-hosted-offering.md)
-records the isolation decision and what it rejected.
+`lib/config/env.ts` validates a `REMIT_HOSTED_MODE` boolean, and `/settings/backup` is what reads
+it: on a hosted instance the backup destination is the operator's, so that page renders read-only
+and its mutations refuse. Nothing else in the application branches on the flag, because nothing else
+differs — the isolation is structural rather than conditional.
+[ADR-0014](adr/0014-hosted-offering.md) records the isolation decision and what it rejected.
 
 ---
 

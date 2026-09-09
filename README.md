@@ -190,6 +190,11 @@ Operational support:
 - **Health dashboard** - `/settings/system` shows database connectivity, email/Stripe/storage
   reachability, backup destination and success/failure status, disk usage, and the encryption key
   fingerprint.
+- **Backup settings** - `/settings/backup` is owner-only and configures where `pnpm remit:backup`
+  writes: the destination, the bucket, region and endpoint of an S3-compatible target, its two
+  encrypted credentials, and how many daily, weekly and monthly archives a run leaves in place. A
+  destination test writes and deletes one small object, because a backup needs write access rather
+  than read access. Nothing schedules a backup: an operator runs `pnpm remit:backup`.
 - **CLI tools** - shipped in-container commands:
   - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
     `pg_dump --format=custom` output and uploads. The archive contract is documented in

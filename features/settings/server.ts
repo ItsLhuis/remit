@@ -1,3 +1,4 @@
+export { BackupSettingsPage } from "./backup/components"
 export { BusinessSettingsPage } from "./business/components"
 export { EmailSettingsPage } from "./email/components"
 export { InvoicingSettingsPage } from "./invoicing/components"

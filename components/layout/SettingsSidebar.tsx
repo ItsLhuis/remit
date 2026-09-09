@@ -73,6 +73,11 @@ const navGroups = [
         labelKey: "settings.navigation.data",
         href: "/settings/data",
         icon: "DatabaseBackup"
+      },
+      {
+        labelKey: "settings.navigation.backup",
+        href: "/settings/backup",
+        icon: "HardDriveDownload"
       }
     ]
   },

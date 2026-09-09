@@ -166,6 +166,7 @@ const config = {
     "requireRecurringInvoiceWrite",
     "requireRecurringInvoiceCancel",
     "requireRecurringInvoiceDelete",
+    "requireBackupSettingsWrite",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",

@@ -368,6 +368,7 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | backup_s3_endpoint         | text             | yes  | For R2/B2/MinIO                                                                                                                                                                          |
 |                  | backup_s3_access_key       | text (encrypted) | yes  |                                                                                                                                                                                          |
 |                  | backup_s3_secret_key       | text (encrypted) | yes  |                                                                                                                                                                                          |
+|                  | backup_test_connection_at  | timestamptz      | yes  | Last time the configured destination accepted a test write                                                                                                                               |
 |                  | backup_last_success_at     | timestamptz      | yes  |                                                                                                                                                                                          |
 |                  | backup_last_failure_at     | timestamptz      | yes  |                                                                                                                                                                                          |
 |                  | backup_last_failure_reason | text             | yes  |                                                                                                                                                                                          |
@@ -375,9 +376,12 @@ Single-row instance configuration. Exists exactly once per instance.
 
 The three `backup_last_*` columns are written by `remit:backup` and read by `/settings/system`. The
 ten backup policy columns above them — destination, cadence, the three retention counts and the five
-S3-compatible credential columns — are read by `scripts/core/backup/` and written by nothing: no
-settings surface edits them, so an operator either takes the defaults or sets them directly.
-`backup_cadence` is read by nothing at all, because no scheduler consumes it.
+S3-compatible credential columns — are written by `/settings/backup` and read by
+`scripts/core/backup/`, which is why the two credential columns are encrypted: the settings surface
+writes them through `encryptedColumn()`, and `readBackupCredentialsFromSettings` reads them back.
+`backup_test_connection_at` is written by that surface's destination test and read only for display.
+`backup_cadence` is stored and consumed by no scheduler; a backup happens when an operator runs
+`remit:backup`.
 
 Constraints (named):
 
