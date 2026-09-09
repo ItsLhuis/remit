@@ -3880,6 +3880,7 @@ export const english: Language = {
         email: "Email",
         team: "Team",
         data: "Data",
+        backup: "Backups",
         system: "System"
       },
       navigation: {
@@ -3893,6 +3894,7 @@ export const english: Language = {
         taxRates: "Tax Rates",
         team: "Team",
         data: "Data",
+        backup: "Backups",
         system: "System"
       },
       profile: {
@@ -4076,6 +4078,101 @@ export const english: Language = {
           logoSizeInvalid: "Logo file size is invalid.",
           logoTooLarge: "Logo must be 5MB or smaller.",
           logoObjectKeyRequired: "Logo upload key is required."
+        }
+      },
+      backup: {
+        title: "Backups",
+        description: "Choose where encrypted backup archives are written and how many are kept.",
+        destinationSection: "Destination",
+        destinationSectionDescription:
+          "A backup run writes one archive to one destination. Credentials are encrypted before they are stored.",
+        destination: "Destination",
+        destinationLocal: "Local disk",
+        destinationS3: "Amazon S3",
+        destinationR2: "Cloudflare R2",
+        destinationB2: "Backblaze B2",
+        destinationLocalHelp:
+          "Archives are written to the backups folder inside the data directory, which is set by REMIT_DATA_DIR and not editable here.",
+        destinationRemoteHelp:
+          "Archives are uploaded under the remit-backups prefix in the bucket you name below.",
+        bucket: "Bucket",
+        bucketPlaceholder: "remit-backups",
+        region: "Region",
+        regionPlaceholder: "eu-west-1",
+        regionHelp: "The region the bucket lives in.",
+        regionR2Help:
+          "Your Cloudflare account identifier, or any region when you give an endpoint below.",
+        endpoint: "Endpoint",
+        endpointPlaceholder: "https://s3.example.com",
+        endpointHelp: "Optional. Set it for MinIO or another S3-compatible service.",
+        endpointR2Help:
+          "Required unless the region above is your Cloudflare account identifier, which the endpoint is otherwise built from.",
+        accessKey: "Access key",
+        accessKeyPlaceholder: "Access key ID",
+        secretKey: "Secret key",
+        secretKeyPlaceholder: "Secret access key",
+        configuredPlaceholder: "••••••••",
+        changeSecret: "Change",
+        secretPreserved: "Stored and encrypted. Leave blank to keep it.",
+        retentionSection: "Cadence and retention",
+        retentionSectionDescription:
+          "How often you intend to back up, and how many archives each backup run leaves in place.",
+        cadence: "Cadence",
+        cadenceDaily: "Daily",
+        cadenceWeekly: "Weekly",
+        cadenceHelp:
+          "Recorded for a future scheduler. Nothing runs backups automatically yet — run pnpm remit:backup to take one.",
+        retentionDaily: "Daily archives",
+        retentionDailyHelp:
+          "Covers the most recent days. One archive is kept per calendar day, for at most this many days.",
+        retentionWeekly: "Weekly archives",
+        retentionWeeklyHelp:
+          "Covers the weeks before the daily window. One archive is kept per ISO week, for at most this many weeks.",
+        retentionMonthly: "Monthly archives",
+        retentionMonthlyHelp:
+          "Covers everything older than the weekly window. One archive is kept per calendar month, for at most this many months.",
+        retentionWarning:
+          "Everything outside these windows is deleted the next time a backup runs. Lowering a number discards the archives it no longer covers, and 0 keeps nothing in that window.",
+        retentionLocalNote:
+          "Retention applies to Amazon S3, Cloudflare R2 and Backblaze B2. Local archives are never deleted; remove them yourself.",
+        statusTitle: "Status",
+        statusDescription: "The last backup run and the last time these credentials were verified.",
+        lastSuccess: "Last successful backup {date}",
+        lastSuccessNever: "No backup has completed on this instance yet",
+        lastTest: "Destination last verified {date}",
+        lastTestNever: "This destination has not been verified yet",
+        lastFailure: "Last backup failed {date}",
+        lastFailureUnknown: "No reason was recorded",
+        runManually: "Take a backup by running pnpm remit:backup inside the app container.",
+        systemLink: "See backup health on the system page",
+        testConnection: "Test destination",
+        testSucceeded: "Destination accepted a test write",
+        saved: "Backup settings saved",
+        hostedTitle: "Backups are managed by your operator",
+        hostedDescription:
+          "This instance runs in hosted mode, where the backup destination belongs to the operator. The settings below are read-only.",
+        errors: {
+          updateFailed: "Could not save backup settings",
+          notConfigured: "Configure a destination and its credentials before testing",
+          hostedManaged: "Backups are managed by your operator on this instance",
+          testFailed: "Could not verify the destination",
+          authFailed: "The destination rejected the access key or secret key",
+          permissionFailed: "The credentials cannot write to this bucket",
+          bucketNotFound: "The bucket was not found at this endpoint",
+          connectionFailed: "Could not reach the destination",
+          probeNotRemoved:
+            "The test object was written but could not be deleted, so the credentials cannot enforce retention. A small test object may remain under remit-connection-test"
+        },
+        validation: {
+          destinationInvalid: "Choose a backup destination",
+          cadenceInvalid: "Choose a backup cadence",
+          retentionRangeInvalid: "Enter a whole number between 0 and 365",
+          bucketRequired: "Bucket is required for this destination",
+          regionRequired: "Region is required for this destination",
+          endpointRequired:
+            "Endpoint is required unless the region is a Cloudflare account identifier",
+          accessKeyRequired: "Access key is required for this destination",
+          secretKeyRequired: "Secret key is required for this destination"
         }
       },
       payment: {

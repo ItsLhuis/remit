@@ -3761,6 +3761,7 @@ export type Translations = {
       email: string
       team: string
       data: string
+      backup: string
       system: string
     }
     navigation: {
@@ -3774,6 +3775,7 @@ export type Translations = {
       taxRates: string
       team: string
       data: string
+      backup: string
       system: string
     }
     profile: {
@@ -3951,6 +3953,86 @@ export type Translations = {
         logoSizeInvalid: string
         logoTooLarge: string
         logoObjectKeyRequired: string
+      }
+    }
+    backup: {
+      title: string
+      description: string
+      destinationSection: string
+      destinationSectionDescription: string
+      destination: string
+      destinationLocal: string
+      destinationS3: string
+      destinationR2: string
+      destinationB2: string
+      destinationLocalHelp: string
+      destinationRemoteHelp: string
+      bucket: string
+      bucketPlaceholder: string
+      region: string
+      regionPlaceholder: string
+      regionHelp: string
+      regionR2Help: string
+      endpoint: string
+      endpointPlaceholder: string
+      endpointHelp: string
+      endpointR2Help: string
+      accessKey: string
+      accessKeyPlaceholder: string
+      secretKey: string
+      secretKeyPlaceholder: string
+      configuredPlaceholder: string
+      changeSecret: string
+      secretPreserved: string
+      retentionSection: string
+      retentionSectionDescription: string
+      cadence: string
+      cadenceDaily: string
+      cadenceWeekly: string
+      cadenceHelp: string
+      retentionDaily: string
+      retentionDailyHelp: string
+      retentionWeekly: string
+      retentionWeeklyHelp: string
+      retentionMonthly: string
+      retentionMonthlyHelp: string
+      retentionWarning: string
+      retentionLocalNote: string
+      statusTitle: string
+      statusDescription: string
+      lastSuccess: string
+      lastSuccessNever: string
+      lastTest: string
+      lastTestNever: string
+      lastFailure: string
+      lastFailureUnknown: string
+      runManually: string
+      systemLink: string
+      testConnection: string
+      testSucceeded: string
+      saved: string
+      hostedTitle: string
+      hostedDescription: string
+      errors: {
+        updateFailed: string
+        notConfigured: string
+        hostedManaged: string
+        testFailed: string
+        authFailed: string
+        permissionFailed: string
+        bucketNotFound: string
+        connectionFailed: string
+        probeNotRemoved: string
+      }
+      validation: {
+        destinationInvalid: string
+        cadenceInvalid: string
+        retentionRangeInvalid: string
+        bucketRequired: string
+        regionRequired: string
+        endpointRequired: string
+        accessKeyRequired: string
+        secretKeyRequired: string
       }
     }
     payment: {
