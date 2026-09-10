@@ -140,6 +140,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0042](0042-backup-settings-surface.md)         | Backup policy settings surface                 | 2026-09-09 | Complete with known gaps | ADR-0005, ADR-0014, ADR-0019, ADR-0020           |
 | [0043](0043-scheduled-backups.md)               | Scheduled backups                              | 2026-09-09 | Complete with known gaps | ADR-0020, ADR-0021, ADR-0023, ADR-0035           |
 | [0044](0044-prometheus-metrics-endpoint.md)     | Prometheus metrics endpoint                    | 2026-09-10 | Complete with known gaps | ADR-0018, ADR-0023, ADR-0036                     |
+| [0045](0045-shared-rate-limiting.md)            | Shared rate limiting and the cache decision    | 2026-09-10 | Complete with known gaps | ADR-0023, ADR-0037                               |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
-`DR-0035` through `DR-0044`, which were written at delivery time.
+`DR-0035` through `DR-0045`, which were written at delivery time.

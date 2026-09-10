@@ -994,8 +994,16 @@ touch this file" is always the already-answered question "may this requester tou
 ### Rate limiting
 
 A rate limiter with a swappable adapter protects every endpoint that processes authentication or a
-public token. `lib/rateLimit/` ships one adapter, `inMemoryAdapter.ts`, which is correct for the
-single-instance deployment model and is the only adapter a single process needs.
+public token. `lib/rateLimit/` counts in Redis: each key is a fixed window counted by one atomic
+script, so a limit holds across the app process and any replica and survives a restart, and a
+result's reset time is the key's remaining TTL. `proxy.ts` uses the same limiter, because a Next.js
+16 proxy always runs on the Node.js runtime. While Redis is unreachable every call site falls back
+to a per-process in-memory counter, the behaviour the limiter had before a shared store existed, and
+the outage is logged when it starts and when it ends rather than on every request: no limit is
+switched off and no request is refused because the store is down. Better Auth's own limits in the
+table below keep their counters inside the app process.
+[ADR-0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) records the algorithm, the failure
+mode at each call site, and why no application cache exists.
 
 Coverage, and where each limit lives:
 
@@ -1930,44 +1938,45 @@ An ADR records why a decision was taken. What was subsequently built against it 
 implementation shape, the evidence and the gaps left open on the day — is recorded separately, one
 sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 
-| ADR                                                  | Title                                                                                  | Status   |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)                | No cookies for routing state                                                           | Accepted |
-| [0002](adr/0002-single-instance-model.md)            | Single-instance model is structural                                                    | Accepted |
-| [0003](adr/0003-mandatory-totp.md)                   | Mandatory TOTP — no opt-out                                                            | Accepted |
-| [0004](adr/0004-feature-module-structure.md)         | Closed feature modules with ESLint enforcement                                         | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)               | AES-256-GCM encryption via Drizzle column helper                                       | Accepted |
-| [0006](adr/0006-internal-event-bus.md)               | Typed in-process event bus for cross-feature effects                                   | Accepted |
-| [0007](adr/0007-pure-services.md)                    | Pure business logic in `services/` — no framework imports                              | Accepted |
-| [0008](adr/0008-email-adapters.md)                   | SMTP and Resend as interchangeable adapter implementations                             | Accepted |
-| [0009](adr/0009-money-as-integer-minor-units.md)     | Money stored as integer minor units — no floating-point                                | Accepted |
-| [0010](adr/0010-soft-delete.md)                      | Soft delete by default — hard delete after retention window                            | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)                | Single Next.js app until a second artefact requires its own build                      | Accepted |
-| [0012](adr/0012-password-reset-paths.md)             | Password reset via email when available, CLI fallback otherwise                        | Accepted |
-| [0013](adr/0013-better-auth-organization.md)         | Better Auth organization plugin for multi-user role storage                            | Accepted |
-| [0014](adr/0014-hosted-offering.md)                  | Hosted offering as per-instance isolation, not row-level tenancy                       | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)               | i18next + ICU with TypeScript-typed message keys                                       | Accepted |
-| [0016](adr/0016-server-actions-canonical.md)         | Server actions as canonical write path; API routes for public/webhooks only            | Accepted |
-| [0017](adr/0017-polymorphic-line-items.md)           | Polymorphic line items via mutually-exclusive parent FKs                               | Accepted |
-| [0018](adr/0018-no-telemetry.md)                     | No telemetry or analytics by default                                                   | Accepted |
-| [0019](adr/0019-storage-backend-adapters.md)         | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in            | Accepted |
-| [0020](adr/0020-operational-cli-contract.md)         | Operational CLI contract                                                               | Accepted |
-| [0021](adr/0021-encryption-key-rotation.md)          | Encryption key rotation                                                                | Accepted |
-| [0022](adr/0022-pdf-rendering-engine.md)             | Headless-browser PDF rendering (Puppeteer/Playwright)                                  | Accepted |
-| [0023](adr/0023-job-scheduling-bullmq-redis.md)      | Background jobs and scheduling via BullMQ + Redis                                      | Accepted |
-| [0024](adr/0024-template-editor-canvas.md)           | Template editor — free collision-aware page-clamped canvas                             | Accepted |
-| [0025](adr/0025-instance-data-reset-scope.md)        | Instance data reset — domain data versus instance state                                | Accepted |
-| [0026](adr/0026-document-parentage.md)               | Document parentage — optional project, agreeing client, composite key                  | Accepted |
-| [0027](adr/0027-contact-identity.md)                 | Contact identity — delivery target and acceptance identity, never an entity            | Accepted |
-| [0028](adr/0028-attachments-and-visual-identity.md)  | Attachments — one table, one foreign key per parent, private bucket                    | Accepted |
-| [0029](adr/0029-public-token-lifecycle.md)           | Public token lifecycle — one minter, and revocation as an absent token                 | Accepted |
-| [0030](adr/0030-client-portal-exposure.md)           | Client portal exposure — an index, and never a signing link                            | Accepted |
-| [0031](adr/0031-billing-conversion-provenance.md)    | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
-| [0032](adr/0032-card-payment-recording-authority.md) | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
-| [0033](adr/0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
-| [0034](adr/0034-retention-and-erasure.md)            | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
-| [0035](adr/0035-scheduled-backup-execution.md)       | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
-| [0036](adr/0036-metrics-allowlist-and-collection.md) | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
+| ADR                                                         | Title                                                                                  | Status   |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)                       | No cookies for routing state                                                           | Accepted |
+| [0002](adr/0002-single-instance-model.md)                   | Single-instance model is structural                                                    | Accepted |
+| [0003](adr/0003-mandatory-totp.md)                          | Mandatory TOTP — no opt-out                                                            | Accepted |
+| [0004](adr/0004-feature-module-structure.md)                | Closed feature modules with ESLint enforcement                                         | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)                      | AES-256-GCM encryption via Drizzle column helper                                       | Accepted |
+| [0006](adr/0006-internal-event-bus.md)                      | Typed in-process event bus for cross-feature effects                                   | Accepted |
+| [0007](adr/0007-pure-services.md)                           | Pure business logic in `services/` — no framework imports                              | Accepted |
+| [0008](adr/0008-email-adapters.md)                          | SMTP and Resend as interchangeable adapter implementations                             | Accepted |
+| [0009](adr/0009-money-as-integer-minor-units.md)            | Money stored as integer minor units — no floating-point                                | Accepted |
+| [0010](adr/0010-soft-delete.md)                             | Soft delete by default — hard delete after retention window                            | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)                       | Single Next.js app until a second artefact requires its own build                      | Accepted |
+| [0012](adr/0012-password-reset-paths.md)                    | Password reset via email when available, CLI fallback otherwise                        | Accepted |
+| [0013](adr/0013-better-auth-organization.md)                | Better Auth organization plugin for multi-user role storage                            | Accepted |
+| [0014](adr/0014-hosted-offering.md)                         | Hosted offering as per-instance isolation, not row-level tenancy                       | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)                      | i18next + ICU with TypeScript-typed message keys                                       | Accepted |
+| [0016](adr/0016-server-actions-canonical.md)                | Server actions as canonical write path; API routes for public/webhooks only            | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)                  | Polymorphic line items via mutually-exclusive parent FKs                               | Accepted |
+| [0018](adr/0018-no-telemetry.md)                            | No telemetry or analytics by default                                                   | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md)                | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in            | Accepted |
+| [0020](adr/0020-operational-cli-contract.md)                | Operational CLI contract                                                               | Accepted |
+| [0021](adr/0021-encryption-key-rotation.md)                 | Encryption key rotation                                                                | Accepted |
+| [0022](adr/0022-pdf-rendering-engine.md)                    | Headless-browser PDF rendering (Puppeteer/Playwright)                                  | Accepted |
+| [0023](adr/0023-job-scheduling-bullmq-redis.md)             | Background jobs and scheduling via BullMQ + Redis                                      | Accepted |
+| [0024](adr/0024-template-editor-canvas.md)                  | Template editor — free collision-aware page-clamped canvas                             | Accepted |
+| [0025](adr/0025-instance-data-reset-scope.md)               | Instance data reset — domain data versus instance state                                | Accepted |
+| [0026](adr/0026-document-parentage.md)                      | Document parentage — optional project, agreeing client, composite key                  | Accepted |
+| [0027](adr/0027-contact-identity.md)                        | Contact identity — delivery target and acceptance identity, never an entity            | Accepted |
+| [0028](adr/0028-attachments-and-visual-identity.md)         | Attachments — one table, one foreign key per parent, private bucket                    | Accepted |
+| [0029](adr/0029-public-token-lifecycle.md)                  | Public token lifecycle — one minter, and revocation as an absent token                 | Accepted |
+| [0030](adr/0030-client-portal-exposure.md)                  | Client portal exposure — an index, and never a signing link                            | Accepted |
+| [0031](adr/0031-billing-conversion-provenance.md)           | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
+| [0032](adr/0032-card-payment-recording-authority.md)        | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
+| [0033](adr/0033-late-fee-placement.md)                      | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
+| [0034](adr/0034-retention-and-erasure.md)                   | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
+| [0035](adr/0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
+| [0036](adr/0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
+| [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet            | Accepted |
 
 ---
 
