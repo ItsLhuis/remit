@@ -103,6 +103,7 @@ export type Translations = {
     validationFailed: string
     invalidRequestBody: string
     somethingWentWrong: string
+    tooManyRequests: string
     sessionExpired: string
     networkError: string
     emailAlreadyInUse: string

@@ -102,6 +102,7 @@ export const english: Language = {
       validationFailed: "Please check the form and try again",
       invalidRequestBody: "Invalid request body.",
       somethingWentWrong: "Something went wrong",
+      tooManyRequests: "Too many requests",
       sessionExpired: "Your session has expired - please sign in again",
       networkError: "A network error occurred - please try again",
       emailAlreadyInUse: "Email address is already in use",
