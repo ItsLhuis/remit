@@ -4494,4 +4494,15 @@ export type Translations = {
       }
     }
   }
+  backups: {
+    banner: {
+      neverRunTitle: string
+      neverRunDescription: string
+      overdueTitle: string
+      overdueDescription: string
+      lastRunFailedTitle: string
+      lastRunFailedUnknown: string
+      action: string
+    }
+  }
 }

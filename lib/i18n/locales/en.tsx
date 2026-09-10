@@ -4670,6 +4670,19 @@ export const english: Language = {
           saveFailed: "Could not save the retention window"
         }
       }
+    },
+    backups: {
+      banner: {
+        neverRunTitle: "No backup has run yet",
+        neverRunDescription:
+          "The nightly schedule writes the first archive on its next run. Check the destination if you want it somewhere other than this machine.",
+        overdueTitle: "No recent backup",
+        overdueDescription:
+          "The scheduled backup has not completed within the configured cadence. Check the destination and the last recorded outcome.",
+        lastRunFailedTitle: "The last backup did not complete",
+        lastRunFailedUnknown: "No failure reason was recorded.",
+        action: "Backup settings"
+      }
     }
   }
 }
