@@ -6,7 +6,8 @@ import { randomBytes, timingSafeEqual } from "node:crypto"
 //
 // One copy for every `/{letter}/[token]` route, so the compare a token is admitted by cannot differ
 // between the invoice, proposal, and contract surfaces — and one mint for every writer, so the
-// entropy behind a token cannot differ either.
+// entropy behind a token cannot differ either. The `/api/metrics` bearer token is admitted through
+// the same compare (`lib/metrics/handleMetricsRequest.ts`), for the same reason.
 
 const TOKEN_BYTE_LENGTH = 32
 

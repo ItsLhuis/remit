@@ -282,9 +282,13 @@ function isStaticAsset(pathname: string): boolean {
 // Without this the session check below rewrites the delivery to the login page and answers 200, which
 // Stripe reads as a successful delivery and never retries — the event would be lost silently. Each
 // receiver authenticates its own caller instead, by signature (`features/payments/stripeWebhook.ts`).
+// `/api/metrics` is here for the same reason: its caller is a Prometheus scraper holding a bearer
+// token, never a session, and `lib/metrics/handleMetricsRequest.ts` owns its rate limit, its token
+// check and its `noindex` header.
 function isPublicApiRoute(pathname: string): boolean {
   return (
     pathname === "/api/health" ||
+    pathname === "/api/metrics" ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/")
   )
