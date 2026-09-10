@@ -49,3 +49,4 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0033](0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
 | [0034](0034-retention-and-erasure.md)            | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
 | [0035](0035-scheduled-backup-execution.md)       | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
+| [0036](0036-metrics-allowlist-and-collection.md) | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |

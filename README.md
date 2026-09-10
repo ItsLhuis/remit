@@ -187,6 +187,10 @@ Operational support:
 
 - **Entrypoint migrations** - the app container runs the compiled migration script before starting
   the Next.js server.
+- **Prometheus metrics** - off unless `REMIT_METRICS_TOKEN` is set, then `/api/metrics` serves queue
+  depth, scheduled-job runs and process memory to a scraper holding that token. It exposes no
+  business data and pushes nothing anywhere. The scrape configuration is in
+  [`docs/operations/METRICS.md`](./docs/operations/METRICS.md).
 - **Health dashboard** - `/settings/system` shows database connectivity, email/Stripe/storage
   reachability, backup destination and success/failure status, disk usage, and the encryption key
   fingerprint.

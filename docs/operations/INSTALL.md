@@ -147,10 +147,11 @@ rates and templates intact.
 
 ## Where to go next
 
-| Question                           | Runbook                                                       |
-| ---------------------------------- | ------------------------------------------------------------- |
-| How do I upgrade?                  | [UPGRADE.md](UPGRADE.md)                                      |
-| How do I restore from a backup?    | [RESTORE.md](RESTORE.md)                                      |
-| What exactly does a command do?    | [CLI-CONTRACT.md](../architecture/operations/CLI-CONTRACT.md) |
-| What is inside a `.remitbak` file? | [BACKUP-ARCHIVE.md](../architecture/specs/BACKUP-ARCHIVE.md)  |
-| How is the system built?           | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)            |
+| Question                            | Runbook                                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| How do I upgrade?                   | [UPGRADE.md](UPGRADE.md)                                      |
+| How do I restore from a backup?     | [RESTORE.md](RESTORE.md)                                      |
+| How do I scrape it with Prometheus? | [METRICS.md](METRICS.md)                                      |
+| What exactly does a command do?     | [CLI-CONTRACT.md](../architecture/operations/CLI-CONTRACT.md) |
+| What is inside a `.remitbak` file?  | [BACKUP-ARCHIVE.md](../architecture/specs/BACKUP-ARCHIVE.md)  |
+| How is the system built?            | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)            |

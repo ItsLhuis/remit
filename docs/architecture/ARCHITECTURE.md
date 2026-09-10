@@ -1011,6 +1011,7 @@ Coverage, and where each limit lives:
 | Password reset requests                           | 5 per hour           | Better Auth's own limiter                                    |
 | Every other Better Auth endpoint                  | 100 per 15 minutes   | Better Auth's own limiter                                    |
 | `/api/webhooks/stripe`                            | Per IP               | the route handler                                            |
+| `/api/metrics`                                    | 30 per IP per minute | `lib/metrics/handleMetricsRequest.ts`, ahead of the token    |
 
 A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
 `/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
@@ -1393,6 +1394,7 @@ application-level interactions. API routes exist only for specific, justified ca
 | `/api/auth/[...all]`         | Better Auth's own handler                                 |
 | `/api/webhooks/stripe`       | Stripe webhook event receiver                             |
 | `/api/health`                | Uptime monitor health check (public)                      |
+| `/api/metrics`               | Prometheus scrape, bearer-token protected; 404 when unset |
 | `/api/upload/[type]`         | Session-gated direct upload                               |
 | `/api/attachments/[id]`      | Session-gated attachment download from the private bucket |
 | `/api/documents/[type]/[id]` | Session-gated rendered-document download                  |
@@ -1438,8 +1440,8 @@ lib/config/env.ts    Zod-validated deployment configuration. Process exits on fa
 /setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
 /settings/**         Ongoing instance configuration stored in the settings table.
 .env                 Deployment-owned configuration: database URL, auth URL/secret, encryption key,
-                     data/storage bootstrap, Redis, Chromium path, and the two unread variables
-                     named in the Observability section.
+                     data/storage bootstrap, Redis, Chromium path, the metrics token, and the
+                     unread variable named in the Observability section.
 ```
 
 No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
@@ -1733,14 +1735,65 @@ The full convention is in `errors.md`.
 
 ### What an operator can observe
 
-Three surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
+Four surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
+`/api/metrics` serves Prometheus metrics to a scraper holding `REMIT_METRICS_TOKEN`.
 `/settings/system` is the human-readable status page described in the Self-hosting experience
 section. The container's stdout carries the pino log stream, which is where an error is found.
 
-`lib/config/env.ts` validates two further variables, `SENTRY_DSN` and `REMIT_METRICS_TOKEN`, and no
-code reads either one. Setting them changes nothing: Remit has no error-tracking client and serves
-no metrics endpoint. They are recorded here because an operator who sets one and sees no effect is
-otherwise left debugging their own deployment.
+`lib/config/env.ts` validates one further variable, `SENTRY_DSN`, and no code reads it. Setting it
+changes nothing: Remit has no error-tracking client. It is recorded here because an operator who
+sets it and sees no effect is otherwise left debugging their own deployment.
+
+### Metrics
+
+`GET /api/metrics` answers in the Prometheus text exposition format, version 0.0.4, and is pull
+only: nothing is pushed anywhere ([ADR-0018](adr/0018-no-telemetry.md)).
+
+**The token is the whole contract.** With `REMIT_METRICS_TOKEN` unset the endpoint answers `404` to
+every request. With it set, a request must carry `Authorization: Bearer <token>`, compared in
+constant time through `lib/publicToken.ts`'s `matchesPublicToken`. A missing credential, a wrong one
+and a disabled endpoint all receive the same `404`, so a caller cannot learn whether metrics are
+enabled on an instance. Every response carries `Cache-Control: no-store` and
+`X-Robots-Tag: noindex, nofollow`, and the endpoint has its own limit of 30 requests per IP per
+minute, which a 15-second scrape uses four of. Hosted mode changes none of this: whoever operates
+the instance sets the token.
+
+**It exposes exactly this, and `lib/metrics/__tests__/handleMetricsRequest.test.ts` fails on
+anything else:**
+
+| Metric                                               | Type    | Labels           | Source                        |
+| ---------------------------------------------------- | ------- | ---------------- | ----------------------------- |
+| `remit_build_info`                                   | gauge   | `version`        | the app process               |
+| `process_start_time_seconds`                         | gauge   | —                | the app process               |
+| `process_resident_memory_bytes`                      | gauge   | —                | the app process               |
+| `nodejs_heap_size_used_bytes`                        | gauge   | —                | the app process               |
+| `remit_queue_jobs`                                   | gauge   | `state`          | BullMQ, read from Redis       |
+| `remit_scheduled_job_runs_total`                     | counter | `job`, `outcome` | the worker, recorded in Redis |
+| `remit_scheduled_job_last_success_timestamp_seconds` | gauge   | `job`            | the worker, recorded in Redis |
+| `remit_metrics_collector_up`                         | gauge   | `collector`      | the scrape itself             |
+
+`state` is one of `waiting`, `active`, `delayed`, `prioritized`, `waiting-children` and `failed`.
+`job` is one of the five repeatable sweeps in `lib/jobs/schedules.ts`, and `outcome` is `completed`
+or `failed`, where a failure counts once, after its last retry. Every label value comes from a
+closed vocabulary; none is ever a path, an id or an error message.
+
+What it does not expose is as deliberate. **No count of domain rows** — invoices, clients, revenue —
+because those are business data, and a single shared bearer token is not the protection this
+document's opening section promises them. **No per-job-name counts for anything but the sweeps**,
+because a count of rendered invoices or sent reminders is the same business volume seen through a
+keyhole. **No HTTP request or error counters**: `proxy.ts` sees neither the matched route pattern
+nor the response status, and `logger.error`'s `action` field is not a closed vocabulary.
+[ADR-0036](adr/0036-metrics-allowlist-and-collection.md) records the reasoning.
+
+**Collection happens at scrape time and costs a request nothing.** No request path is instrumented.
+The process gauges are read in the app container. The queue gauge is one `getJobCounts` call against
+Redis. The scheduled-job metrics are written into one Redis hash by the worker's `completed` and
+`failed` events (`lib/jobs/stats.ts`), because the worker runs in another container and an
+in-process counter there would be invisible to the app that answers the scrape. Each Redis read has
+a two-second bound. A collector that fails or times out drops its own metrics and reports `0` on
+`remit_metrics_collector_up`, and the scrape still returns `200` with everything else.
+
+[`docs/operations/METRICS.md`](../operations/METRICS.md) is the operator's scrape configuration.
 
 ---
 
@@ -1914,6 +1967,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0033](adr/0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
 | [0034](adr/0034-retention-and-erasure.md)            | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
 | [0035](adr/0035-scheduled-backup-execution.md)       | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
+| [0036](adr/0036-metrics-allowlist-and-collection.md) | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
 
 ---
 

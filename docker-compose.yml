@@ -85,6 +85,9 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-remit}
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
+      # Empty leaves GET /api/metrics unavailable (404). When set, point a Prometheus scrape job at
+      # /api/metrics with this value as its bearer token; docs/operations/METRICS.md has the config.
+      REMIT_METRICS_TOKEN: ${REMIT_METRICS_TOKEN:-}
     volumes:
       - ${REMIT_DATA_DIR:-./data}:/app/data
       - uploads:/app/uploads
