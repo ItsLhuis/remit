@@ -6,6 +6,7 @@ import { createRedisConnection } from "./connection"
 import { closeQueue, QUEUE_NAME } from "./queue"
 import { getJobHandler, getRegisteredJobNames } from "./registry"
 import { registerRepeatableJobs } from "./schedules"
+import { closeStatsConnection, recordScheduledJobOutcome } from "./stats"
 import { type JobName } from "./types"
 
 // One at a time. The money-affecting handlers take row locks on the same schedules and invoices, and
@@ -39,6 +40,17 @@ export async function startWorker(): Promise<void> {
       },
       "Job failed"
     )
+
+    // `failed` fires on every attempt, retries included, and `attemptsMade` already counts this one
+    // when it does. Only the attempt that exhausts the budget is a failed run; an attempt that a
+    // later retry recovers is not.
+    if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+      void recordScheduledJobOutcome(job.name, "failed", Date.now())
+    }
+  })
+
+  worker.on("completed", (job) => {
+    void recordScheduledJobOutcome(job.name, "completed", job.finishedOn ?? Date.now())
   })
 
   logger.info({ action: "worker.start", handlers: getRegisteredJobNames() }, "Job worker started")
@@ -57,6 +69,7 @@ export async function stopWorker(): Promise<void> {
   }
 
   await closeQueue()
+  await closeStatsConnection()
 
   logger.info({ action: "worker.stop" }, "Job worker stopped")
 }

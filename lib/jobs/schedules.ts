@@ -3,8 +3,10 @@ import { logger } from "@/lib/logger"
 import { getQueue } from "./queue"
 import { type JobName } from "./types"
 
+export type ScheduledJobName = Extract<JobName, `${string}.sweep`>
+
 type RepeatableJob = {
-  name: Extract<JobName, `${string}.sweep`>
+  name: ScheduledJobName
   pattern: string
 }
 
@@ -30,6 +32,8 @@ const REPEATABLE_JOBS: RepeatableJob[] = [
   { name: "invoice.reminder.sweep", pattern: "0 0 8 * * *" },
   { name: "retention.purge.sweep", pattern: "0 30 2 * * *" }
 ]
+
+export const SCHEDULED_JOB_NAMES: ScheduledJobName[] = REPEATABLE_JOBS.map((job) => job.name)
 
 export async function registerRepeatableJobs(): Promise<void> {
   const queue = getQueue()
