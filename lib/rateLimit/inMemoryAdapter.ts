@@ -6,10 +6,10 @@ type Entry = {
 }
 
 // Process-local and never swept: counters live only in this process's heap and expired entries are
-// overwritten on next use rather than evicted on a timer. Both are acceptable because Remit is
-// structurally single-instance (see AGENTS.md) and the key space is bounded by the callers' own
-// keys. A deployment that ever runs more than one app process needs a shared adapter instead —
-// this one would give each process its own independent allowance.
+// overwritten on next use rather than evicted on a timer. That is acceptable only because this is
+// no longer the limiter anyone relies on — it is `redisAdapter.ts`'s fallback while Redis is
+// unreachable, and the test double. During that fallback each app process has its own allowance
+// and a restart resets it, which is the degradation ADR-0037 accepts.
 export function createInMemoryAdapter(): RateLimitAdapter {
   const store = new Map<string, Entry>()
 

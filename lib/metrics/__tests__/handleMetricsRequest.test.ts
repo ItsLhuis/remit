@@ -22,6 +22,15 @@ vi.mock("@/lib/audit", () => ({ writeAudit: mocks.writeAudit }))
 
 vi.mock("@/lib/i18n/server", () => ({ t: (key: string) => key }))
 
+// The in-memory adapter in place of the Redis-backed `rateLimitInstance`: the rate-limit test below
+// needs a real counter, and a unit test must never count in a shared Redis, where one run's requests
+// would still be in the window when the next run starts.
+vi.mock("@/lib/rateLimit", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/rateLimit")>()
+
+  return { ...original, rateLimitInstance: original.createInMemoryAdapter() }
+})
+
 vi.mock("@/lib/jobs", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/jobs")>()),
   readQueueJobCounts: mocks.readQueueJobCounts,
