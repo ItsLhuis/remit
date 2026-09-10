@@ -1576,8 +1576,26 @@ On a hosted instance (`REMIT_HOSTED_MODE`) the destination belongs to the operat
 read-only and says so, and the mutations refuse, because a read-only form is a rendering decision
 and never the authorization.
 
-Nothing schedules a backup. A backup runs when an operator runs `remit:backup`, and `backup_cadence`
-records the intended rhythm for a scheduler that does not exist yet.
+`backup_cadence` is honoured by the worker. `backup.run.sweep` is a repeatable job on a fixed 01:00
+UTC pattern; the cadence decides at run time whether tonight is a backup night, so switching daily
+to weekly writes nothing to Redis and leaves exactly one scheduler registered. The hour sits ahead
+of `retention.purge.sweep` at 02:30 so the most recent archive always still holds the last rows that
+purge destroyed. A scheduled run takes a session advisory lock, so two workers or a re-delivered job
+produce one archive; it stands down while an encryption key rotation is in progress, because a
+rotation re-encrypts the archives at the destination and one uploaded behind that pass would keep
+the retired key. A failure is recorded rather than retried: the same two
+`settings.backup_last_failure_*` columns and the same `instance.backup.failed` audit entry the
+command writes, distinguished from an operator's run only by a `worker/backup` user agent. On a
+hosted instance the sweep does nothing, for the same reason the settings page refuses.
+[ADR-0035](adr/0035-scheduled-backup-execution.md) records the four decisions. An operator can still
+run `remit:backup` at any time.
+
+The dashboard says when that has not been happening. An owner sees a banner when no backup has ever
+run, when the last recorded outcome was a failure, or when the newest archive is older than the
+cadence plus a day of grace — derived from the absence of a recent success rather than from a
+failure row, so a worker that never started surfaces exactly like one that failed. It is owner-only,
+because the roles that cannot open `/settings/backup` cannot act on it, and it is not dismissible,
+because it clears itself the moment a backup succeeds.
 
 ### Updates
 
@@ -1895,6 +1913,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0032](adr/0032-card-payment-recording-authority.md) | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
 | [0033](adr/0033-late-fee-placement.md)               | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
 | [0034](adr/0034-retention-and-erasure.md)            | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
+| [0035](adr/0035-scheduled-backup-execution.md)       | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
 
 ---
 

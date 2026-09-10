@@ -194,7 +194,11 @@ Operational support:
   writes: the destination, the bucket, region and endpoint of an S3-compatible target, its two
   encrypted credentials, and how many daily, weekly and monthly archives a run leaves in place. A
   destination test writes and deletes one small object, because a backup needs write access rather
-  than read access. Nothing schedules a backup: an operator runs `pnpm remit:backup`.
+  than read access.
+- **Scheduled backups** - the worker takes a backup on the configured cadence at 01:00 UTC, one at a
+  time, and records the outcome where the health dashboard and the settings page already read it. An
+  owner sees a dashboard banner when no backup has ever run, when the last one failed, or when the
+  newest archive is older than the cadence allows. `pnpm remit:backup` still runs one on demand.
 - **CLI tools** - shipped in-container commands:
   - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
     `pg_dump --format=custom` output and uploads. The archive contract is documented in

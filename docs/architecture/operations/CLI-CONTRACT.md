@@ -197,7 +197,10 @@ implemented command.
   archive to the configured S3-compatible destination. On normal command runs it updates backup
   success/failure status and writes `instance.backup.completed` or `instance.backup.failed`.
 - **Limitations:** a single run writes to one destination. The archive format is specified in
-  [Backup archive format](../specs/BACKUP-ARCHIVE.md).
+  [Backup archive format](../specs/BACKUP-ARCHIVE.md). The command takes no concurrency lock of its
+  own, so it can overlap the worker's scheduled backup; the scheduled path holds the lock and the
+  command does not, because the pre-restore snapshot and the pre-rotation backup run the same
+  pipeline and must never be refused (ADR-0035).
 
 ### `pnpm remit:restore`
 
@@ -282,7 +285,10 @@ implemented command.
   credentials the jobs it runs depend on.
 - **Destructive scope:** none directly, but the jobs it consumes are money-affecting — recurring
   invoice generation, overdue detection and reminder dispatch (ADR-0023). Each carries its own
-  entity-scoped idempotency guard so a retry cannot double-generate or double-send.
+  entity-scoped idempotency guard so a retry cannot double-generate or double-send. It also takes
+  the scheduled backup, which runs the same pipeline as `remit:backup` under a session advisory lock
+  and records `instance.backup.completed` or `instance.backup.failed` with
+  `userAgent: "worker/backup"` (ADR-0035). It stands down while a key rotation holds its own lock.
 - **Confirmation:** no prompts; it is a supervised process, not an operator command.
 - **Effects:** builds to `scripts/dist/worker.js`; registers the repeatable job schedulers in Redis
   on boot and consumes the queue until it receives `SIGTERM` or `SIGINT`.
