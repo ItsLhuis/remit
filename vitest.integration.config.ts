@@ -28,6 +28,10 @@ export default defineConfig({
       // stack's own `remit` queue on db 0.
       REDIS_URL: "redis://localhost:6379/1",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      // Never the `data` default: `REMIT_DATA_DIR` is resolved relative to the working directory, so
+      // a suite that writes backup archives would otherwise drop them into the developer's real data
+      // volume beside their own uploads.
+      REMIT_DATA_DIR: ".tmp/integration-data",
       BETTER_AUTH_SECRET: "test-secret-for-integration-tests-not-real",
       BETTER_AUTH_URL: "http://localhost:3000",
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",

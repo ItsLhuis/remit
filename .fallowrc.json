@@ -25,7 +25,8 @@
     "features/proposals/jobs.ts",
     "features/creditNotes/jobs.ts",
     "features/contracts/jobs.ts",
-    "features/trash/jobs.ts"
+    "features/trash/jobs.ts",
+    "features/backups/jobs.ts"
   ],
   "rules": {
     "unused-exports": "warn",

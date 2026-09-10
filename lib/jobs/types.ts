@@ -74,6 +74,10 @@ export type JobMap = {
   }
   "invoice.overdue.sweep": Record<string, never>
   "invoice.reminder.sweep": Record<string, never>
+  // Reads the cadence and the last successful run from `settings` itself rather than carrying them,
+  // so the schedule stays one static cron pattern and the per-instance rhythm is decided by the run
+  // that would take the archive.
+  "backup.run.sweep": Record<string, never>
   // Reads the retention windows from `settings` itself rather than carrying them, so a window
   // changed between the schedule firing and the handler running is honoured by the run that
   // destroys rows rather than by the one that queued it.
@@ -111,7 +115,8 @@ const JOB_NAME_KEYS: Record<JobName, true> = {
   "invoice.overdue.sweep": true,
   "invoice.reminder.sweep": true,
   "invoice.reminder.send": true,
-  "retention.purge.sweep": true
+  "retention.purge.sweep": true,
+  "backup.run.sweep": true
 }
 
 export const JOB_NAMES = Object.keys(JOB_NAME_KEYS) as JobName[]

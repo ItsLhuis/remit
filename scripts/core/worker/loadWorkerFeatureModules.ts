@@ -23,6 +23,7 @@ export async function loadWorkerFeatureModules(): Promise<void> {
     import("@/features/dataExport/jobs"),
     import("@/features/reports/jobs"),
     import("@/features/trash/jobs"),
+    import("@/features/backups/jobs"),
     import("@/features/activityLog/events")
   ])
 }
