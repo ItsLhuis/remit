@@ -11,7 +11,6 @@ import pkg from "@/package.json"
 
 import { type BackupDestination } from "../destination"
 
-import { type BackupCliOptions } from "./args"
 import { buildBackupFilename, buildRemoteBackupKey, DEFAULT_BACKUP_DIRNAME } from "./filename"
 
 type Database = typeof import("@/database").database
@@ -36,7 +35,7 @@ export async function buildBackupPlan(
   database: Database,
   destination: BackupDestination,
   settingsRow: SettingsRow,
-  options: BackupCliOptions & { remitDataDir: string }
+  options: { output: string | null; remitDataDir: string }
 ): Promise<BackupPlan> {
   if (destination !== "local" && options.output) {
     throw new BackupPlanError(
