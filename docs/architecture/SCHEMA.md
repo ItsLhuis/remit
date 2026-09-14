@@ -45,7 +45,10 @@
 27. [Data exports](#27-data-exports)
 28. [Report exports](#28-report-exports)
 29. [Attachments](#29-attachments)
-30. [Enum reference](#30-enum-reference)
+30. [API tokens](#30-api-tokens)
+31. [Webhook endpoints](#31-webhook-endpoints)
+32. [Webhook deliveries](#32-webhook-deliveries)
+33. [Enum reference](#33-enum-reference)
 
 ---
 
@@ -1415,7 +1418,104 @@ excludes archives and SVG.
 
 ---
 
-## 30. Enum reference
+## 30. API tokens
+
+Credentials for the read-only public API under `/api/v1/`, minted by the owner in `/settings/api`.
+See [ADR-0038](adr/0038-public-api-scope-and-tokens.md).
+
+### `api_tokens`
+
+| Column             | Type        | Null | Default             | Notes                                                                              |
+| ------------------ | ----------- | ---- | ------------------- | ---------------------------------------------------------------------------------- |
+| id                 | uuid        | no   | `gen_random_uuid()` | PK                                                                                 |
+| name               | text        | no   |                     | Owner-chosen label, ≤ 80 chars, validated by the application                       |
+| token_hash         | text        | no   |                     | SHA-256 hex of the full token. Unique. The token itself is never stored            |
+| token_prefix       | text        | no   |                     | `remit_` and the first six characters of the random part, shown in the list        |
+| scopes             | enum[]      | no   |                     | `api_token_scope` values; at least one                                             |
+| created_by_user_id | uuid        | yes  |                     | FK → `users.id` (set null). A token whose creator is gone or unmembered is refused |
+| expires_at         | timestamptz | yes  |                     | Null = no expiry                                                                   |
+| last_used_at       | timestamptz | yes  |                     | Bumped by an authenticated request, at most once a minute                          |
+| revoked_at         | timestamptz | yes  |                     | Set on revocation; the next request with the token is refused                      |
+
+Standard `timestamps`. No `softDelete`: revocation stamps `revoked_at` and keeps the row, so the
+list and the audit trail can still name a withdrawn token.
+
+Constraint: `chk_api_tokens_scopes` — `cardinality(scopes) >= 1`.
+
+Indexes: unique `uq_api_tokens_token_hash` on `token_hash`, which is the lookup every API request is
+authenticated by, and `idx_api_tokens_created_by_user_id`.
+
+A token's permission is recomputed on every request as its scopes intersected with its creator's
+current role, read from `members`; nothing about the role is copied onto this row.
+
+---
+
+## 31. Webhook endpoints
+
+Delivery targets for signed outbound webhooks, configured by the owner in `/settings/webhooks`. See
+[ADR-0039](adr/0039-outbound-webhook-delivery.md).
+
+### `webhook_endpoints`
+
+| Column               | Type    | Null | Default             | Notes                                                                  |
+| -------------------- | ------- | ---- | ------------------- | ---------------------------------------------------------------------- |
+| id                   | uuid    | no   | `gen_random_uuid()` | PK                                                                     |
+| url                  | text    | no   |                     | Validated by `features/webhooks/services/webhookUrl.ts`                |
+| events               | text[]  | no   |                     | Subscribed event names from `WEBHOOK_EVENTS`; at least one             |
+| secret               | text    | no   |                     | Encrypted at rest. The signing secret, shown to the owner once         |
+| active               | boolean | no   | `true`              |                                                                        |
+| disabled_reason      | text    | yes  |                     | `manual` or `consecutive_failures`; set exactly when `active` is false |
+| consecutive_failures | integer | no   | `0`                 | Deliveries that exhausted their retries in a row; reset by a success   |
+| created_by_user_id   | uuid    | yes  |                     | FK → `users.id` (set null)                                             |
+
+Standard `timestamps`. No `softDelete`: an endpoint is configuration, and deleting one removes it
+and its delivery history.
+
+Constraints: `chk_webhook_endpoints_events` — `cardinality(events) >= 1`;
+`chk_webhook_endpoints_consecutive_failures` — `consecutive_failures >= 0`;
+`chk_webhook_endpoints_disabled_reason` — an active endpoint has no reason and an inactive one has
+`manual` or `consecutive_failures`.
+
+Index: `idx_webhook_endpoints_active` on `active`.
+
+`events` is `text[]` rather than an enum for the reason `report_exports.report` is: the vocabulary
+is validated by the application and grows with `lib/events/types.ts`.
+
+---
+
+## 32. Webhook deliveries
+
+One row per event per endpoint, written when the event fires and updated by the
+`webhook.delivery.send` job after every attempt.
+
+### `webhook_deliveries`
+
+| Column           | Type        | Null | Default             | Notes                                                                  |
+| ---------------- | ----------- | ---- | ------------------- | ---------------------------------------------------------------------- |
+| id               | uuid        | no   | `gen_random_uuid()` | PK. Also the `webhook-id` header, which a receiver deduplicates on     |
+| endpoint_id      | uuid        | no   |                     | FK → `webhook_endpoints.id` (cascade)                                  |
+| event            | text        | no   |                     | Event name, or `webhook.test` for a test delivery                      |
+| payload          | jsonb       | no   |                     | The body that was signed: event name, time and record ids only         |
+| status           | enum        | no   | `'pending'`         | `pending \| succeeded \| failed`                                       |
+| attempt_count    | integer     | no   | `0`                 | Attempts made so far                                                   |
+| attempts         | jsonb       | no   | `'[]'`              | One entry per attempt: time, HTTP status, outcome code. Never the body |
+| last_status_code | integer     | yes  |                     | HTTP status of the latest attempt, null when none was received         |
+| completed_at     | timestamptz | yes  |                     | Set on `succeeded` and on `failed`                                     |
+
+Standard `timestamps`. No `softDelete`.
+
+Constraint: `chk_webhook_deliveries_attempt_count` — `attempt_count >= 0`.
+
+Indexes: `idx_webhook_deliveries_endpoint_created_at` on `(endpoint_id, created_at DESC)` and
+`idx_webhook_deliveries_created_at` on `created_at DESC`, for the settings surface's recent
+deliveries.
+
+Rows older than thirty days are removed by the delivery job, so the log stays bounded without a
+sweep of its own.
+
+---
+
+## 33. Enum reference
 
 All enum types declared in `database/schema/enums.ts`.
 
@@ -1447,6 +1547,8 @@ All enum types declared in `database/schema/enums.ts`.
 | `data_export_scope`        | `instance`, `client`                                                                                                                                                                                 |
 | `data_export_status`       | `pending`, `running`, `ready`, `failed`                                                                                                                                                              |
 | `report_export_status`     | `pending`, `running`, `ready`, `failed`                                                                                                                                                              |
+| `api_token_scope`          | `clients:read`, `projects:read`, `invoices:read`, `time_entries:read`, `expenses:read`                                                                                                               |
+| `webhook_delivery_status`  | `pending`, `succeeded`, `failed`                                                                                                                                                                     |
 
 `overdue` and `partially_paid` for invoices are **computed**, not stored. The stored value remains
 `sent` until the invoice is fully paid; the application surfaces `overdue` when `due_date < now()`

@@ -130,3 +130,20 @@ export const reportExportStatus = pgEnum("report_export_status", [
   "ready",
   "failed"
 ])
+
+// One read scope per public API resource. `features/api/schemas.ts`'s `API_TOKEN_SCOPES` restates
+// this list because a schema file may not import a feature; `features/api/__tests__/openapi.integration.test.ts`
+// fails the moment the two disagree.
+export const apiTokenScope = pgEnum("api_token_scope", [
+  "clients:read",
+  "projects:read",
+  "invoices:read",
+  "time_entries:read",
+  "expenses:read"
+])
+
+export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", [
+  "pending",
+  "succeeded",
+  "failed"
+])
