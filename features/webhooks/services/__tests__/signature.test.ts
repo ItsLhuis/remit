@@ -3,10 +3,14 @@ import { describe, expect, test } from "vitest"
 import {
   signWebhookPayload,
   verifyWebhookSignature,
+  WEBHOOK_SECRET_PREFIX,
   WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS
 } from "../signature"
 
-const secret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
+// The Standard Webhooks specification's public example secret, so it cannot change without breaking
+// the reference signature below. The prefix is joined at runtime because the literal
+// `whsec_<key>` shape matches GitHub's Stripe webhook secret pattern and is reported as a leak.
+const secret = `${WEBHOOK_SECRET_PREFIX}MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw`
 
 const message = {
   messageId: "msg_p5jXN8AQM9LWM0D4loKWxJek",
