@@ -167,6 +167,8 @@ const config = {
     "requireRecurringInvoiceCancel",
     "requireRecurringInvoiceDelete",
     "requireBackupSettingsWrite",
+    "requireApiTokenWrite",
+    "requireWebhookWrite",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",

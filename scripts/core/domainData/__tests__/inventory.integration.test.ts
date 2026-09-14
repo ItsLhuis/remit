@@ -54,6 +54,7 @@ test("keeps the tables a reset must never touch", () => {
   expect(kept.sort()).toEqual(
     [
       "accounts",
+      "api_tokens",
       "audit_logs",
       "invitations",
       "members",
@@ -64,7 +65,8 @@ test("keeps the tables a reset must never touch", () => {
       "templates",
       "two_factors",
       "users",
-      "verifications"
+      "verifications",
+      "webhook_endpoints"
     ].sort()
   )
 })

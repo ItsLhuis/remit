@@ -25,3 +25,7 @@ export { emitExpenseCreated } from "./events"
 // use the same markup rule the expense list shows, and reaching it through the root barrel would
 // drag this feature's whole component graph into a server-only write.
 export { calculateRebillableCents, type RebillableExpense } from "./services"
+
+// Same reasoning as the export above: `features/api/resources.ts` feeds the list read the same
+// parsed query the expenses screen does, from a route handler's graph.
+export { parseExpenseListQuery } from "./schemas"

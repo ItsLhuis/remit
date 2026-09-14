@@ -10,6 +10,8 @@
 // `features/activityLog/events` is here for the subscriber reason rather than the handler one: the
 // sweeps emit `invoice.overdue` and `recurring.invoice_generated` from this process, and without it
 // their activity entries would only ever be written when a request happened to emit them instead.
+// `features/webhooks/events` is here for the same reason: an overdue invoice announced by a sweep is
+// as much a webhook event as one announced by a request.
 //
 // The imports stay dynamic because the caller has to load the environment first — every one of these
 // modules reaches `lib/config/env.ts`, which exits the process when a variable is missing.
@@ -24,6 +26,8 @@ export async function loadWorkerFeatureModules(): Promise<void> {
     import("@/features/reports/jobs"),
     import("@/features/trash/jobs"),
     import("@/features/backups/jobs"),
-    import("@/features/activityLog/events")
+    import("@/features/webhooks/jobs"),
+    import("@/features/activityLog/events"),
+    import("@/features/webhooks/events")
   ])
 }

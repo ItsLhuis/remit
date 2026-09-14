@@ -284,11 +284,14 @@ function isStaticAsset(pathname: string): boolean {
 // receiver authenticates its own caller instead, by signature (`features/payments/stripeWebhook.ts`).
 // `/api/metrics` is here for the same reason: its caller is a Prometheus scraper holding a bearer
 // token, never a session, and `lib/metrics/handleMetricsRequest.ts` owns its rate limit, its token
-// check and its `noindex` header.
+// check and its `noindex` header. `/api/v1/` likewise: its caller is an integration holding an API
+// token, and `features/api/handleApiRequest.ts` owns its limits and its authentication — without
+// this line every token request would be redirected to the login page.
 function isPublicApiRoute(pathname: string): boolean {
   return (
     pathname === "/api/health" ||
     pathname === "/api/metrics" ||
+    pathname.startsWith("/api/v1/") ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/")
   )

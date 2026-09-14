@@ -68,6 +68,7 @@ export {
   type InvoiceListItem,
   type InvoiceListPageData,
   type InvoiceMutationResult,
+  type InvoiceOverviewItem,
   type InvoiceTaxRateOption,
   type InvoiceTemplateOption,
   type MarkInvoicePaidResult,

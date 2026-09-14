@@ -65,6 +65,16 @@ export const DOMAIN_DATA_INVENTORY = [
     reason: "delivery log for documents that were sent"
   },
   {
+    key: "webhookDeliveries",
+    table: "webhook_deliveries",
+    seed: "skip",
+    reseed: "keep",
+    reset: "delete",
+    trash: "none",
+    retention: null,
+    reason: "outbound delivery log naming domain rows; the endpoints it went to stay"
+  },
+  {
     key: "dataExports",
     table: "data_exports",
     seed: "skip",
@@ -293,6 +303,26 @@ export const DOMAIN_DATA_INVENTORY = [
     trash: "restorable",
     retention: "trash",
     reason: "authored document configuration; block content is editor-owned"
+  },
+  {
+    key: "apiTokens",
+    table: "api_tokens",
+    seed: "skip",
+    reseed: "keep",
+    reset: "keep",
+    trash: "none",
+    retention: null,
+    reason: "operator-minted API credentials; an integration outlives the data behind it"
+  },
+  {
+    key: "webhookEndpoints",
+    table: "webhook_endpoints",
+    seed: "skip",
+    reseed: "keep",
+    reset: "keep",
+    trash: "none",
+    retention: null,
+    reason: "operator-configured delivery targets, instance configuration like provider settings"
   },
   {
     key: "auditLogs",

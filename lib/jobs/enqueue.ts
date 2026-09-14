@@ -9,6 +9,10 @@ export type EnqueueJobOptions = {
   // queued. It is a cheap first line, never the guard: BullMQ frees the id once the job completes
   // and is removed, so anything money-affecting still carries its own database-level check.
   jobId?: string
+  // Override the queue's default five attempts from five seconds, for a job whose failure mode is a
+  // remote party being down for minutes rather than a blip — an outbound webhook is the case.
+  attempts?: number
+  backoffDelayMs?: number
 }
 
 // The producer half of ADR-0022 (PDF rendering) and ADR-0023 (BullMQ + Redis). A producer that
@@ -29,7 +33,13 @@ export async function enqueueJob<TName extends JobName>(
   if (options.jobId !== undefined) assertValidJobId(options.jobId)
 
   try {
-    await getQueue().add(name, payload, options.jobId ? { jobId: options.jobId } : {})
+    await getQueue().add(name, payload, {
+      ...(options.jobId ? { jobId: options.jobId } : {}),
+      ...(options.attempts ? { attempts: options.attempts } : {}),
+      ...(options.backoffDelayMs
+        ? { backoff: { type: "exponential", delay: options.backoffDelayMs } }
+        : {})
+    })
   } catch (error) {
     logger.error({ action: "enqueueJob", job: name, payload, err: error }, "Job enqueue failed")
   }

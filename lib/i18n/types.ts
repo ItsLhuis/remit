@@ -113,6 +113,17 @@ export type Translations = {
       description: string
     }
   }
+  api: {
+    errors: {
+      unauthorized: string
+    }
+    validation: {
+      pageInvalid: string
+      perPageInvalid: string
+      idInvalid: string
+      unknownParameter: string
+    }
+  }
   fileUpload: {
     progress: string
     dismiss: string
@@ -3764,6 +3775,8 @@ export type Translations = {
       data: string
       backup: string
       system: string
+      api: string
+      webhooks: string
     }
     navigation: {
       business: string
@@ -3778,6 +3791,9 @@ export type Translations = {
       data: string
       backup: string
       system: string
+      integrations: string
+      api: string
+      webhooks: string
     }
     profile: {
       title: string
@@ -4200,6 +4216,203 @@ export type Translations = {
         percentageRange: string
         percentagePrecision: string
         idInvalid: string
+      }
+    }
+    api: {
+      title: string
+      description: string
+      tokensTitle: string
+      tokensDescription: string
+      create: string
+      emptyTitle: string
+      emptyDescription: string
+      tableName: string
+      tableScopes: string
+      tableStatus: string
+      tableLastUsed: string
+      tableExpires: string
+      tableCreated: string
+      tableActions: string
+      neverUsed: string
+      noExpiry: string
+      status: {
+        active: string
+        revoked: string
+        expired: string
+      }
+      scopes: {
+        clients: string
+        projects: string
+        invoices: string
+        timeEntries: string
+        expenses: string
+      }
+      revoke: string
+      revokeTitle: string
+      revokeDescription: string
+      confirmRevoke: string
+      revoked: string
+      createTitle: string
+      createDescription: string
+      nameLabel: string
+      namePlaceholder: string
+      scopesLabel: string
+      scopesDescription: string
+      expiryLabel: string
+      expiry: {
+        "30": string
+        "90": string
+        "365": string
+        never: string
+      }
+      submitCreate: string
+      revealTitle: string
+      revealDescription: string
+      revealLabel: string
+      revealWarningTitle: string
+      revealWarningDescription: string
+      copy: string
+      copied: string
+      created: string
+      validation: {
+        nameRequired: string
+        nameTooLong: string
+        scopeInvalid: string
+        scopesRequired: string
+        expiryInvalid: string
+        tokenIdInvalid: string
+      }
+      errors: {
+        createFailed: string
+        revokeFailed: string
+        notFound: string
+      }
+    }
+    webhooks: {
+      title: string
+      description: string
+      endpointsTitle: string
+      endpointsDescription: string
+      add: string
+      emptyTitle: string
+      emptyDescription: string
+      tableUrl: string
+      tableEvents: string
+      tableStatus: string
+      tableCreated: string
+      tableActions: string
+      eventsCount: string
+      status: {
+        active: string
+        disabled: string
+        failing: string
+      }
+      actions: {
+        sendTest: string
+        disable: string
+        enable: string
+        rotateSecret: string
+        delete: string
+      }
+      createTitle: string
+      createDescription: string
+      urlLabel: string
+      urlPlaceholder: string
+      urlDescription: string
+      eventsLabel: string
+      eventsDescription: string
+      submitCreate: string
+      eventGroups: {
+        clients: string
+        projects: string
+        invoices: string
+        payments: string
+        time: string
+        expenses: string
+      }
+      events: {
+        client: {
+          created: string
+          updated: string
+          deleted: string
+        }
+        project: {
+          created: string
+          updated: string
+          status_changed: string
+          deleted: string
+        }
+        invoice: {
+          created: string
+          updated: string
+          sent: string
+          paid: string
+          overdue: string
+          deleted: string
+        }
+        payment: {
+          received: string
+        }
+        time: {
+          logged: string
+        }
+        expense: {
+          created: string
+        }
+      }
+      testEvent: string
+      secretTitle: string
+      secretDescription: string
+      secretLabel: string
+      secretWarningTitle: string
+      secretWarningDescription: string
+      copySecret: string
+      copied: string
+      rotateTitle: string
+      rotateDescription: string
+      confirmRotate: string
+      deleteTitle: string
+      deleteDescription: string
+      confirmDelete: string
+      deliveriesTitle: string
+      deliveriesDescription: string
+      deliveriesEmptyTitle: string
+      deliveriesEmptyDescription: string
+      tableEvent: string
+      tableEndpoint: string
+      tableAttempts: string
+      tableResponse: string
+      tableTime: string
+      noResponse: string
+      deliveryStatus: {
+        pending: string
+        succeeded: string
+        failed: string
+      }
+      created: string
+      deleted: string
+      enabled: string
+      disabled: string
+      secretRotated: string
+      testQueued: string
+      validation: {
+        urlRequired: string
+        urlTooLong: string
+        urlInvalid: string
+        urlScheme: string
+        urlCredentials: string
+        urlAddress: string
+        eventInvalid: string
+        eventsRequired: string
+        endpointIdInvalid: string
+      }
+      errors: {
+        createFailed: string
+        updateFailed: string
+        deleteFailed: string
+        testFailed: string
+        notFound: string
+        inactive: string
       }
     }
     team: {

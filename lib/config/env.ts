@@ -74,7 +74,18 @@ const schema = z.object({
   // Optional rather than boot-fatal because only the worker image ships Chromium (ADR-0022): the web
   // application never launches a browser, and making this mandatory would stop it starting over a
   // binary it does not use. `lib/pdf/renderPdf.ts` fails on the render path when it is missing.
-  REMIT_CHROMIUM_PATH: optionalEnvString(z.string().min(1))
+  REMIT_CHROMIUM_PATH: optionalEnvString(z.string().min(1)),
+  // Hostnames a webhook may reach at a private address or over plain HTTP, comma-separated. Owned by
+  // the deployment rather than the settings surface on purpose: opening the private network to
+  // outbound requests is an operator's decision, and a setting an owner could type into the UI would
+  // turn the SSRF defence in `features/webhooks/services/webhookUrl.ts` into a checkbox. Unset means
+  // no private receiver is reachable at all.
+  REMIT_WEBHOOK_ALLOWED_HOSTS: optionalEnvString(z.string()).transform((value) =>
+    (value ?? "")
+      .split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean)
+  )
 })
 
 // The placeholders below exist so `next build` can run in an image build with no real secrets

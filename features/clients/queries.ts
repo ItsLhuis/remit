@@ -400,7 +400,7 @@ async function getOutstandingBalanceCents(clientId: string): Promise<number> {
     .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
     .where(and(eq(clients.id, clientId), isNull(clients.deletedAt)))
 
-  return row?.outstandingBalanceCents ?? 0
+  return Number(row?.outstandingBalanceCents ?? 0)
 }
 
 async function getClientBillingTrend(clientId: string, now: Date): Promise<ClientBillingPoint[]> {

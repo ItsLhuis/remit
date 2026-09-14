@@ -36,7 +36,11 @@ export {
   listInvoicesByProject
 } from "./queries"
 
-export { getInvoiceOverviewPageData } from "./overviewQueries"
+export { getInvoiceOverviewPageData, listInvoiceOverview } from "./overviewQueries"
+
+// Also exported from the client-safe `index.ts` would be natural, but `features/api/resources.ts`
+// is a route handler's graph and must not pull the invoice components in through the root barrel.
+export { parseInvoiceOverviewQuery } from "./schemas"
 
 export { getPublicInvoice } from "./publicQueries"
 

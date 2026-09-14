@@ -39,3 +39,8 @@ export {
 } from "./queries"
 
 export { emitClientCreated, emitClientDeleted, emitClientUpdated } from "./events"
+
+// Also exported from the client-safe `index.ts`, and reachable from a server module without it:
+// `features/api/resources.ts` feeds the list read the same parsed query the clients screen does,
+// and reaching it through the root barrel would drag the component graph into a route handler.
+export { parseClientListQuery } from "./schemas"

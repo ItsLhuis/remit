@@ -5,7 +5,7 @@ import { EXPORT_SUBGRAPH_TABLES } from "./exportSubgraphTables"
 
 export type ColumnExclusionReason = "secret" | "configuration" | "bearerToken" | "internal"
 
-export type TableExclusionReason = "authOwned" | "bearerToken"
+export type TableExclusionReason = "authOwned" | "bearerToken" | "configuration"
 
 export type ExcludedExportColumn = {
   column: string
@@ -84,7 +84,14 @@ const EXPORT_EXCLUDED_TABLES: readonly ExcludedExportTable[] = [
   { table: "invitations", reason: "authOwned" },
   // Single-use codes that authorize a public proposal response. They expire in minutes and are
   // stored hashed; exporting them would carry live acceptance credentials and nothing readable.
-  { table: "proposal_otps", reason: "bearerToken" }
+  { table: "proposal_otps", reason: "bearerToken" },
+  // Hashes of live API credentials: nothing readable, and nothing a recipient could use elsewhere.
+  { table: "api_tokens", reason: "bearerToken" },
+  // Integration configuration, on the same footing as the provider settings excluded above: an
+  // endpoint carries its signing secret, and its delivery log is a record of traffic to it rather
+  // than a business record the owner takes elsewhere.
+  { table: "webhook_endpoints", reason: "configuration" },
+  { table: "webhook_deliveries", reason: "configuration" }
 ]
 
 export function getExportTables(scope: DataExportScope): readonly ExportTableManifest[] {

@@ -120,7 +120,7 @@ export async function getInvoiceOverviewPageData(input: unknown): Promise<Invoic
   }
 }
 
-async function listInvoiceOverview(
+export async function listInvoiceOverview(
   query: InvoiceOverviewQuery,
   defaultCurrency: string,
   now: Date

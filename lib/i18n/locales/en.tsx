@@ -112,6 +112,17 @@ export const english: Language = {
         description: "An unexpected error interrupted this page."
       }
     },
+    api: {
+      errors: {
+        unauthorized: "A valid API token with access to this resource is required"
+      },
+      validation: {
+        pageInvalid: "page must be a positive whole number",
+        perPageInvalid: "perPage must be a whole number from 1 to {max}",
+        idInvalid: "The id is not valid",
+        unknownParameter: "Only the page and perPage parameters are supported"
+      }
+    },
     fileUpload: {
       progress: "{percent}% of {size}",
       dismiss: "Dismiss {filename}",
@@ -3882,7 +3893,9 @@ export const english: Language = {
         team: "Team",
         data: "Data",
         backup: "Backups",
-        system: "System"
+        system: "System",
+        api: "API",
+        webhooks: "Webhooks"
       },
       navigation: {
         business: "Business",
@@ -3896,7 +3909,10 @@ export const english: Language = {
         team: "Team",
         data: "Data",
         backup: "Backups",
-        system: "System"
+        system: "System",
+        integrations: "Integrations",
+        api: "API",
+        webhooks: "Webhooks"
       },
       profile: {
         title: "Profile",
@@ -4358,6 +4374,217 @@ export const english: Language = {
           percentageRange: "Tax rate percentage must be from 0 to 100.",
           percentagePrecision: "Tax rate percentage can use at most two decimal places.",
           idInvalid: "Invalid tax rate."
+        }
+      },
+      api: {
+        title: "API",
+        description:
+          "Let your own scripts and your accountant's tools read clients, projects, invoices, time and expenses. The API is read-only.",
+        tokensTitle: "Tokens",
+        tokensDescription:
+          "Send a token as a bearer credential. The reference is served at {path}.",
+        create: "Create token",
+        emptyTitle: "No tokens yet",
+        emptyDescription:
+          "Create a token for each tool that needs access, so you can revoke one without touching the others.",
+        tableName: "Name",
+        tableScopes: "Can read",
+        tableStatus: "Status",
+        tableLastUsed: "Last used",
+        tableExpires: "Expires",
+        tableCreated: "Created",
+        tableActions: "Token actions",
+        neverUsed: "Never",
+        noExpiry: "Never",
+        status: {
+          active: "Active",
+          revoked: "Revoked",
+          expired: "Expired"
+        },
+        scopes: {
+          clients: "Clients",
+          projects: "Projects",
+          invoices: "Invoices",
+          timeEntries: "Time entries",
+          expenses: "Expenses"
+        },
+        revoke: "Revoke",
+        revokeTitle: "Revoke {name}?",
+        revokeDescription:
+          "Anything using this token loses access on its next request. This cannot be undone.",
+        confirmRevoke: "Revoke token",
+        revoked: "{name} revoked",
+        createTitle: "Create a token",
+        createDescription: "Give it a name you will recognise and only the access it needs.",
+        nameLabel: "Name",
+        namePlaceholder: "Accounting export",
+        scopesLabel: "Can read",
+        scopesDescription: "The token can read only what you tick here.",
+        expiryLabel: "Expires",
+        expiry: {
+          "30": "In 30 days",
+          "90": "In 90 days",
+          "365": "In a year",
+          never: "Never"
+        },
+        submitCreate: "Create token",
+        revealTitle: "Copy your new token",
+        revealDescription: "Paste it into the tool that will use it.",
+        revealLabel: "Token",
+        revealWarningTitle: "You will not see this token again",
+        revealWarningDescription:
+          "Remit keeps only a fingerprint of it. If you lose it, revoke it and create another.",
+        copy: "Copy token",
+        copied: "Copied",
+        created: "Token created",
+        validation: {
+          nameRequired: "Name the token",
+          nameTooLong: "Keep the name to {max} characters or fewer",
+          scopeInvalid: "Choose from the listed resources",
+          scopesRequired: "Choose at least one thing the token can read",
+          expiryInvalid: "Choose when the token expires",
+          tokenIdInvalid: "Invalid token"
+        },
+        errors: {
+          createFailed: "The token could not be created",
+          revokeFailed: "The token could not be revoked",
+          notFound: "Token not found"
+        }
+      },
+      webhooks: {
+        title: "Webhooks",
+        description:
+          "Send a signed notice to your own endpoint when something happens in Remit. Each notice carries record ids only.",
+        endpointsTitle: "Endpoints",
+        endpointsDescription:
+          "Deliveries are signed with the Standard Webhooks scheme and retried for about sixteen minutes.",
+        add: "Add endpoint",
+        emptyTitle: "No endpoints yet",
+        emptyDescription:
+          "Add an endpoint to be told when an invoice is paid, a client is created, or time is logged.",
+        tableUrl: "URL",
+        tableEvents: "Events",
+        tableStatus: "Status",
+        tableCreated: "Added",
+        tableActions: "Endpoint actions",
+        eventsCount: "{count, plural, one {# event} other {# events}}",
+        status: {
+          active: "Active",
+          disabled: "Disabled",
+          failing: "Disabled after failures"
+        },
+        actions: {
+          sendTest: "Send test",
+          disable: "Disable",
+          enable: "Enable",
+          rotateSecret: "Rotate secret",
+          delete: "Delete"
+        },
+        createTitle: "Add an endpoint",
+        createDescription: "Remit sends a POST to this URL for each event you choose.",
+        urlLabel: "Endpoint URL",
+        urlPlaceholder: "https://example.com/remit-webhooks",
+        urlDescription:
+          "Must use HTTPS and a public address. Private addresses need your operator to allow the host.",
+        eventsLabel: "Events",
+        eventsDescription: "Choose at least one.",
+        submitCreate: "Add endpoint",
+        eventGroups: {
+          clients: "Clients",
+          projects: "Projects",
+          invoices: "Invoices",
+          payments: "Payments",
+          time: "Time",
+          expenses: "Expenses"
+        },
+        events: {
+          client: {
+            created: "Client created",
+            updated: "Client updated",
+            deleted: "Client deleted"
+          },
+          project: {
+            created: "Project created",
+            updated: "Project updated",
+            status_changed: "Project status changed",
+            deleted: "Project deleted"
+          },
+          invoice: {
+            created: "Invoice created",
+            updated: "Invoice updated",
+            sent: "Invoice sent",
+            paid: "Invoice paid",
+            overdue: "Invoice overdue",
+            deleted: "Invoice deleted"
+          },
+          payment: {
+            received: "Payment received"
+          },
+          time: {
+            logged: "Time logged"
+          },
+          expense: {
+            created: "Expense recorded"
+          }
+        },
+        testEvent: "Test delivery",
+        secretTitle: "Copy the signing secret",
+        secretDescription:
+          "Your endpoint uses it to check that each delivery came from this Remit instance.",
+        secretLabel: "Signing secret",
+        secretWarningTitle: "You will not see this secret again",
+        secretWarningDescription:
+          "Store it with your endpoint now. If you lose it, rotate it and update your endpoint.",
+        copySecret: "Copy secret",
+        copied: "Copied",
+        rotateTitle: "Rotate the signing secret?",
+        rotateDescription:
+          "The current secret stops working immediately, so deliveries fail verification until your endpoint has the new one.",
+        confirmRotate: "Rotate secret",
+        deleteTitle: "Delete this endpoint?",
+        deleteDescription:
+          "Remit stops sending to it and removes its delivery history. This cannot be undone.",
+        confirmDelete: "Delete endpoint",
+        deliveriesTitle: "Recent deliveries",
+        deliveriesDescription: "The last fifty attempts across every endpoint.",
+        deliveriesEmptyTitle: "Nothing delivered yet",
+        deliveriesEmptyDescription:
+          "Deliveries appear here once an event you subscribed to happens, or when you send a test.",
+        tableEvent: "Event",
+        tableEndpoint: "Endpoint",
+        tableAttempts: "Attempts",
+        tableResponse: "Response",
+        tableTime: "Time",
+        noResponse: "No response",
+        deliveryStatus: {
+          pending: "Pending",
+          succeeded: "Delivered",
+          failed: "Failed"
+        },
+        created: "Endpoint added",
+        deleted: "Endpoint deleted",
+        enabled: "Endpoint enabled",
+        disabled: "Endpoint disabled",
+        secretRotated: "Signing secret rotated",
+        testQueued: "Test delivery queued",
+        validation: {
+          urlRequired: "Enter the endpoint URL",
+          urlTooLong: "The URL is too long",
+          urlInvalid: "Enter a valid URL",
+          urlScheme: "Use an HTTPS URL",
+          urlCredentials: "Remove the username and password from the URL",
+          urlAddress: "Webhooks cannot be sent to a private or reserved address",
+          eventInvalid: "Choose from the listed events",
+          eventsRequired: "Choose at least one event",
+          endpointIdInvalid: "Invalid endpoint"
+        },
+        errors: {
+          createFailed: "The endpoint could not be added",
+          updateFailed: "The endpoint could not be updated",
+          deleteFailed: "The endpoint could not be deleted",
+          testFailed: "The test delivery could not be queued",
+          notFound: "Endpoint not found",
+          inactive: "Enable the endpoint before sending a test"
         }
       },
       team: {

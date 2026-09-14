@@ -160,6 +160,9 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+      zod-openapi:
+        specifier: 6.0.2
+        version: 6.0.2(zod@4.3.6)
     devDependencies:
       '@commitlint/cli':
         specifier: ^20.4.3
@@ -7165,6 +7168,12 @@ packages:
   yoctocolors@2.1.2:
     resolution: {integrity: sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==}
     engines: {node: '>=18'}
+
+  zod-openapi@6.0.2:
+    resolution: {integrity: sha512-SwC5Ppi2ov8WimzNWP/XK95VqPyLDzxPYj10HgNPzhZH9gO7zx0sxdYL9eq7wOADHx1JddOApjhYDmMWQvnVnw==}
+    engines: {node: '>=22.14.0'}
+    peerDependencies:
+      zod: ^4.0.0
 
   zod-to-json-schema@3.25.1:
     resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
@@ -14291,6 +14300,10 @@ snapshots:
     optional: true
 
   yoctocolors@2.1.2: {}
+
+  zod-openapi@6.0.2(zod@4.3.6):
+    dependencies:
+      zod: 4.3.6
 
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:

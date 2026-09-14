@@ -120,6 +120,14 @@ projects — with a way through to the invoices and proposals they already hold 
 it writes nothing, shows no internal notes, budgets or rates, and never offers a signing link,
 because signing is the one anonymous action with no second factor.
 
+**API and webhooks.** A read-only REST API over clients, projects, invoices, time entries and
+expenses, for your own scripts and your accountant's tools. Tokens are created by the owner, read
+only what you tick, stop working the moment you revoke them, and never outlast the access of the
+person who created them; the OpenAPI document is generated from the code. Signed webhooks tell your
+own endpoint when an invoice is paid, a client is created or time is logged. They carry record ids
+rather than your data, retry for about sixteen minutes, and cannot be pointed at your own network
+unless the operator allows the host.
+
 **Dashboard.** KPI tiles (revenue MTD/YTD, outstanding, overdue, expenses, profit), 12-month
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.
 

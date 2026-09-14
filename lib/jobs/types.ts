@@ -90,6 +90,12 @@ export type JobMap = {
     offsetDays: number
     phase: "before" | "after"
   }
+  // Carries only the `webhook_deliveries` row id: the endpoint, the payload and the attempt count
+  // live on that row, and the handler's conditional update on the count it read is what stops a
+  // re-delivered job from sending a second attempt on top of one already recorded.
+  "webhook.delivery.send": {
+    deliveryId: string
+  }
 }
 
 export type JobName = keyof JobMap
@@ -116,7 +122,8 @@ const JOB_NAME_KEYS: Record<JobName, true> = {
   "invoice.reminder.sweep": true,
   "invoice.reminder.send": true,
   "retention.purge.sweep": true,
-  "backup.run.sweep": true
+  "backup.run.sweep": true,
+  "webhook.delivery.send": true
 }
 
 export const JOB_NAMES = Object.keys(JOB_NAME_KEYS) as JobName[]

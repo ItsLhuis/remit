@@ -67,6 +67,13 @@ const navGroups = [
     items: [{ labelKey: "settings.navigation.team", href: "/settings/team", icon: "Users" }]
   },
   {
+    label: "settings.navigation.integrations",
+    items: [
+      { labelKey: "settings.navigation.api", href: "/settings/api", icon: "KeyRound" },
+      { labelKey: "settings.navigation.webhooks", href: "/settings/webhooks", icon: "Webhook" }
+    ]
+  },
+  {
     label: "settings.navigation.data",
     items: [
       {
@@ -97,6 +104,7 @@ const navGroups = [
 // never makes a route reachable and adding one never makes it unreachable.
 const ownerOnlyGroupLabels: readonly string[] = [
   "settings.navigation.team",
+  "settings.navigation.integrations",
   "settings.navigation.data",
   "settings.navigation.system"
 ]
