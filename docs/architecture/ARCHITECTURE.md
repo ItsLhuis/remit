@@ -915,6 +915,7 @@ authenticator app is unavailable.
 | `settings.paymentIban`         | Sensitive banking identifier                      |
 | `settings.backupS3AccessKey`   | S3-compatible backup access key                   |
 | `settings.backupS3SecretKey`   | S3-compatible backup secret key                   |
+| `webhook_endpoints.secret`     | Webhook signing secret                            |
 | `clients.notes`                | May contain NDA-protected or confidential content |
 
 ### The two audit logs
@@ -931,8 +932,9 @@ Schema: `id`, `event`, `actorUserId | null`, `actorRole | null`, `targetEntityTy
 `deletedAt`. Captures: login success/failure; rate limits tripped; password change; TOTP setup,
 reconfiguration; Better Auth backup-code consumption; CLI/admin password resets; settings changes
 touching SMTP, Stripe, or payment information; data exports; entity deletions; public token
-rotations and revocations; member changes (see the Multi-user model section); backup and restore
-operations.
+rotations and revocations; member changes (see the Multi-user model section); API token creation and
+revocation; webhook endpoint creation, secret rotation, enabling, disabling and deletion; backup and
+restore operations.
 
 ### Public token security
 
@@ -1007,19 +1009,20 @@ mode at each call site, and why no application cache exists.
 
 Coverage, and where each limit lives:
 
-| Surface                                           | Limit                | Enforced in                                                  |
-| ------------------------------------------------- | -------------------- | ------------------------------------------------------------ |
-| `/i/`, `/p/`, `/c/`, `/s/[token]`                 | 60 per IP per minute | `proxy.ts`, ahead of the route                               |
-| `/s/[token]`                                      | 30 per IP per 5 min  | the page module, in addition to the proxy limit              |
-| `/invite/[invitationId]`                          | 30 per IP per minute | `proxy.ts`                                                   |
-| Proposal OTP request and verify, contract signing | Per route, per IP    | each `route.ts`, in addition to the proxy limit              |
-| `POST /i/[token]/pay`                             | 5 per IP per 15 min  | the route handler, in addition to the proxy limit            |
-| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes    | Better Auth's own limiter, configured in `lib/auth/index.ts` |
-| `POST /api/auth/sign-up/email`                    | 3 per hour           | Better Auth's own limiter                                    |
-| Password reset requests                           | 5 per hour           | Better Auth's own limiter                                    |
-| Every other Better Auth endpoint                  | 100 per 15 minutes   | Better Auth's own limiter                                    |
-| `/api/webhooks/stripe`                            | Per IP               | the route handler                                            |
-| `/api/metrics`                                    | 30 per IP per minute | `lib/metrics/handleMetricsRequest.ts`, ahead of the token    |
+| Surface                                           | Limit                                      | Enforced in                                                         |
+| ------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| `/i/`, `/p/`, `/c/`, `/s/[token]`                 | 60 per IP per minute                       | `proxy.ts`, ahead of the route                                      |
+| `/s/[token]`                                      | 30 per IP per 5 min                        | the page module, in addition to the proxy limit                     |
+| `/invite/[invitationId]`                          | 30 per IP per minute                       | `proxy.ts`                                                          |
+| Proposal OTP request and verify, contract signing | Per route, per IP                          | each `route.ts`, in addition to the proxy limit                     |
+| `POST /i/[token]/pay`                             | 5 per IP per 15 min                        | the route handler, in addition to the proxy limit                   |
+| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes                          | Better Auth's own limiter, configured in `lib/auth/index.ts`        |
+| `POST /api/auth/sign-up/email`                    | 3 per hour                                 | Better Auth's own limiter                                           |
+| Password reset requests                           | 5 per hour                                 | Better Auth's own limiter                                           |
+| Every other Better Auth endpoint                  | 100 per 15 minutes                         | Better Auth's own limiter                                           |
+| `/api/webhooks/stripe`                            | Per IP                                     | the route handler                                                   |
+| `/api/metrics`                                    | 30 per IP per minute                       | `lib/metrics/handleMetricsRequest.ts`, ahead of the token           |
+| `/api/v1/*`                                       | 300 per IP, then 120 per token, per minute | `features/api/handleApiRequest.ts`, the IP limit ahead of the token |
 
 A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
 `/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
@@ -1223,9 +1226,9 @@ implicit to the instance. See ADR-0013.
 Authorization is implemented as a thin layer in two places:
 
 **Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
-`/settings/data`, `/settings/backup`, `/settings/system`, and any endpoint that exposes the
-encryption key fingerprint are owner-only. Routes that perform sends or deletions are blocked for
-`assistant`. All other routes are accessible to all roles.
+`/settings/data`, `/settings/backup`, `/settings/system`, `/settings/api`, `/settings/webhooks`, and
+any endpoint that exposes the encryption key fingerprint are owner-only. Routes that perform sends
+or deletions are blocked for `assistant`. All other routes are accessible to all roles.
 
 **Action-level (operation gating).** Every server action gates on the active member's role before it
 writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
@@ -1391,23 +1394,28 @@ visible; modals trap focus. Full conventions in `accessibility.md`.
 Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
 application-level interactions. API routes exist only for specific, justified cases:
 
-| Route                        | Purpose                                                   |
-| ---------------------------- | --------------------------------------------------------- |
-| `/i/[token]`                 | Public invoice view (anonymous)                           |
-| `/i/[token]/pay`             | Anonymous card-checkout initiation (POST)                 |
-| `/i/[token]/paid`            | Stripe checkout return (anonymous)                        |
-| `/p/[token]`                 | Public proposal acceptance (anonymous + OTP)              |
-| `/c/[token]`                 | Public contract signing (anonymous)                       |
-| `/s/[token]`                 | Public client portal (anonymous)                          |
-| `/api/auth/[...all]`         | Better Auth's own handler                                 |
-| `/api/webhooks/stripe`       | Stripe webhook event receiver                             |
-| `/api/health`                | Uptime monitor health check (public)                      |
-| `/api/metrics`               | Prometheus scrape, bearer-token protected; 404 when unset |
-| `/api/upload/[type]`         | Session-gated direct upload                               |
-| `/api/attachments/[id]`      | Session-gated attachment download from the private bucket |
-| `/api/documents/[type]/[id]` | Session-gated rendered-document download                  |
-| `/api/exports/[id]`          | Owner-gated data export archive download                  |
-| `/api/report-exports/[id]`   | Export-role-gated report PDF download                     |
+| Route                                       | Purpose                                                   |
+| ------------------------------------------- | --------------------------------------------------------- |
+| `/i/[token]`                                | Public invoice view (anonymous)                           |
+| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                 |
+| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                        |
+| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)              |
+| `/c/[token]`                                | Public contract signing (anonymous)                       |
+| `/s/[token]`                                | Public client portal (anonymous)                          |
+| `/api/auth/[...all]`                        | Better Auth's own handler                                 |
+| `/api/webhooks/stripe`                      | Stripe webhook event receiver                             |
+| `/api/health`                               | Uptime monitor health check (public)                      |
+| `/api/metrics`                              | Prometheus scrape, bearer-token protected; 404 when unset |
+| `/api/upload/[type]`                        | Session-gated direct upload                               |
+| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket |
+| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                  |
+| `/api/exports/[id]`                         | Owner-gated data export archive download                  |
+| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                     |
+| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                    |
+| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                    |
+| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                    |
+| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                    |
+| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated               |
 
 `POST /i/[token]/pay` is the narrowest of these to justify and the reason the list is a list rather
 than a rule. It is a write from an unauthenticated context: the caller is a client with no account,
@@ -1415,6 +1423,40 @@ holding a bearer token, and a server action would need a session it does not hav
 body — the amount, the currency and the invoice identity are all derived server-side from the
 token's own row — and it answers every refusal with the one message an unknown token gets, so it is
 a write that reveals nothing a read of the same token would not.
+
+### Public API
+
+A read-only REST API under `/api/v1/` serves an integration holding an API token: clients, projects
+and invoices as a paged list and a detail read, and time entries and expenses as paged lists. Every
+request carries `Authorization: Bearer <token>`. An owner mints tokens in `/settings/api`; each
+carries one read scope per resource, is stored as a SHA-256 digest, is shown once, and may expire.
+On every request a token's permission is its scopes intersected with its creator's current role,
+read from the membership, so a removed member's tokens stop working with nothing to revoke, and a
+revoked or expired token is refused on its next request. Every refusal is the same `401`.
+
+Collections page with `page` and `perPage` (at most 100) in a `{ data, pagination }` envelope, in
+the order of the matching screen, and any other parameter is refused. Money is integer minor units
+and instants are ISO 8601 in UTC. Each read delegates to the query the application's own screen
+uses, and every response is parsed through a schema in `features/api/responseSchemas.ts` that names
+each published field, so no client note, bearer token, storage key or encrypted value reaches a
+caller. The OpenAPI 3.1 document is generated from those same schemas and served at
+`/api/v1/openapi.json` to any valid token. The API writes nothing.
+[ADR-0038](adr/0038-public-api-scope-and-tokens.md) records the scope, versioning and token model.
+
+### Outbound webhooks
+
+An owner registers endpoints in `/settings/webhooks`, each subscribed to events drawn from the event
+bus: client, project, invoice, time and expense events, and `payment.received`. A delivery's body is
+`{ type, timestamp, data }`, where `data` holds record ids and the event's scalar facts and never
+the record itself; a receiver that needs more reads it through the API. Deliveries are signed with
+the Standard Webhooks scheme using a per-endpoint secret that is encrypted at rest and shown once,
+and they run as the `webhook.delivery.send` job: six attempts over about sixteen minutes, every
+attempt recorded, and an endpoint switched off after ten deliveries in a row fail. Every request
+goes through `features/webhooks/safePost.ts`, which refuses loopback, private, link-local and
+reserved addresses at the moment the socket connects, follows no redirect, reads no response body
+and gives up after ten seconds. Only hostnames listed in `REMIT_WEBHOOK_ALLOWED_HOSTS` may be
+reached over plain HTTP or at a private address. [ADR-0039](adr/0039-outbound-webhook-delivery.md)
+records the delivery and SSRF decisions.
 
 ### Validation at every boundary
 
@@ -1463,7 +1505,8 @@ All data is stored in the PostgreSQL instance owned and operated by the user. No
 instance that the operator has not configured to leave it: there is no analytics, no telemetry and
 no usage reporting, and no code path that sends any of the three
 ([ADR-0018](adr/0018-no-telemetry.md)). The only outbound traffic Remit makes is to the email,
-payment and object-storage providers the operator supplies credentials for.
+payment and object-storage providers the operator supplies credentials for, and to the webhook
+endpoints an owner registers, which receive record ids rather than records.
 
 ---
 
@@ -1977,6 +2020,8 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0035](adr/0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
 | [0036](adr/0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
 | [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet            | Accepted |
+| [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
+| [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
 
 ---
 

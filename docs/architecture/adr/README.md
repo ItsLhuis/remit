@@ -51,3 +51,5 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0035](0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
 | [0036](0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
 | [0037](0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet            | Accepted |
+| [0038](0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
+| [0039](0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
