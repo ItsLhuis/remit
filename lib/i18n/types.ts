@@ -242,6 +242,8 @@ export type Translations = {
       versionHint: string
       fingerprintLabel: string
       fingerprintHint: string
+      changelogLink: string
+      upgradeGuideLink: string
     }
     actions: {
       configureEmail: string

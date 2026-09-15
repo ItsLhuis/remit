@@ -28,7 +28,13 @@ export type HealthCheckResult = {
   actionHref?: string
 }
 
+export type ReleaseLinks = {
+  changelogUrl: string
+  upgradeGuideUrl: string
+}
+
 export type SystemInfo = {
   version: string
   encryptionFingerprint: string
+  releaseLinks: ReleaseLinks | null
 }

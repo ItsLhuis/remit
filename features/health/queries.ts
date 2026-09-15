@@ -29,6 +29,7 @@ import {
   evaluatePublicUrl,
   evaluateStripeHealth
 } from "./services/evaluateHealth"
+import { getReleaseLinks } from "./services/releaseLinks"
 import { type HealthCheckResult, type SystemInfo } from "./types"
 
 type SettingsRow = typeof settings.$inferSelect
@@ -93,7 +94,8 @@ export function getSystemInfo(): SystemInfo {
     encryptionFingerprint: createHash("sha256")
       .update(env.REMIT_ENCRYPTION_KEY)
       .digest("hex")
-      .slice(0, 8)
+      .slice(0, 8),
+    releaseLinks: getReleaseLinks(pkg.repository.url)
   }
 }
 

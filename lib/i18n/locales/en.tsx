@@ -244,10 +244,13 @@ export const english: Language = {
         title: "Instance details",
         description: "Reference information for support, public links, and upgrades.",
         versionLabel: "App version",
-        versionHint: "Use this version when checking release notes or asking for support.",
+        versionHint:
+          "Remit does not check for updates. Compare this version with the changelog to see what later releases change, and quote it when asking for support.",
         fingerprintLabel: "Encryption key fingerprint",
         fingerprintHint:
-          "Use this fingerprint to confirm your encryption key did not change after moving or upgrading the instance."
+          "Use this fingerprint to confirm your encryption key did not change after moving or upgrading the instance.",
+        changelogLink: "Read the changelog",
+        upgradeGuideLink: "Upgrade runbook"
       },
       actions: {
         configureEmail: "Configure email",
