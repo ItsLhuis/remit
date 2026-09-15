@@ -23,6 +23,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # A tag pushed by hand skips `pnpm version:*`, which is what stamps the changelog. The tag build
+      # refuses before anything is built or pushed, so no image ships for a version whose changelog
+      # has no dated section saying what it changes.
+      - name: Verify release changelog
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          package_version=$(node -p "require('./package.json').version")
+
+          if [[ "${package_version}" != "${version}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${package_version}"
+            exit 1
+          fi
+
+          # A literal prefix match rather than a regex, so the dots in the version cannot match any
+          # character and let `1.0.0` pass on a `## [1a0a0]` heading.
+          heading="## [${version}] - "
+          if ! awk -v heading="${heading}" 'index($0, heading) == 1 && substr($0, length(heading) + 1) ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ { found = 1 } END { exit !found }' CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no dated section for ${version}"
+            exit 1
+          fi
+
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v4
 

@@ -1,5 +1,7 @@
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/
 
+export type SemverIncrement = "major" | "minor" | "patch"
+
 export type ParsedSemver = {
   major: number
   minor: number
@@ -41,4 +43,22 @@ export function compareSemver(left: string, right: string): number {
   if (!rightVersion.prerelease) return -1
 
   return leftVersion.prerelease.localeCompare(rightVersion.prerelease)
+}
+
+// A prerelease is refused rather than incremented: semantic versioning has two defensible answers
+// for "patch of 2.0.0-rc.1" (2.0.0 or 2.0.1), and no Remit release flow produces one to choose
+// between.
+export function incrementSemver(value: string, increment: SemverIncrement): string {
+  const { major, minor, patch, prerelease } = parseSemver(value)
+
+  if (prerelease) throw new Error(`Version ${value} is a prerelease and cannot be incremented.`)
+
+  switch (increment) {
+    case "major":
+      return `${major + 1}.0.0`
+    case "minor":
+      return `${major}.${minor + 1}.0`
+    case "patch":
+      return `${major}.${minor}.${patch + 1}`
+  }
 }
