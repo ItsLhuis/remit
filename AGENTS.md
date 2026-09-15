@@ -46,9 +46,9 @@ pnpm remit:seed-demo       # Seed deterministic demo data
 pnpm remit:backup          # Write encrypted backup archive
 pnpm remit:restore         # Restore from encrypted backup archive
 pnpm remit:rotate-encryption-key # Rotate Remit encryption key
-pnpm version:patch         # Bump app version patch
-pnpm version:minor         # Bump app version minor
-pnpm version:major         # Bump app version major
+pnpm version:patch         # Bump patch, release CHANGELOG.md Unreleased (refuses if empty)
+pnpm version:minor         # Bump minor, release CHANGELOG.md Unreleased (refuses if empty)
+pnpm version:major         # Bump major, release CHANGELOG.md Unreleased (refuses if empty)
 ```
 
 Node >=24.11.1 <25. Package manager: pnpm 10.33.4. Test scripts are configured in `package.json`:

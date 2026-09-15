@@ -1559,7 +1559,7 @@ advanced configuration discoverable and testable in place.
 `/settings/system` is authenticated and owner-only. It is the human-readable operational status
 surface for database connectivity, email/Stripe/storage reachability, last successful backup, backup
 destination status, data-volume disk usage, encryption key fingerprint, and the running application
-version.
+version, beside links to the changelog and the upgrade runbook.
 
 `/api/health` is public and intentionally small. It returns `200` or `503` with a minimal JSON body
 for uptime monitors and host-side scripts.
@@ -1673,6 +1673,16 @@ compose project. Its architecture is a four-step flow:
 The operator procedure, rollback path, and troubleshooting notes live in
 [`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Upgrading is always an operator action:
 nothing in the application detects a new release, and nothing upgrades itself.
+
+What a release changes is recorded in [`CHANGELOG.md`](../../CHANGELOG.md), written by hand for the
+operator in Keep a Changelog form. Each release opens with Upgrade notes naming every migration it
+applies on container start and any action it needs. `pnpm version:*` turns the Unreleased section
+into the new version's dated section and refuses to run while it has no entries, and the image
+workflow refuses to publish a `v*` tag whose version has no dated section. `/settings/system` links
+the changelog and the upgrade runbook beside the running version. No update check exists: the
+application makes no request to learn whether a newer release exists
+([ADR-0018](adr/0018-no-telemetry.md)), so an operator learns of one by comparing the version that
+page shows against the changelog.
 
 ### Encryption key rotation
 

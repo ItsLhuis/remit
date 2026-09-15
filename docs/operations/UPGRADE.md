@@ -16,6 +16,17 @@ or receive access to the Docker socket.
 - The current app image tag is known. The production compose file reads `REMIT_IMAGE_TAG` and
   defaults to `latest`.
 
+## Before You Upgrade
+
+Read [`CHANGELOG.md`](../../CHANGELOG.md) from the version you run to the version you are moving to.
+`/settings/system` shows the running version under Instance details. Each release's **Upgrade
+notes** name the database migrations it applies when the container starts and any action it needs.
+Those migrations run during the restart step below, so anything a note asks you to do beforehand has
+to be done before you run the script.
+
+Remit does not check for new releases itself. Comparing the running version against the changelog is
+how you learn that one exists.
+
 ## Quick Start
 
 From any directory inside the Remit checkout:

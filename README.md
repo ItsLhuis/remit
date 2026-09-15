@@ -200,8 +200,12 @@ Operational support:
   business data and pushes nothing anywhere. The scrape configuration is in
   [`docs/operations/METRICS.md`](./docs/operations/METRICS.md).
 - **Health dashboard** - `/settings/system` shows database connectivity, email/Stripe/storage
-  reachability, backup destination and success/failure status, disk usage, and the encryption key
-  fingerprint.
+  reachability, backup destination and success/failure status, disk usage, the encryption key
+  fingerprint, and the running version beside links to the changelog and the upgrade runbook. Remit
+  does not check for updates.
+- **Changelog** - [`CHANGELOG.md`](./CHANGELOG.md) records what each release changes for an
+  operator, including every migration it applies on start. `pnpm version:*` stamps its Unreleased
+  section as the new release and refuses to run while that section is empty.
 - **Backup settings** - `/settings/backup` is owner-only and configures where `pnpm remit:backup`
   writes: the destination, the bucket, region and endpoint of an S3-compatible target, its two
   encrypted credentials, and how many daily, weekly and monthly archives a run leaves in place. A
