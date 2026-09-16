@@ -127,7 +127,7 @@ documentation pass makes both halves unreviewable:
   `frame-ancestors 'none'` stays unconditional, so the intent to allow embedding there is not
   achieved. Documented as it behaves.
 - `tests/docs/delivery.test.ts` splits on `"\n"` and finds its section headings with
-  `indexOf("\n## …\n")`, so every record fails on a CRLF checkout. The repository has no
+  `indexOf("\n## ...\n")`, so every record fails on a CRLF checkout. The repository has no
   `.gitattributes` and `core.autocrlf` is `true` on Windows, so `pnpm format` rewrites every file's
   line endings and `pnpm format:check` fails on a fresh Windows clone before any edit is made.
 - `lib/jobs/types.ts` carries a comment referencing "Stages 12 and 16", a transient artefact that

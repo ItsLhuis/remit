@@ -195,7 +195,7 @@ export async function appendInvoiceLineItems(
     ...[...inserted].sort((a, b) => a.position - b.position).map((line) => line.id)
   ]
 
-  // One UPDATE ... FROM (VALUES …) rather than one statement per line: every line's totals move when
+  // One UPDATE ... FROM (VALUES ...) rather than one statement per line: every line's totals move when
   // a document discount is redistributed, and issuing n round trips inside the transaction would
   // hold it open for the whole set.
   const values = ids.map(

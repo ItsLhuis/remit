@@ -18,7 +18,7 @@ A file belongs in `features/<feature>/components/` when it is one of exactly two
 
 Everything else already has a home:
 
-| The file is…                                | Home                           |
+| The file is...                              | Home                           |
 | ------------------------------------------- | ------------------------------ |
 | a hook (`use*`, calls React hooks)          | `features/<feature>/hooks/`    |
 | pure domain logic, no React and no IO       | `features/<feature>/services/` |

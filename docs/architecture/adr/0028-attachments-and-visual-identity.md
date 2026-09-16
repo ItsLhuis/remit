@@ -177,7 +177,7 @@ keys with `ON DELETE SET NULL`), and reversing that reasoning one ADR later for 
 stores NDA-sensitive files is not defensible. The cheapness is also overstated: joining a new entity
 is a bucket, authorization and limits decision regardless of whether the schema notices.
 
-### A join table per entity — `client_attachments`, `project_attachments`, …
+### A join table per entity — `client_attachments`, `project_attachments`, ...
 
 Real foreign keys with real cascade semantics, which is the property the polymorphic table loses.
 Rejected because the metadata is _identical_ across all four parents — upload, title, uploader,

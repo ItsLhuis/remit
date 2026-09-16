@@ -54,7 +54,7 @@ digest as a unique lookup key, plus a display prefix. SHA-256 rather than a pass
 secret has 256 bits of entropy, so no guessing rate makes it searchable, and a slow hash would add
 its cost to every request.
 
-**Scopes are one read scope per resource** (`clients:read` … `expenses:read`), a vocabulary small
+**Scopes are one read scope per resource** (`clients:read` ... `expenses:read`), a vocabulary small
 enough that an owner can read it at a glance.
 
 **A token never exceeds its creator.** Only the owner mints tokens, on the footing of the client

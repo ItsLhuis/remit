@@ -88,7 +88,7 @@ a rendering decision and never the authorization.
 - Route: `app/(dashboard)/settings/backup/page.tsx`, `requireRole("owner")`; the rail entry in
   `components/layout/SettingsSidebar.tsx` is visibility only.
 - Credential preservation: `buildBackupSettingsWritePlan` in `features/settings/backup/mutations.ts`
-  writes a credential column only inside the `if (backupS3AccessKey && …)` guard; proven by "keeps
+  writes a credential column only inside the `if (backupS3AccessKey && ...)` guard; proven by "keeps
   stored credentials when a save leaves their fields untouched" in
   `features/settings/backup/__tests__/mutations.integration.test.ts`.
 - Read model omission: `toBackupSettingsFormData` in `features/settings/backup/queries.ts`.

@@ -25,7 +25,7 @@ const config = {
       },
       {
         // `transition-all` is the design system's own idiom, applied in the shared cva bases
-        // (buttonVariants, sidebarMenuButtonVariants, …) and inherited by every consumer. Naming
+        // (buttonVariants, sidebarMenuButtonVariants, ...) and inherited by every consumer. Naming
         // properties per call site cannot be done without dropping animations the UI ships today.
         files: ["components/ui/**", "components/layout/**"],
         rules: ["react-doctor/no-transition-all"]

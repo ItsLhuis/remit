@@ -1696,7 +1696,7 @@ export const english: Language = {
         receipt: "Receipt"
       },
       placeholders: {
-        category: "Travel, software, subcontracting…",
+        category: "Travel, software, subcontracting...",
         description: "What was this spent on?",
         amount: "0.00",
         markupPercentage: "Leave blank to rebill at cost"

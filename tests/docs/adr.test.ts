@@ -18,8 +18,8 @@ function readAdrIndex(): string {
   return readFileSync(join(adrDirectory, "README.md"), "utf8")
 }
 
-// The `adr/README.md` table links siblings (`0001-….md`) where the ARCHITECTURE.md table links
-// through the directory (`adr/0001-….md`), so the two are compared on file names rather than on
+// The `adr/README.md` table links siblings (`0001-....md`) where the ARCHITECTURE.md table links
+// through the directory (`adr/0001-....md`), so the two are compared on file names rather than on
 // their raw rows.
 function extractAdrIndexFiles(index: string): string[] {
   const files = new Set<string>()

@@ -170,9 +170,9 @@ What is known: the two tests that fail are the first two of the `avatar upload r
 `returns a presigned upload URL for an allowed avatar file` and
 `returns the presigned upload URL without rewriting its host` — and they fail together. Both resolve
 `getSignedUrl` through a mock the block's `beforeEach` sets after `vi.clearAllMocks()`, and the
-second layers a `mockResolvedValueOnce` on top of it. Every queued `…Once` in the file appears to be
-consumed by the test that queues it, so a leaked queue entry does not explain it on inspection, and
-no mechanism has been demonstrated.
+second layers a `mockResolvedValueOnce` on top of it. Every queued `...Once` in the file appears to
+be consumed by the test that queues it, so a leaked queue entry does not explain it on inspection,
+and no mechanism has been demonstrated.
 
 It is recorded rather than closed because a guess is not a fix: a test that fails one run in five
 will fail in CI, and the next person to touch this file should start from a reproduction rather than

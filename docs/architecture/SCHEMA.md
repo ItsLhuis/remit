@@ -1305,21 +1305,21 @@ process and stored in the credentialed exports bucket, never in the public runti
 
 ### `data_exports`
 
-| Column               | Type        | Null | Default             | Notes                                           |
-| -------------------- | ----------- | ---- | ------------------- | ----------------------------------------------- |
-| id                   | uuid        | no   | `gen_random_uuid()` | PK                                              |
-| scope                | enum        | no   |                     | `instance \| client`                            |
-| client_id            | uuid        | yes  |                     | FK → `clients.id` (set null). Client scope only |
-| status               | enum        | no   | `'pending'`         | `pending \| running \| ready \| failed`         |
-| progress             | integer     | no   | `0`                 | 0–100, written by the job                       |
-| started_at           | timestamptz | yes  |                     | Set when the job claims the row                 |
-| completed_at         | timestamptz | yes  |                     | Set on `ready` and on `failed`                  |
-| failure_reason       | text        | yes  |                     | Stable reason code, never a raw error message   |
-| requested_by_user_id | uuid        | yes  |                     | FK → `users.id` (set null)                      |
-| filename             | text        | yes  |                     | ASCII slug, e.g. `remit-export-instance-…​.zip` |
-| storage_key          | text        | yes  |                     | Object key in the exports bucket                |
-| size_bytes           | bigint      | yes  |                     | ≥ 0                                             |
-| entry_count          | integer     | yes  |                     | Files inside the archive                        |
+| Column               | Type        | Null | Default             | Notes                                             |
+| -------------------- | ----------- | ---- | ------------------- | ------------------------------------------------- |
+| id                   | uuid        | no   | `gen_random_uuid()` | PK                                                |
+| scope                | enum        | no   |                     | `instance \| client`                              |
+| client_id            | uuid        | yes  |                     | FK → `clients.id` (set null). Client scope only   |
+| status               | enum        | no   | `'pending'`         | `pending \| running \| ready \| failed`           |
+| progress             | integer     | no   | `0`                 | 0–100, written by the job                         |
+| started_at           | timestamptz | yes  |                     | Set when the job claims the row                   |
+| completed_at         | timestamptz | yes  |                     | Set on `ready` and on `failed`                    |
+| failure_reason       | text        | yes  |                     | Stable reason code, never a raw error message     |
+| requested_by_user_id | uuid        | yes  |                     | FK → `users.id` (set null)                        |
+| filename             | text        | yes  |                     | ASCII slug, e.g. `remit-export-instance-...​.zip` |
+| storage_key          | text        | yes  |                     | Object key in the exports bucket                  |
+| size_bytes           | bigint      | yes  |                     | ≥ 0                                               |
+| entry_count          | integer     | yes  |                     | Files inside the archive                          |
 
 Standard `timestamps`. No `softDelete`: an export either has an archive behind it or it does not,
 and hiding a row would leave its object in the exports bucket with nothing pointing at it.

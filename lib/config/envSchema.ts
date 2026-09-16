@@ -33,7 +33,7 @@ const redisUrlSchema = z
 // An origin and nothing more, compared against `URL#origin` so the check and the value can never
 // disagree. Every link the instance writes — an emailed document, a Stripe return, an invitation, a
 // Better Auth callback — is this value with a path appended, so a trailing slash or a path would
-// produce `//i/…` or a link under a prefix Next.js does not serve. `scripts/host/install.sh` refuses
+// produce `//i/...` or a link under a prefix Next.js does not serve. `scripts/host/install.sh` refuses
 // the same shapes before it writes `.env`, and its test parses the result through this schema.
 const publicUrlSchema = z
   .string()

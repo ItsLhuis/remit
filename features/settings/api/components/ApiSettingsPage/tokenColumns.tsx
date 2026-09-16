@@ -52,7 +52,7 @@ export function getApiTokenColumns({
         <div className="flex flex-col gap-0.5">
           <span className="font-medium">{row.original.name}</span>
           <Typography affects={["muted", "tiny"]} className="font-mono">
-            {`${row.original.tokenPrefix}…`}
+            {`${row.original.tokenPrefix}...`}
           </Typography>
         </div>
       )
