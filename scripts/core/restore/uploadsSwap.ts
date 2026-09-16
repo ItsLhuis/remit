@@ -28,6 +28,12 @@ export async function applyUploadsAtomicSwap(input: {
 
   await verifyUploadsDirectory(stagingUploadsDir, input.expectedUploads)
   await mkdir(parentDir, { recursive: true })
+
+  // Extraction creates the staging directory only when the archive carries a file, and an instance
+  // whose uploads all live in object storage writes archives that carry none. Creating it here makes
+  // such an archive restore an empty uploads tree instead of failing the rename below with ENOENT
+  // after the database has already been replaced.
+  await mkdir(stagingUploadsDir, { recursive: true })
   await rm(previousUploadsDir, { recursive: true, force: true })
 
   try {

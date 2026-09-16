@@ -186,6 +186,23 @@ test("verifies an archive without writing staging files when dry-run mode is use
   expect(verified.uploadsStagingDir).toBeNull()
 })
 
+test("restores an empty uploads directory when the archive carried no uploads", async () => {
+  const tempRoot = await makeTempDirectory()
+  const liveUploadsDir = path.join(tempRoot, "uploads")
+  const stagingUploadsDir = path.join(tempRoot, ".uploads.restore-staging-empty")
+
+  const result = await applyUploadsAtomicSwap({
+    expectedUploads: [],
+    liveUploadsDir,
+    stagingUploadsDir,
+    timestamp: "empty"
+  })
+
+  expect(result.restoredUploadsDir).toBe(liveUploadsDir)
+  await expect(pathExists(liveUploadsDir)).resolves.toBe(true)
+  await expect(pathExists(stagingUploadsDir)).resolves.toBe(false)
+})
+
 test("atomically swaps staged uploads into the live uploads directory", async () => {
   const tempRoot = await makeTempDirectory()
   const liveUploadsDir = path.join(tempRoot, "uploads")
