@@ -1,0 +1,17 @@
+# The `with-proxy` profile in docker-compose.yml: Caddy terminates TLS for REMIT_PUBLIC_URL, obtains
+# and renews its certificate automatically, redirects plain HTTP to HTTPS, and hands every request to
+# the app. Object storage is not routed here: browsers never talk to it (ADR-0040).
+#
+# REMIT_PUBLIC_URL must be an https:// origin with no port, and REMIT_ACME_EMAIL must be set, or
+# Caddy refuses to start; `scripts/host/install.sh` checks both before it writes them.
+{
+	email {$REMIT_ACME_EMAIL}
+}
+
+{$REMIT_PUBLIC_URL} {
+	encode zstd gzip
+
+	# Caddy replaces any X-Forwarded-For a client sends with the address it actually saw, so the
+	# per-IP rate limits in the app key on the real client rather than on a header anyone can write.
+	reverse_proxy app:3000
+}

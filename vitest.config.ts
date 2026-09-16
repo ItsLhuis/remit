@@ -23,7 +23,8 @@ export default defineConfig({
             "features/**/services/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
             "lib/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
             "hooks/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
-            "scripts/core/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)"
+            "scripts/core/**/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)",
+            "scripts/host/__tests__/**/*.{test,spec}.?(c|m)[jt]s?(x)"
           ],
           exclude: ["**/*.integration.test.ts"],
           environment: "node"
@@ -39,6 +40,7 @@ export default defineConfig({
             "lib/**/__tests__/**",
             "hooks/__tests__/**",
             "scripts/core/**/__tests__/**",
+            "scripts/host/__tests__/**",
             "**/*.integration.test.ts",
             "tests/e2e/**",
             "**/node_modules/**"

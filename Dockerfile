@@ -20,17 +20,11 @@ COPY . .
 
 ENV NODE_ENV=production
 
-# NEXT_PUBLIC_* variables are the only legitimate build-time ARGs because
-# Next.js statically embeds them into the client bundle at build time.
-#
-# Runtime secrets must NEVER be build ARGs or ENV values. Next.js still
-# evaluates server modules during `next build`, so validation is skipped
-# only for the build command below. The runner stage validates real values
-# from the runtime environment block in docker-compose.yml.
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_STORAGE_BASE_URL=http://localhost:9000/remit
-ENV NEXT_PUBLIC_STORAGE_BASE_URL=$NEXT_PUBLIC_STORAGE_BASE_URL
+# The image is built once and deployed anywhere, so nothing about a deployment enters the build: no
+# build ARG, no address, no secret, and no NEXT_PUBLIC_* variable, which Next.js would freeze into
+# the bundle (ADR-0040). Next.js still evaluates server modules during `next build`, so validation
+# is skipped only for the build command below. The runner stage validates real values from the
+# runtime environment block in docker-compose.yml.
 
 RUN corepack enable pnpm && REMIT_BUILD_ENV_VALIDATION=skip pnpm build
 

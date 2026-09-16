@@ -17,18 +17,15 @@ env:
   POSTGRES_PASSWORD: remit_e2e
   POSTGRES_DB: remit_e2e
   BETTER_AUTH_SECRET: e2e-secret-not-used-outside-ci
-  BETTER_AUTH_URL: http://localhost:3000
+  REMIT_PUBLIC_URL: http://localhost:3000
   REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   REMIT_HOSTED_MODE: "false"
   REMIT_DATA_DIR: ./data/e2e
-  NEXT_PUBLIC_APP_URL: http://localhost:3000
-  NEXT_PUBLIC_STORAGE_BASE_URL: http://localhost:9000/remit
   REDIS_URL: redis://redis:6379
   MINIO_ENDPOINT: http://minio:9000
   MINIO_ROOT_USER: minioadmin
   MINIO_ROOT_PASSWORD: minioadmin
   MINIO_BUCKET: remit
-  MINIO_PUBLIC_URL: http://localhost:9000/remit
   PLAYWRIGHT_BASE_URL: http://localhost:3000
   PLAYWRIGHT_SKIP_WEB_SERVER: "true"
   # Host-side connection used by the Playwright process itself (owner provisioning and session

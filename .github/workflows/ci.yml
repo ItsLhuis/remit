@@ -33,6 +33,11 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
+      # The host-side scripts run on an operator's server with no TypeScript and no test runner in
+      # front of them, so their static check is this step. ShellCheck is preinstalled on the runner.
+      - name: Check shell scripts
+        run: shellcheck scripts/host/*.sh docker-entrypoint.sh
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
@@ -125,16 +130,13 @@ jobs:
     env:
       DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
       BETTER_AUTH_SECRET: ci-secret-not-used-outside-build
-      BETTER_AUTH_URL: http://localhost:3000
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_STORAGE_BASE_URL: http://localhost:9000/remit
+      REMIT_PUBLIC_URL: http://localhost:3000
       REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       REDIS_URL: redis://localhost:6379
       MINIO_ENDPOINT: http://localhost:9000
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
       MINIO_BUCKET: remit
-      MINIO_PUBLIC_URL: http://localhost:9000/remit
     steps:
       - name: Checkout
         uses: actions/checkout@v6

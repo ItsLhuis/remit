@@ -52,12 +52,12 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 if project_root=$(git rev-parse --show-toplevel 2>/dev/null); then
   :
 else
-  project_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
+  project_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)
 fi
 
 cd "$project_root"

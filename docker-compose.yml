@@ -42,9 +42,9 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    # No ports exposed. Browsers never reach object storage: the app streams every upload in and
+    # every public file out (ADR-0040), and publishing the console would put a root-credential login
+    # page on the host's network. `docker compose exec minio mc` reaches it when an operator must.
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
@@ -52,41 +52,34 @@ services:
       retries: 5
 
   app:
-    image: ghcr.io/itslhuis/remit:${REMIT_IMAGE_TAG:-latest}
+    image: ghcr.io/itslhuis/remit/app:${REMIT_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
       # Explicit, because `worker` is the last stage in the Dockerfile and Compose would otherwise
       # build it here — handing the web image the Chromium closure that stage exists to keep out.
       target: runner
-      args:
-        # NEXT_PUBLIC_* variables are legitimate build args - Next.js embeds
-        # them into the client bundle at build time.
-        # DATABASE_URL and BETTER_AUTH_SECRET are runtime secrets and must
-        # never appear under `args`. They are passed via `environment` below.
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      # Loopback when a proxy on this host fronts the app — the installer writes 127.0.0.1 for the
+      # `with-proxy` profile, so the only way in from outside is Caddy's TLS — and every interface
+      # otherwise, for a reverse proxy on another machine or a trusted LAN.
+      - "${REMIT_APP_BIND:-0.0.0.0}:${PORT:-3000}:3000"
     environment:
-      # Runtime secrets - injected by Docker at container start, never baked
-      # into the image. DATABASE_URL uses the Docker-internal `database` hostname
-      # so the app can reach PostgreSQL within the compose network.
+      # Runtime configuration - injected by Docker at container start, never baked into the image.
+      # DATABASE_URL uses the Docker-internal `database` hostname so the app can reach PostgreSQL
+      # within the compose network.
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      REMIT_PUBLIC_URL: ${REMIT_PUBLIC_URL}
       REMIT_ENCRYPTION_KEY: ${REMIT_ENCRYPTION_KEY}
       REMIT_HOSTED_MODE: ${REMIT_HOSTED_MODE:-false}
       REMIT_DATA_DIR: /app/data
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-remit}
-      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
       # Empty leaves GET /api/metrics unavailable (404). When set, point a Prometheus scrape job at
       # /api/metrics with this value as its bearer token; docs/operations/METRICS.md has the config.
       REMIT_METRICS_TOKEN: ${REMIT_METRICS_TOKEN:-}
@@ -101,8 +94,6 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      # Requires a /api/health endpoint in the application (recommended).
-      # Adjust the path if your health endpoint differs.
       # 127.0.0.1, never `localhost`: the Next standalone server binds the IPv4 wildcard only
       # (HOSTNAME=0.0.0.0), while `localhost` resolves to ::1 first inside the container, so a
       # `localhost` probe fails with "connection refused" against a perfectly healthy server.
@@ -113,7 +104,7 @@ services:
       start_period: 30s
 
   worker:
-    image: ghcr.io/itslhuis/remit-worker:${REMIT_IMAGE_TAG:-latest}
+    image: ghcr.io/itslhuis/remit/worker:${REMIT_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -124,25 +115,19 @@ services:
       # server. Waiting on `app` being healthy is what keeps the two containers from migrating
       # concurrently.
       target: worker
-      args:
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      REMIT_PUBLIC_URL: ${REMIT_PUBLIC_URL}
       REMIT_ENCRYPTION_KEY: ${REMIT_ENCRYPTION_KEY}
       REMIT_HOSTED_MODE: ${REMIT_HOSTED_MODE:-false}
       REMIT_DATA_DIR: /app/data
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-      NEXT_PUBLIC_STORAGE_BASE_URL: ${NEXT_PUBLIC_STORAGE_BASE_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-remit}
-      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     volumes:
       - ${REMIT_DATA_DIR:-./data}:/app/data
       - uploads:/app/uploads
@@ -152,8 +137,33 @@ services:
       redis:
         condition: service_healthy
 
+  # Only with `--profile with-proxy`, or `COMPOSE_PROFILES=with-proxy` in `.env`, which is how the
+  # installer enables it so a plain `docker compose up -d` and `scripts/host/upgrade.sh` keep it.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["with-proxy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      REMIT_PUBLIC_URL: ${REMIT_PUBLIC_URL}
+      REMIT_ACME_EMAIL: ${REMIT_ACME_EMAIL:-}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # The ACME account and every certificate. Losing it re-issues them, which Let's Encrypt rate
+      # limits per domain, so it is a named volume rather than container state.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
   uploads:
+  caddy_data:
+  caddy_config:

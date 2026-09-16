@@ -1,0 +1,74 @@
+name: Install
+
+on:
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deliberately no workflow-level `env`. Docker Compose lets a variable set in the shell override the
+# same variable in `.env`, so any configuration here would silently replace what the installer wrote
+# and the job would prove nothing about it.
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # The images this commit produces, tagged locally, so the run exercises the installer against
+      # the code under review rather than whatever the registry last published.
+      - name: Build images
+        run: REMIT_IMAGE_TAG=ci docker compose build app worker
+
+      - name: Install unattended
+        run: |
+          bash scripts/host/install.sh --yes --no-pull --image-tag ci \
+            --url http://localhost:3000 --accept-key-custody
+
+      - name: Verify the instance answers and sends a new visitor to registration
+        run: |
+          curl -fsS http://localhost:3000/api/health
+          location=$(curl -s -o /dev/null -w '%{redirect_url}' http://localhost:3000/)
+          echo "redirect: ${location}"
+          [[ "${location}" == */register ]]
+
+      # The worker has no health check of its own, and a container that exits at startup is restarted
+      # forever while the app stays healthy. Thirty seconds without a restart is what "it started"
+      # looks like from outside.
+      - name: Verify the worker stays up
+        run: |
+          sleep 30
+          worker=$(docker compose ps -q worker)
+          state=$(docker inspect --format '{{.State.Status}} {{.RestartCount}}' "${worker}")
+          echo "worker: ${state}"
+          [[ "${state}" == "running 0" ]]
+
+      - name: Verify .env is private to its owner
+        run: '[[ "$(stat -c %a .env)" == "600" ]]'
+
+      # Hashes of the key line only: the key itself never reaches the log.
+      - name: Verify a second run never changes the encryption key
+        run: |
+          before=$(grep '^REMIT_ENCRYPTION_KEY=' .env | sha256sum)
+          bash scripts/host/install.sh --yes --no-pull --image-tag ci \
+            --url http://localhost:3000 --accept-key-custody
+          after=$(grep '^REMIT_ENCRYPTION_KEY=' .env | sha256sum)
+          [[ "${before}" == "${after}" ]]
+
+      - name: Verify a backup can be written into the data directory
+        run: docker compose exec -T app pnpm remit:backup --yes
+
+      - name: Dump compose logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down -v
