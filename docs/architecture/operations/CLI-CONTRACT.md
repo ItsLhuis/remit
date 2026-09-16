@@ -48,7 +48,12 @@ The app container must never mount the Docker socket. That would turn one applic
 into host-level Docker daemon access.
 
 Host-side scripts live under `scripts/host/` as POSIX shell scripts. They are checked out and run on
-the host that owns the compose project and are not copied into the runtime image.
+the host that owns the compose project and are not copied into the runtime image. A script an
+operator runs is named for its operation (`install.sh`, `upgrade.sh`); a helper those scripts share
+carries a leading underscore (`_check-prereqs.sh`, `_wait-for-health.sh`) and is not an operator
+entrypoint. The installer is `scripts/host/install.sh` rather than a top-level `scripts/install.sh`
+because it is host-side for exactly the reasons the upgrade flow is: it pulls images and starts the
+compose project.
 
 ## Promotion criteria
 
@@ -118,6 +123,7 @@ implemented command.
 | `remit:backup`                | Shipped | In-container | Local plus S3/R2/B2 encrypted `.remitbak` destinations.                                  |
 | `remit:restore`               | Shipped | In-container | Local path or `remit://<destination>/<key>` restore with mandatory pre-restore snapshot. |
 | Remote backup destinations    | Shipped | In-container | `s3`, `r2`, and `b2` implemented through the S3-compatible adapter.                      |
+| Install flow                  | Shipped | Host-side    | `scripts/host/install.sh`; runbook in `docs/operations/INSTALL.md`. No `remit:install`.  |
 | Upgrade flow                  | Shipped | Host-side    | `scripts/host/upgrade.sh`; runbook in `docs/operations/UPGRADE.md`. No `remit:upgrade`.  |
 | `remit:rotate-encryption-key` | Shipped | In-container | ADR-0021. Rotates registered encrypted columns and `.remitbak` archive encryption.       |
 | `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.                    |
@@ -247,6 +253,30 @@ implemented command.
   Auth-owned password hashes, TOTP secrets, backup codes, sessions, verification tokens,
   organizations, or memberships. Detailed rotation semantics are in
   [ADR-0021](../adr/0021-encryption-key-rotation.md).
+
+### `bash scripts/host/install.sh`
+
+- **Runs in:** the host checkout that will own the Docker Compose project, not inside a container.
+- **Required configuration:** Docker Engine 24 or newer with a reachable daemon, the Docker Compose
+  v2 plugin, a writable checkout with 5 GB free, and free ports for the app (and 80 and 443 with
+  Caddy). No `.env` is needed; the script writes it.
+- **Destructive scope:** none. It never rewrites an existing `.env`, and refuses to generate
+  credentials when the project's Docker volumes exist without one.
+- **Confirmation:** interactively, it shows the generated `REMIT_ENCRYPTION_KEY` once and writes
+  nothing until the operator types its last six characters. With `--yes` the key is never printed
+  and `--accept-key-custody` is required.
+- **Flags:** `--url`, `--proxy`, `--no-proxy`, `--acme-email`, `--port`, `--image-tag`,
+  `--allow-http`, `--yes`, `--accept-key-custody`, `--env-only`, `--no-pull`, `--dry-run`, and
+  `--help`. `REMIT_INSTALL_ENCRYPTION_KEY` in the environment supplies an existing key instead of a
+  generated one; keys are never accepted through argv.
+- **Effects:** checks host prerequisites through `_check-prereqs.sh --for install`, generates the
+  database, object-store and auth secrets and the encryption key, writes `.env` with mode `0600`,
+  pulls the images, makes the bind-mounted data directory writable by the app's user, runs
+  `docker compose up -d --no-build`, and waits through `_wait-for-health.sh`. With an existing
+  `.env` holding a key, it only starts the stack, pulling nothing already present.
+- **Limitations:** no IPv6 literal as the public URL, no reconfiguration of an existing install, and
+  no installation of Docker itself. Exit codes are `0`, `1` for a failure and `2` for a usage error.
+  Detailed steps are in the [Installation runbook](../../operations/INSTALL.md).
 
 ### `bash scripts/host/upgrade.sh`
 

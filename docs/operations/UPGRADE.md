@@ -13,8 +13,10 @@ or receive access to the Docker socket.
 - The configured backup destination is reachable. For the default local destination, the
   `${REMIT_DATA_DIR:-./data}` volume must be writable and have enough space for a `.remitbak`
   archive.
-- The current app image tag is known. The production compose file reads `REMIT_IMAGE_TAG` and
-  defaults to `latest`.
+- The current image tag is known. The production compose file runs `ghcr.io/itslhuis/remit/app` and
+  `ghcr.io/itslhuis/remit/worker` at `REMIT_IMAGE_TAG`, which defaults to `latest`.
+- When `.env` sets `COMPOSE_PROFILES=with-proxy`, as the installer does for automatic HTTPS, every
+  step below includes the Caddy container with no extra option.
 
 ## Before You Upgrade
 

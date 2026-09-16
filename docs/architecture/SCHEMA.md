@@ -561,14 +561,15 @@ Indexes:
 the underlying file).
 
 `size_bytes` and `checksum_sha256` are both measured from the stored object by
-`lib/storage/verifyUploadedObject.ts` after the client's `PUT` completes, never taken from the
-client that uploaded it: a presigned `PUT` proves nothing about what was actually written. The
+`lib/storage/verifyUploadedObject.ts` when a confirm action records the upload, never taken from the
+client: the object key comes back from the client, which could name one it never uploaded. The
 checksum exists so `pnpm remit:restore` can tell a truncated or substituted object from an intact
 one, which the size alone cannot.
 
-A `documents` row must never be handed to `resolveStorageUrl`, which builds a public URL and would
-mislead the caller into thinking a private object is reachable. Private objects are served through a
-credentialed route — `app/api/attachments/[id]/route.ts` for attachments.
+A `documents` row must never be handed to `resolveStorageUrl`, which builds a URL to the public
+storage route and would mislead the caller into thinking a private object is reachable. Private
+objects are served through a credentialed route — `app/api/attachments/[id]/route.ts` for
+attachments.
 
 Every reference to `uploads` is `on delete set null` **except `attachments.upload_id`**, which is
 `NOT NULL` and cascades: an invoice or an expense outlives its file, an attachment does not. See
@@ -1412,8 +1413,8 @@ so two attachments sharing one upload would make removing either destroy both.
 The parent foreign keys cascade rather than setting null: an attachment whose parent is gone has no
 record left to authorize a reader against, so it must not survive it.
 
-Limits are enforced on the server — in `features/attachments/` and the presign route, not only in
-the client: 25 MB per file, 20 files per record, 100 MB total per record, and a mime allowlist that
+Limits are enforced on the server — in `features/attachments/` and the upload route, not only in the
+client: 25 MB per file, 20 files per record, 100 MB total per record, and a mime allowlist that
 excludes archives and SVG.
 
 ---

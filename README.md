@@ -185,11 +185,26 @@ Security is treated as a first-class feature, not a checklist.
 
 ## Self-hosting
 
-The repository ships Docker Compose assets for production, development, and test Postgres.
+Self-hosting is Docker Compose, and installing is one command from a clone of the repository:
 
-The production Compose file exposes the app for an existing reverse proxy and runs PostgreSQL plus
-MinIO alongside the app container. The step-by-step path from a machine with Docker on it to an
-instance you are logged into is the [installation runbook](./docs/operations/INSTALL.md).
+```bash
+git clone https://github.com/ItsLhuis/remit.git
+cd remit
+bash scripts/host/install.sh
+```
+
+The installer checks Docker, asks for the address Remit will be reached at and whether to run Caddy
+for automatic HTTPS, generates every secret, and starts the app, the background worker, PostgreSQL,
+Redis and MinIO. It shows the encryption key once and does not continue until you confirm you have
+stored it. Read the script before you run it: it is distributed through the repository, never as a
+`curl | bash` one-liner, because it needs the checkout's Compose file and because it generates the
+key that encrypts your data. Re-running it is safe and never rewrites `.env` or its key. The
+[installation runbook](./docs/operations/INSTALL.md) covers unattended installs, every option, and
+installing by hand.
+
+Only the app, or Caddy in front of it, is reachable from outside the host. Uploads and stored files
+go through the app, so an instance needs one hostname and one certificate, and the published images
+carry no address of their own.
 
 Operational support:
 

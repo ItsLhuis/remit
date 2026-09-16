@@ -112,6 +112,7 @@ individual tests.
 | Component tests (single-file component) | `__tests__/ComponentName.test.tsx` adjacent to the component     |
 | Server action integration tests         | `features/<feature>/__tests__/<actionName>.integration.test.ts`  |
 | E2E tests                               | `tests/e2e/<flow-name>.spec.ts`, one flow per file               |
+| Host-side script tests                  | `scripts/host/__tests__/<scriptName>.test.ts`                    |
 | Test factories                          | `tests/factories/<entity>.ts` exporting `makeEntity(overrides?)` |
 | Docs consistency tests                  | `tests/docs/*.test.ts`                                           |
 

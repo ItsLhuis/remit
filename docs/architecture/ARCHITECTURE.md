@@ -960,10 +960,19 @@ Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) and the c
 ### Private files and attachments
 
 `uploads.bucket` splits stored objects in two. The `public` bucket holds what a browser may fetch
-directly — avatars, the business logo, a client's image, template images — and its keys are turned
-into URLs by `resolveStorageUrl`. The `documents` bucket holds everything else and has no anonymous
-read policy; handing one of its keys to `resolveStorageUrl` is a bug, because the helper would build
-a URL the bucket refuses while telling the caller the object is reachable.
+without a session — avatars, the business logo, a client's image, template images and expense
+receipts — and its keys are turned into same-origin URLs by `resolveStorageUrl`, which
+`app/api/storage/[...key]/route.ts` answers by streaming the object out of the store. The
+`documents` bucket holds everything else, and that route cannot read it; handing one of its keys to
+`resolveStorageUrl` is a bug, because the helper would build a URL that answers 404 while telling
+the caller the object is reachable.
+
+No browser talks to object storage. An upload is the request body of `POST /api/upload/[type]`,
+which checks the session, the file type and the declared size against the variant's ceiling before
+streaming the file into the store under a key it mints, and no bucket carries a policy granting
+anonymous reads. The store therefore needs no public address, publishes no port, and names no origin
+in the Content-Security-Policy. [ADR-0040](adr/0040-deployment-agnostic-images.md) records why
+storage sits behind the application's origin.
 
 A rendered report PDF is the one generated document that lives in neither bucket. It is a snapshot
 of live figures rather than a business record — nothing points at it and asking again produces a
@@ -1026,21 +1035,27 @@ Coverage, and where each limit lives:
 
 A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
 `/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
-interval, and it reads nothing that a rate limit would protect.
+interval, and it reads nothing that a rate limit would protect. `/api/storage/*` carries none
+either: it serves the objects the public bucket already served anonymously, under keys nobody can
+enumerate, and marks every response immutable so a browser asks for each file once.
 
 ### HTTP security headers
 
-`proxy.ts`'s `applySecurityHeaders` sets these on every response the middleware returns, which is
-every response except the static assets its matcher excludes:
+`lib/securityHeaders.ts`'s `applySecurityHeaders` sets these on every response `proxy.ts` returns,
+which is every response except the static assets and the two routes its matcher leaves out.
+`app/api/upload/[type]/route.ts` is left out so an upload body is streamed rather than buffered and
+cut off at ten megabytes, and it sets these headers itself. `app/api/storage/[...key]/route.ts` sets
+only `X-Content-Type-Options`, because a page policy on a stored PDF stops the browser's viewer from
+rendering it.
 
-| Header                      | Value                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)                   |
-| `Content-Security-Policy`   | `default-src 'self'` with per-source allowlists, and `frame-ancestors 'none'` |
-| `X-Frame-Options`           | `DENY`, dropped on public token routes                                        |
-| `X-Content-Type-Options`    | `nosniff`                                                                     |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                             |
-| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                    |
+| Header                      | Value                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)                    |
+| `Content-Security-Policy`   | `'self'` for every source except the flag images, and `frame-ancestors 'none'` |
+| `X-Frame-Options`           | `DENY`, dropped on public token routes                                         |
+| `X-Content-Type-Options`    | `nosniff`                                                                      |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                              |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                     |
 
 Dropping `X-Frame-Options` on a public token route does not make that page embeddable: the CSP's
 `frame-ancestors 'none'` is unconditional and is the directive a modern browser honours. The header
@@ -1406,7 +1421,8 @@ application-level interactions. API routes exist only for specific, justified ca
 | `/api/webhooks/stripe`                      | Stripe webhook event receiver                             |
 | `/api/health`                               | Uptime monitor health check (public)                      |
 | `/api/metrics`                              | Prometheus scrape, bearer-token protected; 404 when unset |
-| `/api/upload/[type]`                        | Session-gated direct upload                               |
+| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage        |
+| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                       |
 | `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket |
 | `/api/documents/[type]/[id]`                | Session-gated rendered-document download                  |
 | `/api/exports/[id]`                         | Owner-gated data export archive download                  |
@@ -1475,13 +1491,22 @@ No data crosses a boundary unvalidated.
 
 ### Docker-first deployment model
 
-The primary deployment unit is a Docker image published to GitHub Container Registry (GHCR). A
-`docker-compose.yml` bundles the application and a PostgreSQL container. Two Compose profiles:
+Remit is published as two images on GitHub Container Registry, built from one Dockerfile:
+`ghcr.io/itslhuis/remit/app`, the Next.js server, and `ghcr.io/itslhuis/remit/worker`, the job
+consumer with Chromium for PDF rendering. Neither carries anything about a deployment — no address,
+no secret, no `NEXT_PUBLIC_*` value frozen into the bundle — so the image a release names runs at
+any address ([ADR-0040](adr/0040-deployment-agnostic-images.md)).
 
-- **Default profile** — exposes a configurable port; assumes an existing reverse proxy (Nginx,
-  Caddy, Traefik, Cloudflare Tunnel).
-- **`with-proxy` profile** — includes Caddy with automatic Let's Encrypt TLS. One command, full
-  HTTPS, zero certificate management.
+`docker-compose.yml` runs the two beside PostgreSQL, Redis and MinIO. Only the app publishes a port:
+the database, Redis and object storage are reachable inside the Compose network alone, and browsers
+reach stored files through the app. Two profiles:
+
+- **Default** — publishes the app on `PORT`, on the interface `REMIT_APP_BIND` names, for a reverse
+  proxy the operator already runs (Nginx, Caddy, Traefik, Cloudflare Tunnel) or a trusted LAN.
+- **`with-proxy`** — adds Caddy, which obtains and renews a certificate for `REMIT_PUBLIC_URL`,
+  redirects HTTP to HTTPS and proxies to the app, whose port is then published on loopback only. Its
+  configuration is `deploy/caddy/Caddyfile`. `COMPOSE_PROFILES=with-proxy` in `.env` keeps the
+  profile on for every later `docker compose` command, the upgrade script's included.
 
 ### Configuration hierarchy
 
@@ -1489,9 +1514,10 @@ The primary deployment unit is a Docker image published to GitHub Container Regi
 lib/config/env.ts    Zod-validated deployment configuration. Process exits on failure.
 /setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
 /settings/**         Ongoing instance configuration stored in the settings table.
-.env                 Deployment-owned configuration: database URL, auth URL/secret, encryption key,
-                     data/storage bootstrap, Redis, Chromium path, the metrics token, and the
-                     unread variable named in the Observability section.
+.env                 Deployment-owned configuration: the public URL, database, auth secret,
+                     encryption key, object-store credentials, Redis, the image tag and Compose
+                     profile, Chromium path, the metrics token, and the unread variable named in
+                     the Observability section.
 ```
 
 No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
@@ -1522,10 +1548,11 @@ health surface, `pnpm remit:reset-password` for credential recovery, `pnpm remit
 encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for destructive-safe local and
 remote restores, `pnpm remit:seed-demo` for deterministic local/demo data, `pnpm remit:reset-data`
 for returning a demoed instance to zero domain data without losing the account or its configuration,
-`pnpm remit:rotate-encryption-key` for operational master-key rotation, and the host-side
+`pnpm remit:rotate-encryption-key` for operational master-key rotation, and two host-side scripts:
+`scripts/host/install.sh`, which takes a host with Docker on it to a running instance and is
+documented in the [installation runbook](../operations/INSTALL.md), and the
 `scripts/host/upgrade.sh` upgrade flow documented in
-[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Installation from those assets is the
-[installation runbook](../operations/INSTALL.md).
+[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md).
 
 The deeper self-hosting references are:
 
@@ -1539,6 +1566,31 @@ The deeper self-hosting references are:
   rollback, and troubleshooting.
 - [ADR-0021](adr/0021-encryption-key-rotation.md) for encryption key rotation semantics,
   recoverability, audit events, and refusal rules.
+
+### One-command install
+
+`bash scripts/host/install.sh`, run from a clone of the repository, takes a host with Docker on it
+to a running instance that answers at `/register`. It checks Docker 24 or newer, the Compose plugin,
+a writable checkout with 5 GB free and the ports it is about to bind. It asks for the public URL,
+whether Caddy should provide HTTPS, and an ACME email if so. It generates the database, object-store
+and auth secrets and `REMIT_ENCRYPTION_KEY` from the kernel's random source, writes `.env` with mode
+`0600`, pulls the images, starts the stack and waits for `/api/health`. Migrations run in the app's
+entrypoint, never in the installer.
+
+It asks only what Compose and the container need before any page exists. Everything an owner can set
+once signed in stays in `/setup` and `/settings/**`.
+
+The encryption key is shown once, interactively, and `.env` is written only after the operator types
+back its last characters. Unattended (`--yes`), the key is never printed and the run must pass
+`--accept-key-custody`. An existing `.env` is never rewritten: a re-run checks that it holds a key
+and starts the stack without pulling newer images, so it can neither replace the key nor become an
+upgrade without the upgrade script's backup. A missing `.env` beside existing Compose volumes is
+refused, because new credentials generated over that data would lock the instance out of it.
+
+The installer is obtained by cloning the repository rather than by piping a download into a shell:
+it needs the checkout's Compose file and Caddyfile, and the operator can read what it will run
+before it generates the key that encrypts their data. It never installs packages, uses `sudo`, or
+changes firewall or DNS settings.
 
 ### Setup wizard
 
@@ -1695,10 +1747,10 @@ keys on the command line and never rewrites `.env`.
 ### Operator documentation
 
 Three runbooks cover the operator's life-cycle: the [installation runbook](../operations/INSTALL.md)
-from a machine with Docker to an instance the operator is logged into, the
-[upgrade runbook](../operations/UPGRADE.md), and the [restore runbook](../operations/RESTORE.md).
-Each is written against the Docker Compose assets in the repository, which are the deployment
-surface Remit supports.
+from a host with Docker, through `scripts/host/install.sh`, to an instance the operator is logged
+into, the [upgrade runbook](../operations/UPGRADE.md), and the
+[restore runbook](../operations/RESTORE.md). Each is written against the Docker Compose assets in
+the repository, which are the deployment surface Remit supports.
 
 ---
 
@@ -2032,6 +2084,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet            | Accepted |
 | [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
 | [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
+| [0040](adr/0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app | Accepted |
 
 ---
 

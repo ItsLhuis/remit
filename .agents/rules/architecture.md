@@ -247,12 +247,14 @@ No data crosses a trust boundary unvalidated.
 
 ## Adding an environment variable
 
-Environment variables are defined once in the Zod schema in `lib/config/env.ts` and consumed through
-the exported `env` object. Application code reads `env`; it does not read `process.env` directly.
+Environment variables are defined once in the Zod schema in `lib/config/envSchema.ts` and consumed
+through the `env` object `lib/config/env.ts` exports. Application code reads `env`; it does not read
+`process.env` directly.
 
-1. Add the variable to the schema in `lib/config/env.ts`. Client-exposed variables use the
-   `NEXT_PUBLIC_` prefix; optional variables use the `optionalEnvString` helper so blank values
-   become `undefined`.
+1. Add the variable to the schema in `lib/config/envSchema.ts`. Optional variables use the
+   `optionalEnvString` helper so blank values become `undefined`. Never use the `NEXT_PUBLIC_`
+   prefix: Next.js freezes such a value into the bundle at build time, and a published image must
+   run at any address (ADR-0040). A value the browser needs is read on the server and passed down.
 2. Document it in `.env.example` with a safe placeholder value, never a real secret.
 
 Required secrets additionally follow `security.md`: validated here, never logged, and never returned
