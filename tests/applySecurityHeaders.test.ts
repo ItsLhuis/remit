@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { afterEach, describe, expect, test, vi } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 
-import { applySecurityHeaders, buildContentSecurityPolicy, proxy } from "../proxy"
+import { applySecurityHeaders, buildContentSecurityPolicy } from "@/lib/securityHeaders"
+
+import { config, proxy } from "../proxy"
 
 vi.mock("@/lib/auth", () => ({
   auth: {
@@ -21,11 +23,11 @@ vi.mock("@/database/schema", () => ({
   users: {}
 }))
 
-describe("applySecurityHeaders", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
-  })
+function isHandledByProxy(pathname: string): boolean {
+  return config.matcher.some((pattern) => new RegExp(`^${pattern}$`).test(pathname))
+}
 
+describe("applySecurityHeaders", () => {
   test("sets baseline security headers and frame denial on non-public-token routes", () => {
     const response = NextResponse.next()
 
@@ -57,27 +59,30 @@ describe("applySecurityHeaders", () => {
     expect(response.headers.get("X-Frame-Options")).toBe("DENY")
   })
 
-  test("includes storage origin in connect-src and img-src when NEXT_PUBLIC_STORAGE_BASE_URL is set", () => {
-    vi.stubEnv("NEXT_PUBLIC_STORAGE_BASE_URL", "http://localhost:9000/remit")
+  // Stored files are served from this origin, so a storage host in the policy would be an address
+  // frozen in at build time rather than one the deployment chose.
+  test("allows connections and images from this origin only apart from the flag images", () => {
+    const directives = buildContentSecurityPolicy().split("; ")
 
-    const csp = buildContentSecurityPolicy()
+    expect(directives).toContain("connect-src 'self'")
+    expect(directives).toContain("img-src 'self' data: blob: https://react-circle-flags.pages.dev")
+  })
+})
 
-    expect(csp).toContain("connect-src 'self' http://localhost:9000")
-    expect(csp).toContain(
-      "img-src 'self' data: blob: https://react-circle-flags.pages.dev http://localhost:9000"
-    )
+describe("proxy matcher", () => {
+  test("handles application pages and API routes", () => {
+    expect(isHandledByProxy("/")).toBe(true)
+    expect(isHandledByProxy("/settings/profile")).toBe(true)
+    expect(isHandledByProxy("/api/health")).toBe(true)
   })
 
-  test("omits storage origin from connect-src and img-src when NEXT_PUBLIC_STORAGE_BASE_URL is unset", () => {
-    vi.stubEnv("NEXT_PUBLIC_STORAGE_BASE_URL", "")
+  // A request the proxy handles has its body buffered and cut off at ten megabytes, so an upload
+  // routed through it would be stored truncated rather than refused.
+  test("leaves uploads to the upload route so their bodies are never buffered", () => {
+    expect(isHandledByProxy("/api/upload/attachment")).toBe(false)
+  })
 
-    const csp = buildContentSecurityPolicy()
-
-    expect(csp).toContain("connect-src 'self'")
-    expect(csp).not.toContain("connect-src 'self' http")
-    expect(csp).toContain("img-src 'self' data: blob: https://react-circle-flags.pages.dev")
-    expect(csp).not.toContain(
-      "img-src 'self' data: blob: https://react-circle-flags.pages.dev http"
-    )
+  test("leaves stored files to the anonymous storage route", () => {
+    expect(isHandledByProxy("/api/storage/avatars/user-1/photo")).toBe(false)
   })
 })

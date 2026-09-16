@@ -13,9 +13,9 @@ export type ExistingAttachmentSize = {
 }
 
 // The server-side half of the limits. The dropzone refuses an oversized file before it is uploaded
-// and the presign route refuses one it is asked to sign, but neither is authoritative: a signed PUT
-// is a URL, not a permission, so the count and the running total are re-derived here from what the
-// record already holds at the moment the row would be written.
+// and the upload route refuses one over the per-file ceiling, but neither knows what the record
+// already holds, so the count and the running total are re-derived here at the moment the row would
+// be written.
 export function checkAttachmentLimits(
   existing: readonly ExistingAttachmentSize[],
   incoming: Pick<AddAttachmentValues, "sizeBytes">

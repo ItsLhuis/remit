@@ -130,7 +130,6 @@ export type Translations = {
     errors: {
       invalidType: string
       tooLarge: string
-      presignFailed: string
       uploadFailed: string
     }
   }
@@ -3829,7 +3828,6 @@ export type Translations = {
       validation: {
         nameRequired: string
         emailInvalid: string
-        avatarFilenameRequired: string
         avatarContentTypeRequired: string
         avatarSizeInvalid: string
         avatarTooLarge: string

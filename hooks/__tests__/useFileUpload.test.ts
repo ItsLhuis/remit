@@ -15,10 +15,16 @@ vi.mock("@/lib/i18n", () => ({
   })
 }))
 
-type PutRequest = {
+type SentRequest = {
+  method: string
   url: string
   contentType: string | null
   filename: string
+}
+
+type RouteResponse = {
+  status: number
+  body: unknown
 }
 
 type ProgressListener = (event: {
@@ -27,16 +33,18 @@ type ProgressListener = (event: {
   total: number
 }) => void
 
-let putStatus = 200
-let putProgress: { loaded: number; total: number }[] = []
-let putRequests: PutRequest[] = []
+let routeResponses: RouteResponse[] = []
+let uploadProgress: { loaded: number; total: number }[] = []
+let sentRequests: SentRequest[] = []
 
 // The hook reaches for XMLHttpRequest because it is the only browser API that reports upload
 // progress; happy-dom's implementation would open a real socket, so the whole class is replaced
-// rather than spied on.
+// rather than spied on. A status of 0 stands for a request that never reached the server.
 class MockXMLHttpRequest {
   status = 0
+  responseText = ""
 
+  private method = ""
   private url = ""
   private contentType: string | null = null
   private listeners = new Map<string, (() => void)[]>()
@@ -48,7 +56,8 @@ class MockXMLHttpRequest {
     }
   }
 
-  open(_method: string, url: string): void {
+  open(method: string, url: string): void {
+    this.method = method
     this.url = url
   }
 
@@ -61,17 +70,25 @@ class MockXMLHttpRequest {
   }
 
   send(file: File): void {
-    putRequests.push({ url: this.url, contentType: this.contentType, filename: file.name })
+    sentRequests.push({
+      method: this.method,
+      url: this.url,
+      contentType: this.contentType,
+      filename: file.name
+    })
 
-    for (const event of putProgress) {
+    for (const event of uploadProgress) {
       for (const listener of this.progressListeners) {
         listener({ lengthComputable: true, ...event })
       }
     }
 
-    this.status = putStatus
+    const response = routeResponses.shift() ?? { status: 0, body: null }
 
-    for (const listener of this.listeners.get(putStatus === 0 ? "error" : "load") ?? []) {
+    this.status = response.status
+    this.responseText = JSON.stringify(response.body)
+
+    for (const listener of this.listeners.get(response.status === 0 ? "error" : "load") ?? []) {
       listener()
     }
   }
@@ -90,19 +107,15 @@ function makeFile(name: string, type: string, sizeBytes = 4): File {
   return new File(["x".repeat(sizeBytes)], name, { type })
 }
 
-function mockPresign(body: unknown, ok = true): void {
-  vi.mocked(globalThis.fetch).mockResolvedValueOnce({
-    ok,
-    json: async () => body
-  } as Response)
+function respondWith(status: number, body: unknown): void {
+  routeResponses.push({ status, body })
 }
 
 beforeEach(() => {
-  putStatus = 200
-  putProgress = []
-  putRequests = []
+  routeResponses = []
+  uploadProgress = []
+  sentRequests = []
 
-  vi.stubGlobal("fetch", vi.fn())
   vi.stubGlobal("XMLHttpRequest", MockXMLHttpRequest)
 })
 
@@ -113,8 +126,8 @@ afterEach(() => {
 })
 
 describe("useFileUpload", () => {
-  test("stores the file and reports the minted object key when presign and PUT succeed", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/minted.png" })
+  test("stores the file and reports the minted object key when the route stores it", async () => {
+    respondWith(200, { objectKey: "attachments/minted.png" })
 
     const onUploaded = vi.fn()
     const { result } = renderHook(() => useFileUpload(makeOptions({ onUploaded })))
@@ -137,8 +150,8 @@ describe("useFileUpload", () => {
     expect(result.current.items[0]).toMatchObject({ status: "done", progress: 100 })
   })
 
-  test("puts the bytes to the presigned url the route returned", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/signed-put", objectKey: "attachments/a.png" })
+  test("posts the bytes to the upload route for its type, labelled with the file's type", async () => {
+    respondWith(200, { objectKey: "attachments/a.png" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -146,8 +159,8 @@ describe("useFileUpload", () => {
       await result.current.upload([makeFile("a.png", "image/png")])
     })
 
-    expect(putRequests).toEqual([
-      { url: "https://storage.test/signed-put", contentType: "image/png", filename: "a.png" }
+    expect(sentRequests).toEqual([
+      { method: "POST", url: "/api/upload/attachment", contentType: "image/png", filename: "a.png" }
     ])
   })
 
@@ -162,7 +175,7 @@ describe("useFileUpload", () => {
       status: "error",
       error: "fileUpload.errors.invalidType"
     })
-    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(sentRequests).toEqual([])
   })
 
   test("rejects a file over the byte limit before any request", async () => {
@@ -176,11 +189,11 @@ describe("useFileUpload", () => {
       status: "error",
       error: "fileUpload.errors.tooLarge"
     })
-    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(sentRequests).toEqual([])
   })
 
-  test("surfaces the message the presign route returned when it refuses", async () => {
-    mockPresign({ error: "That file is too large" }, false)
+  test("surfaces the message the upload route returned when it refuses", async () => {
+    respondWith(400, { error: "That file is too large" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -194,8 +207,8 @@ describe("useFileUpload", () => {
     })
   })
 
-  test("falls back to a generic message when the presign route names no reason", async () => {
-    mockPresign({}, false)
+  test("falls back to a generic message when the upload route names no reason", async () => {
+    respondWith(500, {})
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -205,29 +218,11 @@ describe("useFileUpload", () => {
 
     expect(result.current.items[0]).toMatchObject({
       status: "error",
-      error: "fileUpload.errors.presignFailed"
+      error: "fileUpload.errors.uploadFailed"
     })
   })
 
-  test("reports a failed upload when the presign request itself cannot be made", async () => {
-    vi.mocked(globalThis.fetch).mockRejectedValueOnce(new Error("offline"))
-
-    const { result } = renderHook(() => useFileUpload(makeOptions()))
-
-    await act(async () => {
-      await result.current.upload([makeFile("a.png", "image/png")])
-    })
-
-    expect(result.current.items[0]).toMatchObject({
-      status: "error",
-      error: "fileUpload.errors.presignFailed"
-    })
-  })
-
-  test("reports a failed upload when storage rejects the PUT", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
-    putStatus = 500
-
+  test("reports a failed upload when the request never reaches the server", async () => {
     const onUploaded = vi.fn()
     const { result } = renderHook(() => useFileUpload(makeOptions({ onUploaded })))
 
@@ -245,9 +240,24 @@ describe("useFileUpload", () => {
     expect(onUploaded).not.toHaveBeenCalled()
   })
 
-  test("tracks the progress storage reports for the file being sent", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
-    putProgress = [{ loaded: 25, total: 100 }]
+  test("reports a failed upload when a success response carries no object key", async () => {
+    respondWith(200, { stored: true })
+
+    const { result } = renderHook(() => useFileUpload(makeOptions()))
+
+    await act(async () => {
+      await result.current.upload([makeFile("a.png", "image/png")])
+    })
+
+    expect(result.current.items[0]).toMatchObject({
+      status: "error",
+      error: "fileUpload.errors.uploadFailed"
+    })
+  })
+
+  test("tracks the progress reported for the file being sent", async () => {
+    respondWith(200, { objectKey: "attachments/a.png" })
+    uploadProgress = [{ loaded: 25, total: 100 }]
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -261,8 +271,8 @@ describe("useFileUpload", () => {
   // The batch is sequential precisely so that a file rejected in the middle does not cost the
   // caller the files that already reached storage.
   test("keeps the files that already stored when one file in the batch is refused", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/first.png" })
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/third.png" })
+    respondWith(200, { objectKey: "attachments/first.png" })
+    respondWith(200, { objectKey: "attachments/third.png" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -292,11 +302,11 @@ describe("useFileUpload", () => {
 
     expect(result.current.isUploading).toBe(false)
     expect(result.current.items).toEqual([])
-    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(sentRequests).toEqual([])
   })
 
   test("stops reporting an upload in flight once the batch settles", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
+    respondWith(200, { objectKey: "attachments/a.png" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -310,7 +320,7 @@ describe("useFileUpload", () => {
   // The flag gates the drop target, so a caller whose persistence throws must not leave the surface
   // permanently disabled.
   test("stops reporting an upload in flight when the caller's persistence throws", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
+    respondWith(200, { objectKey: "attachments/a.png" })
 
     const onUploaded = vi.fn().mockRejectedValue(new Error("action failed"))
     const { result } = renderHook(() => useFileUpload(makeOptions({ onUploaded })))
@@ -323,8 +333,8 @@ describe("useFileUpload", () => {
   })
 
   test("drops a single item when it is dismissed", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/b.png" })
+    respondWith(200, { objectKey: "attachments/a.png" })
+    respondWith(200, { objectKey: "attachments/b.png" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 
@@ -342,7 +352,7 @@ describe("useFileUpload", () => {
   })
 
   test("clears every item when the list is reset", async () => {
-    mockPresign({ uploadUrl: "https://storage.test/put", objectKey: "attachments/a.png" })
+    respondWith(200, { objectKey: "attachments/a.png" })
 
     const { result } = renderHook(() => useFileUpload(makeOptions()))
 

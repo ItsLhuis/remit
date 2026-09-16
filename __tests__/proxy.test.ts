@@ -166,7 +166,7 @@ describe("proxy on public token routes", () => {
   })
 
   test("allows a public token route to be framed while keeping other routes denied", async () => {
-    const { applySecurityHeaders } = await import("../proxy")
+    const { applySecurityHeaders } = await import("@/lib/securityHeaders")
     const { NextResponse } = await import("next/server")
 
     const framed = applySecurityHeaders(NextResponse.next(), true)

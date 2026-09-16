@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { NextRequest } from "next/server"
 
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -5,9 +7,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   headers: vi.fn(),
   getSession: vi.fn(),
-  getSignedUrl: vi.fn(),
-  ensureDocumentsBucket: vi.fn(),
-  s3UploadPresigner: {}
+  putUploadedObject: vi.fn(),
+  loggerError: vi.fn()
 }))
 
 vi.mock("next/headers", () => ({
@@ -26,268 +27,167 @@ vi.mock("@/lib/auth", () => ({
   }
 }))
 
+vi.mock("@/lib/logger", () => ({
+  logger: { error: mocks.loggerError }
+}))
+
 vi.mock("@/lib/storage/s3", () => ({
-  MINIO_BUCKET: "remit-test",
-  MINIO_DOCUMENTS_BUCKET: "remit-test-documents",
-  ensureDocumentsBucket: mocks.ensureDocumentsBucket,
-  s3UploadPresigner: mocks.s3UploadPresigner
+  putUploadedObject: mocks.putUploadedObject
 }))
 
-vi.mock("@aws-sdk/s3-request-presigner", () => ({
-  getSignedUrl: mocks.getSignedUrl
-}))
+const UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
 
-function createRequest(url: string, body: Record<string, unknown>): NextRequest {
-  return new NextRequest(url, {
+type UploadInput = {
+  contentType?: string
+  sizeBytes?: number
+}
+
+function createUpload(type: string, input: UploadInput): NextRequest {
+  const requestHeaders = new Headers()
+
+  if (input.contentType) requestHeaders.set("content-type", input.contentType)
+  if (input.sizeBytes !== undefined) requestHeaders.set("content-length", String(input.sizeBytes))
+
+  return new NextRequest(`https://remit.test/api/upload/${type}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
+    headers: requestHeaders,
+    body: new Uint8Array([1, 2, 3, 4])
   })
 }
 
-function avatarParams() {
-  return { params: Promise.resolve({ type: "avatar" }) }
+async function upload(type: string, input: UploadInput): Promise<Response> {
+  const { POST } = await import("../[type]/route")
+
+  return POST(createUpload(type, input), { params: Promise.resolve({ type }) })
 }
 
-function logoParams() {
-  return { params: Promise.resolve({ type: "business-logo" }) }
+function storedObject(): { bucket: string; objectKey: string; contentLength: number } {
+  const [input] = mocks.putUploadedObject.mock.calls[0] ?? []
+
+  return input as { bucket: string; objectKey: string; contentLength: number }
 }
 
-function receiptParams() {
-  return { params: Promise.resolve({ type: "expense-receipt" }) }
-}
+beforeEach(() => {
+  vi.clearAllMocks()
 
-function attachmentParams() {
-  return { params: Promise.resolve({ type: "attachment" }) }
-}
-
-function clientImageParams() {
-  return { params: Promise.resolve({ type: "client-image" }) }
-}
+  mocks.headers.mockResolvedValue(new Headers())
+  mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
+  mocks.putUploadedObject.mockResolvedValue(undefined)
+})
 
 describe("avatar upload route", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    mocks.headers.mockResolvedValue(new Headers())
-    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
-    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
-  })
-
-  test("returns a presigned upload URL for an allowed avatar file", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", {
-        filename: "photo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      avatarParams()
-    )
-    const body = (await response.json()) as { uploadUrl: string; objectKey: string }
+  test("stores an allowed avatar and returns the key it minted", async () => {
+    const response = await upload("avatar", { contentType: "image/png", sizeBytes: 1024 })
+    const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
-    expect(body.uploadUrl).toBe("https://storage.test/upload")
-    expect(body.objectKey).toMatch(
-      /^avatars\/user-1\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/
+    expect(body.objectKey).toMatch(new RegExp(`^avatars/user-1/${UUID_PATTERN}\\.png$`))
+    expect(mocks.putUploadedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bucket: "public",
+        objectKey: body.objectKey,
+        contentLength: 1024,
+        contentType: "image/png"
+      })
     )
-    expect(mocks.getSignedUrl).toHaveBeenCalledWith(mocks.s3UploadPresigner, expect.any(Object), {
-      expiresIn: 60
+  })
+
+  test("reads the file type without its parameters", async () => {
+    const response = await upload("avatar", {
+      contentType: "image/png; charset=binary",
+      sizeBytes: 1024
     })
-  })
-
-  test("returns the presigned upload URL without rewriting its host", async () => {
-    mocks.getSignedUrl.mockResolvedValueOnce(
-      "http://minio:9000/remit/avatars/user-1/photo.png?X-Amz-Signature=signed"
-    )
-
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", {
-        filename: "photo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      avatarParams()
-    )
-    const body = (await response.json()) as { uploadUrl: string }
 
     expect(response.status).toBe(200)
-    expect(body.uploadUrl).toBe(
-      "http://minio:9000/remit/avatars/user-1/photo.png?X-Amz-Signature=signed"
-    )
   })
 
-  test("rejects unsupported avatar file types without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
+  test("marks its responses as not to be sniffed, since the proxy does not handle it", async () => {
+    const response = await upload("avatar", { contentType: "image/png", sizeBytes: 1024 })
 
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", {
-        filename: "photo.svg",
-        contentType: "image/svg+xml",
-        sizeBytes: 1024
-      }),
-      avatarParams()
-    )
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff")
+  })
+
+  test("rejects unsupported avatar file types without storing anything", async () => {
+    const response = await upload("avatar", { contentType: "image/svg+xml", sizeBytes: 1024 })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(400)
     expect(body.error).toBe("settings.profile.invalidAvatarFileType")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
   test("returns unauthorized when the request has no session", async () => {
     mocks.getSession.mockResolvedValueOnce(null)
 
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", {
-        filename: "photo.png",
-        contentType: "image/png"
-      }),
-      avatarParams()
-    )
+    const response = await upload("avatar", { contentType: "image/png", sizeBytes: 1024 })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(401)
     expect(body.error).toBe("errors.unauthorized")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
-  test("returns bad request when the body is missing required fields", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", { filename: "photo.png" }),
-      avatarParams()
-    )
-    const body = (await response.json()) as { error: string }
+  test("returns bad request when the upload declares no length", async () => {
+    const response = await upload("avatar", { contentType: "image/png" })
 
     expect(response.status).toBe(400)
-    expect(body.error).toBeDefined()
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
-  test("returns server error when storage presigning fails", async () => {
-    mocks.getSignedUrl.mockRejectedValueOnce(new Error("S3 unreachable"))
+  test("returns not found for an upload type the route does not know", async () => {
+    const response = await upload("anything", { contentType: "image/png", sizeBytes: 1024 })
 
-    const { POST } = await import("../[type]/route")
+    expect(response.status).toBe(404)
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
+  })
 
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/avatar", {
-        filename: "photo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      avatarParams()
-    )
+  test("returns server error and logs when storage refuses the write", async () => {
+    mocks.putUploadedObject.mockRejectedValueOnce(new Error("S3 unreachable"))
+
+    const response = await upload("avatar", { contentType: "image/png", sizeBytes: 1024 })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(500)
     expect(body.error).toBe("settings.profile.uploadUrlFailed")
+    expect(mocks.loggerError).toHaveBeenCalledOnce()
   })
 })
 
 describe("business logo upload route", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    mocks.headers.mockResolvedValue(new Headers())
-    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
-    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
-  })
-
-  test("returns a presigned upload URL for an allowed logo file", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/business-logo", {
-        filename: "logo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      logoParams()
-    )
-    const body = (await response.json()) as { uploadUrl: string; objectKey: string }
+  test("stores an allowed logo under the logos prefix", async () => {
+    const response = await upload("business-logo", { contentType: "image/png", sizeBytes: 1024 })
+    const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
-    expect(body.uploadUrl).toBe("https://storage.test/upload")
-    expect(body.objectKey).toMatch(
-      /^logos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/
-    )
-    expect(mocks.getSignedUrl).toHaveBeenCalled()
+    expect(body.objectKey).toMatch(new RegExp(`^logos/${UUID_PATTERN}\\.png$`))
   })
 
-  test("rejects unsupported logo file types without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/business-logo", {
-        filename: "logo.svg",
-        contentType: "image/svg+xml",
-        sizeBytes: 1024
-      }),
-      logoParams()
-    )
+  test("rejects unsupported logo file types without storing anything", async () => {
+    const response = await upload("business-logo", {
+      contentType: "image/svg+xml",
+      sizeBytes: 1024
+    })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(400)
     expect(body.error).toBe("settings.business.invalidLogoFileType")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
-  test("returns unauthorized when the request has no session", async () => {
-    mocks.getSession.mockResolvedValueOnce(null)
-
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/business-logo", {
-        filename: "logo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      logoParams()
-    )
-    const body = (await response.json()) as { error: string }
-
-    expect(response.status).toBe(401)
-    expect(body.error).toBe("errors.unauthorized")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
-  })
-
-  test("rejects a logo file that exceeds the size limit without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/business-logo", {
-        filename: "logo.png",
-        contentType: "image/png",
-        sizeBytes: 6 * 1024 * 1024
-      }),
-      logoParams()
-    )
+  test("rejects a logo file that exceeds the size limit without storing anything", async () => {
+    const response = await upload("business-logo", {
+      contentType: "image/png",
+      sizeBytes: 6 * 1024 * 1024
+    })
 
     expect(response.status).toBe(400)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
-  test("returns server error when storage presigning fails", async () => {
-    mocks.getSignedUrl.mockRejectedValueOnce(new Error("S3 unreachable"))
+  test("returns server error when storage refuses the write", async () => {
+    mocks.putUploadedObject.mockRejectedValueOnce(new Error("S3 unreachable"))
 
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/business-logo", {
-        filename: "logo.png",
-        contentType: "image/png",
-        sizeBytes: 1024
-      }),
-      logoParams()
-    )
+    const response = await upload("business-logo", { contentType: "image/png", sizeBytes: 1024 })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(500)
@@ -296,279 +196,126 @@ describe("business logo upload route", () => {
 })
 
 describe("expense receipt upload route", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    mocks.headers.mockResolvedValue(new Headers())
-    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
-    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
-  })
-
   // The prefix is half of a contract `features/expenses/schemas.ts` enforces from the other side:
   // an expense refuses any receipt key outside it, so a key minted anywhere else cannot be attached.
   test("mints a receipt key under the expenses prefix", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "ticket.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 24_000
-      }),
-      receiptParams()
-    )
-    const body = (await response.json()) as { uploadUrl: string; objectKey: string }
+    const response = await upload("expense-receipt", {
+      contentType: "application/pdf",
+      sizeBytes: 24_000
+    })
+    const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
-    expect(body.objectKey).toMatch(
-      /^expenses\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/
-    )
+    expect(body.objectKey).toMatch(new RegExp(`^expenses/${UUID_PATTERN}\\.pdf$`))
   })
 
   test("accepts a photographed receipt as well as a PDF", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "receipt.jpg",
-        contentType: "image/jpeg",
-        sizeBytes: 400_000
-      }),
-      receiptParams()
-    )
+    const response = await upload("expense-receipt", {
+      contentType: "image/jpeg",
+      sizeBytes: 400_000
+    })
     const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
     expect(body.objectKey).toMatch(/\.jpg$/)
   })
 
-  test("rejects an unsupported receipt file type without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "receipt.html",
-        contentType: "text/html",
-        sizeBytes: 1024
-      }),
-      receiptParams()
-    )
+  test("rejects an unsupported receipt file type without storing anything", async () => {
+    const response = await upload("expense-receipt", { contentType: "text/html", sizeBytes: 1024 })
     const body = (await response.json()) as { error: string }
 
     expect(response.status).toBe(400)
     expect(body.error).toBe("expenses.errors.invalidFileType")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
-  test("rejects a receipt larger than the receipt limit without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "scan.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 11 * 1024 * 1024
-      }),
-      receiptParams()
-    )
+  test("rejects a receipt larger than the receipt limit without storing anything", async () => {
+    const response = await upload("expense-receipt", {
+      contentType: "application/pdf",
+      sizeBytes: 11 * 1024 * 1024
+    })
 
     expect(response.status).toBe(400)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
   test("allows a receipt larger than the image limit the other routes enforce", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "scan.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 8 * 1024 * 1024
-      }),
-      receiptParams()
-    )
+    const response = await upload("expense-receipt", {
+      contentType: "application/pdf",
+      sizeBytes: 8 * 1024 * 1024
+    })
 
     expect(response.status).toBe(200)
-  })
-
-  test("returns unauthorized when the request has no session", async () => {
-    mocks.getSession.mockResolvedValueOnce(null)
-
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/expense-receipt", {
-        filename: "ticket.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 24_000
-      }),
-      receiptParams()
-    )
-    const body = (await response.json()) as { error: string }
-
-    expect(response.status).toBe(401)
-    expect(body.error).toBe("errors.unauthorized")
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
   })
 })
 
 describe("attachment upload route", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    mocks.headers.mockResolvedValue(new Headers())
-    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
-    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
-    mocks.ensureDocumentsBucket.mockResolvedValue(undefined)
-  })
-
   test("mints an attachment key under the prefix the feature schema requires", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/attachment", {
-        filename: "nda.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 2048
-      }),
-      attachmentParams()
-    )
+    const response = await upload("attachment", { contentType: "application/pdf", sizeBytes: 2048 })
     const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
-    expect(body.objectKey).toMatch(
-      /^attachments\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/
-    )
+    expect(body.objectKey).toMatch(new RegExp(`^attachments/${UUID_PATTERN}\\.pdf$`))
   })
 
-  test("signs an attachment into the private documents bucket, never the public one", async () => {
-    const { POST } = await import("../[type]/route")
+  test("stores an attachment in the private documents bucket, never the public one", async () => {
+    await upload("attachment", { contentType: "image/png", sizeBytes: 2048 })
 
-    await POST(
-      createRequest("https://remit.test/api/upload/attachment", {
-        filename: "brief.png",
-        contentType: "image/png",
-        sizeBytes: 2048
-      }),
-      attachmentParams()
-    )
-
-    const command = mocks.getSignedUrl.mock.calls[0]?.[1] as { input: { Bucket: string } }
-
-    expect(command.input.Bucket).toBe("remit-test-documents")
-    expect(mocks.ensureDocumentsBucket).toHaveBeenCalledOnce()
+    expect(storedObject().bucket).toBe("documents")
   })
 
-  test("refuses a file larger than the attachment ceiling without calling storage", async () => {
-    const { POST } = await import("../[type]/route")
+  // Twenty-five megabytes is above the proxy's ten-megabyte body buffer, which is why this route is
+  // outside the proxy matcher; the ceiling itself is enforced here.
+  test("accepts an attachment up to the attachment ceiling", async () => {
+    const response = await upload("attachment", {
+      contentType: "application/pdf",
+      sizeBytes: 25 * 1024 * 1024
+    })
 
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/attachment", {
-        filename: "huge.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 26 * 1024 * 1024
-      }),
-      attachmentParams()
-    )
+    expect(response.status).toBe(200)
+    expect(storedObject().contentLength).toBe(25 * 1024 * 1024)
+  })
+
+  test("refuses a file larger than the attachment ceiling without storing anything", async () => {
+    const response = await upload("attachment", {
+      contentType: "application/pdf",
+      sizeBytes: 26 * 1024 * 1024
+    })
 
     expect(response.status).toBe(400)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 
   test("refuses an archive, which would carry anything past the mime allowlist", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/attachment", {
-        filename: "bundle.zip",
-        contentType: "application/zip",
-        sizeBytes: 2048
-      }),
-      attachmentParams()
-    )
+    const response = await upload("attachment", { contentType: "application/zip", sizeBytes: 2048 })
 
     expect(response.status).toBe(400)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
-  })
-
-  test("returns unauthorized when the request has no session", async () => {
-    mocks.getSession.mockResolvedValueOnce(null)
-
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/attachment", {
-        filename: "nda.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 2048
-      }),
-      attachmentParams()
-    )
-
-    expect(response.status).toBe(401)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 })
 
 describe("client image upload route", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    mocks.headers.mockResolvedValue(new Headers())
-    mocks.getSession.mockResolvedValue({ user: { id: "user-1" } })
-    mocks.getSignedUrl.mockResolvedValue("https://storage.test/upload")
-  })
-
   test("mints a client image key under the prefix the feature schema requires", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/client-image", {
-        filename: "acme.png",
-        contentType: "image/png",
-        sizeBytes: 2048
-      }),
-      clientImageParams()
-    )
+    const response = await upload("client-image", { contentType: "image/png", sizeBytes: 2048 })
     const body = (await response.json()) as { objectKey: string }
 
     expect(response.status).toBe(200)
-    expect(body.objectKey).toMatch(
-      /^clients\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/
-    )
+    expect(body.objectKey).toMatch(new RegExp(`^clients/${UUID_PATTERN}\\.png$`))
   })
 
-  test("signs a client image into the public bucket, where resolveStorageUrl can read it", async () => {
-    const { POST } = await import("../[type]/route")
+  test("stores a client image in the public bucket, where resolveStorageUrl can read it", async () => {
+    await upload("client-image", { contentType: "image/png", sizeBytes: 2048 })
 
-    await POST(
-      createRequest("https://remit.test/api/upload/client-image", {
-        filename: "acme.png",
-        contentType: "image/png",
-        sizeBytes: 2048
-      }),
-      clientImageParams()
-    )
-
-    const command = mocks.getSignedUrl.mock.calls[0]?.[1] as { input: { Bucket: string } }
-
-    expect(command.input.Bucket).toBe("remit-test")
-    expect(mocks.ensureDocumentsBucket).not.toHaveBeenCalled()
+    expect(storedObject().bucket).toBe("public")
   })
 
   test("refuses a PDF, which is not an image", async () => {
-    const { POST } = await import("../[type]/route")
-
-    const response = await POST(
-      createRequest("https://remit.test/api/upload/client-image", {
-        filename: "acme.pdf",
-        contentType: "application/pdf",
-        sizeBytes: 2048
-      }),
-      clientImageParams()
-    )
+    const response = await upload("client-image", {
+      contentType: "application/pdf",
+      sizeBytes: 2048
+    })
 
     expect(response.status).toBe(400)
-    expect(mocks.getSignedUrl).not.toHaveBeenCalled()
+    expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 })

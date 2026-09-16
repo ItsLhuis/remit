@@ -146,8 +146,9 @@ export async function confirmBusinessLogoUpload(
 
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  // The presigned PUT is a URL, not proof that anything was stored. Reading the object back is what
-  // turns the client's report into a fact, and it supplies the size and checksum the row records.
+  // The object key comes back from the client, which could name one it never uploaded. Reading the
+  // object back is what turns the client's report into a fact, and it supplies the size and checksum
+  // the row records.
   const verified = await verifyUploadedObject({
     objectKey: parsed.data.objectKey,
     bucket: "public",

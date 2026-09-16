@@ -28,7 +28,7 @@ const EXPENSE_MARKUP_MAX = 1000
 
 export const EXPENSE_RECEIPT_MAX_BYTES = 10 * 1024 * 1024
 
-// The contract between the presign route and this feature: `app/api/upload/[type]/route.ts` maps
+// The contract between the upload route and this feature: `app/api/upload/[type]/route.ts` maps
 // exactly these types to a file extension, and a receipt whose type is not here can never have been
 // written to storage by that route. The route restates the list rather than importing it — see the
 // comment above its `RECEIPT_KEY_PREFIX` for why — so the two must be changed together.
@@ -40,7 +40,7 @@ export const EXPENSE_RECEIPT_MIME_TYPES = [
   "application/pdf"
 ] as const
 
-// Every receipt object the presign route mints is keyed under this prefix. Validating it here is
+// Every receipt object the upload route mints is keyed under this prefix. Validating it here is
 // what stops a caller from pointing a receipt at an avatar or a business logo it does not own:
 // `uploads` carries no owner column, so authorization has to come from the referencing record.
 export const EXPENSE_RECEIPT_KEY_PREFIX = "expenses/"

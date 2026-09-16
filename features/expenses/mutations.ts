@@ -479,8 +479,8 @@ function toExpenseColumns(values: ExpenseFormValues | UpdateExpenseValues, scope
 async function insertReceiptUpload(receipt: ExpenseReceiptValues | null): Promise<string | null> {
   if (!receipt) return null
 
-  // The presigned PUT is a URL, not proof that anything was stored, and the form's `sizeBytes` is the
-  // browser's claim about a file the server never saw. Reading the object back settles both.
+  // The object key and the form's `sizeBytes` both arrive from the browser, which could name a key it
+  // never uploaded or a size it never sent. Reading the object back settles both.
   const verified = await verifyUploadedObject({
     objectKey: receipt.objectKey,
     bucket: "public",
@@ -508,7 +508,7 @@ async function insertReceiptUpload(receipt: ExpenseReceiptValues | null): Promis
 type ReceiptChange = { keepExisting: true } | { keepExisting: false; uploadId: string | null }
 
 // Three cases the form can produce: the same object key it was given (nothing to do), no receipt at
-// all (detach), or a key the presign route has just minted (attach the new one). Comparing keys is
+// all (detach), or a key the upload route has just minted (attach the new one). Comparing keys is
 // what tells the first case from the third, since the form round-trips the existing key unchanged.
 async function resolveReceiptChange(
   receipt: ExpenseReceiptValues | null,

@@ -88,6 +88,14 @@ const config = {
         rules: ["react-doctor/async-await-in-loop"]
       },
       {
+        // The batch uploads one file at a time on purpose, argued at the loop itself: concurrent
+        // uploads saturate the connection so every progress bar moves at once and finishes nowhere,
+        // a mid-batch failure must leave the earlier files genuinely stored, and the caller's
+        // `onUploaded` persistence for one file has to finish before the next upload starts.
+        files: ["hooks/useFileUpload.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
         // Deliberate hook keys, argued at both call sites and already eslint-disabled inline for
         // react-hooks: CanvasBlock keys its HTML memo on the content/style/type the renderer reads
         // so a block reuses its HTML across gesture frames, and CanvasTextEditor seeds the inline

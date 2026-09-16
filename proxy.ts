@@ -9,6 +9,7 @@ import { writeAudit } from "@/lib/audit"
 import { getIpAddress } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
+import { applySecurityHeaders } from "@/lib/securityHeaders"
 
 import { database } from "@/database"
 import { members, settings, users } from "@/database/schema"
@@ -20,65 +21,6 @@ import { members, settings, users } from "@/database/schema"
 // is the state machine itself: user existence, then session, then setup completion, then an
 // organization membership, then a forced password change; each stage may only be reached once the
 // earlier ones are satisfied.
-
-export function buildContentSecurityPolicy(): string {
-  const storageOrigin = (() => {
-    try {
-      const raw = process.env.NEXT_PUBLIC_STORAGE_BASE_URL
-
-      return raw ? new URL(raw).origin : null
-    } catch {
-      return null
-    }
-  })()
-
-  const connectSrc = storageOrigin ? `connect-src 'self' ${storageOrigin}` : "connect-src 'self'"
-  const imgSrc = storageOrigin
-    ? `img-src 'self' data: blob: https://react-circle-flags.pages.dev ${storageOrigin}`
-    : "img-src 'self' data: blob: https://react-circle-flags.pages.dev"
-
-  return [
-    "default-src 'self'",
-    process.env.NODE_ENV === "production"
-      ? "script-src 'self' 'unsafe-inline'"
-      : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    imgSrc,
-    "font-src 'self'",
-    connectSrc,
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'"
-  ].join("; ")
-}
-
-const CONTENT_SECURITY_POLICY = buildContentSecurityPolicy()
-
-export function applySecurityHeaders(
-  response: NextResponse,
-  isPublicTokenRoute: boolean
-): NextResponse {
-  response.headers.set("X-Content-Type-Options", "nosniff")
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-  response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY)
-
-  if (isPublicTokenRoute) {
-    response.headers.set("X-Robots-Tag", "noindex, nofollow")
-    response.headers.delete("X-Frame-Options")
-  } else {
-    response.headers.set("X-Frame-Options", "DENY")
-  }
-
-  if (process.env.NODE_ENV === "production") {
-    response.headers.set(
-      "Strict-Transport-Security",
-      "max-age=63072000; includeSubDomains; preload"
-    )
-  }
-
-  return response
-}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -328,6 +270,13 @@ function isPublicTokenRoute(pathname: string): boolean {
   )
 }
 
+// `api/upload/` is left out because a request the proxy handles has its body cloned into memory and
+// cut off at ten megabytes (Next.js `proxyClientMaxBodySize`), silently truncating an attachment;
+// that route checks its own session and sets its own headers. `api/storage/` is left out because it
+// is anonymous and serves stored files, which the dotted-path exclusion already skips — naming it
+// keeps the decision from resting on every key happening to carry an extension.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|login.jpg|.*\\..*).*)"]
+  matcher: [
+    "/((?!_next/static|_next/image|api/upload/|api/storage/|favicon.ico|logo.png|login.jpg|.*\\..*).*)"
+  ]
 }

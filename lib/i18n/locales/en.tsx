@@ -129,7 +129,6 @@ export const english: Language = {
       errors: {
         invalidType: "That file type is not supported",
         tooLarge: "That file is too large",
-        presignFailed: "Could not start the upload",
         uploadFailed: "Could not upload the file"
       }
     },
@@ -3950,7 +3949,6 @@ export const english: Language = {
         validation: {
           nameRequired: "Name is required.",
           emailInvalid: "Enter a valid email address.",
-          avatarFilenameRequired: "Avatar filename is required.",
           avatarContentTypeRequired: "Avatar file type is required.",
           avatarSizeInvalid: "Avatar file size is invalid.",
           avatarTooLarge: "Avatar must be 5MB or smaller."

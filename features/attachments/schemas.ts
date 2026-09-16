@@ -39,7 +39,7 @@ export const ATTACHMENT_MIME_TYPES = [
   "text/plain"
 ] as const
 
-// The prefix the presign route mints attachment keys under. Restated in
+// The prefix the upload route mints attachment keys under. Restated in
 // `app/api/upload/[type]/route.ts` rather than imported, exactly as `RECEIPT_KEY_PREFIX` is and for
 // the same reason: that module is reachable from an anonymous request and this feature's barrel
 // pulls `@/database` into its graph. `addAttachment` refuses any key outside this prefix, so the two

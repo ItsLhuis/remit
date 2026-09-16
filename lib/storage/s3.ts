@@ -5,7 +5,6 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
-  PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
   type S3ServiceException
@@ -13,22 +12,14 @@ import {
 
 import { env } from "@/lib/config/env"
 
+import { isMissingObjectError } from "./objectErrors"
+
+// The only client, on the internal endpoint. Object storage is never reached by a browser: uploads
+// arrive through `app/api/upload/[type]/route.ts` and public reads leave through
+// `app/api/storage/[...key]/route.ts`, so the store needs no public address and publishes no port
+// (ADR-0040).
 const s3 = new S3Client({
   endpoint: env.MINIO_ENDPOINT,
-  region: "us-east-1",
-  credentials: {
-    accessKeyId: env.MINIO_ROOT_USER,
-    secretAccessKey: env.MINIO_ROOT_PASSWORD
-  },
-  forcePathStyle: true
-})
-
-// A second client on the browser-reachable URL, not a duplicate to be collapsed into `s3` above:
-// a presigned URL's signature covers its host, so one signed against the internal MINIO_ENDPOINT
-// is rejected when the browser replays it against the public origin. Server-side calls use `s3`;
-// anything handed to a client must be signed with this one.
-export const s3UploadPresigner = new S3Client({
-  endpoint: env.MINIO_PUBLIC_URL,
   region: "us-east-1",
   credentials: {
     accessKeyId: env.MINIO_ROOT_USER,
@@ -40,18 +31,18 @@ export const s3UploadPresigner = new S3Client({
 export const MINIO_BUCKET = env.MINIO_BUCKET
 
 // A second bucket, derived from the first so an operator configures nothing new, and deliberately
-// never given the anonymous read policy `ensureBucket` puts on `MINIO_BUCKET`. Data exports are the
-// whole instance in one file; keeping them out of the public bucket means an unguessable key is not
-// the only thing between an export and the internet, and the credentialed reads below are the only
-// way out — through the owner-gated download route.
+// never served by the public storage route. Data exports are the whole instance in one file; keeping
+// them out of the public bucket means an unguessable key is not the only thing between an export and
+// the internet, and the credentialed reads below are the only way out — through the owner-gated
+// download route.
 export const MINIO_EXPORTS_BUCKET = `${env.MINIO_BUCKET}-exports`
 
-// A third bucket, derived the same way and withheld from the anonymous read policy for the same
-// reason as the exports one. Generated document PDFs land here (ADR-0022): an invoice, a proposal
-// and an executed contract are money and legal documents, and the public bucket's guarantee — "any
-// object is readable by anyone holding its key" — is not an acceptable default for one. A client
-// reaches their copy through the tokenized public route or an emailed attachment; the owner reaches
-// it through a credentialed route. Neither hands out a storage URL.
+// A third bucket, derived the same way and kept away from the public storage route for the same
+// reason as the exports one. Generated document PDFs land here (ADR-0022): an invoice, a proposal and
+// an executed contract are money and legal documents, and the public bucket's guarantee — "any object
+// is readable by anyone holding its key" — is not an acceptable default for one. A client reaches
+// their copy through the tokenized public route or an emailed attachment; the owner reaches it
+// through a credentialed route. Neither hands out a storage URL.
 //
 // `database/schema/uploads.ts`'s `bucket` column is what tells a reader which of the two a given
 // `uploads` row lives in.
@@ -82,6 +73,58 @@ export async function getStorageObjectBytes(
   if (!object.Body) throw new Error(`Storage object has no body: ${objectKey}`)
 
   return Buffer.from(await object.Body.transformToByteArray())
+}
+
+export type PutUploadedObjectInput = {
+  bucket: StorageBucketName
+  objectKey: string
+  body: Readable
+  contentLength: number
+  contentType: string
+}
+
+export async function putUploadedObject(input: PutUploadedObjectInput): Promise<void> {
+  if (input.bucket === "documents") await ensureDocumentsBucket()
+
+  // `ContentLength` is what bounds the write: the SDK sends exactly that many bytes and the store
+  // refuses a body that ends short, so an object can never be larger than the size the upload route
+  // already checked against its ceiling.
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET_BY_NAME[input.bucket],
+      Key: input.objectKey,
+      Body: input.body,
+      ContentLength: input.contentLength,
+      ContentType: input.contentType
+    })
+  )
+}
+
+export type PublicObjectStream = {
+  body: ReadableStream<Uint8Array>
+  contentLength: number | null
+  contentType: string | null
+}
+
+// Public bucket only, and there is no parameter to choose another: this is what the anonymous
+// storage route reads through, so the documents and exports buckets are unreachable from it by
+// construction rather than by a check someone has to remember.
+export async function getPublicObjectStream(objectKey: string): Promise<PublicObjectStream | null> {
+  try {
+    const object = await s3.send(new GetObjectCommand({ Bucket: MINIO_BUCKET, Key: objectKey }))
+
+    if (!object.Body) return null
+
+    return {
+      body: object.Body.transformToWebStream(),
+      contentLength: object.ContentLength ?? null,
+      contentType: object.ContentType ?? null
+    }
+  } catch (error) {
+    if (isMissingObjectError(error)) return null
+
+    throw error
+  }
 }
 
 export type PutDocumentObjectInput = {
@@ -122,23 +165,6 @@ export async function getDocumentObjectStream(objectKey: string): Promise<Export
   return {
     body: object.Body.transformToWebStream(),
     contentLength: object.ContentLength ?? null
-  }
-}
-
-// Created lazily rather than in `instrumentation.ts`, for the same reason `ensureExportsBucket` is:
-// the worker is a separate process that never runs the Next.js instrumentation hook. Exported
-// because the worker is no longer the only writer — `app/api/upload/[type]/route.ts` presigns
-// attachment PUTs directly into this bucket, and a presigned URL for a bucket that does not exist
-// yet fails at the browser with an S3 error the user cannot act on.
-export async function ensureDocumentsBucket(): Promise<void> {
-  try {
-    await s3.send(new HeadBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
-  } catch (error) {
-    const serviceError = error as S3ServiceException
-
-    if (serviceError.$metadata?.httpStatusCode !== 404) throw error
-
-    await s3.send(new CreateBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
   }
 }
 
@@ -187,6 +213,38 @@ export async function deleteExportObject(objectKey: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({ Bucket: MINIO_EXPORTS_BUCKET, Key: objectKey }))
 }
 
+// No bucket policy, and none may be added: nothing reads the store anonymously, and the public
+// bucket's openness is enforced by `app/api/storage/[...key]/route.ts` instead. A policy granting
+// anonymous `s3:GetObject` would reopen a second, unaudited path to every object the moment anyone
+// published the store's port.
+export async function ensureBucket(): Promise<void> {
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: MINIO_BUCKET }))
+  } catch (error) {
+    const serviceError = error as S3ServiceException
+
+    if (serviceError.$metadata?.httpStatusCode !== 404) throw error
+
+    await s3.send(new CreateBucketCommand({ Bucket: MINIO_BUCKET }))
+  }
+}
+
+// Created lazily rather than in `instrumentation.ts`, for the same reason `ensureExportsBucket` is:
+// the worker is a separate process that never runs the Next.js instrumentation hook. The upload
+// route streams attachments straight into this bucket, so it may be the first writer an instance
+// ever has.
+async function ensureDocumentsBucket(): Promise<void> {
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
+  } catch (error) {
+    const serviceError = error as S3ServiceException
+
+    if (serviceError.$metadata?.httpStatusCode !== 404) throw error
+
+    await s3.send(new CreateBucketCommand({ Bucket: MINIO_DOCUMENTS_BUCKET }))
+  }
+}
+
 // Called by the export job rather than from `instrumentation.ts`: the worker is a separate process
 // that never runs the Next.js instrumentation hook, and it is the only writer of this bucket.
 async function ensureExportsBucket(): Promise<void> {
@@ -198,38 +256,5 @@ async function ensureExportsBucket(): Promise<void> {
     if (serviceError.$metadata?.httpStatusCode !== 404) throw error
 
     await s3.send(new CreateBucketCommand({ Bucket: MINIO_EXPORTS_BUCKET }))
-  }
-}
-
-export async function ensureBucket(): Promise<void> {
-  try {
-    await s3.send(new HeadBucketCommand({ Bucket: MINIO_BUCKET }))
-  } catch (error) {
-    const serviceError = error as S3ServiceException
-
-    if (serviceError.$metadata?.httpStatusCode !== 404) throw error
-
-    await s3.send(new CreateBucketCommand({ Bucket: MINIO_BUCKET }))
-
-    // Anonymous `s3:GetObject` on the whole bucket: every stored object is readable by anyone who
-    // knows its key, so keys are the only thing standing between an upload and the public. Nothing
-    // secret may be stored here under a guessable key, and access control for uploads has to be
-    // enforced by key unguessability rather than by this bucket.
-    await s3.send(
-      new PutBucketPolicyCommand({
-        Bucket: MINIO_BUCKET,
-        Policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Effect: "Allow",
-              Principal: "*",
-              Action: "s3:GetObject",
-              Resource: `arn:aws:s3:::${MINIO_BUCKET}/*`
-            }
-          ]
-        })
-      })
-    )
   }
 }

@@ -19,9 +19,9 @@ export type FileUploadType =
   | "expense-receipt"
   | "template-image"
 
-// What the caller persists. The file itself never travels through a server action: it is PUT
-// straight to storage against a key the presign route mints, and only this metadata goes on to the
-// action, which re-validates all four fields at the trust boundary.
+// What the caller persists. The file itself never travels through a server action: it is streamed to
+// the upload route, which mints its key, and only this metadata goes on to the action, which
+// re-validates all four fields at the trust boundary.
 export type FileUploadResult = {
   objectKey: string
   filename: string
@@ -47,41 +47,54 @@ export type UseFileUploadOptions = {
   onUploaded?: (result: FileUploadResult) => void | Promise<void>
 }
 
-type PresignResponse = {
-  uploadUrl: string
-  objectKey: string
-}
+type UploadOutcome = { objectKey: string } | { error: string | null }
 
-function toErrorMessage(body: unknown, fallback: string): string {
-  if (typeof body !== "object" || body === null || !("error" in body)) return fallback
+function readUploadResponse(status: number, responseText: string): UploadOutcome {
+  let body: unknown = null
 
-  const message = (body as { error: unknown }).error
+  try {
+    body = JSON.parse(responseText)
+  } catch {
+    body = null
+  }
 
-  return typeof message === "string" && message.length > 0 ? message : fallback
+  if (typeof body !== "object" || body === null) return { error: null }
+
+  if (status >= 200 && status < 300) {
+    return "objectKey" in body && typeof body.objectKey === "string"
+      ? { objectKey: body.objectKey }
+      : { error: null }
+  }
+
+  return "error" in body && typeof body.error === "string" && body.error.length > 0
+    ? { error: body.error }
+    : { error: null }
 }
 
 // `fetch` cannot report upload progress — its `ReadableStream` request bodies are download-side
-// only — so the PUT goes through XMLHttpRequest, which is the sole browser API that fires
-// `upload.progress`. Resolves false rather than rejecting: a failed PUT is an ordinary per-file
-// outcome the caller renders, not an exception.
-function putWithProgress(
+// only — so the file goes through XMLHttpRequest, which is the sole browser API that fires
+// `upload.progress`. Resolves rather than rejecting: a failed upload is an ordinary per-file outcome
+// the caller renders, not an exception, and `error: null` means the route named no reason.
+function postWithProgress(
   url: string,
   file: File,
   onProgress: (progress: number) => void
-): Promise<boolean> {
+): Promise<UploadOutcome> {
   return new Promise((resolve) => {
     const request = new XMLHttpRequest()
 
-    request.open("PUT", url)
+    request.open("POST", url)
     request.setRequestHeader("Content-Type", file.type)
 
     request.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100))
     })
 
-    request.addEventListener("load", () => resolve(request.status >= 200 && request.status < 300))
-    request.addEventListener("error", () => resolve(false))
-    request.addEventListener("abort", () => resolve(false))
+    request.addEventListener("load", () =>
+      resolve(readUploadResponse(request.status, request.responseText))
+    )
+    request.addEventListener("error", () => resolve({ error: null }))
+    request.addEventListener("abort", () => resolve({ error: null }))
 
     request.send(file)
   })
@@ -137,17 +150,19 @@ export function useFileUpload(options: UseFileUploadOptions) {
 
       const uploaded: FileUploadResult[] = []
 
+      const allowedMimeTypes = new Set(options.mimeTypes)
+
       // The loop is wrapped only so `isUploading` is released whatever happens: the flag disables the
       // drop target, and a caller's `onUploaded` throwing would otherwise leave it stuck on for the
       // life of the page.
       try {
-        // Sequential, not `Promise.all`: a batch of large files opening one PUT each saturates the
+        // Sequential, not `Promise.all`: a batch of large files opening one upload each saturates the
         // connection and makes every progress bar move at once and finish nowhere. One at a time also
         // means a mid-batch failure leaves the earlier files genuinely stored.
         for (const entry of queued) {
           const { file, id } = entry
 
-          if (!options.mimeTypes.includes(file.type)) {
+          if (!allowedMimeTypes.has(file.type)) {
             patchItem(id, { status: "error", error: t("fileUpload.errors.invalidType") })
             continue
           }
@@ -157,39 +172,20 @@ export function useFileUpload(options: UseFileUploadOptions) {
             continue
           }
 
-          const presignResponse = await fetch(`/api/upload/${options.type}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: file.name,
-              contentType: file.type,
-              sizeBytes: file.size
-            })
-          }).catch(() => null)
-
-          if (!presignResponse?.ok) {
-            const body: unknown = (await presignResponse?.json().catch(() => null)) ?? null
-
-            patchItem(id, {
-              status: "error",
-              error: toErrorMessage(body, t("fileUpload.errors.presignFailed"))
-            })
-            continue
-          }
-
-          const presigned = (await presignResponse.json()) as PresignResponse
-
-          const succeeded = await putWithProgress(presigned.uploadUrl, file, (progress) =>
+          const outcome = await postWithProgress(`/api/upload/${options.type}`, file, (progress) =>
             patchItem(id, { progress })
           )
 
-          if (!succeeded) {
-            patchItem(id, { status: "error", error: t("fileUpload.errors.uploadFailed") })
+          if ("error" in outcome) {
+            patchItem(id, {
+              status: "error",
+              error: outcome.error ?? t("fileUpload.errors.uploadFailed")
+            })
             continue
           }
 
           const result: FileUploadResult = {
-            objectKey: presigned.objectKey,
+            objectKey: outcome.objectKey,
             filename: file.name,
             mimeType: file.type,
             sizeBytes: file.size
@@ -199,7 +195,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
           uploaded.push(result)
 
           // Awaited inside the loop so the caller's persistence for one file finishes before the next
-          // PUT starts. A caller that throws here leaves the object stored with nothing pointing at
+          // upload starts. A caller that throws here leaves the object stored with nothing pointing at
           // it, which is the orphan case ADR-0028 accepts rather than sweeps.
           await options.onUploaded?.(result)
         }

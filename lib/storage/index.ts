@@ -1,5 +1,9 @@
 export * from "./limits"
 
+// Relative, same-origin, and built from nothing but the key: public objects reach a browser only
+// through `app/api/storage/[...key]/route.ts`, so no storage address has to travel into the client
+// bundle, where Next.js would freeze it at build time (ADR-0040). Absolute URLs pass through
+// untouched for values stored as a full address rather than a key.
 export function resolveStorageUrl(keyOrUrl: string | null | undefined): string | null {
   if (!keyOrUrl) return null
 
@@ -7,16 +11,5 @@ export function resolveStorageUrl(keyOrUrl: string | null | undefined): string |
     return keyOrUrl
   }
 
-  // Written as a literal `process.env.NEXT_PUBLIC_*` member expression, not read through
-  // `lib/config/env.ts`: this helper runs in client components, and Next.js only inlines a public
-  // variable into the browser bundle when it sees that exact expression. Routing it through the
-  // validated `env` object would also drag pino and that module's `process.exit` into the client
-  // graph, and would resolve to `undefined` in the browser.
-  const baseUrl = process.env.NEXT_PUBLIC_STORAGE_BASE_URL
-
-  if (!baseUrl) {
-    return keyOrUrl
-  }
-
-  return `${baseUrl}/${keyOrUrl}`
+  return `/api/storage/${keyOrUrl.split("/").map(encodeURIComponent).join("/")}`
 }

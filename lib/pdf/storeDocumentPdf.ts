@@ -58,10 +58,10 @@ export async function storeDocumentPdf({
   return upload.id
 }
 
-// A random suffix even though the bucket is private and credentialed. It is defence in depth for the
-// one failure that has happened before in this codebase's own storage design — a bucket policy that
-// turns out to be more permissive than intended (see `ensureBucket` in `lib/storage/s3.ts`) — and it
-// also makes every render write a distinct key, so a re-render can never half-overwrite the object a
+// A random suffix even though the bucket is private and credentialed. It is defence in depth for a
+// failure this codebase's own storage design has had before — a bucket readable more widely than
+// intended, as the public bucket once was through an anonymous policy (ADR-0040) — and it also
+// makes every render write a distinct key, so a re-render can never half-overwrite the object a
 // document already points at.
 function buildDocumentObjectKey(kind: DocumentPdfKind, documentId: string): string {
   return `documents/${kind}/${documentId}/${randomBytes(KEY_SUFFIX_BYTES).toString("base64url")}.pdf`
