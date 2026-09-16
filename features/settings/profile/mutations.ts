@@ -40,7 +40,7 @@ export async function changeEmailAddress(
       headers: requestHeaders,
       body: {
         newEmail: parsed.data.email,
-        callbackURL: new URL("/settings/profile", env.BETTER_AUTH_URL).toString()
+        callbackURL: new URL("/settings/profile", env.REMIT_PUBLIC_URL).toString()
       }
     })
 
@@ -77,9 +77,9 @@ export async function confirmAvatarUpload(
 
   const oldKey = session.user.image
 
-  // The presigned PUT is a URL, not proof that anything was stored. Reading the object back is what
-  // turns the client's report into a fact, and it is what supplies the size and checksum the row
-  // records (`lib/storage/verifyUploadedObject.ts`).
+  // The object key comes back from the client, which could name one it never uploaded. Reading the
+  // object back is what turns the client's report into a fact, and it is what supplies the size and
+  // checksum the row records (`lib/storage/verifyUploadedObject.ts`).
   const verified = await verifyUploadedObject({
     objectKey: parsed.data.objectKey,
     bucket: "public",

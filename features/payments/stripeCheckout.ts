@@ -148,8 +148,8 @@ async function createCheckoutSession({
         // revoked while a session is open, and the money that session collects is still owed on the
         // same invoice.
         payment_intent_data: { metadata: { remit_invoice_id: invoice.id } },
-        success_url: `${env.NEXT_PUBLIC_APP_URL}/i/${token}/paid`,
-        cancel_url: `${env.NEXT_PUBLIC_APP_URL}/i/${token}`
+        success_url: `${env.REMIT_PUBLIC_URL}/i/${token}/paid`,
+        cancel_url: `${env.REMIT_PUBLIC_URL}/i/${token}`
       },
       { idempotencyKey: buildInvoiceCheckoutIdempotencyKey(invoice.id, amountCents) }
     )

@@ -1,11 +1,11 @@
 import { organizationClient, twoFactorClient } from "better-auth/client/plugins"
 import { createAuthClient } from "better-auth/react"
 
+// No `baseURL`, deliberately. Better Auth's client resolves to the relative `/api/auth` when none is
+// given, which is always this instance's own origin, whereas any configured value would be frozen
+// into the browser bundle at build time and ship the build machine's address in every image
+// (ADR-0040).
 export const authClient = createAuthClient({
-  // A literal `process.env.NEXT_PUBLIC_*` member expression rather than `lib/config/env.ts`, for
-  // the same reason as `lib/storage/index.ts`: this module ships to the browser, and Next.js
-  // inlines a public variable only when it sees that exact expression.
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
   plugins: [twoFactorClient(), organizationClient()]
 })
 

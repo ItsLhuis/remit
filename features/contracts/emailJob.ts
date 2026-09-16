@@ -54,7 +54,7 @@ export async function sendContractEmail(payload: { contractId: string }): Promis
       fallbackText: t("documentEmails.contractSent.body", {
         clientName: document.recipientName,
         number: document.number,
-        url: `${env.NEXT_PUBLIC_APP_URL}/c/${document.publicToken}`,
+        url: `${env.REMIT_PUBLIC_URL}/c/${document.publicToken}`,
         businessName: document.businessName
       })
     })

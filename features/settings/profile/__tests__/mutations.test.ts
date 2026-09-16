@@ -30,7 +30,7 @@ vi.mock("@/lib/i18n/server", () => ({
 
 vi.mock("@/lib/config/env", () => ({
   env: {
-    BETTER_AUTH_URL: "https://remit.test"
+    REMIT_PUBLIC_URL: "https://remit.test"
   }
 }))
 

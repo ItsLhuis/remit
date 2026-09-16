@@ -57,7 +57,7 @@ export async function sendProposalEmail(payload: { proposalId: string }): Promis
         clientName: document.recipientName,
         number: document.number,
         amount: formatCurrency(document.totalCents, document.currency, document.locale),
-        url: `${env.NEXT_PUBLIC_APP_URL}/p/${document.publicToken}`,
+        url: `${env.REMIT_PUBLIC_URL}/p/${document.publicToken}`,
         businessName: document.businessName
       })
     })

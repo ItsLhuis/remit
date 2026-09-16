@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("@/lib/config/env", () => ({
-  env: { BETTER_AUTH_URL: "https://remit.example.com" }
+  env: { REMIT_PUBLIC_URL: "https://remit.example.com" }
 }))
 
 vi.mock("@/lib/logger", () => ({

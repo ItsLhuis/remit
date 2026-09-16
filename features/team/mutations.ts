@@ -96,7 +96,7 @@ export async function inviteTeamMember(input: unknown): Promise<InviteTeamMember
       body: { email, role }
     })
 
-    const link = buildInvitationLink(env.NEXT_PUBLIC_APP_URL, invitation.id)
+    const link = buildInvitationLink(env.REMIT_PUBLIC_URL, invitation.id)
 
     // Delivery is attempted here rather than through the plugin's `sendInvitationEmail` hook so the
     // outcome is part of this action's return value: the owner has to be told to share the link by

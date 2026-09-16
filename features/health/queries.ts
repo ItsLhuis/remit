@@ -436,7 +436,7 @@ async function getMigrationsHealthCheck(): Promise<HealthCheckResult> {
 }
 
 async function getPublicUrlHealthCheck(): Promise<HealthCheckResult> {
-  const configuredUrl = env.BETTER_AUTH_URL
+  const configuredUrl = env.REMIT_PUBLIC_URL
 
   if (!evaluatePublicUrl(configuredUrl)) {
     return {

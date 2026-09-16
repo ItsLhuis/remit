@@ -68,9 +68,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
         email: invitation.email,
         role,
         expiresAt: invitation.expiresAt,
-        shareLink: emailConfigured
-          ? null
-          : buildInvitationLink(env.NEXT_PUBLIC_APP_URL, invitation.id)
+        shareLink: emailConfigured ? null : buildInvitationLink(env.REMIT_PUBLIC_URL, invitation.id)
       }
     ]
   })

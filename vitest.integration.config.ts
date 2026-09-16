@@ -33,9 +33,7 @@ export default defineConfig({
       // volume beside their own uploads.
       REMIT_DATA_DIR: ".tmp/integration-data",
       BETTER_AUTH_SECRET: "test-secret-for-integration-tests-not-real",
-      BETTER_AUTH_URL: "http://localhost:3000",
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
-      NEXT_PUBLIC_STORAGE_BASE_URL: "http://localhost:9000/remit-test",
+      REMIT_PUBLIC_URL: "http://localhost:3000",
       // Placeholders. Real object-storage credentials are operator-chosen secrets and must never be
       // committed (`security.md`), and `.env.test` — which `NODE_ENV=test` makes the authority —
       // carries its own. Tests that would otherwise write real objects stub the PUT instead, so the
@@ -45,8 +43,7 @@ export default defineConfig({
       MINIO_ROOT_PASSWORD: "minioadmin",
       // A bucket of its own, never the developer's `remit`: the PDF tests write real objects, and a
       // suite that truncates its database between tests must not be able to touch real uploads.
-      MINIO_BUCKET: "remit-test",
-      MINIO_PUBLIC_URL: "http://localhost:9000/remit-test"
+      MINIO_BUCKET: "remit-test"
     }
   }
 })

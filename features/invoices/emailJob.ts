@@ -57,7 +57,7 @@ export async function sendInvoiceEmail(payload: {
     return
   }
 
-  const publicUrl = `${env.NEXT_PUBLIC_APP_URL}/i/${document.publicToken}`
+  const publicUrl = `${env.REMIT_PUBLIC_URL}/i/${document.publicToken}`
 
   const [attachment, body] = await Promise.all([
     getInvoicePdfAttachment(payload.invoiceId),

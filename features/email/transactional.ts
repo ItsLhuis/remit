@@ -160,7 +160,7 @@ function getFromName(settings: EmailSettings): string {
 }
 
 function getDefaultFromAddress(): string {
-  const host = new URL(env.BETTER_AUTH_URL).hostname
+  const host = new URL(env.REMIT_PUBLIC_URL).hostname
 
   return `no-reply@${host}`
 }

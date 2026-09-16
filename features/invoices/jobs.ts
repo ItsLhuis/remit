@@ -397,7 +397,7 @@ function renderReminderBody(
     // What is still owed, not the face value: a partly paid invoice must not chase the full amount.
     amount: formatCurrency(target.totalCents - target.amountPaidCents, target.currency, locale),
     dueDate: formatDay(target.dueDate, locale),
-    url: `${env.NEXT_PUBLIC_APP_URL}/i/${target.publicToken}`,
+    url: `${env.REMIT_PUBLIC_URL}/i/${target.publicToken}`,
     businessName: instance.businessName ?? "Remit"
   }
 
