@@ -1752,6 +1752,26 @@ into, the [upgrade runbook](../operations/UPGRADE.md), and the
 [restore runbook](../operations/RESTORE.md). Each is written against the Docker Compose assets in
 the repository, which are the deployment surface Remit supports.
 
+### Deployment guides
+
+[`docs/deploy/`](../deploy) holds one guide per platform, each taking that target from nothing to an
+instance with backups configured and a test invoice sent. Five ship: a Linux host with Docker
+Compose, an existing Nginx reverse proxy, Coolify or Dokploy, a Cloudflare Tunnel, and a Raspberry
+Pi. They do not restate the runbooks above; a guide covers what is different about one platform and
+links to the runbook for the rest.
+
+Each guide states at the top whether it was executed end to end or only written from the platform's
+documentation, because a deployment guide nobody has followed is a plausible sequence of commands
+rather than a tested one. The Linux host and Nginx guides carry the tested marking; the other three
+do not, and say what was verified instead.
+
+Railway and Render are named in `docs/deploy/README.md` as targets with no guide. Both can run
+Remit, and neither can run it from this repository's Compose file: neither platform lets two
+services share a persistent disk, which the `app` and `worker` services do for the local backup
+destination, so each would need managed PostgreSQL, managed Redis, an S3-compatible bucket in place
+of MinIO and an S3 backup destination. That is a different deployment model rather than a different
+console, and no untested guide for it ships.
+
 ---
 
 ## 15. Internationalization

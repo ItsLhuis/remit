@@ -10,6 +10,7 @@ another, so start from the question you actually have.
 | Why was a specific decision taken?              | [`architecture/adr/`](architecture/adr/README.md)                                    |
 | What was built, when, and how was it verified?  | [`delivery/`](delivery)                                                              |
 | How do I install and start an instance?         | [`operations/INSTALL.md`](operations/INSTALL.md)                                     |
+| How do I deploy it on a specific platform?      | [`deploy/`](deploy)                                                                  |
 | How do I restore from a backup?                 | [`operations/RESTORE.md`](operations/RESTORE.md)                                     |
 | How do I upgrade a running instance?            | [`operations/UPGRADE.md`](operations/UPGRADE.md)                                     |
 | What exactly does a `remit:*` command do?       | [`architecture/operations/CLI-CONTRACT.md`](architecture/operations/CLI-CONTRACT.md) |
@@ -22,4 +23,5 @@ another, so start from the question you actually have.
 The four kinds of document here do not overlap. An ADR records a decision and never changes.
 `ARCHITECTURE.md` and `SCHEMA.md` describe the system as it is today and are rewritten in place. A
 delivery record describes one capability as it was delivered and is sealed. The runbooks describe a
-procedure an operator follows under pressure.
+procedure an operator follows under pressure, and a deployment guide is a runbook for one platform
+that states whether anyone has executed it.
