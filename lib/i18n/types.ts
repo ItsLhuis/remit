@@ -278,6 +278,13 @@ export type Translations = {
         configured: string
         configuredDetail: string
       }
+      errorTracking: {
+        title: string
+        notConfigured: string
+        notConfiguredDetail: string
+        configured: string
+        configuredDetail: string
+      }
       storage: {
         title: string
         notConfigured: string

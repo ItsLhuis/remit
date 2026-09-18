@@ -74,7 +74,8 @@ export async function getHealthChecks(): Promise<HealthCheckResult[]> {
     publicUrlCheck,
     getBackupHealthCheck(settingsRow),
     getEmailHealthCheck(settingsRow),
-    getStripeHealthCheck(settingsRow)
+    getStripeHealthCheck(settingsRow),
+    getErrorTrackingHealthCheck()
   ]
 }
 
@@ -238,6 +239,34 @@ function getStripeHealthCheck(settingsRow: SettingsRow | null): HealthCheckResul
     countsAsIssue: false,
     actionLabel: t("health.actions.configurePayments"),
     actionHref: "/settings/payment"
+  }
+}
+
+// A boolean is all this reads: the DSN holds the receiver's key and is never rendered or returned.
+// Delivery is not probed, because a test event would put something in the operator's receiver that
+// no failure caused, and whether the last real one arrived is known only to the process that sent
+// it — the worker's is in another container.
+function getErrorTrackingHealthCheck(): HealthCheckResult {
+  if (!env.SENTRY_DSN) {
+    return {
+      id: "error-tracking",
+      category: "integrations",
+      title: t("health.checks.errorTracking.title"),
+      status: "optional",
+      summary: t("health.checks.errorTracking.notConfigured"),
+      detail: t("health.checks.errorTracking.notConfiguredDetail"),
+      countsAsIssue: false
+    }
+  }
+
+  return {
+    id: "error-tracking",
+    category: "integrations",
+    title: t("health.checks.errorTracking.title"),
+    status: "info",
+    summary: t("health.checks.errorTracking.configured"),
+    detail: t("health.checks.errorTracking.configuredDetail"),
+    countsAsIssue: false
   }
 }
 

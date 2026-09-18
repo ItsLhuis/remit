@@ -288,6 +288,15 @@ export const english: Language = {
           configured: "Stripe is configured, but has not been tested.",
           configuredDetail: "Test the Stripe connection before adding online payment links."
         },
+        errorTracking: {
+          title: "Error tracking",
+          notConfigured: "Error tracking is off.",
+          notConfiguredDetail:
+            "Nothing is sent anywhere. The operator can set SENTRY_DSN to report failures to a Sentry or GlitchTip project.",
+          configured: "Failures are reported to the configured receiver.",
+          configuredDetail:
+            "Failed requests and jobs are sent without their messages or any business data. Delivery is not checked here, so confirm events arrive in the receiver."
+        },
         storage: {
           title: "File storage",
           notConfigured: "Backup file storage needs setup.",

@@ -7,6 +7,7 @@ export type HealthCheckId =
   | "database"
   | "disk"
   | "email"
+  | "error-tracking"
   | "migrations"
   | "public-url"
   | "storage"
