@@ -163,6 +163,14 @@ const featureBoundaryRule = [
         group: ["@/features/*/*", "!@/features/*/server", "!@/features/*/systemWrites"],
         message:
           "Import feature code through the feature root barrel (@/features/<feature>), its server barrel, or its systemWrites module. Use relative imports within the same feature."
+      },
+      // Carried by the boundary rule because it applies to the same files: the reporter's callers
+      // are the two boundaries in `instrumentation.ts` and `lib/jobs/worker.ts` (ADR-0041), and a
+      // capture call in a feature is the second, rule-less error path `errors.md` forbids.
+      {
+        group: ["@/lib/errorTracking", "@/lib/errorTracking/*"],
+        message:
+          "Features and routes do not report errors. Let the failure escape to a request or job boundary, or catch and log it (.agents/rules/errors.md, Reported versus logged)."
       }
     ]
   }

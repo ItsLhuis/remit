@@ -2,6 +2,8 @@ import { Worker, type Job } from "bullmq"
 
 import { logger } from "@/lib/logger"
 
+import { reportError } from "@/lib/errorTracking"
+
 import { createRedisConnection } from "./connection"
 import { closeQueue, QUEUE_NAME } from "./queue"
 import { getJobHandler, getRegisteredJobNames } from "./registry"
@@ -30,23 +32,19 @@ export async function startWorker(): Promise<void> {
   })
 
   worker.on("failed", (job, error) => {
+    const errorEventId = job ? settleFailedAttempt(job, error) : null
+
     logger.error(
       {
         action: "worker.job",
         job: job?.name,
         jobId: job?.id,
         attempt: job?.attemptsMade,
+        errorEventId: errorEventId ?? undefined,
         err: error
       },
       "Job failed"
     )
-
-    // `failed` fires on every attempt, retries included, and `attemptsMade` already counts this one
-    // when it does. Only the attempt that exhausts the budget is a failed run; an attempt that a
-    // later retry recovers is not.
-    if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
-      void recordScheduledJobOutcome(job.name, "failed", Date.now())
-    }
   })
 
   worker.on("completed", (job) => {
@@ -72,6 +70,19 @@ export async function stopWorker(): Promise<void> {
   await closeStatsConnection()
 
   logger.info({ action: "worker.stop" }, "Job worker stopped")
+}
+
+// `failed` fires on every attempt, retries included, and `attemptsMade` already counts this one
+// when it does. Only the attempt that exhausts the budget is a failed run, so only it is counted and
+// reported; an attempt that a later retry recovers is neither. Returns the reported event's id.
+function settleFailedAttempt(job: Job, error: Error): string | null {
+  if (job.attemptsMade < (job.opts.attempts ?? 1)) return null
+
+  void recordScheduledJobOutcome(job.name, "failed", Date.now())
+
+  // The job's id stays out of the report: several are deterministic and embed the record they work
+  // on. The caller's log line carries it beside the event id instead.
+  return reportError(error, { source: "job", jobName: job.name, attempts: job.attemptsMade })
 }
 
 async function processJob(job: Job): Promise<void> {
