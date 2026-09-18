@@ -1,5 +1,9 @@
 import { z } from "zod"
 
+// From its own file rather than the `@/lib/errorTracking` barrel, which brings the logger and the
+// sender with it into a module the installer's test imports precisely because it has neither.
+import { parseErrorTrackingDsn } from "@/lib/errorTracking/dsn"
+
 const encryptionKeySchema = z
   .string()
   .trim()
@@ -90,7 +94,16 @@ export const envSchema = z.object({
   MINIO_ROOT_USER: z.string().min(1),
   MINIO_ROOT_PASSWORD: z.string().min(1),
   MINIO_BUCKET: z.string().min(1).default("remit"),
-  SENTRY_DSN: optionalEnvString(z.url()),
+  // Shape-checked here rather than where error tracking starts, so a DSN that is set but unusable
+  // stops the boot instead of leaving the operator believing errors are being reported.
+  SENTRY_DSN: optionalEnvString(
+    z
+      .string()
+      .refine(
+        (value) => parseErrorTrackingDsn(value) !== null,
+        "Must be a Sentry DSN such as https://<key>@errors.example.com/1"
+      )
+  ),
   REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1)),
   // Optional rather than boot-fatal because only the worker image ships Chromium (ADR-0022): the web
   // application never launches a browser, and making this mandatory would stop it starting over a
