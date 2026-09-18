@@ -41,6 +41,10 @@ section, and refuse to run while it has no entries.
 - MinIO no longer publishes ports 9000 and 9001, and its bucket no longer allows anonymous reads. A
   reverse-proxy route to MinIO, or anything else that reached storage directly, is no longer needed
   and no longer works.
+- **If `.env` sets `SENTRY_DSN`, errors start being sent to it after this upgrade.** The variable
+  used to do nothing. It must now be a DSN with a key and a numeric project id, such as
+  `https://<key>@errors.example.com/1`, or the containers refuse to start. Leave it empty to keep
+  sending nothing.
 
 ### Added
 
@@ -54,6 +58,10 @@ section, and refuse to run while it has no entries.
   key.
 - A `with-proxy` Compose profile runs Caddy in front of Remit with an automatically issued and
   renewed HTTPS certificate.
+- Error tracking to a Sentry or GlitchTip project you run, off unless `SENTRY_DSN` is set. A request
+  error no handler caught and a background job that failed its last attempt are reported with their
+  type, code and stack frames and never their message, the request or any business data.
+  `/settings/system` shows whether it is on.
 
 ### Changed
 

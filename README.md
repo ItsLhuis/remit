@@ -219,10 +219,15 @@ Operational support:
   depth, scheduled-job runs and process memory to a scraper holding that token. It exposes no
   business data and pushes nothing anywhere. The scrape configuration is in
   [`docs/operations/METRICS.md`](./docs/operations/METRICS.md).
+- **Error tracking** - off unless `SENTRY_DSN` names a Sentry or GlitchTip project, then a request
+  error no handler caught and a job that failed its last attempt are reported there. An event
+  carries the error's type, code and stack frames and where it happened, never its message, the
+  request, a record id or any business data; the log keeps the full error under the same event id.
+  The browser and the CLI commands report nothing.
 - **Health dashboard** - `/settings/system` shows database connectivity, email/Stripe/storage
-  reachability, backup destination and success/failure status, disk usage, the encryption key
-  fingerprint, and the running version beside links to the changelog and the upgrade runbook. Remit
-  does not check for updates.
+  reachability, whether error tracking is configured, backup destination and success/failure status,
+  disk usage, the encryption key fingerprint, and the running version beside links to the changelog
+  and the upgrade runbook. Remit does not check for updates.
 - **Changelog** - [`CHANGELOG.md`](./CHANGELOG.md) records what each release changes for an
   operator, including every migration it applies on start. `pnpm version:*` stamps its Unreleased
   section as the new release and refuses to run while that section is empty.
