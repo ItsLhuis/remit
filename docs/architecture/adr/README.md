@@ -54,3 +54,4 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0038](0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
 | [0039](0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
 | [0040](0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app | Accepted |
+| [0041](0041-error-tracking-boundary.md)                 | Error tracking — a minimal sender, events built by addition, two reporting boundaries  | Accepted |

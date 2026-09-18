@@ -1516,8 +1516,7 @@ lib/config/env.ts    Zod-validated deployment configuration. Process exits on fa
 /settings/**         Ongoing instance configuration stored in the settings table.
 .env                 Deployment-owned configuration: the public URL, database, auth secret,
                      encryption key, object-store credentials, Redis, the image tag and Compose
-                     profile, Chromium path, the metrics token, and the unread variable named in
-                     the Observability section.
+                     profile, Chromium path, the metrics token, and the error-tracking DSN.
 ```
 
 No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
@@ -1531,8 +1530,10 @@ All data is stored in the PostgreSQL instance owned and operated by the user. No
 instance that the operator has not configured to leave it: there is no analytics, no telemetry and
 no usage reporting, and no code path that sends any of the three
 ([ADR-0018](adr/0018-no-telemetry.md)). The only outbound traffic Remit makes is to the email,
-payment and object-storage providers the operator supplies credentials for, and to the webhook
-endpoints an owner registers, which receive record ids rather than records.
+payment and object-storage providers the operator supplies credentials for, to the webhook endpoints
+an owner registers, which receive record ids rather than records, and — only when the operator sets
+`SENTRY_DSN` — to the error-tracking receiver that DSN names, which receives failure events with no
+message and no business data (the Observability section lists what one carries).
 
 ---
 
@@ -1609,9 +1610,10 @@ advanced configuration discoverable and testable in place.
 ### Health and status
 
 `/settings/system` is authenticated and owner-only. It is the human-readable operational status
-surface for database connectivity, email/Stripe/storage reachability, last successful backup, backup
-destination status, data-volume disk usage, encryption key fingerprint, and the running application
-version, beside links to the changelog and the upgrade runbook.
+surface for database connectivity, email/Stripe/storage reachability, whether error tracking is
+configured, last successful backup, backup destination status, data-volume disk usage, encryption
+key fingerprint, and the running application version, beside links to the changelog and the upgrade
+runbook.
 
 `/api/health` is public and intentionally small. It returns `200` or `503` with a minimal JSON body
 for uptime monitors and host-side scripts.
@@ -1868,14 +1870,71 @@ The full convention is in `errors.md`.
 
 ### What an operator can observe
 
-Four surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
+Five surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
 `/api/metrics` serves Prometheus metrics to a scraper holding `REMIT_METRICS_TOKEN`.
 `/settings/system` is the human-readable status page described in the Self-hosting experience
-section. The container's stdout carries the pino log stream, which is where an error is found.
+section. The container's stdout carries the pino log stream, which is where an error is found in
+full. With `SENTRY_DSN` set, a failure that escapes every handler is also reported to a
+Sentry-compatible receiver, as described below.
 
-`lib/config/env.ts` validates one further variable, `SENTRY_DSN`, and no code reads it. Setting it
-changes nothing: Remit has no error-tracking client. It is recorded here because an operator who
-sets it and sees no effect is otherwise left debugging their own deployment.
+### Error tracking
+
+**The DSN is the whole switch.** With `SENTRY_DSN` unset nothing is imported, constructed or sent,
+in any process. Set, it must be a Sentry DSN — `https://<key>@<host>/<project id>`, which
+self-hosted Sentry and GlitchTip both accept — or the instance refuses to boot, so a DSN that is set
+but unusable cannot pass for a working one. The app and the worker each start a sender from the
+validated environment, and only after it has validated: a boot that fails validation exits before a
+sender exists, which is what keeps the one error that carries the environment from leaving.
+`/settings/system` shows whether a DSN is set, and never the DSN, which holds the receiver's key.
+Hosted mode changes none of this: whoever operates the instance sets the DSN.
+
+**Two boundaries report, and nothing else does.** An error that escapes a server component, a route
+handler, a server action or the proxy reaches `onRequestError` in `instrumentation.ts`. A job that
+fails its last attempt, and a worker that fails to start, are reported from `lib/jobs/worker.ts` and
+`scripts/worker.ts`. A failure a handler catches is logged and not reported; the rule is in
+`.agents/rules/errors.md`. The browser reports nothing — a client-side handler sees form state and
+rendered line items, and reaching a receiver from there would mean giving the browser the DSN — and
+neither do the operational CLI commands, which run with the operator watching.
+
+**An event carries exactly this, and `lib/errorTracking/errorEvent.ts`'s `buildErrorEvent` is the
+only code that produces one:**
+
+| Field                                                                    | Source                                                       |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Event id, also as the `errorEventId` tag; timestamp, `platform`, `level` | generated                                                    |
+| `release` (`remit@<version>`), `environment` (`NODE_ENV`)                | the process                                                  |
+| `runtime` tag — `server` or `worker`                                     | the process                                                  |
+| Route pattern (`/invoices/[invoiceId]`), route type and render source    | Next.js's `onRequestError` context, never the requested path |
+| Job name and attempt count                                               | BullMQ, never the job id                                     |
+| For the error and up to four `cause`s: its type and its stack frames     | the error's `name`, and its stack below the message          |
+| `error.code` tag — a SQLSTATE, a system code, a Node or undici code      | the first matching `code` in the chain                       |
+| `digest` tag                                                             | Next.js's numeric error digest                               |
+
+A stack frame is a function name, a file path relative to the application directory, a line and a
+column; a path outside that directory is cut to its file name, and a frame whose name or path falls
+outside a narrow character set is dropped. Every other value comes from a closed vocabulary.
+
+**Never sent, under any configuration:** an error's message, at any depth — each exception's value
+is one fixed sentence; the request's path, query string, headers, cookies and body; any environment
+value; any `encryptedColumn()` value or `clients.notes`; any token, OTP, TOTP secret or backup code;
+an entity id, a job id, an email address or a user. The message is withheld because it is free text
+written by whatever threw — a driver error quotes the column values it failed on — and no rule can
+classify it. The boundary that reports also writes the error, message included, to the log under the
+same `errorEventId`, which is how a received event is traced back to it.
+
+**The builder fails closed.** A context value that does not match its vocabulary — a requested path
+where a route pattern belongs, an unknown field — drops the whole event rather than the field.
+
+**Reporting never costs a request or a job anything.** Sending is not awaited by the caller — the
+one exception is a worker exiting after a failed start, which waits at most three seconds — is
+bounded at five seconds, and stops at five unanswered sends, dropping further events whose errors
+are in the log regardless. A receiver that stops answering is logged when delivery starts failing
+and when it recovers, never per event, and never with its address.
+
+Server frames point into the minified chunks of the production build, because the published image
+carries no deployment and so cannot have uploaded source maps to anybody's receiver; the worker's
+bundle is not minified. [ADR-0041](adr/0041-error-tracking-boundary.md) records the choice of a
+minimal sender over the Sentry SDK, and the boundaries.
 
 ### Metrics
 
@@ -2105,6 +2164,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
 | [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
 | [0040](adr/0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app | Accepted |
+| [0041](adr/0041-error-tracking-boundary.md)                 | Error tracking — a minimal sender, events built by addition, two reporting boundaries  | Accepted |
 
 ---
 

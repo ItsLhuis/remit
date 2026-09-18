@@ -96,6 +96,36 @@ logger.error(
 logger.error({ action: "sendInvoiceEmail", smtpPass: settings.smtpPass, err: error }, "SMTP failed")
 ```
 
+## Reported versus logged
+
+Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure is also
+**reported** to their Sentry-compatible receiver, and it is reported from exactly two boundaries
+([ADR-0041](../../docs/architecture/adr/0041-error-tracking-boundary.md)):
+
+- An error that **escapes** a server component, a route handler, a server action or the proxy.
+  Next.js hands it to `onRequestError` in `instrumentation.ts`.
+- A job whose **last attempt** fails in the worker (`lib/jobs/worker.ts`), and a worker that fails
+  to start (`scripts/worker.ts`). An attempt a retry may still recover is only logged.
+
+A failure a handler catches is logged and **not** reported: catching it is the decision that it is
+handled. That covers every server action's `try`/`catch`, every event bus handler, `enqueueJob`
+logging a Redis outage, upload cleanup, the Stripe signature failure that is dropped without a log,
+a scheduled backup that records its failure on `settings` instead of retrying, and a webhook whose
+failed delivery is recorded on its delivery row. The browser and the `remit:*` commands never
+report.
+
+So the rule for a new failure is a choice between the two, never a third path:
+
+- If the operator should hear about it, let it reach a boundary — rethrow from a job handler so
+  BullMQ retries and then fails it, or let a request throw.
+- If it is handled, catch and log it.
+
+Feature and route code never imports `@/lib/errorTracking`; `no-restricted-imports` fails it under
+`features/` and `app/`. Nothing in a log entry's context is sent either: an event carries the
+error's type, code and stack frames and the boundary's own context, never the message and never a
+record's id. The boundary logs the full error with the same `errorEventId` the receiver shows, which
+is how an event is traced back to its log line.
+
 ## Database errors
 
 Raw database errors never reach the client. Map known constraint violations to user-friendly
