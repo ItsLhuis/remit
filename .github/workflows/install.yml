@@ -27,6 +27,11 @@ jobs:
       - name: Build images
         run: REMIT_IMAGE_TAG=ci docker compose build app worker
 
+      # `--no-pull` starts only from images already on the host, and a fresh runner has none of the
+      # PostgreSQL, Redis and MinIO images the stack runs beside the two built above.
+      - name: Pull dependency images
+        run: docker compose pull --ignore-buildable
+
       - name: Install unattended
         run: |
           bash scripts/host/install.sh --yes --no-pull --image-tag ci \
