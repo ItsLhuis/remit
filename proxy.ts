@@ -228,11 +228,14 @@ function isStaticAsset(pathname: string): boolean {
 // token, never a session, and `lib/metrics/handleMetricsRequest.ts` owns its rate limit, its token
 // check and its `noindex` header. `/api/v1/` likewise: its caller is an integration holding an API
 // token, and `features/api/handleApiRequest.ts` owns its limits and its authentication — without
-// this line every token request would be redirected to the login page.
+// this line every token request would be redirected to the login page. `/api/mcp` is the same
+// caller through a second protocol, and `features/mcp/handleMcpRequest.ts` owns its Origin check,
+// its switch, its limits and the same token authentication.
 function isPublicApiRoute(pathname: string): boolean {
   return (
     pathname === "/api/health" ||
     pathname === "/api/metrics" ||
+    pathname === "/api/mcp" ||
     pathname.startsWith("/api/v1/") ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/")

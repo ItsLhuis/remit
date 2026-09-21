@@ -124,6 +124,19 @@ export type Translations = {
       unknownParameter: string
     }
   }
+  mcp: {
+    errors: {
+      requestTooLarge: string
+      batchUnsupported: string
+    }
+    validation: {
+      unknownArgument: string
+      searchInvalid: string
+      dayInvalid: string
+      statusInvalid: string
+      flagInvalid: string
+    }
+  }
   fileUpload: {
     progress: string
     dismiss: string
@@ -3785,6 +3798,7 @@ export type Translations = {
       system: string
       api: string
       webhooks: string
+      mcp: string
     }
     navigation: {
       business: string
@@ -3802,6 +3816,7 @@ export type Translations = {
       integrations: string
       api: string
       webhooks: string
+      mcp: string
     }
     profile: {
       title: string
@@ -4293,6 +4308,53 @@ export type Translations = {
         createFailed: string
         revokeFailed: string
         notFound: string
+      }
+    }
+    mcp: {
+      title: string
+      description: string
+      accessTitle: string
+      accessDescription: string
+      statusOn: string
+      statusOff: string
+      onSummary: string
+      offSummary: string
+      turnOn: string
+      turnOff: string
+      turnedOn: string
+      turnedOff: string
+      consentReads: string
+      consentLeaves: string
+      consentNever: string
+      consentReadOnly: string
+      consentOff: string
+      connectionTitle: string
+      connectionDescription: string
+      endpointLabel: string
+      tokenStep: string
+      openApiSettings: string
+      headerStep: string
+      commandLabel: string
+      copy: string
+      copied: string
+      activityTitle: string
+      activityDescription: string
+      activityEmpty: string
+      tableWhen: string
+      tableTool: string
+      tableToken: string
+      tableOutcome: string
+      unknownToken: string
+      outcome: {
+        returned: string
+        notFound: string
+        failed: string
+      }
+      validation: {
+        enabledInvalid: string
+      }
+      errors: {
+        updateFailed: string
       }
     }
     webhooks: {

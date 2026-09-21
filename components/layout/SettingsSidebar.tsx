@@ -70,7 +70,8 @@ const navGroups = [
     label: "settings.navigation.integrations",
     items: [
       { labelKey: "settings.navigation.api", href: "/settings/api", icon: "KeyRound" },
-      { labelKey: "settings.navigation.webhooks", href: "/settings/webhooks", icon: "Webhook" }
+      { labelKey: "settings.navigation.webhooks", href: "/settings/webhooks", icon: "Webhook" },
+      { labelKey: "settings.navigation.mcp", href: "/settings/mcp", icon: "Bot" }
     ]
   },
   {

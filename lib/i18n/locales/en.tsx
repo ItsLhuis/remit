@@ -123,6 +123,19 @@ export const english: Language = {
         unknownParameter: "Only the page and perPage parameters are supported"
       }
     },
+    mcp: {
+      errors: {
+        requestTooLarge: "The request is too large to be a tool call",
+        batchUnsupported: "Send one message per request"
+      },
+      validation: {
+        unknownArgument: "This tool does not take that argument",
+        searchInvalid: "search must be 1 to {max} characters",
+        dayInvalid: "Dates must be calendar days written as YYYY-MM-DD",
+        statusInvalid: "Choose one or more of the listed states",
+        flagInvalid: "This filter takes true or false"
+      }
+    },
     fileUpload: {
       progress: "{percent}% of {size}",
       dismiss: "Dismiss {filename}",
@@ -3906,7 +3919,8 @@ export const english: Language = {
         backup: "Backups",
         system: "System",
         api: "API",
-        webhooks: "Webhooks"
+        webhooks: "Webhooks",
+        mcp: "MCP server"
       },
       navigation: {
         business: "Business",
@@ -3923,7 +3937,8 @@ export const english: Language = {
         system: "System",
         integrations: "Integrations",
         api: "API",
-        webhooks: "Webhooks"
+        webhooks: "Webhooks",
+        mcp: "MCP server"
       },
       profile: {
         title: "Profile",
@@ -4459,6 +4474,61 @@ export const english: Language = {
           createFailed: "The token could not be created",
           revokeFailed: "The token could not be revoked",
           notFound: "Token not found"
+        }
+      },
+      mcp: {
+        title: "MCP server",
+        description:
+          "Let an AI assistant read your business records through the Model Context Protocol. Off until you turn it on.",
+        accessTitle: "Assistant access",
+        accessDescription:
+          "An assistant reads through an API token, and sees only what that token's scopes allow.",
+        statusOn: "On",
+        statusOff: "Off",
+        onSummary: "Assistants holding an API token can read the records its scopes allow.",
+        offSummary: "No assistant can read anything from this instance.",
+        turnOn: "Turn on",
+        turnOff: "Turn off",
+        turnedOn: "MCP server turned on",
+        turnedOff: "MCP server turned off",
+        consentReads:
+          "An assistant you connect can read the clients, projects, invoices, time entries and expenses its API token's scopes allow, including names, addresses, amounts, descriptions and invoice line items.",
+        consentLeaves:
+          "Everything it reads is sent to the company that runs the assistant's model and handled under that company's terms. Remit cannot see, limit or delete it once it has left this instance.",
+        consentNever:
+          "Never shared: client notes, public document links, stored credentials, the security audit log and anything in the trash.",
+        consentReadOnly: "Nothing can be created, changed, sent or deleted through it.",
+        consentOff: "You can turn it off at any time. It stops on the assistant's next request.",
+        connectionTitle: "Connect an assistant",
+        connectionDescription:
+          "Works with assistants that take a server address and a bearer token, such as Claude Code and the MCP Inspector. Assistants that only connect through an OAuth sign-in cannot connect.",
+        endpointLabel: "Server address",
+        tokenStep:
+          "Create an API token with only the scopes the assistant needs. Its value is shown once.",
+        openApiSettings: "Open API settings",
+        headerStep: "Send the token with every request as an Authorization header.",
+        commandLabel: "Claude Code command",
+        copy: "Copy",
+        copied: "Copied",
+        activityTitle: "Recent tool calls",
+        activityDescription:
+          "The last {count} calls, newest first. Each is also in the security audit log, recording what the assistant asked for and never what it read.",
+        activityEmpty: "No assistant has called a tool yet.",
+        tableWhen: "When",
+        tableTool: "Tool",
+        tableToken: "Token",
+        tableOutcome: "Result",
+        unknownToken: "Unknown token",
+        outcome: {
+          returned: "{count, plural, one {# record} other {# records}}",
+          notFound: "Not found",
+          failed: "Failed"
+        },
+        validation: {
+          enabledInvalid: "Choose whether the MCP server is on"
+        },
+        errors: {
+          updateFailed: "The MCP server setting could not be saved"
         }
       },
       webhooks: {

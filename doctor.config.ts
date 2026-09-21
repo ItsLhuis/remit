@@ -177,6 +177,7 @@ const config = {
     "requireBackupSettingsWrite",
     "requireApiTokenWrite",
     "requireWebhookWrite",
+    "requireMcpSettingsWrite",
     "requireBusinessSettingsWrite",
     "requireEmailSettingsWrite",
     "requireInvoicingSettingsWrite",
