@@ -1,4 +1,4 @@
-import { type ApiResource, type ApiTokenScope } from "../schemas"
+import { API_RESOURCES, type ApiResource, type ApiTokenScope } from "../schemas"
 
 export type ApiTokenRole = "owner" | "accountant" | "assistant"
 
@@ -62,6 +62,13 @@ export function evaluateApiTokenAccess(input: ApiTokenAccessInput): ApiTokenAcce
   }
 
   return { allowed: true, role: input.creatorRole }
+}
+
+// Every resource the token may read right now, derived by asking `evaluateApiTokenAccess` once per
+// resource rather than by a second rule. The MCP server lists and admits its tools from this set, so
+// the two surfaces cannot disagree about what a token reaches: there is one decision, asked twice.
+export function readableApiResources(input: Omit<ApiTokenAccessInput, "resource">): ApiResource[] {
+  return API_RESOURCES.filter((resource) => evaluateApiTokenAccess({ ...input, resource }).allowed)
 }
 
 function isApiTokenRole(value: string | null): value is ApiTokenRole {

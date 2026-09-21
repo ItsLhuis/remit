@@ -1,3 +1,5 @@
+export { authenticateApiRequest, type ApiRequestContext } from "./authenticate"
+
 export {
   handleApiDocumentRequest,
   handleApiItemRequest,
@@ -6,7 +8,7 @@ export {
 
 export { getOpenApiDocument } from "./openapi"
 
-export { apiOperations } from "./operations"
+export { apiOperations, type ApiOperation } from "./operations"
 
 export {
   getApiClient,
@@ -16,5 +18,13 @@ export {
   listApiExpenses,
   listApiInvoices,
   listApiProjects,
-  listApiTimeEntries
+  listApiTimeEntries,
+  type ApiExpenseFilters,
+  type ApiInvoiceFilters,
+  type ApiListResult,
+  type ApiProjectFilters,
+  type ApiSearchFilter,
+  type ApiTimeEntryFilters
 } from "./resources"
+
+export { type ApiListParams } from "./schemas"

@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest"
 
-import { evaluateApiTokenAccess, scopeForResource, type ApiTokenAccessInput } from "../apiAccess"
+import {
+  evaluateApiTokenAccess,
+  readableApiResources,
+  scopeForResource,
+  type ApiTokenAccessInput
+} from "../apiAccess"
 
 const now = new Date("2026-09-11T12:00:00.000Z")
 
@@ -75,5 +80,25 @@ describe("API token access", () => {
 
   test("names the read scope after its resource", () => {
     expect(scopeForResource("time_entries")).toBe("time_entries:read")
+  })
+
+  test("lists exactly the resources a live token is scoped to, in the API's own order", () => {
+    const resources = readableApiResources(makeInput({ scopes: ["expenses:read", "clients:read"] }))
+
+    expect(resources).toEqual(["clients", "expenses"])
+  })
+
+  test("lists nothing for a revoked token whatever its scopes", () => {
+    const resources = readableApiResources(
+      makeInput({ scopes: ["clients:read", "invoices:read"], revokedAt: new Date("2026-09-10") })
+    )
+
+    expect(resources).toEqual([])
+  })
+
+  test("lists nothing once the token's creator has lost their membership", () => {
+    const resources = readableApiResources(makeInput({ creatorRole: null }))
+
+    expect(resources).toEqual([])
   })
 })

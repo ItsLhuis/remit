@@ -14,12 +14,20 @@ import { apiTokens } from "@/database/schema"
 
 import { findApiTokenByHash, getMemberRole } from "./queries"
 import { type ApiResource } from "./schemas"
-import { evaluateApiTokenAccess, type ApiTokenRole } from "./services/apiAccess"
+import {
+  evaluateApiTokenAccess,
+  readableApiResources,
+  type ApiTokenRole
+} from "./services/apiAccess"
 
 export type ApiRequestContext = {
   tokenId: string
   userId: string
   role: ApiTokenRole
+  // What the token may read at this moment, for a surface that serves several resources through one
+  // request — the MCP server lists its tools from this. A REST route reads one resource and needs
+  // only the admission above.
+  resources: ApiResource[]
 }
 
 export type ApiAuthentication = { context: ApiRequestContext } | { refused: true }
@@ -52,20 +60,28 @@ export async function authenticateApiRequest(
 
   if (!row.createdByUserId) return { refused: true }
 
-  const access = evaluateApiTokenAccess({
-    resource,
+  const standing = {
     scopes: row.scopes,
     creatorRole: await getMemberRole(row.createdByUserId),
     revokedAt: row.revokedAt,
     expiresAt: row.expiresAt,
     now
-  })
+  }
+
+  const access = evaluateApiTokenAccess({ ...standing, resource })
 
   if (!access.allowed) return { refused: true }
 
   await touchApiToken(row.id, now)
 
-  return { context: { tokenId: row.id, userId: row.createdByUserId, role: access.role } }
+  return {
+    context: {
+      tokenId: row.id,
+      userId: row.createdByUserId,
+      role: access.role,
+      resources: readableApiResources(standing)
+    }
+  }
 }
 
 // A failed touch is logged and swallowed: the request is already authenticated, and refusing it
