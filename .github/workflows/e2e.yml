@@ -28,6 +28,12 @@ env:
   MINIO_BUCKET: remit
   PLAYWRIGHT_BASE_URL: http://localhost:3000
   PLAYWRIGHT_SKIP_WEB_SERVER: "true"
+  # The SMTP host as the app container resolves it: the mail sink's service name in
+  # docker-compose.ci.yml, not the runner's localhost.
+  PLAYWRIGHT_SMTP_HOST: mailpit
+  # Every `docker compose` step sees the CI override. Without it, `logs` would leave out the mail
+  # sink and `down` would leave it running, still holding the project network.
+  COMPOSE_FILE: docker-compose.yml:docker-compose.ci.yml
   # Host-side connection used by the Playwright process itself (owner provisioning and session
   # issuing run in Node, not in the browser). The app container gets its own DATABASE_URL from
   # docker-compose.yml against the internal `database` hostname; this one never reaches it.
@@ -61,7 +67,7 @@ jobs:
         run: docker compose build app
 
       - name: Start stack
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+        run: docker compose up -d
 
       - name: Wait for stack health
         run: |
