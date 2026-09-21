@@ -28,7 +28,9 @@ against these.
 
 - **Data ownership and privacy first.** Sensitive credentials are encrypted at rest. Email and
   payment providers are pluggable adapters that you choose — never forced. Designed so that data
-  covered by an NDA never has to leave your infrastructure.
+  covered by an NDA never has to leave your infrastructure: nothing is sent anywhere you have not
+  configured, and the one feature that hands records to an AI assistant is off until you turn it on
+  and never shares client notes.
 - **Single-instance simplicity.** One Remit instance is one freelance business. No multi-tenancy, no
   per-seat pricing logic, no organisation hierarchy in the base model. Light multi-user support
   (accountant, assistant) is layered on top.
@@ -127,6 +129,14 @@ person who created them; the OpenAPI document is generated from the code. Signed
 own endpoint when an invoice is paid, a client is created or time is logged. They carry record ids
 rather than your data, retry for about sixteen minutes, and cannot be pointed at your own network
 unless the operator allows the host.
+
+**AI assistant access (MCP).** An MCP server lets an AI assistant such as Claude Code answer
+questions about your business — what is overdue, what is still unbilled, what a client owes —
+through read-only tools over the same clients, projects, invoices, time entries and expenses the API
+serves, with the same tokens and the same scopes. It is off until you turn it on, and the settings
+page says plainly what that shares: whatever the assistant reads goes to the company that runs its
+model, and Remit cannot take it back. It never shares client notes, document links, credentials or
+anything in the trash, it cannot change anything, and every tool call is recorded in the audit log.
 
 **Dashboard.** KPI tiles (revenue MTD/YTD, outstanding, overdue, expenses, profit), 12-month
 cashflow chart, upcoming invoices and proposals, top clients, recent activity.

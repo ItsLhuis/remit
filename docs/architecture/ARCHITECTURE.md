@@ -933,8 +933,9 @@ Schema: `id`, `event`, `actorUserId | null`, `actorRole | null`, `targetEntityTy
 reconfiguration; Better Auth backup-code consumption; CLI/admin password resets; settings changes
 touching SMTP, Stripe, or payment information; data exports; entity deletions; public token
 rotations and revocations; member changes (see the Multi-user model section); API token creation and
-revocation; webhook endpoint creation, secret rotation, enabling, disabling and deletion; backup and
-restore operations.
+revocation; webhook endpoint creation, secret rotation, enabling, disabling and deletion; turning
+the MCP server on or off, and every tool an assistant calls through it; backup and restore
+operations.
 
 ### Public token security
 
@@ -1032,12 +1033,30 @@ Coverage, and where each limit lives:
 | `/api/webhooks/stripe`                            | Per IP                                     | the route handler                                                   |
 | `/api/metrics`                                    | 30 per IP per minute                       | `lib/metrics/handleMetricsRequest.ts`, ahead of the token           |
 | `/api/v1/*`                                       | 300 per IP, then 120 per token, per minute | `features/api/handleApiRequest.ts`, the IP limit ahead of the token |
+| `/api/mcp`                                        | 300 per IP, then 60 per token, per minute  | `features/mcp/handleMcpRequest.ts`, the IP limit ahead of the token |
 
 A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
 `/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
 interval, and it reads nothing that a rate limit would protect. `/api/storage/*` carries none
 either: it serves the objects the public bucket already served anonymously, under keys nobody can
 enumerate, and marks every response immutable so a browser asks for each file once.
+
+### What an assistant can read
+
+The MCP server (`/api/mcp`) is the one surface that hands records to a language model, and its
+boundary is the public API's rather than one of its own. Each of its tools is the MCP face of one
+`/api/v1/` operation: it is admitted by the same `authenticateApiRequest` against the same resource,
+and its result is parsed through the same schema in `features/api/responseSchemas.ts`. So no tool
+returns `clients.notes`, a public token or path, an encrypted value, a storage key or a record in
+the trash, and no tool returns a field the API does not. `audit_logs`, settings, team, proposals,
+contracts, payments, credit notes, leads, tasks, contacts and attachments are not resources an
+assistant can name. Every tool reads; none creates, changes, sends or deletes.
+
+A browser page on another host is refused with 403 before anything else, the specification's defence
+against DNS rebinding, and the whole surface answers 404 until the owner turns it on in
+`/settings/mcp`. Each tool call is audited with its arguments, a search reduced to the fact that one
+was made, and a count of what it returned, never the records. [ADR-0042](adr/0042-mcp-server.md)
+records the privacy position and the alternatives.
 
 ### HTTP security headers
 
@@ -1241,9 +1260,10 @@ implicit to the instance. See ADR-0013.
 Authorization is implemented as a thin layer in two places:
 
 **Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
-`/settings/data`, `/settings/backup`, `/settings/system`, `/settings/api`, `/settings/webhooks`, and
-any endpoint that exposes the encryption key fingerprint are owner-only. Routes that perform sends
-or deletions are blocked for `assistant`. All other routes are accessible to all roles.
+`/settings/data`, `/settings/backup`, `/settings/system`, `/settings/api`, `/settings/webhooks`,
+`/settings/mcp`, and any endpoint that exposes the encryption key fingerprint are owner-only. Routes
+that perform sends or deletions are blocked for `assistant`. All other routes are accessible to all
+roles.
 
 **Action-level (operation gating).** Every server action gates on the active member's role before it
 writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
@@ -1409,29 +1429,30 @@ visible; modals trap focus. Full conventions in `accessibility.md`.
 Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
 application-level interactions. API routes exist only for specific, justified cases:
 
-| Route                                       | Purpose                                                   |
-| ------------------------------------------- | --------------------------------------------------------- |
-| `/i/[token]`                                | Public invoice view (anonymous)                           |
-| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                 |
-| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                        |
-| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)              |
-| `/c/[token]`                                | Public contract signing (anonymous)                       |
-| `/s/[token]`                                | Public client portal (anonymous)                          |
-| `/api/auth/[...all]`                        | Better Auth's own handler                                 |
-| `/api/webhooks/stripe`                      | Stripe webhook event receiver                             |
-| `/api/health`                               | Uptime monitor health check (public)                      |
-| `/api/metrics`                              | Prometheus scrape, bearer-token protected; 404 when unset |
-| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage        |
-| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                       |
-| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket |
-| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                  |
-| `/api/exports/[id]`                         | Owner-gated data export archive download                  |
-| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                     |
-| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                    |
-| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                    |
-| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                    |
-| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                    |
-| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated               |
+| Route                                       | Purpose                                                         |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| `/i/[token]`                                | Public invoice view (anonymous)                                 |
+| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                       |
+| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                              |
+| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)                    |
+| `/c/[token]`                                | Public contract signing (anonymous)                             |
+| `/s/[token]`                                | Public client portal (anonymous)                                |
+| `/api/auth/[...all]`                        | Better Auth's own handler                                       |
+| `/api/webhooks/stripe`                      | Stripe webhook event receiver                                   |
+| `/api/health`                               | Uptime monitor health check (public)                            |
+| `/api/metrics`                              | Prometheus scrape, bearer-token protected; 404 when unset       |
+| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage              |
+| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                             |
+| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket       |
+| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                        |
+| `/api/exports/[id]`                         | Owner-gated data export archive download                        |
+| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                           |
+| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                          |
+| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                          |
+| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                          |
+| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                          |
+| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated                     |
+| `/api/mcp`                                  | MCP server for an AI assistant, API-token gated, off by default |
 
 `POST /i/[token]/pay` is the narrowest of these to justify and the reason the list is a list rather
 than a rule. It is a write from an unauthenticated context: the caller is a client with no account,
@@ -1473,6 +1494,25 @@ reserved addresses at the moment the socket connects, follows no redirect, reads
 and gives up after ten seconds. Only hostnames listed in `REMIT_WEBHOOK_ALLOWED_HOSTS` may be
 reached over plain HTTP or at a private address. [ADR-0039](adr/0039-outbound-webhook-delivery.md)
 records the delivery and SSRF decisions.
+
+### MCP server
+
+`/api/mcp` serves the Model Context Protocol's Streamable HTTP transport, revision 2026-07-28, and
+answers clients of the 2025 revisions, which open with `initialize`, statelessly from the same
+tools. It keeps no session and opens no stream. Its ADR-0016 justification is the public API's: the
+caller is an assistant holding an API token, with no browser and no session, and the surface writes
+nothing. It authenticates with those same tokens rather than the specification's optional OAuth
+flow, which the specification permits, so an assistant that can only sign in through OAuth cannot
+connect.
+
+Eight read-only tools cover clients, projects, invoices, time entries and expenses, each a list with
+the screens' own filters — a search, states, a client or project, a range of calendar days, billed
+or unbilled — or a single record. A token reads through them exactly what it reads through the API:
+the tools it is shown and may call are the resources its scopes allow, intersected with its
+creator's current role, and a refusal is the API's single 401. The server is off until the owner
+turns it on in `/settings/mcp`, below a statement of what it shares; that page also gives the
+address and a client command, and lists the latest tool calls from `audit_logs`.
+[ADR-0042](adr/0042-mcp-server.md) records the transport, the authorization and why no tool writes.
 
 ### Validation at every boundary
 
@@ -1534,6 +1574,13 @@ payment and object-storage providers the operator supplies credentials for, to t
 an owner registers, which receive record ids rather than records, and — only when the operator sets
 `SENTRY_DSN` — to the error-tracking receiver that DSN names, which receives failure events with no
 message and no business data (the Observability section lists what one carries).
+
+Two surfaces answer requests with records rather than sending them: the public API and the MCP
+server, both only to a holder of an API token the owner minted, and the MCP server only after the
+owner turns it on. An answer to an AI assistant leaves the operator's control the moment it is
+returned — the assistant sends it to the language model it runs against, under that provider's
+terms, and Remit can neither see nor recall it. Client notes, public document tokens, stored
+credentials and the audit log never pass through either.
 
 ---
 
@@ -2122,49 +2169,50 @@ An ADR records why a decision was taken. What was subsequently built against it 
 implementation shape, the evidence and the gaps left open on the day — is recorded separately, one
 sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 
-| ADR                                                         | Title                                                                                  | Status   |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)                       | No cookies for routing state                                                           | Accepted |
-| [0002](adr/0002-single-instance-model.md)                   | Single-instance model is structural                                                    | Accepted |
-| [0003](adr/0003-mandatory-totp.md)                          | Mandatory TOTP — no opt-out                                                            | Accepted |
-| [0004](adr/0004-feature-module-structure.md)                | Closed feature modules with ESLint enforcement                                         | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)                      | AES-256-GCM encryption via Drizzle column helper                                       | Accepted |
-| [0006](adr/0006-internal-event-bus.md)                      | Typed in-process event bus for cross-feature effects                                   | Accepted |
-| [0007](adr/0007-pure-services.md)                           | Pure business logic in `services/` — no framework imports                              | Accepted |
-| [0008](adr/0008-email-adapters.md)                          | SMTP and Resend as interchangeable adapter implementations                             | Accepted |
-| [0009](adr/0009-money-as-integer-minor-units.md)            | Money stored as integer minor units — no floating-point                                | Accepted |
-| [0010](adr/0010-soft-delete.md)                             | Soft delete by default — hard delete after retention window                            | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)                       | Single Next.js app until a second artefact requires its own build                      | Accepted |
-| [0012](adr/0012-password-reset-paths.md)                    | Password reset via email when available, CLI fallback otherwise                        | Accepted |
-| [0013](adr/0013-better-auth-organization.md)                | Better Auth organization plugin for multi-user role storage                            | Accepted |
-| [0014](adr/0014-hosted-offering.md)                         | Hosted offering as per-instance isolation, not row-level tenancy                       | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)                      | i18next + ICU with TypeScript-typed message keys                                       | Accepted |
-| [0016](adr/0016-server-actions-canonical.md)                | Server actions as canonical write path; API routes for public/webhooks only            | Accepted |
-| [0017](adr/0017-polymorphic-line-items.md)                  | Polymorphic line items via mutually-exclusive parent FKs                               | Accepted |
-| [0018](adr/0018-no-telemetry.md)                            | No telemetry or analytics by default                                                   | Accepted |
-| [0019](adr/0019-storage-backend-adapters.md)                | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in            | Accepted |
-| [0020](adr/0020-operational-cli-contract.md)                | Operational CLI contract                                                               | Accepted |
-| [0021](adr/0021-encryption-key-rotation.md)                 | Encryption key rotation                                                                | Accepted |
-| [0022](adr/0022-pdf-rendering-engine.md)                    | Headless-browser PDF rendering (Puppeteer/Playwright)                                  | Accepted |
-| [0023](adr/0023-job-scheduling-bullmq-redis.md)             | Background jobs and scheduling via BullMQ + Redis                                      | Accepted |
-| [0024](adr/0024-template-editor-canvas.md)                  | Template editor — free collision-aware page-clamped canvas                             | Accepted |
-| [0025](adr/0025-instance-data-reset-scope.md)               | Instance data reset — domain data versus instance state                                | Accepted |
-| [0026](adr/0026-document-parentage.md)                      | Document parentage — optional project, agreeing client, composite key                  | Accepted |
-| [0027](adr/0027-contact-identity.md)                        | Contact identity — delivery target and acceptance identity, never an entity            | Accepted |
-| [0028](adr/0028-attachments-and-visual-identity.md)         | Attachments — one table, one foreign key per parent, private bucket                    | Accepted |
-| [0029](adr/0029-public-token-lifecycle.md)                  | Public token lifecycle — one minter, and revocation as an absent token                 | Accepted |
-| [0030](adr/0030-client-portal-exposure.md)                  | Client portal exposure — an index, and never a signing link                            | Accepted |
-| [0031](adr/0031-billing-conversion-provenance.md)           | Billing conversion — grouped lines, single-source provenance, refusal over inference   | Accepted |
-| [0032](adr/0032-card-payment-recording-authority.md)        | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance | Accepted |
-| [0033](adr/0033-late-fee-placement.md)                      | A late fee is part of the invoice total, charged once, and off by default              | Accepted |
-| [0034](adr/0034-retention-and-erasure.md)                   | Retention windows, restore symmetry, and what an erasure cannot destroy                | Accepted |
-| [0035](adr/0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry       | Accepted |
-| [0036](adr/0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation  | Accepted |
-| [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet            | Accepted |
-| [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator            | Accepted |
-| [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence         | Accepted |
-| [0040](adr/0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app | Accepted |
-| [0041](adr/0041-error-tracking-boundary.md)                 | Error tracking — a minimal sender, events built by addition, two reporting boundaries  | Accepted |
+| ADR                                                         | Title                                                                                   | Status   |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)                       | No cookies for routing state                                                            | Accepted |
+| [0002](adr/0002-single-instance-model.md)                   | Single-instance model is structural                                                     | Accepted |
+| [0003](adr/0003-mandatory-totp.md)                          | Mandatory TOTP — no opt-out                                                             | Accepted |
+| [0004](adr/0004-feature-module-structure.md)                | Closed feature modules with ESLint enforcement                                          | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)                      | AES-256-GCM encryption via Drizzle column helper                                        | Accepted |
+| [0006](adr/0006-internal-event-bus.md)                      | Typed in-process event bus for cross-feature effects                                    | Accepted |
+| [0007](adr/0007-pure-services.md)                           | Pure business logic in `services/` — no framework imports                               | Accepted |
+| [0008](adr/0008-email-adapters.md)                          | SMTP and Resend as interchangeable adapter implementations                              | Accepted |
+| [0009](adr/0009-money-as-integer-minor-units.md)            | Money stored as integer minor units — no floating-point                                 | Accepted |
+| [0010](adr/0010-soft-delete.md)                             | Soft delete by default — hard delete after retention window                             | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)                       | Single Next.js app until a second artefact requires its own build                       | Accepted |
+| [0012](adr/0012-password-reset-paths.md)                    | Password reset via email when available, CLI fallback otherwise                         | Accepted |
+| [0013](adr/0013-better-auth-organization.md)                | Better Auth organization plugin for multi-user role storage                             | Accepted |
+| [0014](adr/0014-hosted-offering.md)                         | Hosted offering as per-instance isolation, not row-level tenancy                        | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)                      | i18next + ICU with TypeScript-typed message keys                                        | Accepted |
+| [0016](adr/0016-server-actions-canonical.md)                | Server actions as canonical write path; API routes for public/webhooks only             | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)                  | Polymorphic line items via mutually-exclusive parent FKs                                | Accepted |
+| [0018](adr/0018-no-telemetry.md)                            | No telemetry or analytics by default                                                    | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md)                | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in             | Accepted |
+| [0020](adr/0020-operational-cli-contract.md)                | Operational CLI contract                                                                | Accepted |
+| [0021](adr/0021-encryption-key-rotation.md)                 | Encryption key rotation                                                                 | Accepted |
+| [0022](adr/0022-pdf-rendering-engine.md)                    | Headless-browser PDF rendering (Puppeteer/Playwright)                                   | Accepted |
+| [0023](adr/0023-job-scheduling-bullmq-redis.md)             | Background jobs and scheduling via BullMQ + Redis                                       | Accepted |
+| [0024](adr/0024-template-editor-canvas.md)                  | Template editor — free collision-aware page-clamped canvas                              | Accepted |
+| [0025](adr/0025-instance-data-reset-scope.md)               | Instance data reset — domain data versus instance state                                 | Accepted |
+| [0026](adr/0026-document-parentage.md)                      | Document parentage — optional project, agreeing client, composite key                   | Accepted |
+| [0027](adr/0027-contact-identity.md)                        | Contact identity — delivery target and acceptance identity, never an entity             | Accepted |
+| [0028](adr/0028-attachments-and-visual-identity.md)         | Attachments — one table, one foreign key per parent, private bucket                     | Accepted |
+| [0029](adr/0029-public-token-lifecycle.md)                  | Public token lifecycle — one minter, and revocation as an absent token                  | Accepted |
+| [0030](adr/0030-client-portal-exposure.md)                  | Client portal exposure — an index, and never a signing link                             | Accepted |
+| [0031](adr/0031-billing-conversion-provenance.md)           | Billing conversion — grouped lines, single-source provenance, refusal over inference    | Accepted |
+| [0032](adr/0032-card-payment-recording-authority.md)        | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance  | Accepted |
+| [0033](adr/0033-late-fee-placement.md)                      | A late fee is part of the invoice total, charged once, and off by default               | Accepted |
+| [0034](adr/0034-retention-and-erasure.md)                   | Retention windows, restore symmetry, and what an erasure cannot destroy                 | Accepted |
+| [0035](adr/0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry        | Accepted |
+| [0036](adr/0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation   | Accepted |
+| [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet             | Accepted |
+| [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator             | Accepted |
+| [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence          | Accepted |
+| [0040](adr/0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app  | Accepted |
+| [0041](adr/0041-error-tracking-boundary.md)                 | Error tracking — a minimal sender, events built by addition, two reporting boundaries   | Accepted |
+| [0042](adr/0042-mcp-server.md)                              | MCP server — off by default, the API's own tokens over Streamable HTTP, read-only tools | Accepted |
 
 ---
 

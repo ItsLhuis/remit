@@ -32,7 +32,8 @@ section, and refuse to run while it has no entries.
 
 ### Upgrade notes
 
-- No database migration.
+- One database migration, applied when the container starts: it adds `settings.mcp_enabled`, set to
+  off on every existing instance.
 - **Edit `.env` before upgrading, or the containers refuse to start.** Replace `BETTER_AUTH_URL` and
   `NEXT_PUBLIC_APP_URL` with a single `REMIT_PUBLIC_URL` holding the same origin, with no path or
   trailing slash, and delete `NEXT_PUBLIC_STORAGE_BASE_URL` and `MINIO_PUBLIC_URL`.
@@ -48,6 +49,10 @@ section, and refuse to run while it has no entries.
 
 ### Added
 
+- An MCP server at `/api/mcp` lets an AI assistant read clients, projects, invoices, time entries
+  and expenses through read-only tools, authenticated with the API tokens you already create in
+  `/settings/api`. It is off until you turn it on in `/settings/mcp`, which says what turning it on
+  shares, gives the address to connect to, and lists the latest tool calls.
 - This changelog, kept in step with the version by the release commands.
 - `/settings/system` links this changelog and the upgrade runbook beside the running version, and
   says that Remit does not check for updates.
