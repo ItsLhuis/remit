@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 
 import { clearMailpitDelivery, configureMailpitDelivery } from "./support/emailDelivery"
 import { clearMailbox, waitForLatestMailTo } from "./support/mailbox"
@@ -46,9 +46,26 @@ async function openRoute(page: Page, path: string, heading: string): Promise<voi
   })
 }
 
+// A server-rendered page shows its heading before React has hydrated it, and a click in that window
+// reaches no handler: it is dropped, not replayed, so the sheet or menu it should open never
+// appears. On a loaded CI runner that window is wide enough to swallow the first click after a full
+// page load. Retrying until the click's outcome is on screen waits hydration out by the very thing
+// the next step needs. The outcome is checked before every click so a retry never toggles an
+// already-open menu shut, and the short click timeout stops a click that the now-open overlay
+// intercepts from outliving the retry.
+async function clickUntilVisible(trigger: Locator, outcome: Locator): Promise<void> {
+  await expect(async () => {
+    if (!(await outcome.isVisible())) await trigger.click({ timeout: 2_000 })
+
+    await expect(outcome).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout: 30_000 })
+}
+
 async function chooseOption(page: Page, trigger: string, option: string): Promise<void> {
-  await page.getByLabel(trigger, { exact: true }).click()
-  await page.getByRole("option", { name: option }).click()
+  const item = page.getByRole("option", { name: option })
+
+  await clickUntilVisible(page.getByLabel(trigger, { exact: true }), item)
+  await item.click()
 }
 
 test.beforeAll(async () => {
@@ -80,10 +97,10 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
   await addOwnerSessionCookie(page.context(), baseURL)
 
   await openRoute(page, "/clients", "Clients")
-  await page.getByRole("button", { name: "Create client" }).first().click()
 
   const clientSheet = page.getByRole("dialog")
 
+  await clickUntilVisible(page.getByRole("button", { name: "Create client" }).first(), clientSheet)
   await clientSheet.getByLabel("Name", { exact: true }).fill(CLIENT_NAME)
   await clientSheet.getByLabel("Email", { exact: true }).fill(CLIENT_EMAIL)
   await clientSheet.getByRole("button", { name: "Create client" }).click()
@@ -91,10 +108,13 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
   await page.waitForURL(/\/clients\/[^/]+$/)
 
   await openRoute(page, "/projects", "Projects")
-  await page.getByRole("button", { name: "Create project" }).first().click()
 
   const projectSheet = page.getByRole("dialog")
 
+  await clickUntilVisible(
+    page.getByRole("button", { name: "Create project" }).first(),
+    projectSheet
+  )
   await chooseOption(page, "Client", CLIENT_NAME)
   await projectSheet.getByLabel("Name", { exact: true }).fill(PROJECT_NAME)
   await projectSheet.getByRole("button", { name: "Create project" }).click()
@@ -140,7 +160,10 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
   try {
     await clientPage.goto(publicPath)
 
-    await clientPage.getByRole("button", { name: "Accept proposal" }).click()
+    await clickUntilVisible(
+      clientPage.getByRole("button", { name: "Accept proposal" }),
+      clientPage.getByLabel("Email address")
+    )
     // Blurred deliberately: the identity form validates on blur and gates its submit on `isValid`,
     // so a filled-but-still-focused field leaves the button disabled. Reported as a finding.
     await clientPage.getByLabel("Email address").fill(CLIENT_EMAIL)
@@ -171,8 +194,10 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
 
   await openRoute(page, `/projects/${projectId}/invoices`, "Invoices")
 
-  await page.getByRole("button", { name: "More" }).click()
-  await page.getByRole("menuitem", { name: "From accepted proposal" }).click()
+  const fromProposal = page.getByRole("menuitem", { name: "From accepted proposal" })
+
+  await clickUntilVisible(page.getByRole("button", { name: "More" }), fromProposal)
+  await fromProposal.click()
 
   const convertDialog = page.getByRole("dialog")
 
