@@ -144,6 +144,13 @@ export const settings = pgTable(
     backupLastFailureAt: timestamp("backup_last_failure_at", { withTimezone: true, mode: "date" }),
     backupLastFailureReason: text("backup_last_failure_reason"),
 
+    // Assistant access
+    //
+    // Off is the only acceptable default. Turning the MCP server on sends business records to
+    // whatever model a connected assistant runs against, which is a consent decision the owner takes
+    // on `/settings/mcp` after reading what it means — never one an upgrade takes for them.
+    mcpEnabled: boolean("mcp_enabled").notNull().default(false),
+
     ...timestamps
   },
   (table) => [

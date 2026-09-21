@@ -375,6 +375,7 @@ Single-row instance configuration. Exists exactly once per instance.
 |                  | backup_last_success_at     | timestamptz      | yes  |                                                                                                                                                                                          |
 |                  | backup_last_failure_at     | timestamptz      | yes  |                                                                                                                                                                                          |
 |                  | backup_last_failure_reason | text             | yes  |                                                                                                                                                                                          |
+| Assistant access | mcp_enabled                | boolean          | no   | Default `false`. Whether `/api/mcp` answers at all. Written only by the owner on `/settings/mcp`; read on every MCP request.                                                             |
 |                  | created_at, updated_at     | timestamptz      | no   | Standard `timestamps`                                                                                                                                                                    |
 
 The three `backup_last_*` columns are written by `remit:backup` and read by `/settings/system`. The

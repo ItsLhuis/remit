@@ -71,6 +71,13 @@
       "when": 1789126084415,
       "tag": "0009_parched_jasper_sitwell",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789817876595,
+      "tag": "0010_nostalgic_ghost_rider",
+      "breakpoints": true
     }
   ]
 }
