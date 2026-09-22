@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import i18n from "@/lib/i18n/i18n"
 
-// The four entities that carry files in v1, and the discriminator every attachment write and read
+// The four entities that carry files, and the discriminator every attachment write and read
 // travels with. `attachments` stores this as one of four nullable foreign keys plus
 // `chk_attachments_parent`, so this union and that constraint have to stay in step —
 // `services/attachmentParent.ts` is the single place that maps between them.
