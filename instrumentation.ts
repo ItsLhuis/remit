@@ -46,6 +46,16 @@ export async function register() {
       "Failed to ensure bucket exists"
     )
   }
+
+  // Development only, and deliberately not awaited: a container migrates on start
+  // (docker-entrypoint.sh), so only a developer can be running against a schema older than the code,
+  // and a database that is down must still leave `pnpm dev` starting rather than waiting out a
+  // connection timeout here.
+  if (env.NODE_ENV === "development") {
+    const { warnAboutMigrationDrift } = await import("@/features/health/server")
+
+    void warnAboutMigrationDrift()
+  }
 }
 
 // Next.js calls this for an error that escapes a server component, a route handler, a server action

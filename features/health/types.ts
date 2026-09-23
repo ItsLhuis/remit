@@ -29,6 +29,12 @@ export type HealthCheckResult = {
   actionHref?: string
 }
 
+export type MigrationDrift = {
+  drift: "healthy" | "pending" | "ahead"
+  appliedCount: number
+  expectedCount: number
+}
+
 export type ReleaseLinks = {
   changelogUrl: string
   upgradeGuideUrl: string

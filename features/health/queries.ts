@@ -30,7 +30,7 @@ import {
   evaluateStripeHealth
 } from "./services/evaluateHealth"
 import { getReleaseLinks } from "./services/releaseLinks"
-import { type HealthCheckResult, type SystemInfo } from "./types"
+import { type HealthCheckResult, type MigrationDrift, type SystemInfo } from "./types"
 
 type SettingsRow = typeof settings.$inferSelect
 
@@ -97,6 +97,26 @@ export function getSystemInfo(): SystemInfo {
       .digest("hex")
       .slice(0, 8),
     releaseLinks: getReleaseLinks(pkg.repository.url)
+  }
+}
+
+// The journal against what the database records as applied. Exported because the development server
+// reports the same drift at boot through `startupChecks.ts`, and a second reading of the journal
+// would be a second definition of "behind".
+export async function getMigrationDrift(): Promise<MigrationDrift> {
+  const journalRaw = await readFile(MIGRATIONS_JOURNAL_PATH, "utf8")
+  const journal = JSON.parse(journalRaw) as { entries?: unknown[] }
+  const expectedCount = Array.isArray(journal.entries) ? journal.entries.length : 0
+
+  const rows = (await database.execute(
+    sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`
+  )) as unknown as Array<{ count: number }>
+  const appliedCount = Number(rows[0]?.count ?? 0)
+
+  return {
+    drift: evaluateMigrationDrift({ appliedCount, expectedCount }),
+    appliedCount,
+    expectedCount
   }
 }
 
@@ -400,16 +420,7 @@ function getDiskUsageDetail(
 
 async function getMigrationsHealthCheck(): Promise<HealthCheckResult> {
   try {
-    const journalRaw = await readFile(MIGRATIONS_JOURNAL_PATH, "utf8")
-    const journal = JSON.parse(journalRaw) as { entries?: unknown[] }
-    const expectedCount = Array.isArray(journal.entries) ? journal.entries.length : 0
-
-    const rows = (await database.execute(
-      sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`
-    )) as unknown as Array<{ count: number }>
-    const appliedCount = Number(rows[0]?.count ?? 0)
-
-    const drift = evaluateMigrationDrift({ appliedCount, expectedCount })
+    const { drift, appliedCount, expectedCount } = await getMigrationDrift()
 
     if (drift === "pending") {
       return {
