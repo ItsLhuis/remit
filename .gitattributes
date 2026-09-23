@@ -1,0 +1,26 @@
+# Every text file is stored and checked out with LF, whatever `core.autocrlf` is set to. Git's
+# Windows default rewrites a checkout to CRLF, and both of this repository's file-content gates read
+# LF: Prettier compares against its `endOfLine: "lf"` default, and the documentation tests in
+# tests/docs/ search for section headings. Without this file a fresh Windows clone fails
+# `pnpm format:check` on every text file before anyone has edited anything.
+* text=auto eol=lf
+
+# Binary formats, never line-ending-converted and never diffed as text. A conversion here would
+# corrupt the file rather than reformat it.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.remitbak binary
