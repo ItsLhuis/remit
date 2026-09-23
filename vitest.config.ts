@@ -11,6 +11,12 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     setupFiles: ["tests/setup.ts"],
+    // Half the host's cores, not Vitest's default of all-but-one. Each worker runs happy-dom, React
+    // and user-event, so on a twelve-core host eleven of them oversubscribe it: the same suite took
+    // 159s at the default and 139s at six, and the slowest test in
+    // scripts/host/__tests__/install.test.ts — which spawns real `bash` — went from 6.4s to 4.4s,
+    // which is the difference between failing the five-second budget and passing it.
+    maxWorkers: "50%",
     // The two projects partition the suite by environment, so the `node` project's `include` and
     // the `happy-dom` project's `exclude` have to stay exact complements: a `__tests__` root added
     // to one and not the other either runs twice, once per environment, or stops running at all.

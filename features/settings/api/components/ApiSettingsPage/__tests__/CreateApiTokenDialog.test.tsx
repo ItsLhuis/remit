@@ -111,6 +111,11 @@ test("reveals the created token once and forgets it when the dialog closes", asy
 
   await user.click(screen.getByRole("button", { name: "common.actions.done" }))
 
+  // Awaited, not asserted in the same tick: the click closes the dialog through Radix, which
+  // reaches the component's own open-change handler, and that is where the revealed token is
+  // dropped. Under a loaded full-suite run that round trip lands a render later than the click.
+  await waitFor(() => expect(screen.queryByDisplayValue(secret)).not.toBeInTheDocument())
+
   rerender(
     <TooltipProvider>
       <CreateApiTokenDialog open={false} onOpenChange={vi.fn()} onCreated={onCreated} />

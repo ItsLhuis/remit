@@ -21,6 +21,8 @@ env:
   REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   REMIT_HOSTED_MODE: "false"
   REMIT_DATA_DIR: ./data/e2e
+  # Compose interpolates this into the app and the worker, which reach Redis over the compose
+  # network. The Playwright step overrides it with the published port for its own process.
   REDIS_URL: redis://redis:6379
   MINIO_ENDPOINT: http://minio:9000
   MINIO_ROOT_USER: minioadmin
@@ -74,6 +76,11 @@ jobs:
           timeout 180 bash -c 'until curl -fsS http://localhost:3000/api/health; do docker compose ps; sleep 5; done'
 
       - name: Run E2E tests
+        env:
+          # Host-side, like DATABASE_URL above: flow 4 enqueues and waits on jobs from the Playwright
+          # process itself, which cannot resolve the compose-internal `redis` host. It skipped itself
+          # here until docker-compose.ci.yml published the port.
+          REDIS_URL: redis://localhost:6379
         run: pnpm test:e2e
 
       - name: Upload Playwright report

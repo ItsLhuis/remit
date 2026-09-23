@@ -12,10 +12,15 @@ const ciReporter: ReporterDescription[] = [
 export default defineConfig({
   testDir: "tests/e2e",
   outputDir: "tests/e2e/results",
-  // The web server is `next dev`, which compiles a route the first time a worker asks for it. With
-  // several workers hitting the editor at once, that first-hit compile lands inside the test body,
-  // so the default 30s budget expires on work that has nothing to do with the assertion.
+  // Twice the default because `recurringGeneration.spec.ts` starts a real worker process and waits on
+  // real jobs: 35s against a production build on a twelve-core host, where the default 30s expires
+  // on process start-up rather than on anything asserted.
   timeout: 60_000,
+  // Half the host's cores, pinned rather than left to Playwright's default so the ceiling is a
+  // measured decision. Against a production build on a twelve-core host the suite was green at six
+  // workers twice and at twelve three times. Its earlier starvation "above two workers" was `next
+  // dev` compiling routes inside the tests, which failed the flows at every count down to two.
+  workers: "50%",
   reporter: process.env.CI ? ciReporter : undefined,
   use: {
     baseURL,
@@ -90,12 +95,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] }
     }
   ],
+  // A production build, never `next dev`, which is what the E2E workflow runs against too. `next dev`
+  // compiles each route the first time a test reaches it and serves development React, so the flows
+  // spent their budget on compiles — the proposal flow timed out at 44–60s under it and passes in
+  // 7s against a build — and the frame-continuity spec measured a development renderer. `next build`
+  // writes `.next` while `next dev` writes `.next/dev`, so this can run beside a developer's own
+  // `pnpm dev`. The five minutes cover the build: 100s on a twelve-core host.
   webServer: useExternalServer
     ? undefined
     : {
-        command: "pnpm exec next dev --turbopack --port 3100",
+        command: "pnpm exec next build && pnpm exec next start --port 3100",
         url: baseURL,
         reuseExistingServer: false,
-        timeout: 120_000
+        timeout: 300_000
       }
 })

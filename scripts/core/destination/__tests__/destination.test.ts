@@ -1,14 +1,39 @@
-import { afterEach, describe, expect, test, vi } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 
-afterEach(() => {
-  vi.doUnmock("@aws-sdk/client-s3")
-  vi.resetModules()
-})
+import { buildDestinationAdapter, validateBackupCredentials } from "../index"
+
+// The S3 client is replaced at module load rather than inside a case, because the module under test
+// re-exports `@/lib/backups/destination`, whose import pulls the whole AWS SDK: a `vi.doMock` plus
+// `vi.resetModules()` per case paid for that graph four times over and made this file the slowest in
+// its project.
+const mocks = vi.hoisted(() => ({ constructorCalls: [] as unknown[] }))
+
+vi.mock("@aws-sdk/client-s3", () => ({
+  DeleteObjectCommand: class DeleteObjectCommand {
+    constructor(readonly input: unknown) {}
+  },
+  GetObjectCommand: class GetObjectCommand {
+    constructor(readonly input: unknown) {}
+  },
+  ListObjectsV2Command: class ListObjectsV2Command {
+    constructor(readonly input: unknown) {}
+  },
+  PutObjectCommand: class PutObjectCommand {
+    constructor(readonly input: unknown) {}
+  },
+  S3Client: class S3Client {
+    constructor(config: unknown) {
+      mocks.constructorCalls.push(config)
+    }
+
+    async send(): Promise<unknown> {
+      return {}
+    }
+  }
+}))
 
 describe("validateBackupCredentials", () => {
-  test("accepts complete S3-compatible configurations", async () => {
-    const { validateBackupCredentials } = await import("../index")
-
+  test("accepts complete S3-compatible configurations", () => {
     expect(
       validateBackupCredentials("s3", {
         accessKey: "backup-user",
@@ -38,9 +63,7 @@ describe("validateBackupCredentials", () => {
     ).toEqual({ ok: true })
   })
 
-  test("returns an actionable setup reason when required fields are missing", async () => {
-    const { validateBackupCredentials } = await import("../index")
-
+  test("returns an actionable setup reason when required fields are missing", () => {
     const result = validateBackupCredentials("s3", {
       accessKey: "backup-user",
       bucket: null,
@@ -55,9 +78,7 @@ describe("validateBackupCredentials", () => {
     })
   })
 
-  test("requires an R2 endpoint unless the account identifier is supplied as the region", async () => {
-    const { validateBackupCredentials } = await import("../index")
-
+  test("requires an R2 endpoint unless the account identifier is supplied as the region", () => {
     expect(
       validateBackupCredentials("r2", {
         accessKey: "backup-user",
@@ -83,35 +104,7 @@ describe("validateBackupCredentials", () => {
 })
 
 describe("buildDestinationAdapter", () => {
-  test("constructs S3 clients with destination-specific endpoints", async () => {
-    const constructorCalls: unknown[] = []
-
-    vi.doMock("@aws-sdk/client-s3", () => ({
-      DeleteObjectCommand: class DeleteObjectCommand {
-        constructor(readonly input: unknown) {}
-      },
-      GetObjectCommand: class GetObjectCommand {
-        constructor(readonly input: unknown) {}
-      },
-      ListObjectsV2Command: class ListObjectsV2Command {
-        constructor(readonly input: unknown) {}
-      },
-      PutObjectCommand: class PutObjectCommand {
-        constructor(readonly input: unknown) {}
-      },
-      S3Client: class S3Client {
-        constructor(config: unknown) {
-          constructorCalls.push(config)
-        }
-
-        async send(): Promise<unknown> {
-          return {}
-        }
-      }
-    }))
-
-    const { buildDestinationAdapter } = await import("../index")
-
+  test("constructs S3 clients with destination-specific endpoints", () => {
     buildDestinationAdapter("s3", {
       accessKey: "backup-user",
       bucket: "remit-backups",
@@ -134,7 +127,7 @@ describe("buildDestinationAdapter", () => {
       secretKey: "backup-pass"
     })
 
-    expect(constructorCalls).toEqual([
+    expect(mocks.constructorCalls).toEqual([
       expect.objectContaining({
         endpoint: undefined,
         forcePathStyle: false,

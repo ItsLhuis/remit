@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm"
 import { loadAppContext } from "./appContext"
 
 // The host and port as the *application* resolves them, not as Playwright does: the app writes and
-// reads these from its own settings row, so on a host `next dev` that is localhost and in the CI
-// compose network it is the `mailpit` service name. Playwright reads the mailbox over HTTP through
+// reads these from its own settings row, so for a server running on the host that is localhost and
+// in the CI compose network it is the `mailpit` service name. Playwright reads the mailbox over HTTP through
 // `mailbox.ts`, which has its own base URL for the same reason.
 const SMTP_HOST = process.env.PLAYWRIGHT_SMTP_HOST ?? "localhost"
 const SMTP_PORT = Number(process.env.PLAYWRIGHT_SMTP_PORT ?? 1025)

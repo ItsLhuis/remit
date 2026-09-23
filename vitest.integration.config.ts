@@ -21,12 +21,13 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
       DATABASE_URL: "postgresql://remit_test:remit_test@localhost:5433/remit_test",
-      // Database 1, never 0: most integration tests stub `@/lib/jobs` and open no connection, but
+      // The suite's own Redis, published by docker-compose.test.yml on 6380. Most integration tests
+      // stub `@/lib/jobs` and open no connection, but
       // `lib/jobs/__tests__/queueRoundTrip.integration.test.ts` deliberately does not — it runs a
-      // real worker against a real queue, which is the only way to catch an id BullMQ rejects. That
-      // test obliterates the queue between runs, so it must not share a database with the developer
-      // stack's own `remit` queue on db 0.
-      REDIS_URL: "redis://localhost:6379/1",
+      // real worker against a real queue, which is the only way to catch an id BullMQ rejects, and
+      // it obliterates that queue between runs. Pointed at 6379 it obliterated whatever answered
+      // there, which on a developer host is the development stack's own queue.
+      REDIS_URL: "redis://localhost:6380",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       // Never the `data` default: `REMIT_DATA_DIR` is resolved relative to the working directory, so
       // a suite that writes backup archives would otherwise drop them into the developer's real data

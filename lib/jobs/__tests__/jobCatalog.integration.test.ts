@@ -1,4 +1,4 @@
-import { beforeAll, expect, test } from "vitest"
+import { expect, test } from "vitest"
 
 import { getJobHandler, getRegisteredJobNames, JOB_NAMES } from "@/lib/jobs"
 
@@ -15,12 +15,11 @@ import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatur
 // under test is the one the worker uses, and the modules are loaded through the same function
 // `scripts/worker.ts` calls, so a job module added to the worker is covered here without anyone
 // remembering to add it twice.
-// A longer timeout than the 10s default because this hook imports every feature job module in one
-// go — the whole document-rendering graph, sanitizer and template renderer included. It is the
-// worker's real startup cost, paid once here rather than per test.
-beforeAll(async () => {
-  await loadWorkerFeatureModules()
-}, 30_000)
+// Loaded while the file is collected rather than inside a hook: it imports every feature job module
+// in one go — the whole document-rendering graph, sanitizer and template renderer included — which
+// is the worker's real startup cost, and under a full-suite run it outlasts any fixed hook budget.
+// `queueRoundTrip.integration.test.ts` and `scheduledBackup.integration.test.ts` load it the same way.
+await loadWorkerFeatureModules()
 
 test("registers a handler for every job name in the catalog", () => {
   const unhandled = JOB_NAMES.filter((name) => getJobHandler(name) === undefined)

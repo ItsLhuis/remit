@@ -15,9 +15,16 @@ import { delimiter, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parseEnv } from "node:util"
 
-import { afterEach, describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { envSchema } from "@/lib/config/envSchema"
+
+// Every test here runs the installer as a real `bash` process, and some run it three times. One run
+// costs about 0.3s alone on Linux and up to 1.5s on Windows, where each `openssl`, `stat` and `sed`
+// the script calls is another MSYS process; under a full parallel suite that reaches about 6s, so
+// the default five-second budget expires on process creation rather than on anything asserted. The
+// work is real and cannot be made cheaper without stubbing the script this file exists to exercise.
+vi.setConfig({ testTimeout: 20_000 })
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url))
 

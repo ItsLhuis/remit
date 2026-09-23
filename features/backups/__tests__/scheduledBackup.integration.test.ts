@@ -98,6 +98,11 @@ async function waitForJob(jobId: string): Promise<void> {
   )
 }
 
+// Loaded while the file is collected, not inside `beforeAll`, for the reason
+// `lib/jobs/__tests__/queueRoundTrip.integration.test.ts` gives: under a full-suite run the job
+// modules took longer to transform than the ten seconds a hook is allowed.
+await loadWorkerFeatureModules()
+
 beforeAll(async () => {
   const shimDirectory = path.resolve(".tmp/integration-data", "bin")
 
@@ -108,7 +113,6 @@ beforeAll(async () => {
 
   await getQueue().obliterate({ force: true })
 
-  await loadWorkerFeatureModules()
   await startWorker()
 })
 

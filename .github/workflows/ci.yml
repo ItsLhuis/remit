@@ -38,6 +38,36 @@ jobs:
       - name: Check shell scripts
         run: shellcheck scripts/host/*.sh docker-entrypoint.sh
 
+  # Only a pull request has a base to compare against, and only a pull request can carry the
+  # `no-changelog` label that says a change reaches no instance.
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # The base commit has to be in the clone for the diff and for reading CHANGELOG.md as it
+          # was before this branch.
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the changelog records this change
+        if: "!contains(github.event.pull_request.labels.*.name, 'no-changelog')"
+        run: pnpm changelog:check ${{ github.event.pull_request.base.sha }}
+
   typecheck:
     runs-on: ubuntu-latest
     steps:

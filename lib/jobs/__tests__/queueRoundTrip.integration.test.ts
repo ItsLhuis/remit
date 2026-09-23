@@ -115,10 +115,15 @@ async function countInvoicesFor(recurringInvoiceId: string): Promise<number> {
   return rows.length
 }
 
+// Loaded while the file is collected rather than inside `beforeAll`: the worker's job modules are most
+// of the application's module graph, and transforming them under a full-suite run took longer than
+// the ten seconds a hook is allowed. Collection has no such budget, and the graph costs the same
+// wherever it is loaded; it only has to be registered before the worker starts.
+await loadWorkerFeatureModules()
+
 beforeAll(async () => {
   await getQueue().obliterate({ force: true })
 
-  await loadWorkerFeatureModules()
   await startWorker()
 })
 

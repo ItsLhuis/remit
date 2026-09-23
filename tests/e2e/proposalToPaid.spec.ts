@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto"
 
-import { expect, test, type Locator, type Page } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 import { clearMailpitDelivery, configureMailpitDelivery } from "./support/emailDelivery"
 import { clearMailbox, waitForLatestMailTo } from "./support/mailbox"
 import { addOwnerSessionCookie } from "./support/ownerSession"
+import { clickUntilVisible, openRoute } from "./support/pageReadiness"
 import { seedTaxRate } from "./support/taxRateFixture"
 
 const suffix = randomUUID().slice(0, 8)
@@ -32,33 +33,6 @@ async function fillLineItem(
   await row.getByLabel("Description").fill(values.description)
   await row.getByLabel("Qty").fill(values.quantity)
   await row.getByLabel("Unit price").fill(values.unitPrice)
-}
-
-// `next dev` compiles a route the first time a worker asks for it, and that compile lands inside the
-// test body — the same reason `playwright.config.ts` raises the test timeout to 60s. Waiting on the
-// page's own heading bounds it by the condition rather than by an action's default five seconds,
-// which is what a plain `goto` followed by a click is really gambling on.
-async function openRoute(page: Page, path: string, heading: string): Promise<void> {
-  await page.goto(path)
-
-  await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible({
-    timeout: 30_000
-  })
-}
-
-// A server-rendered page shows its heading before React has hydrated it, and a click in that window
-// reaches no handler: it is dropped, not replayed, so the sheet or menu it should open never
-// appears. On a loaded CI runner that window is wide enough to swallow the first click after a full
-// page load. Retrying until the click's outcome is on screen waits hydration out by the very thing
-// the next step needs. The outcome is checked before every click so a retry never toggles an
-// already-open menu shut, and the short click timeout stops a click that the now-open overlay
-// intercepts from outliving the retry.
-async function clickUntilVisible(trigger: Locator, outcome: Locator): Promise<void> {
-  await expect(async () => {
-    if (!(await outcome.isVisible())) await trigger.click({ timeout: 2_000 })
-
-    await expect(outcome).toBeVisible({ timeout: 1_000 })
-  }).toPass({ timeout: 30_000 })
 }
 
 async function chooseOption(page: Page, trigger: string, option: string): Promise<void> {
@@ -184,10 +158,7 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
     await clientPage.getByLabel("Confirmation code").pressSequentially(code)
     await clientPage.getByRole("button", { name: "Confirm" }).click()
 
-    // The same first-hit compile `openRoute` waits out, on a route handler rather than a page: the
-    // verify POST is the first request `/p/[token]/otp/verify` has ever served, and that build lands
-    // between the click and the outcome. The default five seconds is not enough for it.
-    await expect(clientPage.getByText("Proposal accepted")).toBeVisible({ timeout: 30_000 })
+    await expect(clientPage.getByText("Proposal accepted")).toBeVisible()
   } finally {
     await clientContext.close()
   }

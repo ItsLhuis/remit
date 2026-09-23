@@ -6,3 +6,8 @@ coverage/
 pnpm-lock.yaml
 .pnpm-store/
 .corepack/
+
+# drizzle-kit writes these snapshots and rewrites them on every `pnpm database:generate`. They are
+# never hand-edited, so a formatting complaint about them can only be answered by editing a
+# generated file.
+drizzle/migrations/meta/

@@ -19,3 +19,11 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
     ports:
       - "8025:8025"
+
+  # `tests/e2e/recurringGeneration.spec.ts` drives a real queue from the Playwright process, which
+  # runs on the runner rather than in this network, so it needs Redis the same way it needs
+  # PostgreSQL above. Without this the spec skips itself and the recurring-generation flow is never
+  # exercised in CI. The app and the worker keep reaching Redis over the compose network.
+  redis:
+    ports:
+      - "6379:6379"

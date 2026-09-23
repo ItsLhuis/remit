@@ -17,9 +17,10 @@ const POLL_INTERVAL_MS = 200
 const WORKER_READY_TIMEOUT_MS = 60_000
 const JOB_TIMEOUT_MS = 60_000
 
-// Whether the Playwright process itself can reach the queue. It cannot in the e2e workflow, where
-// `REDIS_URL` names the compose-internal `redis` host, so the caller turns a `false` here into a
-// skip with a reason rather than into a failure or, worse, a green run that proved nothing.
+// Whether the Playwright process itself can reach the queue. The e2e workflow publishes Redis to
+// the runner and points this process at it, so a `false` here means a local run without the
+// development stack; the caller turns it into a skip with a reason rather than into a failure or,
+// worse, a green run that proved nothing.
 export async function isJobQueueReachable(): Promise<boolean> {
   const { env } = await import("@/lib/config/env")
   const url = new URL(env.REDIS_URL)

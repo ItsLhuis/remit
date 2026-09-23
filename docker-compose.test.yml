@@ -1,3 +1,8 @@
+# Its own Compose project, never the directory-named one the development stack uses: `docker compose
+# down -v` on either stack would otherwise reach into the other's containers and network, and the
+# published ports below would collide with the development services rather than sit beside them.
+name: remit-test
+
 services:
   database_test:
     image: postgres:16-alpine
@@ -16,7 +21,10 @@ services:
   redis_test:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # 6380, never the development stack's 6379: on a developer host that port is already taken, so
+      # this container could not start beside it and the integration suite counted, queued and
+      # obliterated against the queue the developer's own app was using.
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

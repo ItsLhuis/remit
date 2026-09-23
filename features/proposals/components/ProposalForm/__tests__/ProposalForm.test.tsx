@@ -121,6 +121,19 @@ const draft: ProposalFormData = {
   ]
 }
 
+// Pasted rather than typed: the form re-prices and re-renders every row on each keystroke, so a
+// six-character amount entered character by character is six full re-prices, and the four-row case
+// below spent longer on keystrokes than the whole file is allowed. No test here asserts
+// per-keystroke behaviour.
+async function fillField(
+  user: ReturnType<typeof userEvent.setup>,
+  field: HTMLElement,
+  value: string
+): Promise<void> {
+  await user.click(field)
+  await user.paste(value)
+}
+
 // IconButton renders a Radix Tooltip, which throws outside a provider the app supplies globally.
 function renderForm(proposal: ProposalFormData | null) {
   return render(
@@ -145,10 +158,14 @@ describe("ProposalForm", () => {
 
     renderForm(null)
 
-    await user.type(screen.getByLabelText("proposals.lineItems.descriptionColumn"), "Workshop")
+    await fillField(
+      user,
+      screen.getByLabelText("proposals.lineItems.descriptionColumn"),
+      "Workshop"
+    )
     await user.clear(screen.getByLabelText("proposals.lineItems.quantityColumn"))
     await user.type(screen.getByLabelText("proposals.lineItems.quantityColumn"), "3")
-    await user.type(screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "250.00")
+    await fillField(user, screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "250.00")
 
     expect(await screen.findAllByText("€750.00")).not.toHaveLength(0)
   })
@@ -174,8 +191,12 @@ describe("ProposalForm", () => {
 
     renderForm(null)
 
-    await user.type(screen.getByLabelText("proposals.lineItems.descriptionColumn"), "Workshop")
-    await user.type(screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "100.00")
+    await fillField(
+      user,
+      screen.getByLabelText("proposals.lineItems.descriptionColumn"),
+      "Workshop"
+    )
+    await fillField(user, screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "100.00")
     await user.click(screen.getByRole("button", { name: /proposals.form.saveCreate/ }))
 
     await waitFor(() => expect(mocks.createProposal).toHaveBeenCalledTimes(1))
@@ -196,8 +217,12 @@ describe("ProposalForm", () => {
 
     renderForm(null)
 
-    await user.type(screen.getByLabelText("proposals.lineItems.descriptionColumn"), "Workshop")
-    await user.type(screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "100.00")
+    await fillField(
+      user,
+      screen.getByLabelText("proposals.lineItems.descriptionColumn"),
+      "Workshop"
+    )
+    await fillField(user, screen.getByLabelText("proposals.lineItems.unitPriceColumn"), "100.00")
     await user.click(screen.getByRole("button", { name: /proposals.form.saveCreate/ }))
 
     expect(await screen.findByText("Only draft proposals can be changed")).toBeInTheDocument()
@@ -216,7 +241,7 @@ describe("ProposalForm", () => {
     const unitPrices = screen.getAllByLabelText("proposals.lineItems.unitPriceColumn")
 
     for (const [index, unitPrice] of unitPrices.entries()) {
-      await user.type(unitPrice, `${(index + 1) * 100}.00`)
+      await fillField(user, unitPrice, `${(index + 1) * 100}.00`)
     }
 
     expect(await screen.findAllByText("€1,000.00")).not.toHaveLength(0)

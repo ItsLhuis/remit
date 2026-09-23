@@ -22,18 +22,17 @@ function recordFileNames(): string[] {
     .sort()
 }
 
+// Line endings are normalised before anything searches for a section heading. `.gitattributes`
+// checks every file out with LF, but a clone taken before it existed keeps its CRLF working tree,
+// and a heading found by `\n## What\n` is invisible the moment the file ends its lines with \r\n.
 function readRecord(name: string): string {
-  return readFileSync(join(deliveryDirectory, name), "utf8")
-}
-
-function readIndex(): string {
-  return readFileSync(join(deliveryDirectory, "README.md"), "utf8")
+  return readFileSync(join(deliveryDirectory, name), "utf8").replaceAll("\r\n", "\n")
 }
 
 function indexedRecordFiles(): string[] {
   const files = new Set<string>()
 
-  for (const line of readIndex().split("\n")) {
+  for (const line of readRecord("README.md").split("\n")) {
     if (!line.trim().startsWith("|")) continue
 
     for (const match of line.matchAll(/\]\((\d{4}-[a-z0-9-]+\.md)\)/g)) {

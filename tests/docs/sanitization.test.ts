@@ -32,16 +32,21 @@ function collectSourceFiles(directory: string, files: string[]): void {
   }
 }
 
-function findFilesMatching(pattern: RegExp): string[] {
+// Walked and read once for the whole file: both tests scan the same few thousand source files, and
+// doing it per test put each one within a second of the suite's budget under a full parallel run.
+const sources = SOURCE_ROOTS.flatMap((root) => {
   const files: string[] = []
 
-  for (const root of SOURCE_ROOTS) {
-    collectSourceFiles(join(repoRoot, root), files)
-  }
+  collectSourceFiles(join(repoRoot, root), files)
 
-  return files
-    .filter((file) => pattern.test(readFileSync(file, "utf8")))
-    .map((file) => relative(repoRoot, file).split("\\").join("/"))
+  return files.map((file) => ({
+    path: relative(repoRoot, file).split("\\").join("/"),
+    content: readFileSync(file, "utf8")
+  }))
+})
+
+function findFilesMatching(pattern: RegExp): string[] {
+  return sources.filter((source) => pattern.test(source.content)).map((source) => source.path)
 }
 
 test("exactly one file declares an html escape implementation", () => {

@@ -40,18 +40,24 @@ vi.mock("@/lib/i18n", () => ({
   })
 }))
 
+// Pasted rather than typed: the form revalidates and re-renders on every keystroke, so the sixty
+// characters these fields hold are sixty renders, and nothing here asserts per-keystroke behaviour.
+// The tab out of each field is what the form's onBlur validation reacts to, and it stays.
+async function fillField(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  value: string
+): Promise<void> {
+  await user.click(screen.getByLabelText(label))
+  await user.paste(value)
+  await user.tab()
+}
+
 async function fillRegistration(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-  await user.type(screen.getByLabelText("common.fields.name"), "Ada Lovelace")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("common.fields.email"), "ada@example.com")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("common.fields.password"), "StrongPassword1!")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("auth.register.confirmPassword"), "StrongPassword1!")
-  await user.tab()
+  await fillField(user, "common.fields.name", "Ada Lovelace")
+  await fillField(user, "common.fields.email", "ada@example.com")
+  await fillField(user, "common.fields.password", "StrongPassword1!")
+  await fillField(user, "auth.register.confirmPassword", "StrongPassword1!")
 }
 
 beforeEach(() => {
@@ -67,17 +73,10 @@ test("shows a validation error when registration passwords do not match", async 
 
   render(<RegisterForm />)
 
-  await user.type(screen.getByLabelText("common.fields.name"), "Ada Lovelace")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("common.fields.email"), "ada@example.com")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("common.fields.password"), "StrongPassword1!")
-  await user.tab()
-
-  await user.type(screen.getByLabelText("auth.register.confirmPassword"), "DifferentPassword1!")
-  await user.tab()
+  await fillField(user, "common.fields.name", "Ada Lovelace")
+  await fillField(user, "common.fields.email", "ada@example.com")
+  await fillField(user, "common.fields.password", "StrongPassword1!")
+  await fillField(user, "auth.register.confirmPassword", "DifferentPassword1!")
 
   expect(screen.getByRole("alert")).toHaveTextContent("Passwords do not match.")
 })
