@@ -6,6 +6,26 @@ export type ChangelogReleaseResult =
 
 const UNRELEASED_HEADING = "## [Unreleased]"
 
+// The list entries under `## [Unreleased]`, in order, ignoring the `### Added` style subheadings
+// and the blank lines between them. Both the release command and the pull-request gate read the
+// section through this, so "the changelog says something" means the same thing in both.
+export function unreleasedEntries(content: string): string[] {
+  const lines = content.split(/\r?\n/)
+  const unreleasedIndex = lines.indexOf(UNRELEASED_HEADING)
+
+  if (unreleasedIndex === -1) return []
+
+  const nextSectionIndex = lines.findIndex(
+    (line, index) => index > unreleasedIndex && line.startsWith("## ")
+  )
+  const sectionEnd = nextSectionIndex === -1 ? lines.length : nextSectionIndex
+
+  return lines
+    .slice(unreleasedIndex + 1, sectionEnd)
+    .filter((line) => /^\s*[-*] \S/.test(line))
+    .map((line) => line.trim())
+}
+
 // Turns the Unreleased section of CHANGELOG.md into the dated section for `version` and leaves an
 // empty Unreleased heading above it. An Unreleased section with no list entry is refused rather than
 // released as an empty version: the version bump is the release act, and a dated section that says
@@ -23,15 +43,7 @@ export function releaseChangelog(
     return { ok: false, reason: "versionExists" }
   }
 
-  const nextSectionIndex = lines.findIndex(
-    (line, index) => index > unreleasedIndex && line.startsWith("## ")
-  )
-  const sectionEnd = nextSectionIndex === -1 ? lines.length : nextSectionIndex
-  const hasEntry = lines
-    .slice(unreleasedIndex + 1, sectionEnd)
-    .some((line) => /^\s*[-*] \S/.test(line))
-
-  if (!hasEntry) return { ok: false, reason: "emptyUnreleased" }
+  if (unreleasedEntries(content).length === 0) return { ok: false, reason: "emptyUnreleased" }
 
   const released = [
     ...lines.slice(0, unreleasedIndex),
