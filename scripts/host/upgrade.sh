@@ -6,6 +6,10 @@ skip_backup=0
 yes=0
 last_backup_path=""
 pre_backup_path=""
+# Set just before the pull, the first step that touches the instance. A failure before it — the
+# prerequisites or the backup — leaves nothing to roll back, and rollback guidance there would send
+# an operator to restore an instance that never changed.
+instance_changed=0
 
 show_help() {
   cat <<'USAGE'
@@ -92,6 +96,13 @@ fail_upgrade() {
   failed_command=$2
 
   echo "[upgrade] command failed with exit code $failed_status: $failed_command" >&2
+
+  if [ "$instance_changed" = "0" ]; then
+    echo "[upgrade] nothing was changed: no image was pulled and no container was restarted." >&2
+    echo "[upgrade] fix the failure above and run the upgrade again." >&2
+    exit "$failed_status"
+  fi
+
   print_rollback_hint
   exit "$failed_status"
 }
@@ -196,6 +207,7 @@ else
 fi
 
 echo "[upgrade] step 2/4: pull images."
+instance_changed=1
 run_or_abort "docker compose pull" docker compose pull
 
 echo "[upgrade] step 3/4: restart compose project."
