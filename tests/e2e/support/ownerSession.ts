@@ -7,15 +7,15 @@ import { eq } from "drizzle-orm"
 import { loadAppContext } from "./appContext"
 
 // The canvas editor lives behind the authenticated dashboard, and Remit is
-// structurally single-instance (one owner, registered once). auth.spec.ts already documents that
-// Better Auth has no test bypass for completing TOTP verification through the UI, so a from-scratch
-// registration flow cannot reach an authenticated session in an automated run. Rather than resetting
-// the existing owner's real password (a destructive, unrelated side effect on a dev credential) or
-// hand-writing a session row directly into a Better Auth-owned table, this helper calls Better
-// Auth's own session-issuing primitive (`ctx.internalAdapter.createSession`) through the app's real
-// `auth` context — the same mechanism Better Auth ships as its official `test-utils` plugin
-// (`better-auth/plugins` -> `testUtils()` -> `ctx.test.login`) for exactly this purpose. It only adds
-// a new session for the existing owner; it never touches their password or two-factor state.
+// structurally single-instance (one owner, registered once). Signing in through the UI would need the
+// owner's password and a live TOTP code, and on a development instance neither belongs to the test:
+// the account and its authenticator are a person's. Rather than resetting the existing owner's real
+// password (a destructive, unrelated side effect on a dev credential) or hand-writing a session row
+// directly into a Better Auth-owned table, this helper calls Better Auth's own session-issuing
+// primitive (`ctx.internalAdapter.createSession`) through the app's real `auth` context — the same
+// mechanism Better Auth ships as its official `test-utils` plugin (`better-auth/plugins` ->
+// `testUtils()` -> `ctx.test.login`) for exactly this purpose. It only adds a new session for the
+// existing owner; it never touches their password or two-factor state.
 type OwnerSessionCookie = {
   name: string
   value: string

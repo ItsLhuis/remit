@@ -78,6 +78,16 @@ export default defineConfig({
       workers: 1,
       use: { ...devices["Desktop Chrome"] }
     },
+    // Both backup flows rewrite the instance's one backup configuration and its last-success date, so
+    // they run one at a time; and the scheduled one starts a worker of its own, so it follows the
+    // recurring flow's rather than overlapping it on the shared queue.
+    {
+      name: "flows-backup",
+      testMatch: /(backupSettings|scheduledBackup)\.spec\.ts$/,
+      dependencies: ["flows-jobs"],
+      workers: 1,
+      use: { ...devices["Desktop Chrome"] }
+    },
     {
       name: "editor",
       testMatch: /templateEditor(?!FrameContinuity).*\.spec\.ts$/,

@@ -7,10 +7,11 @@ import { generateTotpCode } from "./totp"
 
 // `proxy.ts` only lets a request past /setup once the settings row carries a business name and the
 // session user has `twoFactorEnabled`, so every dashboard spec is unreachable until TOTP enrolment
-// is finished. auth.spec.ts drives registration and the business step through the UI but stops at
-// the QR screen, because reading the code off a QR image is the one step a browser cannot do. This
-// completes the same flow through Better Auth's own endpoints - enable, then verify with a code
-// generated from the returned URI - so no Better Auth-owned table is written by hand.
+// is finished. On an empty instance auth.spec.ts finishes it through the wizard and this no-ops; it
+// does the work only for an owner left part-way — registered, never enrolled — such as one whose
+// registration run failed before the TOTP step. It completes the same flow through Better Auth's own
+// endpoints - enable, then verify with a code generated from the returned URI - so no Better
+// Auth-owned table is written by hand.
 export async function ensureOwnerTotpEnrolled(): Promise<void> {
   const { auth, database, schema } = await loadAppContext()
 

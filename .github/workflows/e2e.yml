@@ -65,8 +65,23 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      # The backup flows run `pnpm remit:backup` and the spawned worker from the runner, and both shell
+      # out to `pg_dump`. The distribution's client is at least as new as the stack's PostgreSQL 16,
+      # which is all pg_dump needs to dump it.
+      - name: Install the PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+          pg_dump --version
+
       - name: Build Docker image
         run: docker compose build app
+
+      # Created before Compose can create it: a bind-mount source that does not exist is made by the
+      # daemon and owned by root, and then neither the app and worker containers (uid 1001) nor the
+      # runner (also uid 1001) could write the backup archives the backup flows look for in it.
+      - name: Create the data directory
+        run: mkdir -p "$REMIT_DATA_DIR"
 
       - name: Start stack
         run: docker compose up -d
