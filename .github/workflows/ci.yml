@@ -109,8 +109,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests
-        run: pnpm test
+      # The coverage run, not a plain `pnpm test`: it is the same suite, and its exit code is also the
+      # services threshold in vitest.config.ts, which nothing enforced while this step ran without
+      # it. One run rather than a second coverage job, so a flaky test cannot pass one and fail the
+      # other, and the suite is not paid for twice.
+      - name: Run unit tests with the coverage gate
+        run: pnpm test:coverage
 
   integration-tests:
     runs-on: ubuntu-latest

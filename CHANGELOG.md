@@ -87,6 +87,11 @@ section, and refuse to run while it has no entries.
   worker image was published. Both images now build from their own Dockerfile stage.
 - A published image carried `http://localhost:3000` in its browser code and could not serve any
   other address.
+- The backup settings page said nothing ran backups automatically, although the worker takes one
+  overnight whenever the configured cadence says one is due. It now describes the schedule.
+- `scripts/host/upgrade.sh` printed rollback guidance, and claimed its backup step had completed,
+  when the prerequisite check or the pre-upgrade backup failed — before anything had changed. It now
+  says that nothing was changed and that the upgrade can be run again.
 
 ## History before this file
 

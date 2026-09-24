@@ -149,6 +149,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0051](0051-error-tracking.md)                  | Error tracking                                 | 2026-09-18 | Complete with known gaps | ADR-0005, ADR-0018, ADR-0023, ADR-0040, ADR-0041                     |
 | [0052](0052-mcp-server.md)                      | MCP server                                     | 2026-09-21 | Complete with known gaps | ADR-0013, ADR-0016, ADR-0018, ADR-0038, ADR-0042                     |
 | [0053](0053-test-suite-and-ci-reliability.md)   | Test suite and CI reliability                  | 2026-09-23 | Complete                 | —                                                                    |
+| [0054](0054-coverage-completion.md)             | Coverage completion                            | 2026-09-23 | Complete                 | —                                                                    |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
 `DR-0035` through `DR-0053`, which were written at delivery time.

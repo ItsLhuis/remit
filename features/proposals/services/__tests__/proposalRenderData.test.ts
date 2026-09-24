@@ -4,7 +4,11 @@ import { describe, expect, test } from "vitest"
 // them `lib/auth`, which validates the environment at import time and exits a unit-test process.
 import { MERGE_VARIABLES } from "@/features/templates/services"
 
-import { buildProposalRenderData, type ProposalRenderDataInput } from "../proposalRenderData"
+import {
+  buildProposalRenderData,
+  type ProposalRenderDataInput,
+  type ProposalRenderLineItem
+} from "../proposalRenderData"
 
 function makeInput(overrides: Partial<ProposalRenderDataInput> = {}): ProposalRenderDataInput {
   return {
@@ -40,6 +44,23 @@ function makeInput(overrides: Partial<ProposalRenderDataInput> = {}): ProposalRe
   }
 }
 
+function makeLineItem(overrides: Partial<ProposalRenderLineItem> = {}): ProposalRenderLineItem {
+  return {
+    description: "Discovery workshop",
+    unit: "day",
+    quantity: "2.00",
+    unitPriceCents: 50_000,
+    discountType: null,
+    discountPercentage: null,
+    discountAmountCents: null,
+    taxPercentageSnapshot: "23.00",
+    subtotalCents: 100_000,
+    taxAmountCents: 23_000,
+    totalCents: 123_000,
+    ...overrides
+  }
+}
+
 describe("buildProposalRenderData", () => {
   // A token whose key is absent renders as its raw `{{...}}` source in the finished document, so a
   // variable added to the whitelist without a key here is a visible defect on a document a client
@@ -65,5 +86,39 @@ describe("buildProposalRenderData", () => {
 
     expect(values["proposal.discount"]).toBe("€100.00")
     expect(values["proposal.validUntil"]).not.toBe("")
+  })
+
+  test("renders a percentage line discount as a percentage", () => {
+    const data = buildProposalRenderData(
+      makeInput({
+        lineItems: [makeLineItem({ discountType: "percentage", discountPercentage: "15.00" })]
+      })
+    )
+
+    expect(data.lineItems?.[0]?.["lineItem.discount"]).toBe("15.00%")
+  })
+
+  test("renders a fixed line discount as money", () => {
+    const data = buildProposalRenderData(
+      makeInput({
+        lineItems: [makeLineItem({ discountType: "fixed", discountAmountCents: 7_500 })]
+      })
+    )
+
+    expect(data.lineItems?.[0]?.["lineItem.discount"]).toBe("€75.00")
+  })
+
+  test("leaves the discount blank on a line that has none or whose value is missing", () => {
+    const data = buildProposalRenderData(
+      makeInput({
+        lineItems: [
+          makeLineItem(),
+          makeLineItem({ discountType: "percentage", discountPercentage: null }),
+          makeLineItem({ discountType: "fixed", discountAmountCents: null })
+        ]
+      })
+    )
+
+    expect(data.lineItems?.map((item) => item["lineItem.discount"])).toEqual(["", "", ""])
   })
 })

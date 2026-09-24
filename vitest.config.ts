@@ -59,6 +59,8 @@ export default defineConfig({
       provider: "v8",
       include: ["features/**", "lib/**", "hooks/**", "scripts/core/**"],
       exclude: ["**/__tests__/**", "components/ui/**", "**/*.d.ts", "**/*.config.*"],
+      // Checked only by a coverage run: `pnpm test` never reads it. The unit-tests job in
+      // .github/workflows/ci.yml runs `pnpm test:coverage` for exactly that reason.
       thresholds: {
         "features/**/services/**": {
           statements: 90,

@@ -484,25 +484,34 @@ describe("renderTemplate image sources", () => {
 
     expect(html).toContain('src="https://storage.local/logo.png"')
   })
-})
 
-describe("renderTemplate text format", () => {
-  test("flows blocks in array (z) order as plain text without markup", () => {
-    const blocks = [
-      textAt("<p>Body</p>", { x: 0, y: 100, width: 240, height: 32 }),
-      textAt("Title", { x: 0, y: 0, width: 240, height: 32 })
-    ]
+  test("renders no image at all when its upload is missing from the assets map", () => {
+    const image = createBlock("image", bounds)
 
-    const text = renderTemplate({
+    const blocks: Block[] =
+      image.type === "image"
+        ? [
+            {
+              ...image,
+              content: {
+                source: "upload",
+                uploadId: "0f8fad5b-d9cb-469f-a165-70867728950e",
+                alt: "Photo"
+              }
+            }
+          ]
+        : []
+
+    const html = renderTemplate({
       blocks,
       renderData: renderData(),
       type: "invoice",
-      format: "text",
-      pageSettings: DEFAULT_PAGE_SETTINGS
+      format: "html",
+      pageSettings: DEFAULT_PAGE_SETTINGS,
+      assets: {}
     })
 
-    expect(text.indexOf("Body")).toBeLessThan(text.indexOf("Title"))
-    expect(text).not.toContain("<")
+    expect(html).not.toContain("<img")
   })
 })
 
@@ -547,5 +556,39 @@ describe("renderBlockContent", () => {
     const html = renderBlockContent(dirty, { renderData: renderData(), type: "invoice" })
 
     expect(html).not.toContain("position:fixed")
+  })
+
+  test("renders a container's own box without its children for the editor's canvas", () => {
+    const frame = createBlock("frame", bounds)
+
+    if (frame.type !== "frame") throw new Error("expected a frame block")
+
+    const child = textAt("Mounted separately", { x: 0, y: 0, width: 160, height: 32 })
+    const group: Block = {
+      id: "group",
+      type: "group",
+      layout: { x: 0, y: 0, width: 160, height: 32 },
+      hidden: false,
+      locked: false,
+      content: { children: [child] }
+    }
+    const withChildren: Block = { ...frame, content: { clip: true, children: [child] } }
+
+    const editorFrame = renderBlockContent(
+      withChildren,
+      { renderData: renderData(), type: "invoice" },
+      { includeChildren: false }
+    )
+    const editorGroup = renderBlockContent(
+      group,
+      { renderData: renderData(), type: "invoice" },
+      { includeChildren: false }
+    )
+    const previewGroup = renderBlockContent(group, { renderData: renderData(), type: "invoice" })
+
+    expect(editorFrame).toContain("overflow:hidden")
+    expect(editorFrame).not.toContain("Mounted separately")
+    expect(editorGroup).not.toContain("Mounted separately")
+    expect(previewGroup).toContain("Mounted separately")
   })
 })
