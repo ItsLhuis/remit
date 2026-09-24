@@ -4163,7 +4163,7 @@ export const english: Language = {
         cadenceDaily: "Daily",
         cadenceWeekly: "Weekly",
         cadenceHelp:
-          "Recorded for a future scheduler. Nothing runs backups automatically yet — run pnpm remit:backup to take one.",
+          "The worker takes a backup overnight whenever one is due: every night for daily, once a week for weekly. Run pnpm remit:backup to take one now.",
         retentionDaily: "Daily archives",
         retentionDailyHelp:
           "Covers the most recent days. One archive is kept per calendar day, for at most this many days.",
