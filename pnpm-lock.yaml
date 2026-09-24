@@ -76,6 +76,9 @@ importers:
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      intl-messageformat:
+        specifier: ^11.2.3
+        version: 11.2.3
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0

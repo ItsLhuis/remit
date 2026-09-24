@@ -13,7 +13,7 @@
     "**/*.generated.ts",
     "doctor.config.ts"
   ],
-  "ignoreDependencies": ["pino-pretty", "postcss-load-config"],
+  "ignoreDependencies": ["pino-pretty", "postcss-load-config", "intl-messageformat"],
   "dynamicallyLoaded": [
     "lib/storage/s3.ts",
     "lib/jobs/worker.ts",

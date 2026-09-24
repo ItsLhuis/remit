@@ -122,6 +122,7 @@
     "i18next": "^26.0.8",
     "i18next-icu": "^2.4.3",
     "input-otp": "^1.4.2",
+    "intl-messageformat": "^11.2.3",
     "ioredis": "^6.0.0",
     "lucide-react": "^0.577.0",
     "motion": "^12.38.0",
