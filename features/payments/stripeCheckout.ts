@@ -28,6 +28,7 @@ export type InvoiceCheckoutTarget = {
   currency: string
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
 }
 
 export type StartInvoiceCheckoutRequest = {
@@ -57,6 +58,7 @@ export async function startInvoiceCheckout({
     status: invoice.status,
     totalCents: invoice.totalCents,
     amountPaidCents: invoice.amountPaidCents,
+    creditedCents: invoice.creditedCents,
     stripeConfigured: configuration !== null
   })
 

@@ -20,6 +20,7 @@ function makeInput(overrides: Partial<InvoiceRenderDataInput> = {}): InvoiceRend
       taxAmountCents: 23_000,
       totalCents: 123_000,
       amountPaidCents: 0,
+      creditedCents: 0,
       lateFeeCents: null,
       exchangeRate: null,
       issueDate: new Date(Date.UTC(2026, 7, 1)),
@@ -87,6 +88,22 @@ describe("buildInvoiceRenderData", () => {
 
     expect(values["invoice.amountDue"]).toBe("€1,000.00")
     expect(values["invoice.total"]).toBe("€1,230.00")
+  })
+
+  test("bills the amount due net of the credit notes issued against the invoice", () => {
+    const values = buildInvoiceRenderData(
+      makeInput({
+        invoice: { ...makeInput().invoice, amountPaidCents: 23_000, creditedCents: 50_000 }
+      })
+    ).values
+
+    expect(values["invoice.credited"]).toBe("€500.00")
+    expect(values["invoice.amountDue"]).toBe("€500.00")
+    expect(values["invoice.total"]).toBe("€1,230.00")
+  })
+
+  test("leaves the credited amount blank on an invoice nothing has credited", () => {
+    expect(buildInvoiceRenderData(makeInput()).values["invoice.credited"]).toBe("")
   })
 
   test("renders a percentage line discount as a percentage", () => {

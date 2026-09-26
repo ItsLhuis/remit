@@ -32,6 +32,9 @@ export type InvoiceListItem = {
   currency: string
   totalCents: number
   amountPaidCents: number
+  // The sum of the live credit notes against the invoice, so a list row derives what is still owed
+  // through the same `getInvoiceOutstandingCents` the invoice page does.
+  creditedCents: number
   issueDate: Date | null
   dueDate: Date | null
   paidAt: Date | null
@@ -124,6 +127,9 @@ export type InvoiceLateFee = {
   appliedAt: Date | null
   daysLate: number | null
   policy: InvoiceLateFeePolicySnapshot | null
+  // Whether the layout this invoice renders with prints `invoice.lateFee`. Only an owner's template
+  // can leave it off; the built-in layout prints every figure that applies.
+  shownOnDocument: boolean
 }
 
 export type InvoiceDetail = {
@@ -141,6 +147,7 @@ export type InvoiceDetail = {
   taxAmountCents: number
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   discountPercentage: number | null
   discountAmountCents: number | null
   issueDate: Date | null
@@ -177,6 +184,12 @@ export type PublicInvoicePayment = {
   stripeConfigured: boolean
 }
 
+export type PublicInvoiceCreditNote = {
+  number: string
+  issuedAt: Date
+  totalCents: number
+}
+
 // Carries neither `id` nor `publicToken`: this model is serialized into an anonymous page, and the
 // token is a bearer credential. `viewStatus` is derived server-side so the badge cannot disagree
 // with the amounts printed beside it.
@@ -188,8 +201,10 @@ export type PublicInvoice = {
   subtotalCents: number
   discountAmountTotalCents: number
   taxAmountCents: number
+  lateFeeCents: number | null
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   outstandingCents: number
   issueDate: Date | null
   dueDate: Date | null
@@ -201,6 +216,7 @@ export type PublicInvoice = {
   timeZone: string
   payment: PublicInvoicePayment
   lineItems: InvoiceDetailLineItem[]
+  creditNotes: PublicInvoiceCreditNote[]
 }
 
 export type InvoiceFormData = InvoiceFormInputValues & {
@@ -213,7 +229,9 @@ export type InvoiceFormData = InvoiceFormInputValues & {
 // mutationContext.ts can name them without importing a "use server" module.
 export type InvoiceMutationResult = { data: { invoice: InvoiceFormData } } | { error: string }
 
-export type SendInvoiceResult = { data: { id: string } } | { error: string }
+// `emailed` is false when no mail provider is configured: the invoice is sent and its link live, but
+// the client's copy is not mailed, and the dialog says so rather than reporting a success.
+export type SendInvoiceResult = { data: { id: string; emailed: boolean } } | { error: string }
 
 export type MarkInvoicePaidResult = { data: { id: string } } | { error: string }
 

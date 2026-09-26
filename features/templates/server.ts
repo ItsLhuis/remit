@@ -16,6 +16,13 @@ export { emitTemplateCreated, emitTemplateDeleted, emitTemplateUpdated } from ".
 export { toTemplateEditorData } from "./services"
 
 export {
+  documentLayoutPlaces,
+  resolveDocumentLayout,
+  type DocumentLayout,
+  type ResolveDocumentLayoutInput
+} from "./documentLayout"
+
+export {
   renderEmailTemplate,
   type EmailTemplateRender,
   type RenderEmailTemplateInput

@@ -384,6 +384,8 @@ draft ──► sent ──► paid
             ├── (overdue - computed, not stored: status is not draft, paidAt is null,
             │              and dueDate's UTC day is before today's)
             └── (partially_paid - computed: 0 < amountPaidCents < totalCents)
+
+paid is stored when payments plus credit notes cover the total (ADR-0044)
 ```
 
 `overdue` and `partially_paid` are never written to `invoices.status`, which holds exactly the three
@@ -468,11 +470,19 @@ active ──► paused ──► active
 - Money values are always `bigint` integers representing the smallest currency unit (cents for
   EUR/USD). The ISO 4217 currency code lives on the parent entity, never on individual money
   columns.
-- An invoice's `totalCents` is the whole of what the client owes, and it is the single figure every
-  surface reads to answer that question. It is the line items plus tax less discounts, and — once
-  the nightly overdue sweep charges one — the late fee as well, which `invoices.lateFeeCents`
-  records separately so the document can print it on its own line. Nothing else moves the total
-  after issuance. See [ADR-0033](adr/0033-late-fee-placement.md).
+- An invoice's `totalCents` is what its issued document states: the line items plus tax less
+  discounts, and — once the nightly overdue sweep charges one — the late fee as well, which
+  `invoices.lateFeeCents` records separately so the document can print it on its own line. Nothing
+  else moves the total after issuance. See [ADR-0033](adr/0033-late-fee-placement.md).
+- What the client still owes is one figure, `getInvoiceOutstandingCents` in
+  `features/invoices/services/invoiceStatusView.ts`: the total less the live credit notes against it
+  less its payments, never below zero. Every surface that shows, charges or exposes it reads that
+  function, and an invoice is settled — `status` paid, `paidAt` set — exactly when it reaches zero
+  on a positive total, so payments and credit notes together close an invoice. Issuing, withdrawing
+  or restoring a credit note re-decides settlement under the same invoice lock payments take. See
+  [ADR-0044](adr/0044-invoice-outstanding-and-credit-settlement.md).
+- A document with no template of its type renders from the built-in layout for that type; contracts,
+  which carry their own blocks, have none. See [ADR-0043](adr/0043-built-in-document-layouts.md).
 - Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. The
   single-instance model is structural — see the Design philosophy and Multi-user model sections.
 - All domain tables carry `createdAt` and `updatedAt` timestamps (via the `timestamps` helper) and a
@@ -1477,7 +1487,10 @@ and instants are ISO 8601 in UTC. Each read delegates to the query the applicati
 uses, and every response is parsed through a schema in `features/api/responseSchemas.ts` that names
 each published field, so no client note, bearer token, storage key or encrypted value reaches a
 caller. The OpenAPI 3.1 document is generated from those same schemas and served at
-`/api/v1/openapi.json` to any valid token. The API writes nothing.
+`/api/v1/openapi.json` to any valid token. The API writes nothing. An invoice, in a list row and in
+its detail, carries `outstandingCents` — the one outstanding definition, credit notes netted — and
+`displayStatus`, the status the application's badges show (overdue and partially paid included),
+beside the stored `status`; the MCP tools publish the same fields through the same schemas.
 [ADR-0038](adr/0038-public-api-scope-and-tokens.md) records the scope, versioning and token model.
 
 ### Outbound webhooks
@@ -2169,50 +2182,52 @@ An ADR records why a decision was taken. What was subsequently built against it 
 implementation shape, the evidence and the gaps left open on the day — is recorded separately, one
 sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 
-| ADR                                                         | Title                                                                                   | Status   |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------- |
-| [0001](adr/0001-no-cookie-routing.md)                       | No cookies for routing state                                                            | Accepted |
-| [0002](adr/0002-single-instance-model.md)                   | Single-instance model is structural                                                     | Accepted |
-| [0003](adr/0003-mandatory-totp.md)                          | Mandatory TOTP — no opt-out                                                             | Accepted |
-| [0004](adr/0004-feature-module-structure.md)                | Closed feature modules with ESLint enforcement                                          | Accepted |
-| [0005](adr/0005-encryption-at-rest.md)                      | AES-256-GCM encryption via Drizzle column helper                                        | Accepted |
-| [0006](adr/0006-internal-event-bus.md)                      | Typed in-process event bus for cross-feature effects                                    | Accepted |
-| [0007](adr/0007-pure-services.md)                           | Pure business logic in `services/` — no framework imports                               | Accepted |
-| [0008](adr/0008-email-adapters.md)                          | SMTP and Resend as interchangeable adapter implementations                              | Accepted |
-| [0009](adr/0009-money-as-integer-minor-units.md)            | Money stored as integer minor units — no floating-point                                 | Accepted |
-| [0010](adr/0010-soft-delete.md)                             | Soft delete by default — hard delete after retention window                             | Accepted |
-| [0011](adr/0011-monorepo-deferred.md)                       | Single Next.js app until a second artefact requires its own build                       | Accepted |
-| [0012](adr/0012-password-reset-paths.md)                    | Password reset via email when available, CLI fallback otherwise                         | Accepted |
-| [0013](adr/0013-better-auth-organization.md)                | Better Auth organization plugin for multi-user role storage                             | Accepted |
-| [0014](adr/0014-hosted-offering.md)                         | Hosted offering as per-instance isolation, not row-level tenancy                        | Accepted |
-| [0015](adr/0015-i18next-typed-keys.md)                      | i18next + ICU with TypeScript-typed message keys                                        | Accepted |
-| [0016](adr/0016-server-actions-canonical.md)                | Server actions as canonical write path; API routes for public/webhooks only             | Accepted |
-| [0017](adr/0017-polymorphic-line-items.md)                  | Polymorphic line items via mutually-exclusive parent FKs                                | Accepted |
-| [0018](adr/0018-no-telemetry.md)                            | No telemetry or analytics by default                                                    | Accepted |
-| [0019](adr/0019-storage-backend-adapters.md)                | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in             | Accepted |
-| [0020](adr/0020-operational-cli-contract.md)                | Operational CLI contract                                                                | Accepted |
-| [0021](adr/0021-encryption-key-rotation.md)                 | Encryption key rotation                                                                 | Accepted |
-| [0022](adr/0022-pdf-rendering-engine.md)                    | Headless-browser PDF rendering (Puppeteer/Playwright)                                   | Accepted |
-| [0023](adr/0023-job-scheduling-bullmq-redis.md)             | Background jobs and scheduling via BullMQ + Redis                                       | Accepted |
-| [0024](adr/0024-template-editor-canvas.md)                  | Template editor — free collision-aware page-clamped canvas                              | Accepted |
-| [0025](adr/0025-instance-data-reset-scope.md)               | Instance data reset — domain data versus instance state                                 | Accepted |
-| [0026](adr/0026-document-parentage.md)                      | Document parentage — optional project, agreeing client, composite key                   | Accepted |
-| [0027](adr/0027-contact-identity.md)                        | Contact identity — delivery target and acceptance identity, never an entity             | Accepted |
-| [0028](adr/0028-attachments-and-visual-identity.md)         | Attachments — one table, one foreign key per parent, private bucket                     | Accepted |
-| [0029](adr/0029-public-token-lifecycle.md)                  | Public token lifecycle — one minter, and revocation as an absent token                  | Accepted |
-| [0030](adr/0030-client-portal-exposure.md)                  | Client portal exposure — an index, and never a signing link                             | Accepted |
-| [0031](adr/0031-billing-conversion-provenance.md)           | Billing conversion — grouped lines, single-source provenance, refusal over inference    | Accepted |
-| [0032](adr/0032-card-payment-recording-authority.md)        | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance  | Accepted |
-| [0033](adr/0033-late-fee-placement.md)                      | A late fee is part of the invoice total, charged once, and off by default               | Accepted |
-| [0034](adr/0034-retention-and-erasure.md)                   | Retention windows, restore symmetry, and what an erasure cannot destroy                 | Accepted |
-| [0035](adr/0035-scheduled-backup-execution.md)              | Scheduled backups — static schedule, session lock, and a run that does not retry        | Accepted |
-| [0036](adr/0036-metrics-allowlist-and-collection.md)        | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation   | Accepted |
-| [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) | Rate limits count in Redis, fall back per process; no application cache yet             | Accepted |
-| [0038](adr/0038-public-api-scope-and-tokens.md)             | Public API — read-only over five resources, tokens bounded by their creator             | Accepted |
-| [0039](adr/0039-outbound-webhook-delivery.md)               | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence          | Accepted |
-| [0040](adr/0040-deployment-agnostic-images.md)              | Deployment-agnostic images — runtime configuration, one origin, storage behind the app  | Accepted |
-| [0041](adr/0041-error-tracking-boundary.md)                 | Error tracking — a minimal sender, events built by addition, two reporting boundaries   | Accepted |
-| [0042](adr/0042-mcp-server.md)                              | MCP server — off by default, the API's own tokens over Streamable HTTP, read-only tools | Accepted |
+| ADR                                                           | Title                                                                                     | Status   |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------- |
+| [0001](adr/0001-no-cookie-routing.md)                         | No cookies for routing state                                                              | Accepted |
+| [0002](adr/0002-single-instance-model.md)                     | Single-instance model is structural                                                       | Accepted |
+| [0003](adr/0003-mandatory-totp.md)                            | Mandatory TOTP — no opt-out                                                               | Accepted |
+| [0004](adr/0004-feature-module-structure.md)                  | Closed feature modules with ESLint enforcement                                            | Accepted |
+| [0005](adr/0005-encryption-at-rest.md)                        | AES-256-GCM encryption via Drizzle column helper                                          | Accepted |
+| [0006](adr/0006-internal-event-bus.md)                        | Typed in-process event bus for cross-feature effects                                      | Accepted |
+| [0007](adr/0007-pure-services.md)                             | Pure business logic in `services/` — no framework imports                                 | Accepted |
+| [0008](adr/0008-email-adapters.md)                            | SMTP and Resend as interchangeable adapter implementations                                | Accepted |
+| [0009](adr/0009-money-as-integer-minor-units.md)              | Money stored as integer minor units — no floating-point                                   | Accepted |
+| [0010](adr/0010-soft-delete.md)                               | Soft delete by default — hard delete after retention window                               | Accepted |
+| [0011](adr/0011-monorepo-deferred.md)                         | Single Next.js app until a second artefact requires its own build                         | Accepted |
+| [0012](adr/0012-password-reset-paths.md)                      | Password reset via email when available, CLI fallback otherwise                           | Accepted |
+| [0013](adr/0013-better-auth-organization.md)                  | Better Auth organization plugin for multi-user role storage                               | Accepted |
+| [0014](adr/0014-hosted-offering.md)                           | Hosted offering as per-instance isolation, not row-level tenancy                          | Accepted |
+| [0015](adr/0015-i18next-typed-keys.md)                        | i18next + ICU with TypeScript-typed message keys                                          | Accepted |
+| [0016](adr/0016-server-actions-canonical.md)                  | Server actions as canonical write path; API routes for public/webhooks only               | Accepted |
+| [0017](adr/0017-polymorphic-line-items.md)                    | Polymorphic line items via mutually-exclusive parent FKs                                  | Accepted |
+| [0018](adr/0018-no-telemetry.md)                              | No telemetry or analytics by default                                                      | Accepted |
+| [0019](adr/0019-storage-backend-adapters.md)                  | Storage backend as swappable adapter — local FS by default, S3/R2/B2 opt-in               | Accepted |
+| [0020](adr/0020-operational-cli-contract.md)                  | Operational CLI contract                                                                  | Accepted |
+| [0021](adr/0021-encryption-key-rotation.md)                   | Encryption key rotation                                                                   | Accepted |
+| [0022](adr/0022-pdf-rendering-engine.md)                      | Headless-browser PDF rendering (Puppeteer/Playwright)                                     | Accepted |
+| [0023](adr/0023-job-scheduling-bullmq-redis.md)               | Background jobs and scheduling via BullMQ + Redis                                         | Accepted |
+| [0024](adr/0024-template-editor-canvas.md)                    | Template editor — free collision-aware page-clamped canvas                                | Accepted |
+| [0025](adr/0025-instance-data-reset-scope.md)                 | Instance data reset — domain data versus instance state                                   | Accepted |
+| [0026](adr/0026-document-parentage.md)                        | Document parentage — optional project, agreeing client, composite key                     | Accepted |
+| [0027](adr/0027-contact-identity.md)                          | Contact identity — delivery target and acceptance identity, never an entity               | Accepted |
+| [0028](adr/0028-attachments-and-visual-identity.md)           | Attachments — one table, one foreign key per parent, private bucket                       | Accepted |
+| [0029](adr/0029-public-token-lifecycle.md)                    | Public token lifecycle — one minter, and revocation as an absent token                    | Accepted |
+| [0030](adr/0030-client-portal-exposure.md)                    | Client portal exposure — an index, and never a signing link                               | Accepted |
+| [0031](adr/0031-billing-conversion-provenance.md)             | Billing conversion — grouped lines, single-source provenance, refusal over inference      | Accepted |
+| [0032](adr/0032-card-payment-recording-authority.md)          | Card payment — one recorder, a server-derived amount, idempotency keyed on the balance    | Accepted |
+| [0033](adr/0033-late-fee-placement.md)                        | A late fee is part of the invoice total, charged once, and off by default                 | Accepted |
+| [0034](adr/0034-retention-and-erasure.md)                     | Retention windows, restore symmetry, and what an erasure cannot destroy                   | Accepted |
+| [0035](adr/0035-scheduled-backup-execution.md)                | Scheduled backups — static schedule, session lock, and a run that does not retry          | Accepted |
+| [0036](adr/0036-metrics-allowlist-and-collection.md)          | Metrics — an enforced allowlist, collected at scrape time, no request instrumentation     | Accepted |
+| [0037](adr/0037-shared-rate-limiting-and-cache-deferral.md)   | Rate limits count in Redis, fall back per process; no application cache yet               | Accepted |
+| [0038](adr/0038-public-api-scope-and-tokens.md)               | Public API — read-only over five resources, tokens bounded by their creator               | Accepted |
+| [0039](adr/0039-outbound-webhook-delivery.md)                 | Outbound webhooks — minimal signed payloads, jobs, pinned-address SSRF defence            | Accepted |
+| [0040](adr/0040-deployment-agnostic-images.md)                | Deployment-agnostic images — runtime configuration, one origin, storage behind the app    | Accepted |
+| [0041](adr/0041-error-tracking-boundary.md)                   | Error tracking — a minimal sender, events built by addition, two reporting boundaries     | Accepted |
+| [0042](adr/0042-mcp-server.md)                                | MCP server — off by default, the API's own tokens over Streamable HTTP, read-only tools   | Accepted |
+| [0043](adr/0043-built-in-document-layouts.md)                 | Built-in document layouts live in code and are resolved when no template exists           | Accepted |
+| [0044](adr/0044-invoice-outstanding-and-credit-settlement.md) | One outstanding amount, credit notes settle an invoice, and a late fee re-renders its PDF | Accepted |
 
 ---
 

@@ -116,6 +116,7 @@ export const MERGE_VARIABLE_LABEL_KEYS = {
   "invoice.tax": "templates.mergeVariables.labels.invoiceTax",
   "invoice.total": "templates.mergeVariables.labels.invoiceTotal",
   "invoice.amountPaid": "templates.mergeVariables.labels.invoiceAmountPaid",
+  "invoice.credited": "templates.mergeVariables.labels.invoiceCredited",
   "invoice.amountDue": "templates.mergeVariables.labels.invoiceAmountDue",
   "invoice.issueDate": "templates.mergeVariables.labels.invoiceIssueDate",
   "invoice.dueDate": "templates.mergeVariables.labels.invoiceDueDate",
@@ -146,7 +147,8 @@ export const MERGE_VARIABLE_LABEL_KEYS = {
   "creditNote.subtotal": "templates.mergeVariables.labels.creditNoteSubtotal",
   "creditNote.tax": "templates.mergeVariables.labels.creditNoteTax",
   "creditNote.total": "templates.mergeVariables.labels.creditNoteTotal",
-  "creditNote.issueDate": "templates.mergeVariables.labels.creditNoteIssueDate"
+  "creditNote.issueDate": "templates.mergeVariables.labels.creditNoteIssueDate",
+  "creditNote.invoiceNumber": "templates.mergeVariables.labels.creditNoteInvoiceNumber"
 } as const satisfies Record<MergeVariableId, string>
 
 // Line-item fields are table-column bindings, never scalar page tokens; the binding select shows

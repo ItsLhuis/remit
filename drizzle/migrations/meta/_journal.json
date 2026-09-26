@@ -78,6 +78,13 @@
       "when": 1789817876595,
       "tag": "0010_nostalgic_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790268037824,
+      "tag": "0011_settle_credited_invoices",
+      "breakpoints": true
     }
   ]
 }

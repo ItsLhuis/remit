@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm"
+import { and, asc, desc, eq, isNull, sql, type SQL } from "drizzle-orm"
 
 import { formatCentsForInput } from "@/lib/utils"
 
@@ -14,6 +14,9 @@ import {
   templates
 } from "@/database/schema"
 
+import { documentLayoutPlaces } from "@/features/templates/server"
+
+import { getInvoiceCreditedTotalsSubquery, readInvoiceCreditedCents } from "./queryFragments"
 import {
   invoiceIdSchema,
   invoiceListParamsSchema,
@@ -54,20 +57,6 @@ const invoiceListColumns = {
   createdAt: invoices.createdAt
 }
 
-type InvoiceListRow = {
-  id: string
-  projectId: string | null
-  number: string
-  status: InvoiceStatus
-  currency: string
-  totalCents: number
-  amountPaidCents: number
-  issueDate: Date | null
-  dueDate: Date | null
-  paidAt: Date | null
-  createdAt: Date
-}
-
 type LineItemRow = typeof lineItems.$inferSelect
 
 export async function getInvoiceDefaults(): Promise<InvoiceDefaults> {
@@ -98,11 +87,9 @@ export async function listInvoicesByClient(
   clientId: string,
   defaultCurrency = "EUR"
 ): Promise<InvoiceListItem[]> {
-  const rows = await database
-    .select(invoiceListColumns)
-    .from(invoices)
-    .where(and(eq(invoices.clientId, clientId), isNull(invoices.deletedAt)))
-    .orderBy(desc(invoices.createdAt))
+  const rows = await selectInvoiceListRows(
+    and(eq(invoices.clientId, clientId), isNull(invoices.deletedAt))
+  )
 
   return rows.map((row) => toInvoiceListItem(row, defaultCurrency))
 }
@@ -111,11 +98,9 @@ export async function listInvoicesByProject(
   projectId: string,
   defaultCurrency = "EUR"
 ): Promise<InvoiceListItem[]> {
-  const rows = await database
-    .select(invoiceListColumns)
-    .from(invoices)
-    .where(and(eq(invoices.projectId, projectId), isNull(invoices.deletedAt)))
-    .orderBy(desc(invoices.createdAt))
+  const rows = await selectInvoiceListRows(
+    and(eq(invoices.projectId, projectId), isNull(invoices.deletedAt))
+  )
 
   return rows.map((row) => toInvoiceListItem(row, defaultCurrency))
 }
@@ -157,7 +142,7 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
 
   if (!invoice) return null
 
-  const [project, client, template, rows, defaults, lateFee] = await Promise.all([
+  const [project, client, template, rows, defaults, lateFee, creditedCents] = await Promise.all([
     invoice.projectId
       ? database.query.projects.findFirst({
           where: eq(projects.id, invoice.projectId),
@@ -178,7 +163,8 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
       : Promise.resolve(undefined),
     listInvoiceLineItems(invoice.id),
     getInvoiceDefaults(),
-    getInvoiceLateFee(invoice.id, invoice.lateFeeCents)
+    getInvoiceLateFee(invoice),
+    readInvoiceCreditedCents(invoice.id)
   ])
 
   return {
@@ -196,6 +182,7 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
     taxAmountCents: Number(invoice.taxAmountCents),
     totalCents: Number(invoice.totalCents),
     amountPaidCents: Number(invoice.amountPaidCents),
+    creditedCents,
     discountPercentage:
       invoice.discountPercentage === null ? null : Number(invoice.discountPercentage),
     discountAmountCents:
@@ -223,10 +210,13 @@ export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetail | 
 // audit entry, which is the only record of the policy as it stood that night. `audit_logs` is
 // insert-only and one fee is charged per invoice, so the newest matching row is the charge — a later
 // owner adjustment writes `invoice.late_fee.adjusted` and does not overwrite this one.
-async function getInvoiceLateFee(
-  invoiceId: string,
+async function getInvoiceLateFee(invoice: {
+  id: string
   lateFeeCents: number | null
-): Promise<InvoiceLateFee | null> {
+  templateId: string | null
+}): Promise<InvoiceLateFee | null> {
+  const { id: invoiceId, lateFeeCents } = invoice
+
   if (lateFeeCents === null) return null
 
   const [applied] = await database
@@ -244,7 +234,8 @@ async function getInvoiceLateFee(
     feeCents: Number(lateFeeCents),
     appliedAt: applied?.createdAt ?? null,
     daysLate: origin?.daysLate ?? null,
-    policy: origin?.policy ?? null
+    policy: origin?.policy ?? null,
+    shownOnDocument: await documentLayoutPlaces("invoice", invoice.templateId, "invoice.lateFee")
   }
 }
 
@@ -492,15 +483,37 @@ async function listInvoiceTemplates(): Promise<InvoiceTemplateOption[]> {
   return rows
 }
 
-function toInvoiceListItem(row: InvoiceListRow, defaultCurrency: string): InvoiceListItem {
+async function selectInvoiceListRows(where: SQL | undefined): Promise<InvoiceListItem[]> {
+  const credited = getInvoiceCreditedTotalsSubquery()
+
+  const rows = await database
+    .select({
+      ...invoiceListColumns,
+      creditedCents: sql<number>`coalesce(${credited.creditedCents}, 0)`
+    })
+    .from(invoices)
+    .leftJoin(credited, eq(credited.invoiceId, invoices.id))
+    .where(where)
+    .orderBy(desc(invoices.createdAt))
+
+  return rows.map((row) => ({
+    ...row,
+    totalCents: Number(row.totalCents),
+    amountPaidCents: Number(row.amountPaidCents),
+    creditedCents: Number(row.creditedCents)
+  }))
+}
+
+function toInvoiceListItem(row: InvoiceListItem, defaultCurrency: string): InvoiceListItem {
   return {
     id: row.id,
     projectId: row.projectId,
     number: row.number,
     status: row.status,
     currency: row.currency ?? defaultCurrency,
-    totalCents: Number(row.totalCents),
-    amountPaidCents: Number(row.amountPaidCents),
+    totalCents: row.totalCents,
+    amountPaidCents: row.amountPaidCents,
+    creditedCents: row.creditedCents,
     issueDate: row.issueDate,
     dueDate: row.dueDate,
     paidAt: row.paidAt,

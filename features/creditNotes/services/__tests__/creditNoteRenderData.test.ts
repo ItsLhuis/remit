@@ -15,7 +15,8 @@ function makeInput(overrides: Partial<CreditNoteRenderDataInput> = {}): CreditNo
       subtotalCents: 50_000,
       taxAmountCents: 11_500,
       totalCents: 61_500,
-      issuedAt: new Date(Date.UTC(2026, 7, 1))
+      issuedAt: new Date(Date.UTC(2026, 7, 1)),
+      invoiceNumber: "INV-0007"
     },
     client: null,
     business: {
@@ -54,6 +55,12 @@ describe("buildCreditNoteRenderData", () => {
 
   // The refund has to say where the money goes back to, which is why this type whitelists the
   // payment group where a proposal does not.
+  test("names the invoice it credits", () => {
+    expect(buildCreditNoteRenderData(makeInput()).values["creditNote.invoiceNumber"]).toBe(
+      "INV-0007"
+    )
+  })
+
   test("carries the payment details a refund is returned to", () => {
     const values = buildCreditNoteRenderData(makeInput()).values
 

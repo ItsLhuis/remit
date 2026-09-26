@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, creditNotes, invoices, lineItems, settings } from "@/database/schema"
 
-import { makeInvoice, makeSettings, makeUser } from "@/tests/factories"
+import { makeInvoice, makePayment, makeSettings, makeUser } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
@@ -296,6 +296,41 @@ describe("credit note mutations", () => {
     expect(Number(updated.totalCents)).toBe(30000)
     expect(Number(updated.subtotalCents)).toBe(30000)
     expect(Number(updated.amountPaidCents)).toBe(0)
+  })
+
+  test("settles an invoice once its payments and the new credit note cover its total", async () => {
+    const { createCreditNote } = await import("../mutations")
+
+    const invoice = await makeInvoice({ status: "sent", totalCents: 30000, currency: "EUR" })
+
+    await makePayment({ invoiceId: invoice.id, amountCents: 20000 })
+
+    await createCreditNote({ invoiceId: invoice.id, ...makeCreditNoteInput() })
+
+    const updated = await readInvoice(invoice.id)
+
+    expect(updated.status).toBe("paid")
+    expect(updated.paidAt).not.toBeNull()
+    expect(Number(updated.amountPaidCents)).toBe(20000)
+  })
+
+  test("reopens an invoice when the credit note that settled it is withdrawn", async () => {
+    const { createCreditNote, softDeleteCreditNote } = await import("../mutations")
+
+    const invoice = await makeInvoice({ status: "sent", totalCents: 30000, currency: "EUR" })
+
+    await makePayment({ invoiceId: invoice.id, amountCents: 20000 })
+
+    const result = await createCreditNote({ invoiceId: invoice.id, ...makeCreditNoteInput() })
+
+    if ("error" in result) throw new Error(result.error)
+
+    await softDeleteCreditNote({ id: result.data.id })
+
+    const updated = await readInvoice(invoice.id)
+
+    expect(updated.status).toBe("sent")
+    expect(updated.paidAt).toBeNull()
   })
 
   test("reduces the effective receivable derived from the invoice and its credit notes", async () => {

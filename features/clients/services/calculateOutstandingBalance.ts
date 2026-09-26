@@ -1,9 +1,12 @@
+import { getInvoiceOutstandingCents } from "@/features/invoices/services"
+
 export type OutstandingInvoiceStatus = "draft" | "sent" | "paid"
 
 export type OutstandingInvoiceInput = {
   status: OutstandingInvoiceStatus
   totalCents: number
   paidCents: number
+  creditedCents: number
 }
 
 export const OUTSTANDING_INVOICE_STATUSES = ["sent", "paid"] as const
@@ -16,25 +19,32 @@ export function isOutstandingInvoiceStatus(status: OutstandingInvoiceStatus): bo
 
 // Paid invoices stay in the sum on purpose: a fully paid invoice nets to zero, while a partially
 // paid one that was later marked paid still contributes its unpaid remainder. Drafts are excluded
-// because they are not yet owed. The clamp keeps an overpaid client at zero outstanding rather
-// than reporting a negative balance the UI has no meaning for.
+// because they are not yet owed.
+//
+// Each invoice contributes `getInvoiceOutstandingCents` — the one definition, credit notes netted and
+// clamped per invoice — so an invoice paid or credited beyond its total adds nothing rather than
+// hiding what another invoice of the same client still owes. `queryFragments.ts`'s
+// `getClientOutstandingSubquery` is the SQL form of this sum and must stay equal to it.
 export function calculateOutstandingBalanceCents(
   invoices: readonly OutstandingInvoiceInput[]
 ): number {
-  let totalCents = 0
-  let paidCents = 0
+  let outstandingCents = 0
 
   for (const invoice of invoices) {
     assertIntegerCents(invoice.totalCents)
     assertIntegerCents(invoice.paidCents)
+    assertIntegerCents(invoice.creditedCents)
 
     if (!isOutstandingInvoiceStatus(invoice.status)) continue
 
-    totalCents += invoice.totalCents
-    paidCents += invoice.paidCents
+    outstandingCents += getInvoiceOutstandingCents({
+      totalCents: invoice.totalCents,
+      amountPaidCents: invoice.paidCents,
+      creditedCents: invoice.creditedCents
+    })
   }
 
-  return Math.max(totalCents - paidCents, 0)
+  return outstandingCents
 }
 
 function assertIntegerCents(value: number): void {

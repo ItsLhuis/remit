@@ -38,6 +38,8 @@ import { adjustInvoiceLateFee } from "../../mutations"
 import { adjustInvoiceLateFeeSchema, type AdjustInvoiceLateFeeValues } from "../../schemas"
 import { type InvoiceLateFee } from "../../types"
 
+import { InvoiceLateFeeOffDocumentAlert } from "./InvoiceLateFeeOffDocumentAlert"
+
 // The three copy variants arrive as callbacks rather than the helper importing `t` itself, because a
 // file-private helper sits above the component and cannot reach its `useTranslation` hook.
 type LateFeePolicyCopy = {
@@ -157,6 +159,7 @@ const InvoiceLateFeeCard = ({
         <Typography variant="p" affects={["muted", "small", "removePMargin"]}>
           {policyDescription}
         </Typography>
+        <InvoiceLateFeeOffDocumentAlert lateFee={lateFee} />
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(true)}>
             {t("invoices.detail.lateFeeAdjust")}

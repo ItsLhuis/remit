@@ -5,9 +5,9 @@ import { matchesPublicToken } from "@/lib/publicToken"
 import { database } from "@/database"
 import { clients, contracts, creditNotes, invoices, projects, proposals } from "@/database/schema"
 
-import { computeInvoiceOutstandingAfterCredits } from "@/features/creditNotes"
+import { sumCreditNoteTotalCents } from "@/features/creditNotes"
 
-import { deriveInvoiceStatusView } from "@/features/invoices"
+import { deriveInvoiceStatusView, getInvoiceOutstandingCents } from "@/features/invoices"
 
 import { isProposalExpired } from "@/features/proposals"
 
@@ -300,15 +300,13 @@ function toPortalInvoice(
     currency: row.currency,
     totalCents: amounts.totalCents,
     amountPaidCents: amounts.amountPaidCents,
-    // Credit-aware, unlike `/i/[token]`'s own figure: this row prints the credit notes immediately
-    // beneath the amount, so an outstanding total that ignored them would contradict itself on one
-    // line. `computeInvoiceOutstandingAfterCredits` is the same helper the owner's invoice screen
-    // uses (services/effectiveReceivable.ts), and it is what `summarizePortalOutstanding` then adds
-    // up per currency.
-    outstandingCents: computeInvoiceOutstandingAfterCredits(
-      amounts,
-      creditNotes.map((creditNote) => creditNote.totalCents)
-    ),
+    // The same outstanding definition `/i/[token]` prints for this invoice, credit notes netted, so
+    // the portal row and the invoice page cannot quote the client two amounts; it is also what
+    // `summarizePortalOutstanding` adds up per currency.
+    outstandingCents: getInvoiceOutstandingCents({
+      ...amounts,
+      creditedCents: sumCreditNoteTotalCents(creditNotes.map((creditNote) => creditNote.totalCents))
+    }),
     issueDate: row.issueDate,
     dueDate: row.dueDate,
     // Every invoice this read returns is one `/i/[token]` itself admits — not deleted, not a draft —

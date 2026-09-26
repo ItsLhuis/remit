@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest"
 import { enqueueJob } from "@/lib/jobs"
 import { getQueue } from "@/lib/jobs/queue"
 import { startWorker, stopWorker } from "@/lib/jobs/worker"
+import { type RenderPdfInput } from "@/lib/pdf"
 
 import { contractSignatures, invoices, uploads } from "@/database/schema"
 
@@ -22,7 +23,9 @@ import { database } from "@/tests/integration/database"
 const mocks = vi.hoisted(() => ({
   sendTransactionalEmail: vi.fn(),
   sendDocumentEmail: vi.fn(async () => "sent" as const),
-  renderHtmlToPdf: vi.fn(async () => Buffer.from("%PDF-1.4 stub", "latin1")),
+  renderHtmlToPdf: vi.fn<(input: RenderPdfInput) => Promise<Buffer>>(async () =>
+    Buffer.from("%PDF-1.4 stub", "latin1")
+  ),
   putDocumentObject: vi.fn(async () => undefined)
 }))
 
@@ -257,8 +260,14 @@ test("renders, stores and links an invoice PDF exactly once through the queue", 
     .from(invoices)
     .where(eq(invoices.id, invoice.id))
 
+  // Counted per invoice because the mocks live for the whole file and the recurring test above
+  // renders too: every generated invoice has a layout, the built-in one when there is no template.
+  const renders = mocks.renderHtmlToPdf.mock.calls.filter(([input]) =>
+    input.html.includes("INV-9001")
+  )
+
   expect(after?.pdfUploadId).toBe(uploadId)
-  expect(mocks.renderHtmlToPdf).toHaveBeenCalledTimes(1)
+  expect(renders).toHaveLength(1)
 })
 
 test("renders the signed contract PDF and fills the write-once signature pointer", async () => {

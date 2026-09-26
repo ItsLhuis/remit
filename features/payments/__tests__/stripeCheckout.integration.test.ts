@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, invoices, payments, settings } from "@/database/schema"
 
-import { makeInvoice, makeSettings } from "@/tests/factories"
+import { makeCreditNote, makeInvoice, makeSettings } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
@@ -201,6 +201,30 @@ describe("public invoice checkout", () => {
 
     expect(params.line_items?.[0]?.price_data?.unit_amount).toBe(17500)
     expect(params.line_items?.[0]?.price_data?.currency).toBe("eur")
+  })
+
+  test("charges the credited balance of an invoice a credit note stands against", async () => {
+    const { startPublicInvoiceCheckout } = await import("@/features/invoices/server")
+
+    const invoice = await makeInvoice({
+      status: "sent",
+      totalCents: 30000,
+      amountPaidCents: 5000,
+      currency: "EUR"
+    })
+
+    await makeCreditNote({ invoiceId: invoice.id, subtotalCents: 10000, totalCents: 10000 })
+
+    await startPublicInvoiceCheckout({
+      token: publicTokenOf(invoice),
+      ipAddress: null,
+      userAgent: null
+    })
+
+    const [params, options] = lastCreateSessionCall()
+
+    expect(params.line_items?.[0]?.price_data?.unit_amount).toBe(15000)
+    expect(options.idempotencyKey).toBe(`remit_invoice_checkout_${invoice.id}_15000`)
   })
 
   test("reuses one idempotency key for repeated submissions on the same balance", async () => {

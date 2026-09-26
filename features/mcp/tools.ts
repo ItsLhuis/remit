@@ -133,7 +133,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     name: "list_invoices",
     title: "List invoices",
     description:
-      "List invoices, soonest due first, with each invoice's state, total, amount paid and amount still outstanding. Filter by state, client, issue date or due date to answer what is overdue, what is owed by a client, or what was invoiced in a period.",
+      "List invoices, soonest due first, with each invoice's state as the application shows it (`displayStatus`: overdue, partially paid, paid, sent or draft), total, amount paid and amount still outstanding after payments and credit notes. Filter by state, client, issue date or due date to answer what is overdue, what is owed by a client, or what was invoiced in a period.",
     operation: apiOperations.listInvoices,
     inputSchema: listInvoicesInputSchema,
     read: (input) =>
@@ -151,7 +151,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
     name: "get_invoice",
     title: "Get an invoice",
     description:
-      "One invoice with its line items, subtotal, discount, tax, total, amount paid, dates and the notes printed on it.",
+      "One invoice with its state as the application shows it (`displayStatus`), line items, subtotal, discount, tax, total, amount paid, amount still outstanding after payments and credit notes, dates and the notes printed on it.",
     operation: apiOperations.getInvoice,
     inputSchema: getInvoiceInputSchema,
     target: (input) => ({ entityType: "invoice", entityId: input.invoiceId }),

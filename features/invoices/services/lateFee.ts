@@ -39,6 +39,7 @@ export type LateFeeCandidate = {
   paidAt: Date | null
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   lateFeeCents: number | null
 }
 

@@ -198,7 +198,7 @@ describe("contract mutations", () => {
 
     const result = await sendContract({ id: contract.id })
 
-    expect(result).toEqual({ data: { id: contract.id } })
+    expect(result).toEqual({ data: { id: contract.id, emailed: false } })
 
     const [stored] = await database.select().from(contracts).where(eq(contracts.id, contract.id))
 

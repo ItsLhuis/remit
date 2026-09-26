@@ -24,6 +24,7 @@ import { database } from "@/database"
 import { clients, invoices, projects } from "@/database/schema"
 
 import { getInvoiceDefaults } from "./queries"
+import { getInvoiceCreditedTotalsSubquery, getInvoiceOutstandingSql } from "./queryFragments"
 import {
   parseInvoiceOverviewQuery,
   INVOICE_OVERVIEW_DEFAULT_SORT,
@@ -79,6 +80,7 @@ type InvoiceOverviewRow = {
   currency: string
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   issueDate: Date | null
   dueDate: Date | null
   paidAt: Date | null
@@ -126,6 +128,7 @@ export async function listInvoiceOverview(
   now: Date
 ): Promise<{ rows: InvoiceOverviewItem[]; rowCount: number }> {
   const whereClause = getInvoiceOverviewWhereClause(query, now)
+  const credited = getInvoiceCreditedTotalsSubquery()
 
   const sortColumns: Record<InvoiceOverviewSortField, AnyColumn | SQL> = {
     number: invoices.number,
@@ -133,7 +136,7 @@ export async function listInvoiceOverview(
     issueDate: invoices.issueDate,
     dueDate: invoices.dueDate,
     total: invoices.totalCents,
-    outstanding: getInvoiceOutstandingExpression()
+    outstanding: getInvoiceOutstandingSql(credited.creditedCents)
   }
 
   const sort = query.sort.length > 0 ? query.sort : [...INVOICE_OVERVIEW_DEFAULT_SORT]
@@ -144,11 +147,15 @@ export async function listInvoiceOverview(
 
   const [rows, totalRows] = await Promise.all([
     database
-      .select(invoiceOverviewColumns)
+      .select({
+        ...invoiceOverviewColumns,
+        creditedCents: sql<number>`coalesce(${credited.creditedCents}, 0)`
+      })
       .from(invoices)
       .leftJoin(projects, eq(projects.id, invoices.projectId))
       .leftJoin(clients, eq(clients.id, invoices.clientId))
       .leftJoin(projectClients, eq(projectClients.id, projects.clientId))
+      .leftJoin(credited, eq(credited.invoiceId, invoices.id))
       .where(whereClause)
       .orderBy(...orderBy)
       .limit(query.perPage)
@@ -172,16 +179,20 @@ async function getInvoiceOverviewSummary(
   defaultCurrency: string,
   now: Date
 ): Promise<InvoicesSummaryResult> {
+  const credited = getInvoiceCreditedTotalsSubquery()
+
   const rows = await database
     .select({
       status: invoices.status,
       currency: invoices.currency,
       totalCents: invoices.totalCents,
       amountPaidCents: invoices.amountPaidCents,
+      creditedCents: sql<number>`coalesce(${credited.creditedCents}, 0)`,
       dueDate: invoices.dueDate,
       paidAt: invoices.paidAt
     })
     .from(invoices)
+    .leftJoin(credited, eq(credited.invoiceId, invoices.id))
     .where(isNull(invoices.deletedAt))
 
   return summarizeInvoices(
@@ -190,6 +201,7 @@ async function getInvoiceOverviewSummary(
       currency: row.currency ?? defaultCurrency,
       totalCents: Number(row.totalCents),
       amountPaidCents: Number(row.amountPaidCents),
+      creditedCents: Number(row.creditedCents),
       dueDate: row.dueDate,
       paidAt: row.paidAt
     })),
@@ -219,12 +231,6 @@ async function getInvoiceOverviewFilterOptions(): Promise<InvoiceOverviewFilterO
       first.name.localeCompare(second.name)
     )
   }
-}
-
-// The clamp mirrors `getInvoiceOutstandingCents` in services/invoiceStatusView.ts so the column the
-// table sorts by and the amount each row prints cannot disagree about an over-applied payment.
-function getInvoiceOutstandingExpression(): SQL<number> {
-  return sql<number>`cast(greatest(${invoices.totalCents} - ${invoices.amountPaidCents}, 0) as bigint)`
 }
 
 function getInvoiceOverviewWhereClause(query: InvoiceOverviewQuery, now: Date): SQL | undefined {
@@ -307,6 +313,7 @@ function toInvoiceOverviewItem(
 ): InvoiceOverviewItem {
   const totalCents = Number(row.totalCents)
   const amountPaidCents = Number(row.amountPaidCents)
+  const creditedCents = Number(row.creditedCents)
 
   return {
     id: row.id,
@@ -319,7 +326,7 @@ function toInvoiceOverviewItem(
     currency: row.currency ?? defaultCurrency,
     totalCents,
     amountPaidCents,
-    outstandingCents: getInvoiceOutstandingCents({ totalCents, amountPaidCents }),
+    outstandingCents: getInvoiceOutstandingCents({ totalCents, amountPaidCents, creditedCents }),
     issueDate: row.issueDate,
     dueDate: row.dueDate,
     paidAt: row.paidAt,

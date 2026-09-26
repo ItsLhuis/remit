@@ -52,12 +52,27 @@ export function isInvoicePartiallyPaid(
   return invoice.amountPaidCents > 0 && invoice.amountPaidCents < invoice.totalCents
 }
 
-// What is still owed, in integer cents. Clamped at zero so an over-application recorded by a future
-// payment path can never render as a negative amount due.
-export function getInvoiceOutstandingCents(
-  invoice: Pick<InvoiceStatusViewInput, "amountPaidCents" | "totalCents">
-): number {
-  return Math.max(invoice.totalCents - invoice.amountPaidCents, 0)
+export type InvoiceOutstandingInput = {
+  totalCents: number
+  amountPaidCents: number
+  // The sum of the live credit notes issued against the invoice.
+  creditedCents: number
+}
+
+// What the client still owes, in integer cents — the one definition every surface that shows,
+// charges or exposes it reads, so the invoice page, the portal, checkout and the API cannot quote
+// two amounts for one invoice.
+//
+// A credit note nets here rather than in `total_cents`: the total is what the issued document said
+// and is never rewritten by a correction (`features/creditNotes/services/effectiveReceivable.ts`),
+// while a late fee is already inside the total (ADR-0033) and must not be added a second time.
+// `features/payments/services/paymentSettlement.ts` settles an invoice exactly when this reaches
+// zero, which is what keeps a settled invoice from reading as owing money.
+//
+// Clamped at zero: an invoice credited beyond what was left to pay leaves nothing outstanding, not a
+// negative balance to chase.
+export function getInvoiceOutstandingCents(invoice: InvoiceOutstandingInput): number {
+  return Math.max(invoice.totalCents - invoice.creditedCents - invoice.amountPaidCents, 0)
 }
 
 function toUtcDayValue(value: Date): number {

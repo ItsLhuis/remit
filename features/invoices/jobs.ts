@@ -25,7 +25,9 @@ import { sendInvoiceEmail } from "./emailJob"
 import { emitInvoiceOverdue, emitInvoiceReminderSent } from "./events"
 import { applyLateFees } from "./lateFees"
 import { renderInvoicePdf } from "./pdfRenderJob"
+import { readInvoiceCreditedCents } from "./queryFragments"
 import {
+  getInvoiceOutstandingCents,
   getReminderWindowDays,
   isInvoiceOverdue,
   resolveDueReminder,
@@ -171,6 +173,7 @@ type ReminderTarget = {
   number: string
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   lateFeeCents: number | null
   currency: string
   dueDate: Date
@@ -366,6 +369,7 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
     number: row.number,
     totalCents: Number(row.totalCents),
     amountPaidCents: Number(row.amountPaidCents),
+    creditedCents: await readInvoiceCreditedCents(row.id),
     lateFeeCents: row.lateFeeCents === null ? null : Number(row.lateFeeCents),
     currency: row.currency,
     dueDate: row.dueDate,
@@ -394,8 +398,9 @@ function renderReminderBody(
   const values = {
     clientName: target.recipientName,
     number: target.number,
-    // What is still owed, not the face value: a partly paid invoice must not chase the full amount.
-    amount: formatCurrency(target.totalCents - target.amountPaidCents, target.currency, locale),
+    // What is still owed, not the face value: a partly paid or credited invoice must not chase the
+    // full amount.
+    amount: formatCurrency(getInvoiceOutstandingCents(target), target.currency, locale),
     dueDate: formatDay(target.dueDate, locale),
     url: `${env.REMIT_PUBLIC_URL}/i/${target.publicToken}`,
     businessName: instance.businessName ?? "Remit"

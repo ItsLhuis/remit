@@ -1,16 +1,22 @@
 import { and, eq, isNotNull, isNull, ne, sql } from "drizzle-orm"
 
 import { database } from "@/database"
-import { invoices, payments } from "@/database/schema"
+import { creditNotes, invoices, payments } from "@/database/schema"
 
 import { type ManualPaymentMethod } from "./schemas"
-import { evaluateInvoiceSettlement, type InvoiceSettlement } from "./services"
+import {
+  evaluateInvoiceSettlement,
+  getInvoiceOutstandingCents,
+  type InvoiceSettlement
+} from "./services"
 
 // Every write that can move `invoices.amount_paid_cents` lives here, behind one transactional shape,
 // because the aggregate is only trustworthy if the payment row and the invoice column can never be
 // written apart. Three callers share it: the server actions in mutations.ts, the Stripe receiver in
 // stripeWebhook.ts, and `markInvoicePaid` in `features/invoices/mutations.ts` by way of
-// `recordInvoiceSettlement`. None of them recompute the aggregate themselves.
+// `recordInvoiceSettlement`. None of them recompute the aggregate themselves. A fourth,
+// `features/creditNotes/mutations.ts`, calls `resettleInvoiceWrite` because a credit note settles an
+// invoice as surely as a payment does (`services/paymentSettlement.ts`).
 //
 // The module is deliberately not `"use server"`: it exports values other than async functions, and
 // its callers are server modules rather than the client.
@@ -177,11 +183,9 @@ export async function updatePaymentWrite(
     // recorded against the wrong invoice is removed instead.
     if (existing.stripePaymentIntentId) return { status: "rejected", reason: "provider_owned" }
 
-    const amountPaidCents =
-      (await sumRecordedPayments(transaction, invoice.id, input.id)) + input.amountCents
-    const settlement = evaluateInvoiceSettlement({
-      amountPaidCents,
-      totalCents: invoice.totalCents
+    const { amountPaidCents, settlement } = await decideSettlement(transaction, invoice, {
+      addedCents: input.amountCents,
+      replacedPaymentId: input.id
     })
 
     if (settlement.outcome === "overpaid") return { status: "rejected", reason: "overpaid" }
@@ -240,10 +244,8 @@ export async function restorePaymentWrite(paymentId: string): Promise<PaymentWri
     if (!invoice) return { status: "rejected", reason: "invoice_not_found" }
 
     const amountCents = Number(owner.amountCents)
-    const amountPaidCents = (await sumRecordedPayments(transaction, invoice.id)) + amountCents
-    const settlement = evaluateInvoiceSettlement({
-      amountPaidCents,
-      totalCents: invoice.totalCents
+    const { amountPaidCents, settlement } = await decideSettlement(transaction, invoice, {
+      addedCents: amountCents
     })
 
     // The same guard `addPayment` applies, and it is load-bearing here rather than defensive: money
@@ -295,11 +297,7 @@ export async function softDeletePaymentWrite(paymentId: string): Promise<Payment
 
     if (!deleted) return { status: "rejected", reason: "payment_not_found" }
 
-    const amountPaidCents = await sumRecordedPayments(transaction, invoice.id)
-    const settlement = evaluateInvoiceSettlement({
-      amountPaidCents,
-      totalCents: invoice.totalCents
-    })
+    const { amountPaidCents, settlement } = await decideSettlement(transaction, invoice)
 
     await applyInvoiceAggregate(transaction, invoice, {
       amountPaidCents,
@@ -321,7 +319,9 @@ export async function softDeletePaymentWrite(paymentId: string): Promise<Payment
 
 // The whole outstanding balance in one row, which is what "mark as paid" has always meant. It exists
 // so `markInvoicePaid` can keep its name and its gate while the money it records goes through the
-// same aggregate as every other payment.
+// same aggregate as every other payment. The balance is the one outstanding definition, credit notes
+// netted, so marking a credited invoice paid books the remainder the client owed and not the part
+// already credited.
 export async function settleInvoiceWrite(input: {
   invoiceId: string
   method: ManualPaymentMethod
@@ -334,8 +334,11 @@ export async function settleInvoiceWrite(input: {
 
     if (invoice.status === "draft") return { status: "rejected", reason: "invoice_not_issued" }
 
-    const outstandingCents =
-      invoice.totalCents - (await sumRecordedPayments(transaction, invoice.id))
+    const outstandingCents = getInvoiceOutstandingCents({
+      totalCents: invoice.totalCents,
+      amountPaidCents: await sumRecordedPayments(transaction, invoice.id),
+      creditedCents: await sumCreditedCents(transaction, invoice.id)
+    })
 
     if (outstandingCents <= 0) return { status: "rejected", reason: "already_settled" }
 
@@ -347,6 +350,31 @@ export async function settleInvoiceWrite(input: {
       notes: null,
       stripePaymentIntentId: null
     })
+  })
+}
+
+// Re-decides settlement after a credit note is issued, withdrawn or restored, inside the caller's
+// transaction and after its write, so the decision reads that write. It moves no money and records
+// no payment; it only brings `status` and `paid_at` back into line with what is now owed.
+//
+// The caller's credit-note write needs no lock of its own taken first. An insert references the
+// invoice and takes a key-share lock on it, which waits for any payment holding `FOR UPDATE`; a
+// withdrawal or restore does not, but it takes the lock here before deciding, so whichever of it and
+// a concurrent payment commits last re-reads everything the other committed.
+export async function resettleInvoiceWrite(
+  transaction: PaymentTransaction,
+  invoiceId: string
+): Promise<void> {
+  const invoice = await lockInvoice(transaction, invoiceId)
+
+  if (!invoice || invoice.status === "draft") return
+
+  const { amountPaidCents, settlement } = await decideSettlement(transaction, invoice)
+
+  await applyInvoiceAggregate(transaction, invoice, {
+    amountPaidCents,
+    settlement,
+    settledAt: new Date()
   })
 }
 
@@ -387,10 +415,8 @@ async function addPayment(
   amountCents: number,
   values: PaymentInsertValues
 ): Promise<PaymentWriteResult> {
-  const amountPaidCents = (await sumRecordedPayments(transaction, invoice.id)) + amountCents
-  const settlement = evaluateInvoiceSettlement({
-    amountPaidCents,
-    totalCents: invoice.totalCents
+  const { amountPaidCents, settlement } = await decideSettlement(transaction, invoice, {
+    addedCents: amountCents
   })
 
   if (settlement.outcome === "overpaid") return { status: "rejected", reason: "overpaid" }
@@ -417,6 +443,35 @@ async function addPayment(
       settlement
     })
   }
+}
+
+type SettlementChange = {
+  addedCents?: number
+  replacedPaymentId?: string
+}
+
+type SettlementDecision = {
+  amountPaidCents: number
+  settlement: InvoiceSettlement
+}
+
+// The one settlement decision every write makes, under the invoice lock: the recorded payments,
+// without the row an edit replaces and with the amount a write adds, against the total less the live
+// credit notes (ADR-0044).
+async function decideSettlement(
+  transaction: PaymentTransaction,
+  invoice: LockedInvoice,
+  { addedCents = 0, replacedPaymentId }: SettlementChange = {}
+): Promise<SettlementDecision> {
+  const amountPaidCents =
+    (await sumRecordedPayments(transaction, invoice.id, replacedPaymentId)) + addedCents
+  const settlement = evaluateInvoiceSettlement({
+    amountPaidCents,
+    totalCents: invoice.totalCents,
+    creditedCents: await sumCreditedCents(transaction, invoice.id)
+  })
+
+  return { amountPaidCents, settlement }
 }
 
 async function findPaymentInvoiceId(
@@ -448,6 +503,23 @@ async function sumRecordedPayments(
         excludePaymentId ? ne(payments.id, excludePaymentId) : undefined
       )
     )
+
+  return Number(row?.total ?? 0)
+}
+
+// Read directly from `credit_notes`, and a deliberate twin of `features/invoices/queryFragments.ts`'s
+// `readInvoiceCreditedCents`: `features/creditNotes` and `features/invoices` both reach this module
+// through `@/features/payments/server`, so importing either from here would close a cycle, and the
+// invoices copy cannot come from that barrel because the worker loads it and the barrel carries
+// server actions. The table is shared substrate; both count live notes only.
+async function sumCreditedCents(
+  transaction: PaymentTransaction,
+  invoiceId: string
+): Promise<number> {
+  const [row] = await transaction
+    .select({ total: sql<string>`coalesce(sum(${creditNotes.totalCents}), 0)` })
+    .from(creditNotes)
+    .where(and(eq(creditNotes.invoiceId, invoiceId), isNull(creditNotes.deletedAt)))
 
   return Number(row?.total ?? 0)
 }

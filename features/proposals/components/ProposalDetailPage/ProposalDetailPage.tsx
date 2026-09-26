@@ -66,7 +66,8 @@ const ProposalDetailPage = ({ proposal }: ProposalDetailPageProps) => {
         return
       }
 
-      toast.success(t("proposals.notifications.sent"))
+      if (result.data.emailed) toast.success(t("proposals.notifications.sent"))
+      else toast.warning(t("common.delivery.noProvider"))
 
       setSendOpen(false)
 

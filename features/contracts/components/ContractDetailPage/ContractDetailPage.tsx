@@ -70,7 +70,8 @@ const ContractDetailPage = ({ contract, locale, timeZone }: ContractDetailPagePr
         return
       }
 
-      toast.success(t("contracts.notifications.sent"))
+      if (result.data.emailed) toast.success(t("contracts.notifications.sent"))
+      else toast.warning(t("common.delivery.noProvider"))
 
       setSendOpen(false)
 

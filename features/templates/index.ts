@@ -54,6 +54,7 @@ export {
   type MergeBusiness,
   type MergeClient,
   type MergePayment,
+  type MergeVariableId,
   type TemplateCategory,
   type TemplateRenderData
 } from "./services"

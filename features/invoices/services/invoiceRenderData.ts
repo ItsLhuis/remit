@@ -15,6 +15,8 @@ import {
   type TemplateRenderData
 } from "@/features/templates/services"
 
+import { getInvoiceOutstandingCents } from "./invoiceStatusView"
+
 // The merge values an invoice document renders with, assembled from the invoice row and the records
 // it points at. It mirrors `MERGE_VARIABLES.invoice` in
 // `features/templates/services/mergeVariables.ts` exactly: every variable that type whitelists gets
@@ -33,6 +35,7 @@ export type InvoiceRenderInvoice = {
   taxAmountCents: number
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   lateFeeCents: number | null
   exchangeRate: string | null
   issueDate: Date | null
@@ -95,9 +98,12 @@ export function buildInvoiceRenderData({
       "invoice.tax": money(invoice.taxAmountCents),
       "invoice.total": money(invoice.totalCents),
       "invoice.amountPaid": money(invoice.amountPaidCents),
+      // Blank rather than a zero amount when nothing is credited, for the reason `invoice.lateFee`
+      // is: a template that places the line would otherwise print money nobody credited.
+      "invoice.credited": invoice.creditedCents > 0 ? money(invoice.creditedCents) : "",
       // Computed, not stored: what the client still owes is the only figure a reminder or a payment
-      // block may print, and a partly paid invoice must never show its face value as due.
-      "invoice.amountDue": money(invoice.totalCents - invoice.amountPaidCents),
+      // block may print, and a partly paid or credited invoice must never show its face value as due.
+      "invoice.amountDue": money(getInvoiceOutstandingCents(invoice)),
       "invoice.issueDate": mergeDay(invoice.issueDate, locale),
       "invoice.dueDate": mergeDay(invoice.dueDate, locale),
       "invoice.paidAt": mergeDay(invoice.paidAt, locale),

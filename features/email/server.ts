@@ -8,6 +8,7 @@ export {
 export { isEmailConfigured, type EmailSettings } from "./services/isEmailConfigured"
 
 export {
+  isDocumentEmailConfigured,
   sendDocumentEmail,
   type DocumentEmailAttachment,
   type DocumentEmailInput,

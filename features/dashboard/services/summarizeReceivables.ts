@@ -1,3 +1,5 @@
+import { getInvoiceOutstandingCents } from "@/features/invoices/services"
+
 import { toCurrencyTotals, type CurrencyTotal } from "./currencyTotals"
 
 export type ReceivableInvoiceRow = {
@@ -15,17 +17,9 @@ export type ReceivablesSummary = {
   overdueCount: number
 }
 
-// What is still collectable on one invoice, net of the credit notes raised against it. A credit
-// note cancels part of an invoice without any money moving, so it belongs here and not in revenue.
-// Clamped at zero so an over-credited or over-paid invoice reads as settled instead of dragging
-// another invoice's balance down with it — the same clamp as `getInvoiceOutstandingCents` in
-// features/invoices/services/invoiceStatusView.ts, which does not know about credit notes.
-export function getReceivableCents(
-  row: Pick<ReceivableInvoiceRow, "totalCents" | "amountPaidCents" | "creditedCents">
-): number {
-  return Math.max(row.totalCents - row.amountPaidCents - row.creditedCents, 0)
-}
-
+// Each invoice's receivable is `getInvoiceOutstandingCents`, clamped per invoice before it is summed
+// so an over-credited or over-paid invoice cannot drag another invoice's balance down with it.
+//
 // An invoice whose receivable has reached zero is counted nowhere, in neither the sum nor the
 // count: fully credited or fully paid, it is no longer money the freelancer is waiting for, and a
 // count that included it would contradict a total of zero sitting beside it. `overdue` is the
@@ -39,7 +33,7 @@ export function summarizeReceivables(rows: readonly ReceivableInvoiceRow[]): Rec
   let overdueCount = 0
 
   for (const row of rows) {
-    const receivableCents = getReceivableCents(row)
+    const receivableCents = getInvoiceOutstandingCents(row)
 
     if (receivableCents === 0) continue
 

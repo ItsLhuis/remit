@@ -53,11 +53,10 @@ export type DocumentEmailInput = {
 export type DocumentEmailResult = "sent" | "skipped" | "already_sent"
 
 export async function sendDocumentEmail(input: DocumentEmailInput): Promise<DocumentEmailResult> {
-  const settings = await database.query.settings.findFirst()
-
   // An instance with no mail provider would otherwise burn five retries on `not_configured`, and the
-  // freelancer has no way to see why.
-  if (!settings || !isEmailConfigured(settings)) return "skipped"
+  // freelancer has no way to see why. The send actions ask `isDocumentEmailConfigured` first and
+  // tell the owner then, which is the moment this skip would otherwise have looked like a success.
+  if (!(await isDocumentEmailConfigured())) return "skipped"
 
   if (await hasAlreadySent(input)) return "already_sent"
 
@@ -133,6 +132,12 @@ export async function sendDocumentEmail(input: DocumentEmailInput): Promise<Docu
   })
 
   return "sent"
+}
+
+export async function isDocumentEmailConfigured(): Promise<boolean> {
+  const settings = await database.query.settings.findFirst()
+
+  return settings ? isEmailConfigured(settings) : false
 }
 
 // The audit trail is the dedupe key rather than a column on the document, the same choice

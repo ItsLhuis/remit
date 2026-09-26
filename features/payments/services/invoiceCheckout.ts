@@ -1,7 +1,10 @@
-export type InvoiceCheckoutInput = {
+import {
+  getInvoiceOutstandingCents,
+  type InvoiceOutstandingInput
+} from "@/features/invoices/services"
+
+export type InvoiceCheckoutInput = InvoiceOutstandingInput & {
   status: "draft" | "sent" | "paid"
-  totalCents: number
-  amountPaidCents: number
   stripeConfigured: boolean
 }
 
@@ -18,17 +21,15 @@ export type InvoiceCheckoutDecision =
 // A partially paid invoice is payable for its remainder rather than refused: the client owes the
 // balance, `deriveInvoiceStatusView` already models that state, and refusing it would leave the only
 // card path unable to finish a payment it started. The amount is therefore the outstanding balance
-// and never the total.
+// and never the total — the same `getInvoiceOutstandingCents` the public invoice page prints, credit
+// notes included, so the card is never charged more than the client was shown.
 //
 // The refusals are ordered by what a caller may learn: configuration is a property of the instance
 // and says nothing about the token, so it is checked first; the two invoice-shaped refusals below it
 // are collapsed into one response by the route.
-export function decideInvoiceCheckout({
-  status,
-  totalCents,
-  amountPaidCents,
-  stripeConfigured
-}: InvoiceCheckoutInput): InvoiceCheckoutDecision {
+export function decideInvoiceCheckout(invoice: InvoiceCheckoutInput): InvoiceCheckoutDecision {
+  const { status, stripeConfigured } = invoice
+
   if (!stripeConfigured) return { payable: false, reason: "not_configured" }
 
   // The same guard `paymentWrites.ts` applies to every other way money reaches an invoice, stated
@@ -36,7 +37,7 @@ export function decideInvoiceCheckout({
   // been issued, so there is nothing for a client to have been asked to pay.
   if (status === "draft") return { payable: false, reason: "invoice_not_issued" }
 
-  const outstandingCents = totalCents - amountPaidCents
+  const outstandingCents = getInvoiceOutstandingCents(invoice)
 
   if (outstandingCents <= 0) return { payable: false, reason: "nothing_outstanding" }
 
@@ -47,8 +48,9 @@ export function decideInvoiceCheckout({
 // charge the same invoice the same amount produce the same key, so Stripe replays the first session
 // instead of opening a second — one URL, one charge, however many times the button is pressed.
 //
-// The amount is part of the key on purpose: once a payment lands the outstanding balance changes,
-// which is a genuinely different charge and has to be allowed to open its own session. Stripe
+// The amount is part of the key on purpose: once a payment lands, or a credit note is issued or
+// withdrawn, the outstanding balance changes, which is a genuinely different charge and has to be
+// allowed to open its own session rather than replay one priced for the old balance. Stripe
 // retains a key for 24 hours, which is also the default lifetime of the session it created, so the
 // two expire together and a stale key can never resurrect an expired session.
 export function buildInvoiceCheckoutIdempotencyKey(invoiceId: string, amountCents: number): string {

@@ -6,6 +6,8 @@ export {
   updatePayment
 } from "./mutations"
 
+export { resettleInvoiceWrite } from "./paymentWrites"
+
 export { listInvoicePayments } from "./queries"
 
 export { startInvoiceCheckout } from "./stripeCheckout"

@@ -108,10 +108,33 @@ export const apiProjectDetailSchema = apiProjectSchema
 
 export type ApiProjectDetail = z.infer<typeof apiProjectDetailSchema>
 
+// Two statuses, named apart so a consumer cannot mistake one for the other. `status` is the stored
+// lifecycle and changes only when the invoice is sent or settled; `displayStatus` is what every
+// badge in the application shows, derived when the response is built by
+// `features/invoices/services/invoiceStatusView.ts`'s `deriveInvoiceStatusView` and never by a
+// second rule here. Both are additive under ADR-0038: `status` keeps its meaning.
+const storedInvoiceStatus = z.enum(invoiceStatus.enumValues).meta({
+  description:
+    "Stored lifecycle status. Overdue and partially paid are never stored; see `displayStatus`."
+})
+
+const invoiceDisplayStatus = z
+  .enum([...invoiceStatus.enumValues, "overdue", "partially_paid"])
+  .meta({
+    description:
+      "The status the application shows, derived when the response is built: `paid` once settled, `overdue` once the due date has passed unpaid, `partially_paid` once part has been paid, otherwise the stored `status`."
+  })
+
+const outstandingMinorUnits = minorUnits.meta({
+  description:
+    "What the client still owes, in integer minor units of `currency`: the total less payments and credit notes, never below zero."
+})
+
 const invoiceBaseShape = {
   id: z.uuid(),
   number: z.string(),
-  status: z.enum(invoiceStatus.enumValues),
+  status: storedInvoiceStatus,
+  displayStatus: invoiceDisplayStatus,
   currency: currencyCode,
   totalCents: minorUnits,
   amountPaidCents: minorUnits,
@@ -125,7 +148,7 @@ const invoiceBaseShape = {
 export const apiInvoiceSchema = z
   .object({
     ...invoiceBaseShape,
-    outstandingCents: minorUnits,
+    outstandingCents: outstandingMinorUnits,
     createdAt: timestamp
   })
   .meta({ id: "Invoice" })
@@ -151,6 +174,7 @@ const invoiceLineItemSchema = z
 export const apiInvoiceDetailSchema = z
   .object({
     ...invoiceBaseShape,
+    outstandingCents: outstandingMinorUnits,
     subtotalCents: minorUnits,
     discountAmountTotalCents: minorUnits,
     taxAmountCents: minorUnits,

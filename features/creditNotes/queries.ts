@@ -19,6 +19,8 @@ import { alias } from "drizzle-orm/pg-core"
 import { database } from "@/database"
 import { clients, creditNotes, invoices, lineItems, projects, taxRates } from "@/database/schema"
 
+import { getInvoiceOutstandingCents } from "@/features/invoices"
+
 import {
   creditNoteIdSchema,
   invoiceCreditNotesParamsSchema,
@@ -28,7 +30,6 @@ import {
   type CreditNoteOverviewSortField
 } from "./schemas"
 import {
-  computeInvoiceOutstandingAfterCredits,
   sumCreditNoteTotalCents,
   summarizeCreditNotes,
   type CreditNotesSummaryResult
@@ -141,7 +142,8 @@ export async function getCreditNoteDetail(input: unknown): Promise<CreditNoteDet
 
 // The invoice tables are read directly rather than through `@/features/invoices/server`: that module
 // already imports this feature's server barrel for the credit-note figures on its detail surface, so
-// an arrow back the other way would make the two modules mutually dependent (`import/no-cycle`).
+// an arrow back the other way would make the two modules mutually dependent (`import/no-cycle`). The
+// client-safe root barrel is a different module and carries the pure outstanding definition.
 // Database schema is shared substrate, so this is a read of the substrate rather than a reach into
 // another feature's code (architecture.md, boundary rule).
 export async function getCreditNoteEditorData(
@@ -182,7 +184,7 @@ export async function getCreditNoteEditorData(
     getCreditNoteDefaults()
   ])
 
-  const creditNoteTotals = existing.map((creditNote) => creditNote.totalCents)
+  const creditedCents = sumCreditNoteTotalCents(existing.map((creditNote) => creditNote.totalCents))
   const totalCents = Number(invoice.totalCents)
 
   return {
@@ -192,11 +194,12 @@ export async function getCreditNoteEditorData(
     clientName: invoice.directClientName ?? invoice.projectClientName ?? "",
     currency: invoice.currency,
     invoiceTotalCents: totalCents,
-    creditedCents: sumCreditNoteTotalCents(creditNoteTotals),
-    outstandingCents: computeInvoiceOutstandingAfterCredits(
-      { totalCents, amountPaidCents: Number(invoice.amountPaidCents) },
-      creditNoteTotals
-    ),
+    creditedCents,
+    outstandingCents: getInvoiceOutstandingCents({
+      totalCents,
+      amountPaidCents: Number(invoice.amountPaidCents),
+      creditedCents
+    }),
     taxRates: taxRateOptions,
     defaults
   }

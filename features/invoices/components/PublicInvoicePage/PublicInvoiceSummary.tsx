@@ -62,6 +62,13 @@ const PublicInvoiceSummary = ({ invoice }: PublicInvoiceSummaryProps) => {
           value={formatCurrency(invoice.taxAmountCents, currency, locale)}
           mono
         />
+        {invoice.lateFeeCents ? (
+          <InvoiceDetailRow
+            label={t("invoices.totals.lateFee")}
+            value={formatCurrency(invoice.lateFeeCents, currency, locale)}
+            mono
+          />
+        ) : null}
         <Separator />
         <div className="flex items-baseline justify-between gap-4">
           <Typography affects={["small", "medium"]}>{t("invoices.totals.total")}</Typography>
@@ -69,6 +76,17 @@ const PublicInvoiceSummary = ({ invoice }: PublicInvoiceSummaryProps) => {
             {formatCurrency(invoice.totalCents, currency, locale)}
           </span>
         </div>
+        {invoice.creditNotes.map((creditNote) => (
+          <InvoiceDetailRow
+            key={creditNote.number}
+            label={t("invoices.public.summary.creditNote", {
+              number: creditNote.number,
+              date: formatDay(creditNote.issuedAt, locale)
+            })}
+            value={formatCurrency(-creditNote.totalCents, currency, locale)}
+            mono
+          />
+        ))}
         {invoice.amountPaidCents > 0 ? (
           <InvoiceDetailRow
             label={t("invoices.totals.amountPaid")}

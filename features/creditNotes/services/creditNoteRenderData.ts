@@ -32,6 +32,9 @@ export type CreditNoteRenderCreditNote = {
   taxAmountCents: number
   totalCents: number
   issuedAt: Date | null
+  // The number of the invoice this note corrects. A credit note that does not name what it corrects
+  // is not a valid correction, which is why every layout is expected to print it.
+  invoiceNumber: string
 }
 
 export type CreditNoteRenderClient = MergeClient
@@ -80,6 +83,7 @@ export function buildCreditNoteRenderData({
       "creditNote.tax": money(creditNote.taxAmountCents),
       "creditNote.total": money(creditNote.totalCents),
       "creditNote.issueDate": mergeDay(creditNote.issuedAt, locale),
+      "creditNote.invoiceNumber": creditNote.invoiceNumber,
       ...buildBusinessMergeValues(business),
       ...buildPaymentMergeValues(payment)
     },

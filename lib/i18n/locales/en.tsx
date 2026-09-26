@@ -6,6 +6,9 @@ export const english: Language = {
   isRtl: false,
   translations: {
     common: {
+      delivery: {
+        noProvider: "Marked as sent, but no email went out because no mail provider is configured"
+      },
       actions: {
         save: "Save",
         saveChanges: "Save changes",
@@ -2578,6 +2581,9 @@ export const english: Language = {
         lateFeePercentagePolicy: "{percentage}% of the outstanding balance",
         lateFeeFixedPolicy: "Flat fee of {amount}",
         lateFeeUnknownPolicy: "Terms no longer on record",
+        lateFeeNotOnDocumentTitle: "The PDF does not show this fee",
+        lateFeeNotOnDocumentDescription:
+          "Your invoice template has no Invoice late fee variable, so the PDF states the new total without a late fee line. Add the variable to the template to show it.",
         lateFeeAdjust: "Adjust fee",
         lateFeeWaive: "Waive fee",
         lateFeeDialogTitle: "Adjust the late fee",
@@ -2693,7 +2699,8 @@ export const english: Language = {
           issueDate: "Issued",
           dueDate: "Due",
           paidAt: "Paid",
-          noDate: "Not set"
+          noDate: "Not set",
+          creditNote: "Credit note {number}, {date}"
         },
         payment: {
           title: "How to pay",
@@ -3456,7 +3463,9 @@ export const english: Language = {
         defaultsValue: "{covered}/{total}",
         defaultsHint: "Every type has a default template",
         defaultsMissingHint:
-          "{count, plural, one {# type falls back to the built-in layout} other {# types fall back to the built-in layout}}",
+          "{count, plural, one {# type uses Remit's built-in version} other {# types use Remit's built-in version}}",
+        defaultsContractMissingHint:
+          "Contracts take their terms from a template, so add one to send them",
         defaultsCovered: "Set",
         defaultsMissing: "Missing",
         breakdownEmpty: "No templates yet"
@@ -3756,6 +3765,7 @@ export const english: Language = {
           invoiceTax: "Invoice tax",
           invoiceTotal: "Invoice total",
           invoiceAmountPaid: "Invoice amount paid",
+          invoiceCredited: "Invoice amount credited",
           invoiceAmountDue: "Invoice amount due",
           invoiceIssueDate: "Invoice issue date",
           invoiceDueDate: "Invoice due date",
@@ -3787,6 +3797,7 @@ export const english: Language = {
           creditNoteTax: "Credit note tax",
           creditNoteTotal: "Credit note total",
           creditNoteIssueDate: "Credit note issue date",
+          creditNoteInvoiceNumber: "Credited invoice number",
           lineItemDescription: "Line item description",
           lineItemUnit: "Line item unit",
           lineItemQuantity: "Line item quantity",
@@ -3797,6 +3808,37 @@ export const english: Language = {
           lineItemTaxAmount: "Line item tax amount",
           lineItemTotal: "Line item total"
         }
+      },
+      builtInLayout: {
+        invoiceTitle: "Invoice",
+        proposalTitle: "Proposal",
+        creditNoteTitle: "Credit note",
+        billTo: "Bill to",
+        preparedFor: "Prepared for",
+        issueDate: "Issue date",
+        dueDate: "Due date",
+        validUntil: "Valid until",
+        issued: "Issued",
+        correctsInvoice: "Corrects invoice",
+        amountDue: "Amount due",
+        proposalTotal: "Total",
+        creditTotal: "Total credited",
+        description: "Description",
+        quantity: "Qty",
+        unitPrice: "Unit price",
+        tax: "Tax",
+        amount: "Amount",
+        subtotal: "Subtotal",
+        discount: "Discount",
+        lateFee: "Late fee",
+        total: "Total",
+        amountPaid: "Paid",
+        credited: "Credited",
+        payment: "Payment details",
+        bank: "Bank",
+        iban: "IBAN",
+        notes: "Notes",
+        reason: "Reason"
       },
       validation: {
         nameRequired: "Name is required",

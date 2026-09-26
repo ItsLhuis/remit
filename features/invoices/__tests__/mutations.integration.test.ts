@@ -335,6 +335,34 @@ describe("invoice mutations", () => {
     })
   })
 
+  test("reports that no mail went out when the instance has no mail provider", async () => {
+    const { createInvoice, sendInvoice } = await import("../mutations")
+
+    const project = await makeProject()
+    const created = await createInvoice({ projectId: project.id, ...makeInvoiceInput() })
+
+    if ("error" in created) throw new Error(created.error)
+
+    const result = await sendInvoice({ id: created.data.invoice.id })
+
+    expect(result).toEqual({ data: { id: created.data.invoice.id, emailed: false } })
+  })
+
+  test("reports the client's copy as mailed when a mail provider is configured", async () => {
+    const { createInvoice, sendInvoice } = await import("../mutations")
+
+    await database.update(settings).set({ emailProvider: "resend", resendApiKey: "re_test_key" })
+
+    const project = await makeProject()
+    const created = await createInvoice({ projectId: project.id, ...makeInvoiceInput() })
+
+    if ("error" in created) throw new Error(created.error)
+
+    const result = await sendInvoice({ id: created.data.invoice.id })
+
+    expect(result).toEqual({ data: { id: created.data.invoice.id, emailed: true } })
+  })
+
   test("audits a send without ever recording the bearer token", async () => {
     const { createInvoice, sendInvoice } = await import("../mutations")
 

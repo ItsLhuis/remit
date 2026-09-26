@@ -447,17 +447,17 @@ Block-based PDF and email templates.
 
 ### `templates`
 
-| Column        | Type    | Null | Default             | Notes                                                      |
-| ------------- | ------- | ---- | ------------------- | ---------------------------------------------------------- |
-| id            | uuid    | no   | `gen_random_uuid()` | PK                                                         |
-| type          | enum    | no   |                     | See enum reference                                         |
-| name          | text    | no   |                     |                                                            |
-| description   | text    | yes  |                     |                                                            |
-| subject       | text    | yes  |                     | Email subject for `email_*` types; null for document types |
-| blocks        | jsonb   | no   | `'[]'::jsonb`       | Block-based content; shape and invariants in ADR-0024      |
-| page_settings | jsonb   | no   | `'{}'::jsonb`       | Margins, default font family, base font size (ADR-0024)    |
-| is_default    | boolean | no   | `false`             | At most one default per type                               |
-| is_system     | boolean | no   | `false`             | True for built-in templates the user cannot delete         |
+| Column        | Type    | Null | Default             | Notes                                                                                                                                                       |
+| ------------- | ------- | ---- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id            | uuid    | no   | `gen_random_uuid()` | PK                                                                                                                                                          |
+| type          | enum    | no   |                     | See enum reference                                                                                                                                          |
+| name          | text    | no   |                     |                                                                                                                                                             |
+| description   | text    | yes  |                     |                                                                                                                                                             |
+| subject       | text    | yes  |                     | Email subject for `email_*` types; null for document types                                                                                                  |
+| blocks        | jsonb   | no   | `'[]'::jsonb`       | Block-based content; shape and invariants in ADR-0024                                                                                                       |
+| page_settings | jsonb   | no   | `'{}'::jsonb`       | Margins, default font family, base font size (ADR-0024)                                                                                                     |
+| is_default    | boolean | no   | `false`             | At most one default per type                                                                                                                                |
+| is_system     | boolean | no   | `false`             | No writer: the built-in layouts live in code (ADR-0043), so every row is `false` and the badge, delete guard and origin filter that read it are unreachable |
 
 Standard `timestamps` and `softDelete`.
 
@@ -1119,7 +1119,7 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 | proposal_id                 | uuid            | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal                                                                                                                                                                                                                                                                          |
 | recurring_invoice_id        | uuid            | yes  |                     | FK → `recurring_invoices.id` (set null) — when generated from a schedule                                                                                                                                                                                                                                                                 |
 | template_id                 | uuid            | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                                                                                                                                                           |
-| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written once, never regenerated                                                                                                                                                                                                                                                                            |
+| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written by the `invoice.pdf.render` job; cleared only when a late fee is charged or adjusted, so the next render states the new total (ADR-0044)                                                                                                                                                           |
 | number                      | text            | no   |                     | Unique. E.g. `INV-0042`                                                                                                                                                                                                                                                                                                                  |
 | status                      | enum            | no   | `'draft'`           | See enum reference                                                                                                                                                                                                                                                                                                                       |
 | currency                    | varchar(3)      | no   | `'EUR'`             |                                                                                                                                                                                                                                                                                                                                          |
@@ -1131,7 +1131,7 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 | discount_amount_total_cents | bigint          | no   | `0`                 | ≥ 0                                                                                                                                                                                                                                                                                                                                      |
 | tax_amount_cents            | bigint          | no   | `0`                 | ≥ 0                                                                                                                                                                                                                                                                                                                                      |
 | total_cents                 | bigint          | no   | `0`                 | ≥ 0. Line items plus tax less discounts, plus `late_fee_cents` once a fee is charged                                                                                                                                                                                                                                                     |
-| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app.                                                                                                                                                                                                                                                                                       |
+| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app. What is owed is `total_cents` less this less the live credit notes, and `status` is `paid` exactly when that reaches zero (ADR-0044)                                                                                                                                                  |
 | issue_date                  | date            | yes  |                     |                                                                                                                                                                                                                                                                                                                                          |
 | due_date                    | date            | yes  |                     | Used for overdue detection. ≥ issue_date if both set.                                                                                                                                                                                                                                                                                    |
 | paid_at                     | timestamptz     | yes  |                     | Set when status transitions to `paid`                                                                                                                                                                                                                                                                                                    |
@@ -1295,6 +1295,12 @@ Indexes: `credit_notes_invoice_id_idx`, unique `credit_notes_number_idx`.
 
 Line items for credit notes reuse the `line_items` table via the nullable `credit_note_id` FK. The
 Line items section above is the authoritative definition of that three-parent polymorphic shape.
+
+A live credit note never moves its invoice's `total_cents`; it reduces what the invoice still owes,
+and it counts toward settlement: an invoice is `paid` once its payments and live credit notes cover
+its total, and issuing, withdrawing or restoring a credit note re-decides that in the same
+transaction (ADR-0044). Migration `0011_settle_credited_invoices` settled the invoices already
+covered when that rule arrived.
 
 ---
 

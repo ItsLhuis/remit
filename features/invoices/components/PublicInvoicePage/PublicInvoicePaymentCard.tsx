@@ -53,7 +53,7 @@ const PublicInvoicePaymentCard = ({ invoice }: PublicInvoicePaymentCardProps) =>
           </Typography>
           <span className="font-mono text-2xl font-semibold tabular-nums">
             {formatCurrency(
-              isSettled ? invoice.totalCents : invoice.outstandingCents,
+              isSettled ? invoice.amountPaidCents : invoice.outstandingCents,
               invoice.currency,
               invoice.locale
             )}

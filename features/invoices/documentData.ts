@@ -7,11 +7,13 @@ import { clients, invoices, lineItems, projects } from "@/database/schema"
 
 import { getClientDocumentRecipient } from "@/features/clients/server"
 
-import { type TemplateRenderData } from "@/features/templates"
+import { type MergeVariableId, type TemplateRenderData } from "@/features/templates"
 
+import { readInvoiceCreditedCents } from "./queryFragments"
 import { type InvoiceStatus } from "./schemas"
 import {
   buildInvoiceRenderData,
+  getInvoiceOutstandingCents,
   type InvoiceRenderClient,
   type InvoiceRenderLineItem
 } from "./services"
@@ -34,6 +36,9 @@ export type InvoiceDocumentData = {
   outstandingCents: number
   businessName: string
   templateId: string | null
+  // The figures that are zero on this invoice, which a built-in layout leaves off rather than print
+  // a line of nothing (`features/templates/services/builtInLayout.ts`).
+  zeroFigures: MergeVariableId[]
   recipientEmail: string | null
   recipientName: string
 }
@@ -49,16 +54,18 @@ export async function buildInvoiceDocumentData(
 
   const clientId = invoice.clientId ?? (await getProjectClientId(invoice.projectId))
 
-  const [instance, client, recipient, items] = await Promise.all([
+  const [instance, client, recipient, items, creditedCents] = await Promise.all([
     database.query.settings.findFirst(),
     getInvoiceClient(clientId),
     getClientDocumentRecipient(clientId),
-    getInvoiceLineItems(invoiceId)
+    getInvoiceLineItems(invoiceId),
+    readInvoiceCreditedCents(invoiceId)
   ])
 
   const locale = instance?.defaultLocale ?? "en"
   const totalCents = Number(invoice.totalCents)
   const amountPaidCents = Number(invoice.amountPaidCents)
+  const lateFeeCents = invoice.lateFeeCents === null ? null : Number(invoice.lateFeeCents)
 
   const renderData = buildInvoiceRenderData({
     invoice: {
@@ -69,7 +76,8 @@ export async function buildInvoiceDocumentData(
       taxAmountCents: Number(invoice.taxAmountCents),
       totalCents,
       amountPaidCents,
-      lateFeeCents: invoice.lateFeeCents === null ? null : Number(invoice.lateFeeCents),
+      creditedCents,
+      lateFeeCents,
       exchangeRate: invoice.exchangeRate,
       issueDate: invoice.issueDate,
       dueDate: invoice.dueDate,
@@ -112,9 +120,15 @@ export async function buildInvoiceDocumentData(
     locale,
     dueDate: invoice.dueDate,
     publicToken: invoice.publicToken,
-    outstandingCents: totalCents - amountPaidCents,
+    outstandingCents: getInvoiceOutstandingCents({ totalCents, amountPaidCents, creditedCents }),
     businessName: instance?.businessName ?? "Remit",
     templateId: invoice.templateId,
+    zeroFigures: [
+      ...(Number(invoice.discountAmountTotalCents) === 0 ? (["invoice.discount"] as const) : []),
+      ...(amountPaidCents === 0 ? (["invoice.amountPaid"] as const) : []),
+      // A waived fee is `0` and a never-charged one null (ADR-0033); neither is a line to print.
+      ...(!lateFeeCents ? (["invoice.lateFee"] as const) : [])
+    ],
     // The envelope address only. `renderData` still names the client, because the document is issued
     // to the company; where it is delivered is a separate question, answered by the client's primary
     // contact when it has one and by `clients.email` otherwise (ADR-0027).

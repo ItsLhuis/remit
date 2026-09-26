@@ -13,6 +13,10 @@ import { logger } from "@/lib/logger"
 
 import { getIpAddress } from "@/lib/utils"
 
+import { enqueueJob } from "@/lib/jobs"
+
+import { isDocumentEmailConfigured } from "@/features/email/server"
+
 import { claimInvoiceNumber, ExpectedInvoiceError, type InvoiceTransaction } from "./invoiceWrites"
 import { getInvoiceForEdit } from "./queries"
 import { type InvoiceMutationResult } from "./types"
@@ -140,6 +144,15 @@ export function revalidateInvoicePaths(invoice: { id: string } & InvoiceParentId
   }
 
   if (invoice.clientId) revalidatePath(`/clients/${invoice.clientId}`)
+}
+
+// Queues the client's copy of a sent invoice and says whether it will be mailed. Here rather than in
+// `sendInvoice` itself only because mutations.ts is at its line ceiling; the render chains the mail
+// (`lib/jobs/types.ts`), and the answer is what the send dialog reports.
+export async function queueInvoiceClientCopy(invoiceId: string): Promise<boolean> {
+  await enqueueJob("invoice.pdf.render", { invoiceId, email: "sent" })
+
+  return isDocumentEmailConfigured()
 }
 
 export function emptyToNull(value: string): string | null {

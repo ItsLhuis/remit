@@ -42,6 +42,11 @@ test("generates one draft invoice for a due schedule and nothing more when the o
 
     await queue.enqueueJob("recurring.schedule.sweep", {}, { jobId: sweepJobId })
     await queue.waitForJob(sweepJobId)
+    // The sweep only enqueues the generation, and it can queue behind mail that renders chained
+    // before it — so the draft exists once this job, not the sweep, has finished.
+    await queue.waitForJob(
+      `recurring.invoice.generate.${seeded.scheduleId}.${seeded.occurrenceKey}`
+    )
 
     await page.reload()
 

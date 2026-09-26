@@ -6,7 +6,14 @@ import { mintPublicToken } from "@/lib/publicToken"
 
 import { invoices, projects, settings } from "@/database/schema"
 
-import { makeClient, makeInvoice, makeLineItem, makeProject, makeSettings } from "@/tests/factories"
+import {
+  makeClient,
+  makeCreditNote,
+  makeInvoice,
+  makeLineItem,
+  makeProject,
+  makeSettings
+} from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 import { getPublicInvoice } from "../publicQueries"
@@ -174,6 +181,29 @@ describe("getPublicInvoice", () => {
 
     expect(result?.outstandingCents).toBe(100000)
     expect(result?.viewStatus).toBe("partially_paid")
+  })
+
+  test("quotes what is still owed net of credit notes and lists them without an id", async () => {
+    const { invoice } = await makeSentInvoice({ amountPaidCents: 23400 })
+
+    await makeCreditNote({ invoiceId: invoice.id, number: "CN-0001", totalCents: 30000 })
+
+    const result = await getPublicInvoice({ token: invoice.publicToken })
+
+    expect(result?.outstandingCents).toBe(70000)
+    expect(result?.creditedCents).toBe(30000)
+    expect(result?.creditNotes).toEqual([
+      { number: "CN-0001", issuedAt: expect.any(Date), totalCents: 30000 }
+    ])
+  })
+
+  test("states the late fee its total includes", async () => {
+    const { invoice } = await makeSentInvoice({ lateFeeCents: 2500, totalCents: 125900 })
+
+    const result = await getPublicInvoice({ token: invoice.publicToken })
+
+    expect(result?.lateFeeCents).toBe(2500)
+    expect(result?.totalCents).toBe(125900)
   })
 
   test("compares against a decoy when the lookup misses, so a miss costs a hit the same work", async () => {

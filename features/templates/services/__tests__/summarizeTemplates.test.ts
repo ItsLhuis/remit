@@ -55,6 +55,18 @@ describe("summarizeTemplates", () => {
     expect(summary.byType.invoice).toBe(0)
   })
 
+  test("names the types that have no default template", () => {
+    const summary = summarizeTemplates([
+      makeRow({ type: "invoice", isDefault: true }),
+      makeRow({ type: "contract" })
+    ])
+
+    expect(summary.missingDefaults).toContain("contract")
+    expect(summary.missingDefaults).toContain("proposal")
+    expect(summary.missingDefaults).not.toContain("invoice")
+    expect(summary.missingDefaults).toHaveLength(TEMPLATE_TYPES.length - 1)
+  })
+
   test("counts a type once when several of its templates are flagged default", () => {
     const rows = [
       makeRow({ type: "invoice", isDefault: true }),

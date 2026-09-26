@@ -20,10 +20,11 @@ import { buildInvoicePdfDocument } from "./pdfDocument"
 // Rendering is a job and never a request: a headless Chromium launch costs a second and hundreds of
 // megabytes, which is not something a user action can wait on.
 //
-// Rendered once and never regenerated. The stored PDF *is* the snapshot of what the client was sent
-// (`pdf_upload_id` in `database/schema/invoices.ts`), so an invoice that already has one is left
+// Rendered once per state of the document. The stored PDF *is* the snapshot of what the client was
+// sent (`pdf_upload_id` in `database/schema/invoices.ts`), so an invoice that already has one is left
 // alone — which also makes a retry after a partial run a no-op rather than a second object. The
-// guard is the column, not the BullMQ job id, which is freed the moment the job completes.
+// guard is the column, not the BullMQ job id, which is freed the moment the job completes. The one
+// writer that clears it is a late fee, which changes the total the stored PDF states (`lateFees.ts`).
 export async function renderInvoicePdf(payload: {
   invoiceId: string
   email?: InvoiceEmailOccasion
@@ -47,19 +48,10 @@ export async function renderInvoicePdf(payload: {
 
   const document = await buildInvoicePdfDocument(payload.invoiceId)
 
-  // No template to render with is a configuration problem, not a transient one. Returning rather
-  // than throwing keeps it out of the retry loop; `pdf_upload_id` stays NULL, which is the same
-  // thing the UI reads as "no PDF yet", and the audit entry is what tells the owner why.
-  if (!document) {
-    logger.error(
-      { action: "renderInvoicePdf", invoiceId: payload.invoiceId },
-      "Invoice PDF skipped: no template to render"
-    )
-
-    await writeInvoicePdfFailureAudit(payload.invoiceId, "noTemplate")
-
-    return
-  }
+  // Null only for an invoice deleted after the render was enqueued. Every live invoice has a layout —
+  // its template, the default, or the built-in one (`resolveDocumentLayout`) — so there is no
+  // configuration under which a sent invoice renders nothing and mails nothing.
+  if (!document) return
 
   let uploadId: string
 

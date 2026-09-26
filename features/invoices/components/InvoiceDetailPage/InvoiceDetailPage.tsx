@@ -28,7 +28,6 @@ import { AttachmentsPanel, type AttachmentListItem } from "@/features/attachment
 
 import {
   computeInvoiceEffectiveReceivable,
-  computeInvoiceOutstandingAfterCredits,
   sumCreditNoteTotalCents,
   InvoiceCreditNotesCard,
   type CreditNoteListItem
@@ -40,6 +39,7 @@ import { markInvoicePaid, sendInvoice, softDeleteInvoice } from "../../mutations
 import {
   canTransitionInvoiceStatus,
   deriveInvoiceStatusView,
+  getInvoiceOutstandingCents,
   isInvoiceEditable
 } from "../../services"
 import { type InvoiceDetail } from "../../types"
@@ -87,15 +87,19 @@ const InvoiceDetailPage = ({
   const locale = invoice.defaults.defaultLocale
 
   // The stored `total_cents` is never rewritten by a credit note, so what the invoice is still owed
-  // is derived here from the notes standing against it (`@/features/creditNotes`
-  // services/effectiveReceivable.ts). Every amount-due figure on this screen reads from these two.
+  // is derived here from the notes standing against it, through the one outstanding definition every
+  // other surface reads. Every amount-due figure on this screen reads from these two.
   const creditNoteTotals = creditNotes.map((creditNote) => creditNote.totalCents)
   const creditedCents = sumCreditNoteTotalCents(creditNoteTotals)
   const effectiveReceivableCents = computeInvoiceEffectiveReceivable(
     invoice.totalCents,
     creditNoteTotals
   )
-  const outstandingCents = computeInvoiceOutstandingAfterCredits(invoice, creditNoteTotals)
+  const outstandingCents = getInvoiceOutstandingCents({
+    totalCents: invoice.totalCents,
+    amountPaidCents: invoice.amountPaidCents,
+    creditedCents
+  })
 
   // A project-scoped invoice is reached through its project; a client-only one has no project route
   // to return to, so the fallback is the client. `chk_invoices_parent` guarantees one of the two.
@@ -121,7 +125,8 @@ const InvoiceDetailPage = ({
         return
       }
 
-      toast.success(t("invoices.notifications.sent"))
+      if (result.data.emailed) toast.success(t("invoices.notifications.sent"))
+      else toast.warning(t("common.delivery.noProvider"))
 
       setSendOpen(false)
 

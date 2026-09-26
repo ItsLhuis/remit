@@ -9,6 +9,8 @@ import { enqueueJob } from "@/lib/jobs"
 import { database } from "@/database"
 import { creditNotes, invoices, lineItems, taxRates } from "@/database/schema"
 
+import { resettleInvoiceWrite } from "@/features/payments/server"
+
 import { resolveRestoreBlocker } from "@/features/trash"
 
 import { emitCreditNoteDeleted, emitCreditNoteIssued } from "./events"
@@ -87,6 +89,10 @@ export async function createCreditNote(input: unknown): Promise<CreditNoteMutati
 
       await writeCreditNoteLineItems(transaction, created.id, parsed.data, taxPercentages)
 
+      // In the same transaction as the note, so an invoice this credit covers is never observed
+      // issued-but-unsettled (features/payments/services/paymentSettlement.ts).
+      await resettleInvoiceWrite(transaction, invoice.id)
+
       return created.id
     })
 
@@ -155,11 +161,17 @@ export async function restoreCreditNote(input: unknown): Promise<CreditNoteMutat
       throw new ExpectedCreditNoteError(t("trash.errors.restoreBlocked", { parent: blocker }))
     }
 
-    const [restored] = await database
-      .update(creditNotes)
-      .set({ deletedAt: null })
-      .where(and(eq(creditNotes.id, existing.id), isNotNull(creditNotes.deletedAt)))
-      .returning({ id: creditNotes.id, invoiceId: creditNotes.invoiceId })
+    const restored = await database.transaction(async (transaction) => {
+      const [row] = await transaction
+        .update(creditNotes)
+        .set({ deletedAt: null })
+        .where(and(eq(creditNotes.id, existing.id), isNotNull(creditNotes.deletedAt)))
+        .returning({ id: creditNotes.id, invoiceId: creditNotes.invoiceId })
+
+      if (row) await resettleInvoiceWrite(transaction, row.invoiceId)
+
+      return row
+    })
 
     if (!restored) throw new ExpectedCreditNoteError(t("creditNotes.errors.notFound"))
 
@@ -197,16 +209,24 @@ export async function softDeleteCreditNote(input: unknown): Promise<CreditNoteMu
   const { context } = gate
 
   try {
-    const [deleted] = await database
-      .update(creditNotes)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(creditNotes.id, parsed.data.id), isNull(creditNotes.deletedAt)))
-      .returning({
-        id: creditNotes.id,
-        invoiceId: creditNotes.invoiceId,
-        number: creditNotes.number,
-        totalCents: creditNotes.totalCents
-      })
+    // Withdrawing a credit note can reopen an invoice it had settled, so the settlement is re-decided
+    // in the same transaction as the withdrawal.
+    const deleted = await database.transaction(async (transaction) => {
+      const [row] = await transaction
+        .update(creditNotes)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(creditNotes.id, parsed.data.id), isNull(creditNotes.deletedAt)))
+        .returning({
+          id: creditNotes.id,
+          invoiceId: creditNotes.invoiceId,
+          number: creditNotes.number,
+          totalCents: creditNotes.totalCents
+        })
+
+      if (row) await resettleInvoiceWrite(transaction, row.invoiceId)
+
+      return row
+    })
 
     if (!deleted) throw new ExpectedCreditNoteError(t("creditNotes.errors.notFound"))
 

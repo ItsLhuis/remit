@@ -115,10 +115,44 @@ describe("isInvoicePartiallyPaid", () => {
 
 describe("getInvoiceOutstandingCents", () => {
   test("returns the unpaid remainder in integer cents", () => {
-    expect(getInvoiceOutstandingCents({ amountPaidCents: 40000, totalCents: 100000 })).toBe(60000)
+    expect(
+      getInvoiceOutstandingCents({ amountPaidCents: 40000, totalCents: 100000, creditedCents: 0 })
+    ).toBe(60000)
+  })
+
+  test("nets the credit notes issued against the invoice", () => {
+    expect(
+      getInvoiceOutstandingCents({
+        amountPaidCents: 40000,
+        totalCents: 100000,
+        creditedCents: 25000
+      })
+    ).toBe(35000)
+  })
+
+  test("owes nothing once payments and credit notes together cover the total", () => {
+    expect(
+      getInvoiceOutstandingCents({
+        amountPaidCents: 70000,
+        totalCents: 100000,
+        creditedCents: 30000
+      })
+    ).toBe(0)
   })
 
   test("clamps at zero when more has been applied than the total", () => {
-    expect(getInvoiceOutstandingCents({ amountPaidCents: 120000, totalCents: 100000 })).toBe(0)
+    expect(
+      getInvoiceOutstandingCents({ amountPaidCents: 120000, totalCents: 100000, creditedCents: 0 })
+    ).toBe(0)
+  })
+
+  test("clamps at zero when an invoice is credited beyond what is left to pay", () => {
+    expect(
+      getInvoiceOutstandingCents({
+        amountPaidCents: 60000,
+        totalCents: 100000,
+        creditedCents: 90000
+      })
+    ).toBe(0)
   })
 })

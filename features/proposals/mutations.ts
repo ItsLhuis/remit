@@ -10,6 +10,8 @@ import { mintPublicToken } from "@/lib/publicToken"
 import { database } from "@/database"
 import { clients, lineItems, projects, proposals, settings, taxRates } from "@/database/schema"
 
+import { isDocumentEmailConfigured } from "@/features/email/server"
+
 import {
   emitProposalCreated,
   emitProposalDeleted,
@@ -49,7 +51,7 @@ import { type ProposalFormData } from "./types"
 
 export type ProposalMutationResult = { data: { proposal: ProposalFormData } } | { error: string }
 
-export type SendProposalResult = { data: { id: string } } | { error: string }
+export type SendProposalResult = { data: { id: string; emailed: boolean } } | { error: string }
 
 export type DeleteProposalResult = { data: { id: string } } | { error: string }
 
@@ -324,10 +326,11 @@ export async function sendProposal(input: unknown): Promise<SendProposalResult> 
     // `email: true` chains the client's copy behind the render, so the mail always has a PDF to
     // attach (see the ordering note in `lib/jobs/types.ts`).
     await enqueueJob("proposal.pdf.render", { proposalId: sent.id, email: true })
+    const emailed = await isDocumentEmailConfigured()
 
     revalidateProposalPaths(sent, sent.id)
 
-    return { data: { id: sent.id } }
+    return { data: { id: sent.id, emailed } }
   } catch (error) {
     return handleProposalActionError(error, {
       action: "sendProposal",

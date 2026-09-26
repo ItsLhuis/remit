@@ -59,7 +59,7 @@ export {
 } from "./events"
 
 // Also exported from the client-safe `index.ts`, and reachable from a server module without it:
-// `features/dashboard/queries.ts` needs the overdue rule to agree with the badge this feature
-// renders, and reaching it through the root barrel would drag the whole invoice component graph
-// into a server-only read.
-export { isInvoiceOverdue } from "./services"
+// `features/dashboard/queries.ts` needs the overdue rule and the outstanding definition to agree
+// with what this feature renders, and reaching them through the root barrel would drag the whole
+// invoice component graph into a server-only read.
+export { getInvoiceOutstandingCents, isInvoiceOverdue } from "./services"

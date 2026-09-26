@@ -404,7 +404,7 @@ describe("proposal mutations", () => {
 
     const result = await sendProposal({ id: draft?.id })
 
-    expect(result).toEqual({ data: { id: draft?.id } })
+    expect(result).toEqual({ data: { id: draft?.id, emailed: false } })
 
     const [sent] = await database.select().from(proposals)
 

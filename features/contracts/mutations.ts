@@ -12,6 +12,8 @@ import { mintPublicToken } from "@/lib/publicToken"
 import { database } from "@/database"
 import { clients, contracts, projects, settings, templates } from "@/database/schema"
 
+import { isDocumentEmailConfigured } from "@/features/email/server"
+
 import { getAcceptedProposalForContract } from "@/features/proposals/server"
 
 import { blocksSchema, type Blocks } from "@/features/templates"
@@ -54,7 +56,7 @@ import { type ContractFormData } from "./types"
 
 export type ContractMutationResult = { data: { contract: ContractFormData } } | { error: string }
 
-export type SendContractResult = { data: { id: string } } | { error: string }
+export type SendContractResult = { data: { id: string; emailed: boolean } } | { error: string }
 
 export type TerminateContractResult = { data: { id: string } } | { error: string }
 
@@ -358,10 +360,11 @@ export async function sendContract(input: unknown): Promise<SendContractResult> 
     // `email: true` chains the client's copy behind the render, so the mail always has a PDF to
     // attach (see the ordering note in `lib/jobs/types.ts`).
     await enqueueJob("contract.pdf.render", { contractId: sent.id, email: true })
+    const emailed = await isDocumentEmailConfigured()
 
     revalidateContractPaths(sent)
 
-    return { data: { id: sent.id } }
+    return { data: { id: sent.id, emailed } }
   } catch (error) {
     return handleContractActionError(error, {
       action: "sendContract",

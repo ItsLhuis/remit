@@ -17,6 +17,7 @@ export type TemplatesSummary = {
   byType: Record<TemplateType, number>
   coveredTypes: number
   totalTypes: number
+  missingDefaults: TemplateType[]
 }
 
 // Written as a literal rather than derived from TEMPLATE_TYPES so the compiler checks the map is
@@ -39,8 +40,10 @@ function emptyTypeCounts(): Record<TemplateType, number> {
 export function summarizeTemplates(rows: TemplateSummaryRow[]): TemplatesSummary {
   const byType = emptyTypeCounts()
 
-  // A type is covered when one of its templates is flagged default; anything uncovered renders
-  // through the built-in layout instead, which is the actionable half of this summary.
+  // A type is covered when one of its templates is flagged default. What an uncovered type does
+  // instead differs by type — a document renders Remit's built-in layout, an email sends the built-in
+  // message, and a contract has no content to send until a template supplies it — so the types are
+  // named rather than only counted, and the templates page says which case applies.
   const coveredTypes = new Set<TemplateType>()
 
   const summary: TemplatesSummary = {
@@ -51,7 +54,8 @@ export function summarizeTemplates(rows: TemplateSummaryRow[]): TemplatesSummary
     emails: 0,
     byType,
     coveredTypes: 0,
-    totalTypes: TEMPLATE_TYPES.length
+    totalTypes: TEMPLATE_TYPES.length,
+    missingDefaults: []
   }
 
   for (const row of rows) {
@@ -69,6 +73,7 @@ export function summarizeTemplates(rows: TemplateSummaryRow[]): TemplatesSummary
   }
 
   summary.coveredTypes = coveredTypes.size
+  summary.missingDefaults = TEMPLATE_TYPES.filter((type) => !coveredTypes.has(type))
 
   return summary
 }

@@ -32,19 +32,9 @@ export async function renderCreditNotePdf(payload: { creditNoteId: string }): Pr
 
   const document = await buildCreditNotePdfDocument(payload.creditNoteId)
 
-  // No template to render with is a configuration problem, not a transient one. Returning rather
-  // than throwing keeps it out of the retry loop; `pdf_upload_id` stays NULL, which is what the UI
-  // reads as "no PDF yet", and the audit entry is what tells the owner why.
-  if (!document) {
-    logger.error(
-      { action: "renderCreditNotePdf", creditNoteId: payload.creditNoteId },
-      "Credit note PDF skipped: no template to render"
-    )
-
-    await writeCreditNotePdfFailureAudit(payload.creditNoteId, "noTemplate")
-
-    return
-  }
+  // Null only for a credit note deleted after the render was enqueued. Every live one has a layout
+  // — the instance default or the built-in one (`resolveDocumentLayout`).
+  if (!document) return
 
   let uploadId: string
 

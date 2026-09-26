@@ -10,6 +10,7 @@ function makeInvoice(overrides?: Partial<InvoiceSummaryInput>): InvoiceSummaryIn
     currency: "EUR",
     totalCents: 100000,
     amountPaidCents: 0,
+    creditedCents: 0,
     dueDate: new Date("2026-08-31T00:00:00.000Z"),
     paidAt: null,
     ...overrides
@@ -61,6 +62,15 @@ describe("summarizeInvoices", () => {
     const summary = summarizeInvoices([makeInvoice({ amountPaidCents: 40000 })], NOW)
 
     expect(summary.outstandingByCurrency).toEqual([{ currency: "EUR", totalCents: 60000 }])
+  })
+
+  test("counts the remainder net of credit notes as outstanding", () => {
+    const summary = summarizeInvoices(
+      [makeInvoice({ amountPaidCents: 40000, creditedCents: 15000 })],
+      NOW
+    )
+
+    expect(summary.outstandingByCurrency).toEqual([{ currency: "EUR", totalCents: 45000 }])
   })
 
   test("excludes drafts and paid invoices from the outstanding total", () => {

@@ -28,6 +28,7 @@ import {
   emptyToNull,
   handleInvoiceActionError,
   loadInvoiceResult,
+  queueInvoiceClientCopy,
   requireInvoiceDelete,
   requireInvoiceLateFee,
   requireInvoiceMarkPaid,
@@ -37,6 +38,7 @@ import {
   writeInvoiceAudit,
   ExpectedInvoiceError
 } from "./mutationContext"
+import { readInvoiceCreditedCents } from "./queryFragments"
 import {
   adjustInvoiceLateFeeSchema,
   createInvoiceSchema,
@@ -327,13 +329,11 @@ export async function sendInvoice(input: unknown): Promise<SendInvoiceResult> {
       lineItemCount
     })
     await emitInvoiceSent({ invoiceId: sent.id, userId: context.userId })
-    // `email: "sent"` is what chains the client's copy behind the render, so the mail always has a
-    // PDF to attach (see the ordering note in `lib/jobs/types.ts`).
-    await enqueueJob("invoice.pdf.render", { invoiceId: sent.id, email: "sent" })
+    const emailed = await queueInvoiceClientCopy(sent.id)
 
     revalidateInvoicePaths(sent)
 
-    return { data: { id: sent.id } }
+    return { data: { id: sent.id, emailed } }
   } catch (error) {
     return handleInvoiceActionError(error, {
       action: "sendInvoice",
@@ -488,7 +488,8 @@ export async function adjustInvoiceLateFee(input: unknown): Promise<AdjustInvoic
       const previousCents = Number(existing.lateFeeCents)
       const totalCents = Number(existing.totalCents) - previousCents + feeCents
       const amountPaidCents = Number(existing.amountPaidCents)
-      const settlement = evaluateInvoiceSettlement({ amountPaidCents, totalCents })
+      const creditedCents = await readInvoiceCreditedCents(existing.id, transaction)
+      const settlement = evaluateInvoiceSettlement({ amountPaidCents, totalCents, creditedCents })
 
       // Reducing a fee the client has already paid would leave money recorded against an invoice
       // that no longer asks for it, which `chk_invoices_amount_paid` refuses outright. Returning it
@@ -510,7 +511,9 @@ export async function adjustInvoiceLateFee(input: unknown): Promise<AdjustInvoic
           lateFeeCents: feeCents,
           totalCents,
           status: settled ? "paid" : existing.status === "paid" ? "sent" : existing.status,
-          paidAt: settled ? (existing.paidAt ?? new Date()) : null
+          paidAt: settled ? (existing.paidAt ?? new Date()) : null,
+          // The stored PDF priced the old total; it is re-rendered below (see lateFees.ts).
+          pdfUploadId: null
         })
         .where(eq(invoices.id, existing.id))
 
@@ -528,6 +531,7 @@ export async function adjustInvoiceLateFee(input: unknown): Promise<AdjustInvoic
       previousCents: adjusted.previousCents,
       feeCents
     })
+    await enqueueJob("invoice.pdf.render", { invoiceId: adjusted.id })
 
     revalidateInvoicePaths(adjusted)
 

@@ -34,6 +34,8 @@ section, and refuse to run while it has no entries.
 
 - One database migration, applied when the container starts: it adds `settings.mcp_enabled`, set to
   off on every existing instance.
+- A second migration settles every issued invoice whose payments and credit notes already cover its
+  total: it becomes paid, dated when it was covered, and stops being chased as overdue.
 - **Edit `.env` before upgrading, or the containers refuse to start.** Replace `BETTER_AUTH_URL` and
   `NEXT_PUBLIC_APP_URL` with a single `REMIT_PUBLIC_URL` holding the same origin, with no path or
   trailing slash, and delete `NEXT_PUBLIC_STORAGE_BASE_URL` and `MINIO_PUBLIC_URL`.
@@ -49,6 +51,12 @@ section, and refuse to run while it has no entries.
 
 ### Added
 
+- Invoices, proposals and credit notes render from a built-in layout when no template of their type
+  exists, so a new instance can send them without designing a template first.
+- The public invoice page lists the credit notes applied to the invoice.
+- The public API and MCP tools give an invoice its `displayStatus` (overdue and partially paid
+  included), and the API invoice detail now carries `outstandingCents`.
+- An invoice with a late fee says when its template would leave the fee off the PDF.
 - An MCP server at `/api/mcp` lets an AI assistant read clients, projects, invoices, time entries
   and expenses through read-only tools, authenticated with the API tokens you already create in
   `/settings/api`. It is off until you turn it on in `/settings/mcp`, which says what turning it on
@@ -70,12 +78,24 @@ section, and refuse to run while it has no entries.
 
 ### Changed
 
+- Credit notes now count toward settling an invoice: once payments and credit notes cover the total,
+  the invoice is paid.
+- Sending a document on an instance with no mail provider now warns that no email went out.
+- Charging or adjusting a late fee re-renders the invoice PDF, so later reminders attach one showing
+  the fee.
 - Uploads and public files — avatars, logos, client and template images, expense receipts — are sent
   to and served from the instance's own address, so a deployment needs one hostname and one
   certificate.
 
 ### Fixed
 
+- Sending an invoice or proposal on an instance with no templates marked it sent and never emailed
+  it, and a credit note issued there never got a PDF.
+- The public invoice page left a late fee out of its summary, so the lines it listed did not add up
+  to its total.
+- The public invoice page, card checkout, "mark as paid", reminders, late fees, the invoice and
+  client lists, the API and the MCP tools ignored credit notes when stating what was owed.
+- The templates page claimed missing types fall back to a built-in layout that did not exist.
 - The background worker could not start in a container at all: its compiled bundle imported
   `next/headers`, which plain Node cannot resolve, so it restarted forever while the app stayed
   healthy. PDF rendering, reminder and overdue sweeps, recurring invoice generation and scheduled

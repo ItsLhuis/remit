@@ -106,6 +106,7 @@ const invoiceDetail: InvoiceDetail = {
   taxAmountCents: 0,
   totalCents: 500_00,
   amountPaidCents: 0,
+  creditedCents: 0,
   discountPercentage: null,
   discountAmountCents: null,
   issueDate: createdAt,
@@ -158,13 +159,44 @@ describe("API serialisers", () => {
       toApiClient(clientListItem),
       toApiClientDetail(clientDetail),
       toApiInvoice(invoiceOverviewItem),
-      toApiInvoiceDetail(invoiceDetail),
+      toApiInvoiceDetail(invoiceDetail, createdAt),
       toApiExpense(expenseListItem)
     ])
 
     for (const secret of [PORTAL_PATH, PUBLIC_PATH, NOTES, IMAGE_KEY, RECEIPT_KEY]) {
       expect(published).not.toContain(secret)
     }
+  })
+
+  test("carry the derived status beside the stored one on an invoice list row", () => {
+    const invoice = toApiInvoice({ ...invoiceOverviewItem, viewStatus: "overdue" })
+
+    expect(invoice.status).toBe("sent")
+    expect(invoice.displayStatus).toBe("overdue")
+  })
+
+  test("give the invoice detail the outstanding amount its list row carries, credit notes netted", () => {
+    const invoice = toApiInvoiceDetail(
+      { ...invoiceDetail, amountPaidCents: 100_00, creditedCents: 150_00 },
+      createdAt
+    )
+
+    expect(invoice.outstandingCents).toBe(250_00)
+  })
+
+  test("derive the invoice detail's status the way the application's badge does", () => {
+    const overdue = toApiInvoiceDetail(
+      { ...invoiceDetail, dueDate: new Date("2026-08-20T00:00:00.000Z") },
+      createdAt
+    )
+    const partiallyPaid = toApiInvoiceDetail(
+      { ...invoiceDetail, amountPaidCents: 100_00 },
+      createdAt
+    )
+
+    expect(overdue.status).toBe("sent")
+    expect(overdue.displayStatus).toBe("overdue")
+    expect(partiallyPaid.displayStatus).toBe("partially_paid")
   })
 
   test("say whether an expense has a receipt without saying where it is stored", () => {

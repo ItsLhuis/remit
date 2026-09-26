@@ -45,19 +45,9 @@ export async function renderProposalPdf(payload: {
 
   const document = await buildProposalPdfDocument(payload.proposalId)
 
-  // No template to render with is a configuration problem, not a transient one. Returning rather
-  // than throwing keeps it out of the retry loop; `pdf_upload_id` stays NULL, which is what the UI
-  // reads as "no PDF yet", and the audit entry is what tells the owner why.
-  if (!document) {
-    logger.error(
-      { action: "renderProposalPdf", proposalId: payload.proposalId },
-      "Proposal PDF skipped: no template to render"
-    )
-
-    await writeProposalPdfFailureAudit(payload.proposalId, "noTemplate")
-
-    return
-  }
+  // Null only for a proposal deleted after the render was enqueued. Every live proposal has a layout
+  // — its template, the default, or the built-in one (`resolveDocumentLayout`).
+  if (!document) return
 
   let uploadId: string
 

@@ -17,6 +17,7 @@ function makeInvoice(overrides?: Partial<LateFeeCandidate>): LateFeeCandidate {
     paidAt: null,
     totalCents: 100_000,
     amountPaidCents: 0,
+    creditedCents: 0,
     lateFeeCents: null,
     ...overrides
   }
@@ -128,6 +129,22 @@ describe("assessLateFee", () => {
     const result = assessLateFee(invoice, makePercentagePolicy(), NOW)
 
     expect(result).toEqual({ charge: true, feeCents: 1_000, daysLate: 10 })
+  })
+
+  test("prices the percentage net of the credit notes issued against the invoice", () => {
+    const invoice = makeInvoice({ amountPaidCents: 50_000, creditedCents: 30_000 })
+
+    const result = assessLateFee(invoice, makePercentagePolicy(), NOW)
+
+    expect(result).toEqual({ charge: true, feeCents: 1_000, daysLate: 10 })
+  })
+
+  test("charges nothing on an invoice its credit notes and payments already cover", () => {
+    const invoice = makeInvoice({ amountPaidCents: 70_000, creditedCents: 30_000 })
+
+    const result = assessLateFee(invoice, makePercentagePolicy(), NOW)
+
+    expect(result).toEqual({ charge: false, reason: "nothing_outstanding" })
   })
 
   test("rounds the percentage to whole cents exactly once", () => {

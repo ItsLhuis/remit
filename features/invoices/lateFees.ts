@@ -2,10 +2,13 @@ import { and, eq, isNull, lt, ne, sql } from "drizzle-orm"
 
 import { writeAudit } from "@/lib/audit"
 
+import { enqueueJob } from "@/lib/jobs"
+
 import { database } from "@/database"
 import { invoices } from "@/database/schema"
 
 import { emitInvoiceLateFeeApplied } from "./events"
+import { getInvoiceCreditedTotalsSubquery } from "./queryFragments"
 import { assessLateFee, toLateFeePolicy, type LateFeePolicy } from "./services"
 
 // The late-fee half of the nightly overdue sweep, in its own module rather than inside jobs.ts:
@@ -25,6 +28,7 @@ type LateFeeCandidateRow = {
   paidAt: Date | null
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   lateFeeCents: number | null
 }
 
@@ -64,6 +68,7 @@ export async function applyLateFees(now: Date): Promise<void> {
       feeCents: assessment.feeCents,
       daysLate: assessment.daysLate
     })
+    await enqueueJob("invoice.pdf.render", { invoiceId: candidate.id })
   }
 }
 
@@ -83,12 +88,18 @@ export async function applyLateFees(now: Date): Promise<void> {
 // surface that already asks what an invoice is worth or what is outstanding stays correct without
 // knowing late fees exist, and `chk_invoices_amount_paid` still admits a payment for the full
 // amount now due (ADR-0033).
+//
+// The same statement clears `pdf_upload_id`, and the sweep then enqueues a render. The stored PDF is
+// what every later reminder and receipt attaches, and one priced before the fee would state a total
+// the invoice no longer has beside a mail asking for the new one (ADR-0044). The superseded object
+// is left where it is; the client already holds it as the copy they were sent.
 async function chargeLateFee(invoiceId: string, feeCents: number): Promise<boolean> {
   const [charged] = await database
     .update(invoices)
     .set({
       lateFeeCents: feeCents,
-      totalCents: sql`${invoices.totalCents} + ${feeCents}`
+      totalCents: sql`${invoices.totalCents} + ${feeCents}`,
+      pdfUploadId: null
     })
     .where(
       and(
@@ -123,6 +134,8 @@ async function getLateFeePolicy(): Promise<LateFeePolicy> {
 // same predicate the claim above re-checks. The grace period is not expressed here: the service owns
 // every rule about when a fee is due, and duplicating the window in SQL would let the two disagree.
 async function getLateFeeCandidates(now: Date): Promise<LateFeeCandidateRow[]> {
+  const credited = getInvoiceCreditedTotalsSubquery()
+
   const rows = await database
     .select({
       id: invoices.id,
@@ -132,9 +145,11 @@ async function getLateFeeCandidates(now: Date): Promise<LateFeeCandidateRow[]> {
       paidAt: invoices.paidAt,
       totalCents: invoices.totalCents,
       amountPaidCents: invoices.amountPaidCents,
+      creditedCents: sql<number>`coalesce(${credited.creditedCents}, 0)`,
       lateFeeCents: invoices.lateFeeCents
     })
     .from(invoices)
+    .leftJoin(credited, eq(credited.invoiceId, invoices.id))
     .where(
       and(
         ne(invoices.status, "draft"),
@@ -149,6 +164,7 @@ async function getLateFeeCandidates(now: Date): Promise<LateFeeCandidateRow[]> {
     ...row,
     totalCents: Number(row.totalCents),
     amountPaidCents: Number(row.amountPaidCents),
+    creditedCents: Number(row.creditedCents),
     lateFeeCents: row.lateFeeCents === null ? null : Number(row.lateFeeCents)
   }))
 }

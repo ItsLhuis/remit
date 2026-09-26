@@ -7,6 +7,9 @@ export type Language = {
 
 export type Translations = {
   common: {
+    delivery: {
+      noProvider: string
+    }
     actions: {
       save: string
       saveChanges: string
@@ -2487,6 +2490,8 @@ export type Translations = {
       lateFeePercentagePolicy: string
       lateFeeFixedPolicy: string
       lateFeeUnknownPolicy: string
+      lateFeeNotOnDocumentTitle: string
+      lateFeeNotOnDocumentDescription: string
       lateFeeAdjust: string
       lateFeeWaive: string
       lateFeeDialogTitle: string
@@ -2597,6 +2602,7 @@ export type Translations = {
         dueDate: string
         paidAt: string
         noDate: string
+        creditNote: string
       }
       payment: {
         title: string
@@ -3343,6 +3349,7 @@ export type Translations = {
       defaultsValue: string
       defaultsHint: string
       defaultsMissingHint: string
+      defaultsContractMissingHint: string
       defaultsCovered: string
       defaultsMissing: string
       breakdownEmpty: string
@@ -3638,6 +3645,7 @@ export type Translations = {
         invoiceTax: string
         invoiceTotal: string
         invoiceAmountPaid: string
+        invoiceCredited: string
         invoiceAmountDue: string
         invoiceIssueDate: string
         invoiceDueDate: string
@@ -3669,6 +3677,7 @@ export type Translations = {
         creditNoteTax: string
         creditNoteTotal: string
         creditNoteIssueDate: string
+        creditNoteInvoiceNumber: string
         lineItemDescription: string
         lineItemUnit: string
         lineItemQuantity: string
@@ -3679,6 +3688,37 @@ export type Translations = {
         lineItemTaxAmount: string
         lineItemTotal: string
       }
+    }
+    builtInLayout: {
+      invoiceTitle: string
+      proposalTitle: string
+      creditNoteTitle: string
+      billTo: string
+      preparedFor: string
+      issueDate: string
+      dueDate: string
+      validUntil: string
+      issued: string
+      correctsInvoice: string
+      amountDue: string
+      proposalTotal: string
+      creditTotal: string
+      description: string
+      quantity: string
+      unitPrice: string
+      tax: string
+      amount: string
+      subtotal: string
+      discount: string
+      lateFee: string
+      total: string
+      amountPaid: string
+      credited: string
+      payment: string
+      bank: string
+      iban: string
+      notes: string
+      reason: string
     }
     validation: {
       nameRequired: string

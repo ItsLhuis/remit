@@ -7,6 +7,7 @@ import {
   type InvoiceDetailLineItem,
   type InvoiceOverviewItem
 } from "@/features/invoices"
+import { deriveInvoiceStatusView, getInvoiceOutstandingCents } from "@/features/invoices/services"
 
 import { type ProjectDetail, type ProjectListItem } from "@/features/projects"
 
@@ -100,6 +101,7 @@ export function toApiInvoice(invoice: InvoiceOverviewItem): ApiInvoice {
     id: invoice.id,
     number: invoice.number,
     status: invoice.status,
+    displayStatus: invoice.viewStatus,
     currency: invoice.currency,
     totalCents: invoice.totalCents,
     amountPaidCents: invoice.amountPaidCents,
@@ -113,11 +115,14 @@ export function toApiInvoice(invoice: InvoiceOverviewItem): ApiInvoice {
   }
 }
 
-export function toApiInvoiceDetail(invoice: InvoiceDetail): ApiInvoiceDetail {
+// `now` is the caller's, as it is for the list row, whose status the overview read derives with the
+// instant its SQL filter used.
+export function toApiInvoiceDetail(invoice: InvoiceDetail, now: Date): ApiInvoiceDetail {
   return {
     id: invoice.id,
     number: invoice.number,
     status: invoice.status,
+    displayStatus: deriveInvoiceStatusView(invoice, now),
     currency: invoice.currency,
     totalCents: invoice.totalCents,
     amountPaidCents: invoice.amountPaidCents,
@@ -126,6 +131,7 @@ export function toApiInvoiceDetail(invoice: InvoiceDetail): ApiInvoiceDetail {
     paidAt: toIsoOrNull(invoice.paidAt),
     projectId: invoice.projectId,
     clientId: invoice.clientId,
+    outstandingCents: getInvoiceOutstandingCents(invoice),
     subtotalCents: invoice.subtotalCents,
     discountAmountTotalCents: invoice.discountAmountTotalCents,
     taxAmountCents: invoice.taxAmountCents,

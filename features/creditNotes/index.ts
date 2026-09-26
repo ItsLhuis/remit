@@ -16,7 +16,6 @@ export {
   calculateCreditNoteLineTotals,
   calculateCreditNoteTotal,
   computeInvoiceEffectiveReceivable,
-  computeInvoiceOutstandingAfterCredits,
   generateCreditNoteNumber,
   sumCreditNoteTotalCents,
   summarizeCreditNotes,

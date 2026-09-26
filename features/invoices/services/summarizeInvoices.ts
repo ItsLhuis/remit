@@ -7,6 +7,7 @@ export type InvoiceSummaryInput = {
   currency: string
   totalCents: number
   amountPaidCents: number
+  creditedCents: number
   dueDate: Date | null
   paidAt: Date | null
 }

@@ -14,7 +14,7 @@ import {
 
 import { listActivity } from "@/features/activityLog/server"
 
-import { isInvoiceOverdue } from "@/features/invoices/server"
+import { getInvoiceOutstandingCents, isInvoiceOverdue } from "@/features/invoices/server"
 
 import { parseDashboardQuery } from "./schemas"
 import {
@@ -22,7 +22,6 @@ import {
   buildInvoiceAttention,
   buildSignalAttention,
   getCurrencyTotal,
-  getReceivableCents,
   isWithinWindow,
   rankAttentionItems,
   resolveComparisonRange,
@@ -328,7 +327,7 @@ async function listInvoices(now: Date): Promise<InvoiceReadRow[]> {
       amountPaidCents,
       creditedCents,
       viewCount: row.viewCount,
-      receivableCents: getReceivableCents({ totalCents, amountPaidCents, creditedCents }),
+      receivableCents: getInvoiceOutstandingCents({ totalCents, amountPaidCents, creditedCents }),
       // Derived through the invoices feature's own predicate rather than restated here, so the
       // dashboard's overdue count can never contradict the badge the invoice list renders.
       isOverdue: isInvoiceOverdue(

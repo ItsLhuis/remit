@@ -168,7 +168,7 @@ export async function listApiInvoices(
 export async function getApiInvoice(id: string): Promise<ApiInvoiceDetail | null> {
   const invoice = await getInvoiceDetail({ id })
 
-  return invoice ? toApiInvoiceDetail(invoice) : null
+  return invoice ? toApiInvoiceDetail(invoice, new Date()) : null
 }
 
 export async function listApiTimeEntries(

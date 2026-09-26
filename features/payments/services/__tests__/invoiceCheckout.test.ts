@@ -8,6 +8,7 @@ describe("decideInvoiceCheckout", () => {
       status: "sent",
       totalCents: 30000,
       amountPaidCents: 0,
+      creditedCents: 0,
       stripeConfigured: true
     })
 
@@ -19,10 +20,35 @@ describe("decideInvoiceCheckout", () => {
       status: "sent",
       totalCents: 30000,
       amountPaidCents: 12500,
+      creditedCents: 0,
       stripeConfigured: true
     })
 
     expect(decision).toEqual({ payable: true, amountCents: 17500 })
+  })
+
+  test("charges the credited balance when credit notes stand against the invoice", () => {
+    const decision = decideInvoiceCheckout({
+      status: "sent",
+      totalCents: 30000,
+      amountPaidCents: 5000,
+      creditedCents: 10000,
+      stripeConfigured: true
+    })
+
+    expect(decision).toEqual({ payable: true, amountCents: 15000 })
+  })
+
+  test("refuses an invoice its credit notes have already covered", () => {
+    const decision = decideInvoiceCheckout({
+      status: "sent",
+      totalCents: 30000,
+      amountPaidCents: 20000,
+      creditedCents: 10000,
+      stripeConfigured: true
+    })
+
+    expect(decision).toEqual({ payable: false, reason: "nothing_outstanding" })
   })
 
   test("refuses when Stripe is not configured", () => {
@@ -30,6 +56,7 @@ describe("decideInvoiceCheckout", () => {
       status: "sent",
       totalCents: 30000,
       amountPaidCents: 0,
+      creditedCents: 0,
       stripeConfigured: false
     })
 
@@ -41,6 +68,7 @@ describe("decideInvoiceCheckout", () => {
       status: "draft",
       totalCents: 30000,
       amountPaidCents: 0,
+      creditedCents: 0,
       stripeConfigured: true
     })
 
@@ -52,6 +80,7 @@ describe("decideInvoiceCheckout", () => {
       status: "paid",
       totalCents: 30000,
       amountPaidCents: 30000,
+      creditedCents: 0,
       stripeConfigured: true
     })
 
@@ -63,6 +92,7 @@ describe("decideInvoiceCheckout", () => {
       status: "sent",
       totalCents: 0,
       amountPaidCents: 0,
+      creditedCents: 0,
       stripeConfigured: true
     })
 
@@ -74,6 +104,7 @@ describe("decideInvoiceCheckout", () => {
       status: "sent",
       totalCents: 30000,
       amountPaidCents: 45000,
+      creditedCents: 0,
       stripeConfigured: true
     })
 

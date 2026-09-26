@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { auditLogs, invoices } from "@/database/schema"
 
-import { makeInvoice, makeSettings, makeUser } from "@/tests/factories"
+import { makeInvoice, makeSettings, makeTemplate, makeUser } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
 const mocks = vi.hoisted(() => ({
@@ -56,6 +56,18 @@ vi.mock("@/lib/logger", () => ({
 
 const ownerId = "00000000-0000-4000-8000-000000000c02"
 const ownerEmail = "owner-late-fee@example.com"
+
+function textBlock(html: string) {
+  return {
+    id: "22222222-2222-4222-8222-222222222222",
+    type: "text" as const,
+    layout: { x: 0, y: 0, width: 400, height: 40 },
+    hidden: false,
+    locked: false,
+    rotation: 0,
+    content: { html }
+  }
+}
 
 describe("invoice late fee adjustment", () => {
   beforeEach(async () => {
@@ -176,5 +188,55 @@ describe("invoice late fee adjustment", () => {
       .where(eq(auditLogs.event, "invoice.late_fee.adjusted"))
 
     expect(entry?.metadata).toMatchObject({ previousCents: 5_000, feeCents: 0 })
+  })
+})
+
+describe("invoice late fee on the document", () => {
+  beforeEach(async () => {
+    await makeSettings({ invoicePrefix: "INV-", nextInvoiceNumber: 1, numberPaddingWidth: 4 })
+  })
+
+  test("reports the fee as printed when the invoice renders with the built-in layout", async () => {
+    const { getInvoiceDetail } = await import("../queries")
+
+    const invoice = await makeInvoice({ status: "sent", totalCents: 105_000, lateFeeCents: 5_000 })
+
+    const detail = await getInvoiceDetail({ id: invoice.id })
+
+    expect(detail?.lateFee?.shownOnDocument).toBe(true)
+  })
+
+  test("flags a fee the invoice's own template leaves off the document", async () => {
+    const { getInvoiceDetail } = await import("../queries")
+
+    const template = await makeTemplate({ blocks: [textBlock("Total {{invoice.total}}")] })
+    const invoice = await makeInvoice({
+      status: "sent",
+      templateId: template.id,
+      totalCents: 105_000,
+      lateFeeCents: 5_000
+    })
+
+    const detail = await getInvoiceDetail({ id: invoice.id })
+
+    expect(detail?.lateFee?.shownOnDocument).toBe(false)
+  })
+
+  test("reports the fee as printed when the template places the variable", async () => {
+    const { getInvoiceDetail } = await import("../queries")
+
+    const template = await makeTemplate({
+      blocks: [textBlock("Late fee {{invoice.lateFee}}, total {{invoice.total}}")]
+    })
+    const invoice = await makeInvoice({
+      status: "sent",
+      templateId: template.id,
+      totalCents: 105_000,
+      lateFeeCents: 5_000
+    })
+
+    const detail = await getInvoiceDetail({ id: invoice.id })
+
+    expect(detail?.lateFee?.shownOnDocument).toBe(true)
   })
 })

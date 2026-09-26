@@ -48,7 +48,7 @@ const PortalInvoiceRow = ({ invoice, locale }: PortalInvoiceRowProps) => {
           <span className="font-mono text-sm font-medium tabular-nums">
             {formatCurrency(invoice.totalCents, currency, locale)}
           </span>
-          {invoice.outstandingCents > 0 && invoice.amountPaidCents > 0 ? (
+          {invoice.outstandingCents > 0 && invoice.outstandingCents < invoice.totalCents ? (
             <Typography affects={["tiny", "muted"]} className="font-mono tabular-nums">
               {t("clients.public.invoices.stillDue", {
                 amount: formatCurrency(invoice.outstandingCents, currency, locale)

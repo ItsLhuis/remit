@@ -1,10 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import {
-  getReceivableCents,
-  summarizeReceivables,
-  type ReceivableInvoiceRow
-} from "../summarizeReceivables"
+import { summarizeReceivables, type ReceivableInvoiceRow } from "../summarizeReceivables"
 
 function makeRow(overrides: Partial<ReceivableInvoiceRow> = {}): ReceivableInvoiceRow {
   return {
@@ -16,20 +12,6 @@ function makeRow(overrides: Partial<ReceivableInvoiceRow> = {}): ReceivableInvoi
     ...overrides
   }
 }
-
-describe("getReceivableCents", () => {
-  test("subtracts both payments and credit notes from the invoice total", () => {
-    expect(
-      getReceivableCents({ totalCents: 100_000, amountPaidCents: 25_000, creditedCents: 15_000 })
-    ).toBe(60_000)
-  })
-
-  test("clamps to zero when credit notes exceed what is left to pay", () => {
-    expect(
-      getReceivableCents({ totalCents: 100_000, amountPaidCents: 40_000, creditedCents: 90_000 })
-    ).toBe(0)
-  })
-})
 
 describe("summarizeReceivables", () => {
   test("sums what is still owed net of credit notes", () => {

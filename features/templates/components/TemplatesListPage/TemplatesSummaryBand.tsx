@@ -65,7 +65,8 @@ const TemplatesSummaryBand = ({ summary, locale }: TemplatesSummaryBandProps) =>
 
   const emailItems = toEmailBreakdownItems(summary, t)
 
-  const missingDefaults = summary.totalTypes - summary.coveredTypes
+  const contractMissing = summary.missingDefaults.includes("contract")
+  const builtInCount = summary.missingDefaults.filter((type) => type !== "contract").length
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -105,9 +106,11 @@ const TemplatesSummaryBand = ({ summary, locale }: TemplatesSummaryBandProps) =>
           })}
           title={summary.coveredTypes.toString()}
           hint={
-            missingDefaults > 0
-              ? t("templates.summary.defaultsMissingHint", { count: missingDefaults })
-              : t("templates.summary.defaultsHint")
+            contractMissing
+              ? t("templates.summary.defaultsContractMissingHint")
+              : builtInCount > 0
+                ? t("templates.summary.defaultsMissingHint", { count: builtInCount })
+                : t("templates.summary.defaultsHint")
           }
           mono
         />

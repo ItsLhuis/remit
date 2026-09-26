@@ -22,11 +22,7 @@ import { formatCentsForInput } from "@/lib/utils"
 import { database } from "@/database"
 import { clients, invoices, projects, recurringInvoices, uploads } from "@/database/schema"
 
-import {
-  getClientInvoiceCountSubquery,
-  getClientInvoiceTotalsSubquery,
-  getClientPaymentTotalsSubquery
-} from "./queryFragments"
+import { getClientInvoiceCountSubquery, getClientOutstandingSubquery } from "./queryFragments"
 import {
   clientIdSchema,
   parseClientListQuery,
@@ -110,11 +106,10 @@ export async function listClients(
   query: ClientListQuery,
   defaultCurrency = "EUR"
 ): Promise<{ rows: ClientListItem[]; rowCount: number }> {
-  const invoiceTotals = getClientInvoiceTotalsSubquery()
-  const paymentTotals = getClientPaymentTotalsSubquery()
+  const outstanding = getClientOutstandingSubquery()
   const invoiceCounts = getClientInvoiceCountSubquery()
 
-  const outstandingExpr = sql<number>`cast(greatest(coalesce(${invoiceTotals.totalCents}, 0) - coalesce(${paymentTotals.paidCents}, 0), 0) as bigint)`
+  const outstandingExpr = sql<number>`cast(coalesce(${outstanding.outstandingCents}, 0) as bigint)`
   const invoiceCountExpr = sql<number>`cast(coalesce(${invoiceCounts.invoiceCount}, 0) as int)`
 
   const whereClause = getClientListWhereClause(query, outstandingExpr, invoiceCountExpr)
@@ -142,8 +137,7 @@ export async function listClients(
       })
       .from(clients)
       .leftJoin(uploads, eq(uploads.id, clients.imageUploadId))
-      .leftJoin(invoiceTotals, eq(invoiceTotals.clientId, clients.id))
-      .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
+      .leftJoin(outstanding, eq(outstanding.clientId, clients.id))
       .leftJoin(invoiceCounts, eq(invoiceCounts.clientId, clients.id))
       .where(whereClause)
       .orderBy(...orderBy)
@@ -152,8 +146,7 @@ export async function listClients(
     database
       .select({ value: count() })
       .from(clients)
-      .leftJoin(invoiceTotals, eq(invoiceTotals.clientId, clients.id))
-      .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
+      .leftJoin(outstanding, eq(outstanding.clientId, clients.id))
       .leftJoin(invoiceCounts, eq(invoiceCounts.clientId, clients.id))
       .where(whereClause)
   ])
@@ -165,20 +158,18 @@ export async function listClients(
 }
 
 async function getClientsSummary(defaultCurrency = "EUR"): Promise<ClientsSummary> {
-  const invoiceTotals = getClientInvoiceTotalsSubquery()
-  const paymentTotals = getClientPaymentTotalsSubquery()
+  const outstanding = getClientOutstandingSubquery()
   const invoiceCounts = getClientInvoiceCountSubquery()
 
   const rows = await database
     .select({
       currency: clients.currency,
       createdAt: clients.createdAt,
-      outstandingBalanceCents: sql<number>`cast(greatest(coalesce(${invoiceTotals.totalCents}, 0) - coalesce(${paymentTotals.paidCents}, 0), 0) as bigint)`,
+      outstandingBalanceCents: sql<number>`cast(coalesce(${outstanding.outstandingCents}, 0) as bigint)`,
       invoiceCount: sql<number>`cast(coalesce(${invoiceCounts.invoiceCount}, 0) as int)`
     })
     .from(clients)
-    .leftJoin(invoiceTotals, eq(invoiceTotals.clientId, clients.id))
-    .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
+    .leftJoin(outstanding, eq(outstanding.clientId, clients.id))
     .leftJoin(invoiceCounts, eq(invoiceCounts.clientId, clients.id))
     .where(isNull(clients.deletedAt))
 
@@ -381,23 +372,17 @@ function getClientHealthCondition(
   return parts.length > 0 ? or(...parts) : undefined
 }
 
-// Invoice totals, payment totals and invoice counts are three separate pre-aggregated subqueries
-// joined onto `clients`, rather than one query joining invoices and payments together. Joining them
-// directly fans out one invoice row per payment, which multiplies `sum(invoices.total_cents)` by
-// the number of payments and silently inflates every outstanding balance on the page. The
-// `greatest(..., 0)` wrapper at each call site mirrors the clamp in
-// `services/calculateOutstandingBalance.ts` so SQL and the pure service agree on an overpaid client.
+// The same per-client subquery the list and the summary join (`queryFragments.ts`), so the detail
+// page, the list row and the summary band cannot quote one client two balances.
 async function getOutstandingBalanceCents(clientId: string): Promise<number> {
-  const invoiceTotals = getClientInvoiceTotalsSubquery()
-  const paymentTotals = getClientPaymentTotalsSubquery()
+  const outstanding = getClientOutstandingSubquery()
 
   const [row] = await database
     .select({
-      outstandingBalanceCents: sql<number>`cast(greatest(coalesce(${invoiceTotals.totalCents}, 0) - coalesce(${paymentTotals.paidCents}, 0), 0) as bigint)`
+      outstandingBalanceCents: sql<number>`cast(coalesce(${outstanding.outstandingCents}, 0) as bigint)`
     })
     .from(clients)
-    .leftJoin(invoiceTotals, eq(invoiceTotals.clientId, clients.id))
-    .leftJoin(paymentTotals, eq(paymentTotals.clientId, clients.id))
+    .leftJoin(outstanding, eq(outstanding.clientId, clients.id))
     .where(and(eq(clients.id, clientId), isNull(clients.deletedAt)))
 
   return Number(row?.outstandingBalanceCents ?? 0)
