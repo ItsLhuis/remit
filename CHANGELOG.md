@@ -112,6 +112,8 @@ section, and refuse to run while it has no entries.
 - `scripts/host/upgrade.sh` printed rollback guidance, and claimed its backup step had completed,
   when the prerequisite check or the pre-upgrade backup failed — before anything had changed. It now
   says that nothing was changed and that the upgrade can be run again.
+- Installing or upgrading stopped at pulling the MinIO image, which MinIO no longer publishes. The
+  stack now runs Chainguard's maintained build of MinIO, which opens existing storage unchanged.
 
 ## History before this file
 

@@ -36,9 +36,13 @@ services:
       retries: 5
 
   minio:
-    # quay.io, never Docker Hub: MinIO removed minio/minio from Docker Hub, where it now fails with
-    # "pull access denied".
-    image: quay.io/minio/minio:latest
+    # Chainguard's build of its maintained MinIO fork. MinIO no longer publishes a public image:
+    # minio/minio on Docker Hub and quay.io/minio/minio both refuse anonymous pulls.
+    image: cgr.dev/chainguard/minio:latest
+    # Root, not the image's default uid 65532: the official image ran as root, so every existing
+    # minio_dev_data volume is root-owned, and as a non-root user MinIO refuses to start on one
+    # ("Unable to write to the backend").
+    user: "0:0"
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
