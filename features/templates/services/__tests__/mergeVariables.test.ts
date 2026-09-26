@@ -9,6 +9,7 @@ import {
   extractMergeTokens,
   findUnknownTokens,
   getMergeVariables,
+  placesMergeVariable,
   ALL_MERGE_VARIABLES,
   MERGE_VARIABLES
 } from "../mergeVariables"
@@ -73,6 +74,48 @@ describe("extractMergeTokens", () => {
     const blocks = [frameWithText("{{business.name}}")]
 
     expect(extractMergeTokens(blocks)).toEqual(["business.name"])
+  })
+})
+
+describe("placesMergeVariable", () => {
+  test("finds a variable a visible block prints", () => {
+    expect(placesMergeVariable([textBlock("Fee {{invoice.lateFee}}")], "invoice.lateFee")).toBe(
+      true
+    )
+  })
+
+  test("finds a variable printed inside a frame", () => {
+    expect(placesMergeVariable([frameWithText("{{invoice.lateFee}}")], "invoice.lateFee")).toBe(
+      true
+    )
+  })
+
+  test("does not count a variable only a hidden block carries", () => {
+    const hidden = { ...textBlock("Fee {{invoice.lateFee}}"), hidden: true }
+
+    expect(placesMergeVariable([hidden], "invoice.lateFee")).toBe(false)
+  })
+
+  test("does not count a variable only a hidden frame child carries", () => {
+    const frame = frameWithText("{{invoice.lateFee}}")
+    const hiddenChild =
+      frame.type === "frame"
+        ? {
+            ...frame,
+            content: {
+              ...frame.content,
+              children: frame.content.children.map((child) => ({ ...child, hidden: true }))
+            }
+          }
+        : frame
+
+    expect(placesMergeVariable([hiddenChild], "invoice.lateFee")).toBe(false)
+  })
+
+  test("reports a variable no block prints as absent", () => {
+    expect(placesMergeVariable([textBlock("Total {{invoice.total}}")], "invoice.lateFee")).toBe(
+      false
+    )
   })
 })
 

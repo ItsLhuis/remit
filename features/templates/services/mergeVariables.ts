@@ -48,7 +48,9 @@ const PAYMENT_VARIABLES = [
   "payment.termsDays"
 ] as const
 
-// invoice.amountDue is computed (totalCents - amountPaidCents); everything else maps one-to-one.
+// invoice.amountDue and invoice.credited are computed — what is still owed and the sum of the credit
+// notes standing against the invoice (features/invoices/services/invoiceRenderData.ts); everything
+// else maps one-to-one.
 const INVOICE_VARIABLES = [
   "invoice.number",
   "invoice.status",
@@ -58,6 +60,7 @@ const INVOICE_VARIABLES = [
   "invoice.tax",
   "invoice.total",
   "invoice.amountPaid",
+  "invoice.credited",
   "invoice.amountDue",
   "invoice.issueDate",
   "invoice.dueDate",
@@ -97,7 +100,8 @@ const CREDIT_NOTE_VARIABLES = [
   "creditNote.subtotal",
   "creditNote.tax",
   "creditNote.total",
-  "creditNote.issueDate"
+  "creditNote.issueDate",
+  "creditNote.invoiceNumber"
 ] as const
 
 export const ALL_MERGE_VARIABLES = [
@@ -194,10 +198,45 @@ export function extractMergeTokens(blocks: readonly Block[]): string[] {
   return [...tokens]
 }
 
+// Whether the rendered document prints the variable, which a hidden block does not: the renderer
+// skips hidden blocks at every level (`renderTemplate.ts`). `features/invoices/queries.ts` reads it to
+// warn an owner whose invoice template would leave a charged late fee off the PDF.
+export function placesMergeVariable(blocks: readonly Block[], variable: MergeVariableId): boolean {
+  return extractMergeTokens(visibleBlocks(blocks)).includes(variable)
+}
+
 export function findUnknownTokens(blocks: readonly Block[], type: TemplateType): string[] {
   const schema = MERGE_VARIABLE_ENUMS[type]
 
   return extractMergeTokens(blocks).filter((token) => !schema.safeParse(token).success)
+}
+
+function visibleBlocks(blocks: readonly Block[]): Block[] {
+  return blocks.flatMap((block): Block[] => {
+    if (block.hidden) return []
+
+    switch (block.type) {
+      case "frame":
+        return [
+          {
+            ...block,
+            content: { ...block.content, children: visibleBlocks(block.content.children) }
+          }
+        ]
+      case "group":
+        return [
+          {
+            ...block,
+            content: { ...block.content, children: visibleBlocks(block.content.children) }
+          }
+        ]
+      case "text":
+      case "image":
+      case "table":
+      case "shape":
+        return [block]
+    }
+  })
 }
 
 // Collection bindings are enum ids rather than tokens, so they never appear here.

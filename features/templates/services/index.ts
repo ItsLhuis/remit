@@ -133,6 +133,7 @@ export {
   extractMergeTokens,
   findUnknownTokens,
   getMergeVariables,
+  placesMergeVariable,
   ALL_MERGE_VARIABLES,
   MERGE_TOKEN_SOURCE,
   MERGE_VARIABLES,
@@ -142,6 +143,15 @@ export {
 } from "./mergeVariables"
 
 export { renderBlockContent, renderTemplate, BUSINESS_LOGO_ASSET_KEY } from "./renderTemplate"
+
+export {
+  buildBuiltInLayout,
+  BUILT_IN_LAYOUT_TYPES,
+  type BuiltInLayout,
+  type BuiltInLayoutInput,
+  type BuiltInLayoutLabels,
+  type BuiltInLayoutType
+} from "./builtInLayout"
 
 export { renderMergeString } from "./renderMergeString"
 
