@@ -128,6 +128,15 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
 
   const publicPath = await page.getByRole("textbox", { name: "Client link" }).inputValue()
 
+  // Sending mails the proposal, from the worker and on its own schedule, to the same address the
+  // acceptance code goes to next. Waiting for it and then emptying the mailbox is what makes the
+  // latest mail after "Send code" the code, not whichever of the two happened to land last.
+  const proposalMail = await waitForLatestMailTo(CLIENT_EMAIL)
+
+  expect(proposalMail.Subject).toMatch(/^Proposal /)
+
+  await clearMailbox()
+
   const clientContext = await browser.newContext()
   const clientPage = await clientContext.newPage()
 
