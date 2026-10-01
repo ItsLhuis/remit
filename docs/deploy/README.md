@@ -97,11 +97,11 @@ targets still have no guide here, deliberately.
 **Railway and Render.** Both can run Remit, and neither can run it from the Compose file in this
 repository. Neither platform lets two services share a persistent disk, so `app` and `worker` cannot
 share the data directory the local backup destination writes into; both would need managed
-PostgreSQL, managed Redis, an S3-compatible bucket in place of MinIO, and an S3 backup destination
-rather than the local one. That is a different deployment model, not a different set of buttons, and
-it has four paid managed services in it. Writing that from documentation, untested, is exactly the
-guide that fails at step four. If you run Remit on either and it works, the configuration is worth
-contributing.
+PostgreSQL, managed Redis, an S3-compatible bucket in place of the bundled store, and an S3 backup
+destination rather than the local one. That is a different deployment model, not a different set of
+buttons, and it has four paid managed services in it. Writing that from documentation, untested, is
+exactly the guide that fails at step four. If you run Remit on either and it works, the
+configuration is worth contributing.
 
 Nothing about that is a limitation in the platforms; it is a consequence of Remit shipping a Compose
 file whose two application services share a volume.

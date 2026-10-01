@@ -4,8 +4,9 @@ This document is the implementation-facing specification for Remit's encrypted `
 format. The architecture overview summarizes the backup model; this file defines the durable archive
 contract used by `remit:backup` and `remit:restore`.
 
-ADR-0020 owns the accepted architectural decision. Changes that break a released archive format must
-bump `archiveFormatVersion` and be recorded in a later ADR.
+ADR-0020 owns the accepted architectural decision; ADR-0046 supersedes it for the decrypted payload
+layout, which since format version 2 carries the stored files. Changes that break a released archive
+format must bump `archiveFormatVersion` and be recorded in a later ADR.
 
 ## Archive filename convention
 
@@ -47,7 +48,8 @@ identify the format and key fingerprint before attempting decryption. Restore re
 header against the manifest's `archiveFormatVersion` and `encryption.keyFingerprint` after
 decryption; a mismatch aborts restore.
 
-The initial released format uses `archiveFormatVersion = 1`.
+`remit:backup` writes and `remit:restore` reads `archiveFormatVersion = 2`: the database and every
+object of the public and documents buckets (ADR-0046).
 
 ## Decrypted payload layout
 
@@ -58,30 +60,63 @@ manifest.json
 checksums.sha256
 database/
   remit.dump            (pg_dump --format=custom output)
-uploads/
-  <uploaded-file-1>
-  <uploaded-file-2>
-  ...
+objects/
+  public/
+    <key>               (one entry per object in the public bucket)
+  documents/
+    <key>               (one entry per object in the documents bucket)
 ```
 
 - `manifest.json` describes the archive and is the first entry in the tar so restore can stream the
   manifest before reading the rest.
 - `checksums.sha256` lists `<sha256>  <path>` lines for `database/remit.dump` and every file under
-  `uploads/`. Restore verifies every checksum before applying the archive.
+  `objects/`, and precedes them, so restore verifies each entry as it streams past and every
+  checksum before it applies anything.
 - `database/remit.dump` is the output of `pg_dump --format=custom --no-owner --no-privileges`.
   Custom format gives a deterministic, restore-friendly binary that `pg_restore --clean --if-exists`
   can consume without role assumptions on the target instance.
-- `uploads/` is a relative-path mirror under the `uploads/` prefix, preserving each stored object's
-  relative key as `uploads/${upload.key}`. The storage adapter from ADR-0019 is responsible for
-  streaming objects into the tar regardless of the runtime backend.
+- `objects/<role>/<key>` holds each stored object under its object key. The path records the
+  bucket's **role** (`public` or `documents`), never its physical name, so an archive restores into
+  an instance whose `S3_BUCKET` differs from the one that wrote it.
+- The exports bucket (data exports and report PDFs) is not archived: each of its objects is
+  regenerable on demand from the database the archive already holds.
+- Keys under `remit-backups/` are not archived either, and a restore never deletes them: they are
+  the archives a remote backup destination wrote into one of the storage buckets, not stored files.
+- A key the archive cannot hold is left out and counted, and a restore never deletes it: an empty
+  key, a leading `/`, an empty, `.` or `..` segment (a console's "folder" marker ends in `/`), a
+  backslash, a control character (a line break would split the key's `checksums.sha256` line), or a
+  path longer than a ustar entry allows. Remit writes no such key, so such an object was put in the
+  bucket by something else. The count is reported as a warning by the command and in the worker's
+  log. A file the database names under such a key fails the backup instead.
 - The runtime image installs `postgresql16-client` so in-container `remit:backup` can invoke
   `pg_dump` against the PostgreSQL 16 service pinned in `docker-compose.yml`.
+
+## How a backup reads the object store
+
+1. The database is dumped first, the `uploads` rows are read next, and the buckets are listed last.
+   An object is stored before the row that names it, so every file the dump or the rows reference
+   was already stored when the listing ran, and a file uploaded during the listing is not mistaken
+   for one the listing missed. A public bucket that does not exist fails the backup: the application
+   creates it at boot, so its absence means the command is pointed at another store. The documents
+   bucket is created by its first writer and may legitimately be missing.
+2. Every `uploads` row is checked against the listing. A row whose object exists but was not listed
+   fails the backup, so a listing that ends early can never produce an archive that looks complete.
+   A row whose object is truly gone (an earlier interrupted delete) is counted and reported, not
+   fatal.
+3. Every object is read once to hash it for `checksums.sha256`, and again as it streams into the
+   tar, hashed a second time. Remit writes every key once, so a mismatch is corruption and discards
+   the archive. An object deleted between the listing and the first read is left out and counted
+   like a missing one; one deleted between the two reads discards the archive, which already
+   promised it, and the next backup succeeds.
+4. Only a 404 counts as "gone", in the cross-check and in both reads. The listing has already proved
+   the key may list the bucket, under which a missing key answers 404; a 403 is a refused read, and
+   it fails the backup rather than producing an archive without the file.
 
 ## Manifest shape
 
 ```json
 {
-  "archiveFormatVersion": 1,
+  "archiveFormatVersion": 2,
   "appVersion": "1.2.3",
   "createdAt": "2026-05-17T10:00:00Z",
   "createdBy": "remit:backup",
@@ -98,16 +133,26 @@ uploads/
       "size": 1234567,
       "sha256": "<hex>"
     },
-    "uploads": {
+    "objects": {
       "format": "tar-stream",
-      "fileCount": 42,
-      "totalSize": 9876543,
-      "sha256Manifest": "<hex of checksums.sha256>"
+      "sha256Manifest": "<hex of checksums.sha256>",
+      "buckets": {
+        "public": { "fileCount": 40, "totalSize": 1876543 },
+        "documents": { "fileCount": 12, "totalSize": 8000000 }
+      },
+      "contentTypes": {
+        "objects/public/logos/<uuid>.png": "image/png",
+        "objects/documents/documents/invoice/<id>/<random>.pdf": "application/pdf"
+      }
     }
   },
   "destination": "local"
 }
 ```
+
+`contentTypes` records the type each object was stored with, so a restore puts it back with the same
+type; the storage route serves files under `nosniff`, and an image returned as
+`application/octet-stream` would never render.
 
 `destination` is one of `local`, `s3`, `r2`, or `b2`. It records where the archive was intended to
 be stored. Restore accepts either a local file path or `remit://<destination>/<key>` for a remote
@@ -125,7 +170,9 @@ archive object.
 
 Losing `REMIT_ENCRYPTION_KEY` loses both encrypted database columns and encrypted backup archives.
 Encryption key rotation is defined by ADR-0021 and uses a two-key window to re-encrypt registered
-database columns and existing backup archive envelopes.
+database columns and existing backup archive envelopes. Re-encryption streams: it rewrites the
+header and the manifest's `keyFingerprint` and passes every other entry through unchanged, through a
+temporary file, so an archive's size never has to fit in memory.
 
 ## Destinations
 
@@ -137,6 +184,13 @@ Destinations match `settings.backup_destination` and ADR-0019:
 | `s3`        | Shipped | Writes encrypted `.remitbak` bytes to Amazon S3 using `settings.backup_s3_*` credentials. |
 | `r2`        | Shipped | Writes encrypted `.remitbak` bytes to Cloudflare R2 through the S3-compatible adapter.    |
 | `b2`        | Shipped | Writes encrypted `.remitbak` bytes to Backblaze B2 through the S3-compatible adapter.     |
+
+An archive larger than 256 MiB is uploaded to a remote destination in 64 MiB parts (larger when the
+archive would otherwise need more than 10,000), so S3's 5 GiB single-request limit does not bound an
+instance's backups. One part is held in memory at a time. A failed part aborts the upload, and the
+destination keeps nothing of it. A process killed outright cannot abort, and the parts it had sent
+stay at the destination, billed and invisible in a listing, so give the destination bucket a
+lifecycle rule that expires incomplete multipart uploads.
 
 A single `remit:backup` run writes to exactly one destination: the `--destination` flag when
 provided, otherwise the destination configured in settings. Multi-destination fan-out is deferred.

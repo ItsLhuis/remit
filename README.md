@@ -205,12 +205,12 @@ bash scripts/host/install.sh
 
 The installer checks Docker, asks for the address Remit will be reached at and whether to run Caddy
 for automatic HTTPS, generates every secret, and starts the app, the background worker, PostgreSQL,
-Redis and MinIO. It shows the encryption key once and does not continue until you confirm you have
-stored it. Read the script before you run it: it is distributed through the repository, never as a
-`curl | bash` one-liner, because it needs the checkout's Compose file and because it generates the
-key that encrypts your data. Re-running it is safe and never rewrites `.env` or its key. The
-[installation runbook](./docs/operations/INSTALL.md) covers unattended installs, every option, and
-installing by hand.
+Redis and the object store that keeps stored files. It shows the encryption key once and does not
+continue until you confirm you have stored it. Read the script before you run it: it is distributed
+through the repository, never as a `curl | bash` one-liner, because it needs the checkout's Compose
+file and because it generates the key that encrypts your data. Re-running it is safe and never
+rewrites `.env` or its key. The [installation runbook](./docs/operations/INSTALL.md) covers
+unattended installs, every option, and installing by hand.
 
 Only the app, or Caddy in front of it, is reachable from outside the host. Uploads and stored files
 go through the app, so an instance needs one hostname and one certificate, and the published images

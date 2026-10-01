@@ -1120,8 +1120,8 @@ The surface is owner-only (`requireRole("owner")` on the page, `requireDataExpor
 mutation, and a role check in the download route). A request enqueues the `data_export.assemble` job
 (ADR-0023); the worker reads the rows, streams every referenced storage object into a zip, uploads
 it, and reports `status`/`progress` on the `data_exports` row, which the page polls. Archives are
-stored in a **separate exports bucket with no anonymous read policy** — unlike the runtime uploads
-bucket — so `GET /api/exports/[id]` is the only path out.
+stored in a **separate exports bucket** that the anonymous storage route cannot read, so
+`GET /api/exports/[id]` is the only path out.
 
 Three audit entries cover an export's life: `data_export.requested` (actor, role, scope, client id,
 IP, user-agent), `data_export.completed` or `data_export.failed` from the worker (no request
@@ -1550,9 +1550,10 @@ consumer with Chromium for PDF rendering. Neither carries anything about a deplo
 no secret, no `NEXT_PUBLIC_*` value frozen into the bundle — so the image a release names runs at
 any address ([ADR-0040](adr/0040-deployment-agnostic-images.md)).
 
-`docker-compose.yml` runs the two beside PostgreSQL, Redis and MinIO. Only the app publishes a port:
-the database, Redis and object storage are reachable inside the Compose network alone, and browsers
-reach stored files through the app. Two profiles:
+`docker-compose.yml` runs the two beside PostgreSQL, Redis and a bundled S3-compatible object store,
+RustFS, pinned to an exact release and digest ([ADR-0045](adr/0045-bundled-object-store.md)). Only
+the app publishes a port: the database, Redis and object storage are reachable inside the Compose
+network alone, and browsers reach stored files through the app. Two profiles:
 
 - **Default** — publishes the app on `PORT`, on the interface `REMIT_APP_BIND` names, for a reverse
   proxy the operator already runs (Nginx, Caddy, Traefik, Cloudflare Tunnel) or a trusted LAN.
@@ -1560,6 +1561,13 @@ reach stored files through the app. Two profiles:
   redirects HTTP to HTTPS and proxies to the app, whose port is then published on loopback only. Its
   configuration is `deploy/caddy/Caddyfile`. `COMPOSE_PROFILES=with-proxy` in `.env` keeps the
   profile on for every later `docker compose` command, the upgrade script's included.
+
+Object storage is reached through one adapter, `lib/storage`, configured by vendor-neutral
+variables: `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and
+`S3_FORCE_PATH_STYLE`. The bundled store starts with the same key pair the app and worker sign with.
+Pointed at Amazon S3, Cloudflare R2 or Backblaze B2 instead, the same variables keep the files
+there, in three buckets derived from `S3_BUCKET` that an operator may create in advance for a key
+that can neither create nor list buckets ([ADR-0045](adr/0045-bundled-object-store.md)).
 
 ### Configuration hierarchy
 
@@ -1685,9 +1693,9 @@ only when the command has a real implementation, build entry, runtime packaging,
 to its risk, and matching documentation. Remit does not ship placeholder package scripts.
 
 Execution context is part of the contract. In-container commands may access the database, encryption
-key, uploads volume, and configured object stores. Host-side scripts own image pulls, compose
-restarts, host volumes, and registry access. The app container must never mount the Docker socket.
-Host-side scripts live under `scripts/host/` and are not copied into the runtime image.
+key, data volume, and configured object stores. Host-side scripts own image pulls, compose restarts,
+host volumes, and registry access. The app container must never mount the Docker socket. Host-side
+scripts live under `scripts/host/` and are not copied into the runtime image.
 
 `remit:upgrade` is the explicit exception: upgrade is host-side only, there is no `remit:upgrade`
 package script, and the name is not reserved. See the detailed
@@ -1713,17 +1721,20 @@ a yes/no, because unlike a reseed the operation leaves nothing in place of what 
 
 Backups are encrypted single-file `.remitbak` archives. The archive contains a fixed plaintext
 header, an AES-256-GCM encrypted gzip tar payload, `manifest.json`, `checksums.sha256`, a
-`pg_dump --format=custom` database dump, and an uploads mirror. Backup encryption reuses
-`REMIT_ENCRYPTION_KEY` per ADR-0005; losing that key loses both encrypted columns and encrypted
-backup archives. The detailed archive contract lives in the
-[Backup archive format](specs/BACKUP-ARCHIVE.md).
+`pg_dump --format=custom` database dump, and every object of the public and documents buckets,
+recorded under its bucket's role so an archive restores into an instance whose bucket name differs
+([ADR-0046](adr/0046-backups-carry-stored-files.md)). The exports bucket is left out: its objects
+are regenerable from the database. Backup encryption reuses `REMIT_ENCRYPTION_KEY` per ADR-0005;
+losing that key loses both encrypted columns and encrypted backup archives. The detailed archive
+contract lives in the [Backup archive format](specs/BACKUP-ARCHIVE.md).
 
 Restore is destructive-safe, not non-destructive. Before changing live data, `remit:restore` must
 create a local pre-restore snapshot. Restore refuses incompatible archive versions, key fingerprint
 mismatches, newer app archives, invalid headers, manifest/header mismatches, and checksum failures.
-Database contents and uploads are replaced by the archive contents after confirmation. Operator
-safety, refusal rules, data effects, and logging/redaction details live in the
-[Restore runbook](../operations/RESTORE.md).
+After confirmation the archive's files are written and verified first, the database is replaced in
+one transaction second, and stored files the archive does not contain are deleted last, so every
+point a restore can stop at is one a re-run repairs. Operator safety, refusal rules, data effects,
+and logging/redaction details live in the [Restore runbook](../operations/RESTORE.md).
 
 Backup configuration and status live in the settings schema. `/settings/backup` is the owner-only
 surface that writes the configuration: the destination, the bucket, region and endpoint of an
@@ -1831,8 +1842,8 @@ Railway and Render are named in `docs/deploy/README.md` as targets with no guide
 Remit, and neither can run it from this repository's Compose file: neither platform lets two
 services share a persistent disk, which the `app` and `worker` services do for the local backup
 destination, so each would need managed PostgreSQL, managed Redis, an S3-compatible bucket in place
-of MinIO and an S3 backup destination. That is a different deployment model rather than a different
-console, and no untested guide for it ships.
+of the bundled store and an S3 backup destination. That is a different deployment model rather than
+a different console, and no untested guide for it ships.
 
 ---
 
@@ -2228,6 +2239,8 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0042](adr/0042-mcp-server.md)                                | MCP server — off by default, the API's own tokens over Streamable HTTP, read-only tools   | Accepted |
 | [0043](adr/0043-built-in-document-layouts.md)                 | Built-in document layouts live in code and are resolved when no template exists           | Accepted |
 | [0044](adr/0044-invoice-outstanding-and-credit-settlement.md) | One outstanding amount, credit notes settle an invoice, and a late fee re-renders its PDF | Accepted |
+| [0045](adr/0045-bundled-object-store.md)                      | RustFS as the bundled object store, behind one vendor-neutral S3 adapter                  | Accepted |
+| [0046](adr/0046-backups-carry-stored-files.md)                | Backups carry the stored files                                                            | Accepted |
 
 ---
 

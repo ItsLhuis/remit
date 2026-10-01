@@ -151,6 +151,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0053](0053-test-suite-and-ci-reliability.md)     | Test suite and CI reliability                  | 2026-09-23 | Complete                 | —                                                                    |
 | [0054](0054-coverage-completion.md)               | Coverage completion                            | 2026-09-23 | Complete                 | —                                                                    |
 | [0055](0055-document-delivery-and-money-truth.md) | Document delivery and money truth              | 2026-09-25 | Complete                 | ADR-0043, ADR-0044                                                   |
+| [0056](0056-vendor-neutral-object-storage.md)     | Vendor-neutral object storage and file backups | 2026-09-30 | Complete                 | ADR-0019, ADR-0020, ADR-0040, ADR-0045, ADR-0046                     |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
-`DR-0035` through `DR-0055`, which were written at delivery time.
+`DR-0035` through `DR-0056`, which were written at delivery time.

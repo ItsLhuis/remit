@@ -60,8 +60,8 @@ In the panel's environment editor for this resource:
 | `BETTER_AUTH_SECRET`           | `openssl rand -base64 32`                                             |
 | `POSTGRES_USER`, `POSTGRES_DB` | `remit`, or anything you prefer                                       |
 | `POSTGRES_PASSWORD`            | `openssl rand -hex 32` — hex, so the connection URL needs no escaping |
-| `MINIO_ROOT_USER`              | `remit`                                                               |
-| `MINIO_ROOT_PASSWORD`          | `openssl rand -hex 32`                                                |
+| `S3_ACCESS_KEY_ID`             | `remit`                                                               |
+| `S3_SECRET_ACCESS_KEY`         | `openssl rand -hex 32`                                                |
 | `REMIT_DATA_DIR`               | `./data`                                                              |
 | `REMIT_IMAGE_TAG`              | `latest`, or a released version tag                                   |
 
@@ -80,7 +80,7 @@ Both panels attach a domain to one service and one port.
 - **Dokploy** — _Domains_ tab, _Add Domain_, service `app`, container port `3000`, and enable the
   certificate.
 
-Only `app` gets a domain. `database`, `redis`, `minio` and `worker` stay unreachable from outside;
+Only `app` gets a domain. `database`, `redis`, `storage` and `worker` stay unreachable from outside;
 browsers never talk to object storage, because the app streams every stored file itself
 ([ADR-0040](../architecture/adr/0040-deployment-agnostic-images.md)).
 

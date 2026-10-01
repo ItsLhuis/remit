@@ -12,13 +12,17 @@ or receive access to the Docker socket.
   `docker compose up -d`, confirm it is healthy, then upgrade.
 - The configured backup destination is reachable. For the default local destination, the
   `${REMIT_DATA_DIR:-./data}` volume must be writable and have enough space for a `.remitbak`
-  archive.
+  archive, which carries the database and every stored file.
 - The current image tag is known. The production compose file runs `ghcr.io/itslhuis/remit/app` and
   `ghcr.io/itslhuis/remit/worker` at `REMIT_IMAGE_TAG`, which defaults to `latest`.
 - When `.env` sets `COMPOSE_PROFILES=with-proxy`, as the installer does for automatic HTTPS, every
   step below includes the Caddy container with no extra option.
 
 ## Before You Upgrade
+
+Update the checkout to the release you are moving to (`git pull`, or `git checkout <tag>`) before
+running the script. `docker-compose.yml`, `deploy/` and `scripts/host/` come from the checkout, not
+from the images, and a release can change them.
 
 Read [`CHANGELOG.md`](../../CHANGELOG.md) from the version you run to the version you are moving to.
 `/settings/system` shows the running version under Instance details. Each release's **Upgrade

@@ -11,8 +11,8 @@ does not cover from experience; everything on either side of it ran as written.
 
 One Linux machine that you have a shell on and that runs nothing else on ports 80, 443 or 3000: a
 VPS at any provider, a virtual machine, or a box in a cupboard. Everything runs on it — the
-application, the background worker, PostgreSQL, Redis, MinIO for stored files, and Caddy for HTTPS
-if you want the host to handle certificates.
+application, the background worker, PostgreSQL, Redis, an object store for stored files, and Caddy
+for HTTPS if you want the host to handle certificates.
 
 Use a different guide if the host already serves other sites through Nginx
 ([Behind Nginx](nginx.md)), if a panel manages Docker for you
@@ -115,7 +115,7 @@ installer writes all of it; you normally edit only the first two rows below.
 | `REMIT_PUBLIC_URL`                                                 | you, at install                             |
 | `REMIT_ACME_EMAIL`                                                 | you, when Caddy runs here                   |
 | `REMIT_ENCRYPTION_KEY`, `BETTER_AUTH_SECRET`                       | generated once, never regenerate            |
-| `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`                         | generated once                              |
+| `POSTGRES_PASSWORD`, `S3_SECRET_ACCESS_KEY`                        | generated once                              |
 | `PORT`, `REMIT_APP_BIND`, `COMPOSE_PROFILES`, `REMIT_IMAGE_TAG`    | generated from your answers; safe to change |
 | `REMIT_METRICS_TOKEN`, `REMIT_WEBHOOK_ALLOWED_HOSTS`, `SENTRY_DSN` | you, only if you use those features         |
 
@@ -181,10 +181,12 @@ A backup you have never restored is a hope rather than a backup.
 ## Upgrading
 
 ```bash
+git pull
 bash scripts/host/upgrade.sh
 ```
 
-It takes a backup, pulls the images, restarts the project and waits for health; migrations run
+The checkout comes first: the Compose file and the scripts are the checkout's, not the images'. The
+script takes a backup, pulls the images, restarts the project and waits for health; migrations run
 inside the app container as it starts. Read the [`CHANGELOG.md`](../../CHANGELOG.md) entries between
 your version and the new one first — `/settings/system` shows the version you are running. The full
 procedure, the rollback path and its troubleshooting are in
@@ -251,8 +253,9 @@ container is not running at all, the queue fills and the application keeps accep
 
 ### The disk fills
 
-Backups in the local destination and rendered PDFs both grow. `/settings/system` reports disk usage,
-and the retention counts on `/settings/backup` decide how many archives a run leaves behind.
+Backups in the local destination and stored files both grow, and every archive carries every stored
+file, so each one is at least as large as the files themselves. `/settings/system` reports disk
+usage, and the retention counts on `/settings/backup` decide how many archives a run leaves behind.
 
 ## Where to go next
 

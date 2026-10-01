@@ -41,6 +41,8 @@ section, and refuse to run while it has no entries.
   trailing slash, and delete `NEXT_PUBLIC_STORAGE_BASE_URL` and `MINIO_PUBLIC_URL`.
 - **Update `docker-compose.yml` from the repository before running the upgrade script.** The images
   are now `ghcr.io/itslhuis/remit/app` and `ghcr.io/itslhuis/remit/worker`.
+- Backups now carry every stored file, so each archive is at least as large as your files; check the
+  free space of the backup destination.
 - MinIO no longer publishes ports 9000 and 9001, and its bucket no longer allows anonymous reads. A
   reverse-proxy route to MinIO, or anything else that reached storage directly, is no longer needed
   and no longer works.
@@ -78,6 +80,15 @@ section, and refuse to run while it has no entries.
 
 ### Changed
 
+- Stored files live in RustFS, bundled in the Compose file and pinned to an exact release and image
+  digest, reached through one S3 adapter configured by `S3_ENDPOINT`, `S3_REGION`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and `S3_FORCE_PATH_STYLE`. Pointed at
+  Amazon S3, Cloudflare R2 or Backblaze B2, the same variables keep the files there, in buckets you
+  may create in advance for a key that cannot create or list them.
+- Backup archives larger than 256 MiB are uploaded to S3, R2 and B2 destinations in parts, so an
+  archive is no longer limited to 5 GiB.
+- Rotating the encryption key re-encrypts backup archives through a temporary file instead of in
+  memory.
 - Credit notes now count toward settling an invoice: once payments and credit notes cover the total,
   the invoice is paid.
 - Sending a document on an instance with no mail provider now warns that no email went out.
@@ -89,6 +100,12 @@ section, and refuse to run while it has no entries.
 
 ### Fixed
 
+- Backups carried the database but none of the stored files — logos, avatars, receipts, attachments
+  and the PDFs of issued invoices, proposals and contracts — so no restore could bring them back.
+  Every backup now archives them, and a restore puts them back byte for byte, writing and verifying
+  them before it replaces the database and deleting files the archive lacks only after.
+- `scripts/host/upgrade.sh`, run from inside another git checkout, took that checkout for the Remit
+  instance. It now always upgrades the checkout it belongs to.
 - Sending an invoice or proposal on an instance with no templates marked it sent and never emailed
   it, and a credit note issued there never got a PDF.
 - The public invoice page left a late fee out of its summary, so the lines it listed did not add up
@@ -101,8 +118,7 @@ section, and refuse to run while it has no entries.
   healthy. PDF rendering, reminder and overdue sweeps, recurring invoice generation and scheduled
   backups never ran on a Docker deployment.
 - `pnpm remit:restore` failed after replacing the database when the archive contained no uploads,
-  which is every instance whose files live in object storage. It now restores an empty uploads
-  directory instead of stopping half way.
+  which was every instance whose files live in object storage, and stopped half way.
 - The published application image started the background worker instead of the web server, and no
   worker image was published. Both images now build from their own Dockerfile stage.
 - A published image carried `http://localhost:3000` in its browser code and could not serve any
@@ -112,8 +128,6 @@ section, and refuse to run while it has no entries.
 - `scripts/host/upgrade.sh` printed rollback guidance, and claimed its backup step had completed,
   when the prerequisite check or the pre-upgrade backup failed — before anything had changed. It now
   says that nothing was changed and that the upgrade can be run again.
-- Installing or upgrading stopped at pulling the MinIO image, which MinIO no longer publishes. The
-  stack now runs Chainguard's maintained build of MinIO, which opens existing storage unchanged.
 
 ## History before this file
 

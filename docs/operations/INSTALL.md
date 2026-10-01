@@ -17,8 +17,8 @@ at the end.
   from the internet.
 
 Remit runs five containers — the Next.js `app`, a `worker` for background jobs, PostgreSQL, Redis
-and MinIO — and Caddy as a sixth when HTTPS is automatic. Only the app, or Caddy in front of it, is
-reachable from outside the host.
+and an S3-compatible object store for stored files — and Caddy as a sixth when HTTPS is automatic.
+Only the app, or Caddy in front of it, is reachable from outside the host.
 
 ## 1. Get the repository
 
@@ -199,7 +199,7 @@ The installer's steps can be done by hand.
 2. Set `REMIT_PUBLIC_URL`, and generate the secrets:
 
    ```bash
-   openssl rand -hex 32      # POSTGRES_PASSWORD, and again for MINIO_ROOT_PASSWORD and BETTER_AUTH_SECRET
+   openssl rand -hex 32      # POSTGRES_PASSWORD, and again for S3_SECRET_ACCESS_KEY and BETTER_AUTH_SECRET
    openssl rand -base64 32   # REMIT_ENCRYPTION_KEY
    ```
 
@@ -222,6 +222,40 @@ The installer's steps can be done by hand.
 
 5. Wait for `docker compose ps` to show the app as healthy, then continue from
    [step 3](#3-create-the-owner-account).
+
+## External object storage
+
+Every stored file — logos, avatars, receipts, attachments, issued document PDFs and data exports —
+lives in object storage. By default that is the store the Compose file bundles, on this host in the
+`storage_data` volume. To keep the files at Amazon S3, Cloudflare R2 or Backblaze B2 instead, set
+these in `.env` before the first start:
+
+| Variable               | Amazon S3                           | Cloudflare R2                                   | Backblaze B2                               |
+| ---------------------- | ----------------------------------- | ----------------------------------------------- | ------------------------------------------ |
+| `S3_ENDPOINT`          | `https://s3.<region>.amazonaws.com` | `https://<account-id>.r2.cloudflarestorage.com` | `https://s3.<region>.backblazeb2.com`      |
+| `S3_REGION`            | the buckets' region                 | `auto`                                          | the buckets' region, e.g. `eu-central-003` |
+| `S3_ACCESS_KEY_ID`     | an IAM access key                   | an R2 API token's access key                    | an application key's ID                    |
+| `S3_SECRET_ACCESS_KEY` | its secret                          | its secret                                      | the application key                        |
+| `S3_BUCKET`            | the base bucket name                | the base bucket name                            | the base bucket name                       |
+
+`S3_FORCE_PATH_STYLE` stays `true`; all three accept path-style requests. It takes only `true` or
+`false`, and any other value stops the boot.
+
+Remit uses three buckets: `<S3_BUCKET>`, `<S3_BUCKET>-documents` and `<S3_BUCKET>-exports`. It
+creates each one on first use when the key is allowed to, and otherwise expects them to exist:
+create them in advance and give the key only these permissions on the three, and nothing else:
+
+- `s3:GetObject`, `s3:PutObject` and `s3:DeleteObject` on their objects.
+- `s3:ListBucket` on the buckets, which backups need to list the files they archive.
+
+Keep all three private: no public access setting and no bucket policy. Browsers never reach the
+store; the app streams every upload in and serves every public file itself.
+
+Give Remit buckets of its own. A restore replaces the contents of the first two: it deletes every
+object the archive does not contain, whoever put it there
+([Restore runbook](RESTORE.md#destructive-warning)).
+
+The bundled store still starts beside the app with the same key pair, and holds nothing.
 
 ## Trying it out first
 

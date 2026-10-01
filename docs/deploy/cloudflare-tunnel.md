@@ -88,7 +88,7 @@ Back in the tunnel's **Routes** tab, add a route:
 `app:3000` is the container name and its internal port. `localhost:3000` does not work: the
 connector is its own container, and its localhost is not the app's.
 
-Nothing else gets a route. `database`, `redis`, `minio` and `worker` have none, and browsers never
+Nothing else gets a route. `database`, `redis`, `storage` and `worker` have none, and browsers never
 reach object storage anyway — the app streams every stored file itself
 ([ADR-0040](../architecture/adr/0040-deployment-agnostic-images.md)).
 

@@ -37,11 +37,11 @@ Shipped in-container operational commands:
 
 Every operational command declares one execution context.
 
-| Context          | Invocation                                             | Permitted operations                                                                                                |
-| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **In-container** | `docker compose exec app pnpm remit:<op>`              | Anything reachable from inside the app container: database, encryption key, uploads volume, configured object store |
-| **Host-side**    | `bash scripts/host/<op>.sh` or operator-run docs steps | Pulling Docker images, restarting the compose project, mounting host volumes, image registry access                 |
-| **Both**         | Same script, callable from either side                 | Reserved for read-only inspection helpers; no destructive operation may declare "both"                              |
+| Context          | Invocation                                             | Permitted operations                                                                                             |
+| ---------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **In-container** | `docker compose exec app pnpm remit:<op>`              | Anything reachable from inside the app container: database, encryption key, data volume, configured object store |
+| **Host-side**    | `bash scripts/host/<op>.sh` or operator-run docs steps | Pulling Docker images, restarting the compose project, mounting host volumes, image registry access              |
+| **Both**         | Same script, callable from either side                 | Reserved for read-only inspection helpers; no destructive operation may declare "both"                           |
 
 A command that requires Docker socket access, image pulls, or compose restarts is host-side only.
 The app container must never mount the Docker socket. That would turn one application vulnerability
@@ -61,8 +61,8 @@ A `remit:<operation>` command becomes a `package.json` script only when all of t
 true:
 
 1. **Real backing implementation.** The compiled output runs end-to-end against a real Postgres
-   instance and a real uploads volume. Stubs, commented-out core logic, and placeholder errors are
-   not acceptable.
+   instance and a real object store. Stubs, commented-out core logic, and placeholder errors are not
+   acceptable.
 2. **Tier-appropriate tests.** Pure helpers extracted into `scripts/core/` or service modules are
    Tier 1. End-to-end script behaviour is Tier 2 integration-tested against the Dockerized test
    Postgres described by `.agents/rules/testing.md`.
@@ -189,9 +189,9 @@ implemented command.
 ### `pnpm remit:backup`
 
 - **Runs in:** the application container or an equivalent runtime environment with access to the
-  database, encryption key, uploads volume, and configured backup destination.
-- **Required configuration:** `DATABASE_URL`, `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`, readable
-  uploads/storage paths, and a local or configured remote backup destination. Remote destinations
+  database, encryption key, object store, and configured backup destination.
+- **Required configuration:** `DATABASE_URL`, `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`, the `S3_*`
+  object-store variables, and a local or configured remote backup destination. Remote destinations
   use the encrypted backup credentials held in the `settings` row's `backup_s3_*` columns, which are
   written directly against the database.
 - **Destructive scope:** non-destructive.
@@ -199,9 +199,14 @@ implemented command.
   unless `--yes` is supplied.
 - **Flags:** `--destination <local|s3|r2|b2>`, `--output <path>`, `--dry-run`, `--yes`, and
   `--help`. `--output` is local-only and cannot be combined with a remote destination.
-- **Effects:** writes an AES-256-GCM encrypted `.remitbak` archive for local output or uploads the
-  archive to the configured S3-compatible destination. On normal command runs it updates backup
-  success/failure status and writes `instance.backup.completed` or `instance.backup.failed`.
+- **Effects:** writes an AES-256-GCM encrypted `.remitbak` archive carrying the database and every
+  object of the public and documents buckets for local output, or uploads the archive to the
+  configured S3-compatible destination, in parts above 256 MiB. The exports bucket is not archived;
+  its objects are regenerable (ADR-0046). On normal command runs it updates backup success/failure
+  status and writes `instance.backup.completed` or `instance.backup.failed`. A file the database
+  names that the store listing omitted fails the backup, and so does a read the store refuses or a
+  missing public bucket; a file the store no longer holds is counted and reported as a warning, as
+  is an object under a key Remit never writes, which is left out.
 - **Limitations:** a single run writes to one destination. The archive format is specified in
   [Backup archive format](../specs/BACKUP-ARCHIVE.md). The command takes no concurrency lock of its
   own, so it can overlap the worker's scheduled backup; the scheduled path holds the lock and the
@@ -211,11 +216,12 @@ implemented command.
 ### `pnpm remit:restore`
 
 - **Runs in:** the application container or an equivalent runtime environment with access to the
-  live database, encryption key, uploads volume, and archive source.
-- **Required configuration:** `DATABASE_URL`, `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`, archive
-  access, and any configured S3/R2/B2 credentials needed for remote archive URIs.
-- **Destructive scope:** destructive restore operation. It replaces live database contents and
-  uploads with archive contents.
+  live database, encryption key, object store, and archive source.
+- **Required configuration:** `DATABASE_URL`, `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`, the `S3_*`
+  object-store variables, archive access, and any configured S3/R2/B2 credentials needed for remote
+  archive URIs.
+- **Destructive scope:** destructive restore operation. It replaces live database contents and the
+  public and documents buckets' objects with archive contents.
 - **Confirmation:** always creates a mandatory local pre-restore snapshot before destructive work.
   Interactive restore requires typed confirmation of the database name and the exact snapshot path.
   Unattended restore requires both `--yes` and `REMIT_ALLOW_UNATTENDED_RESTORE=1`.
@@ -223,7 +229,9 @@ implemented command.
 - **Effects:** accepts local archive paths or `remit://s3|r2|b2/<key>` remote references, verifies
   the archive, restores the database with
   `pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname <DATABASE_URL>`,
-  swaps uploads atomically, and runs forward migrations through the compiled migration entrypoint.
+  and runs forward migrations through the compiled migration entrypoint. Files are written and
+  verified before the database is replaced, and files the archive lacks are deleted last, after the
+  migrations, so a re-run repairs any stop (ADR-0046).
 - **Audit:** writes `instance.restore.started`, `instance.restore.snapshot_taken`,
   `instance.restore.completed`, and, when eligible, `instance.restore.aborted`.
 - **Limitations:** no `--force-version`, partial restore, or point-in-time recovery. Restore records
@@ -234,7 +242,7 @@ implemented command.
 ### `pnpm remit:rotate-encryption-key`
 
 - **Runs in:** the application container or an equivalent runtime environment with database,
-  encryption key, uploads, and backup/archive access.
+  encryption key, object store, and backup/archive access.
 - **Required configuration:** `DATABASE_URL`, the current `REMIT_ENCRYPTION_KEY`, `REMIT_DATA_DIR`,
   the explicit old and new encryption keys, and configured backup credentials when remote archives
   need re-encryption.
@@ -245,7 +253,9 @@ implemented command.
 - **Flags:** `--backup-file <path>`, `--dry-run`, `--resume`, and `--help`.
 - **Effects:** verifies the old key, creates a local pre-rotation backup unless a verified
   `--backup-file` is supplied, rotates registered Remit-owned encrypted database columns, and
-  re-encrypts local and configured remote `.remitbak` archive envelopes.
+  re-encrypts local and configured remote `.remitbak` archive envelopes. Re-encryption streams
+  through temporary files under `REMIT_DATA_DIR`, so it needs free space for one archive (two for a
+  remote one) rather than memory for it.
 - **Audit:** writes `instance.key_rotation.started`, `instance.key_rotation.table_completed`,
   `instance.key_rotation.backup_reencrypted`, `instance.key_rotation.completed`, and
   `instance.key_rotation.aborted`.
@@ -270,10 +280,10 @@ implemented command.
   `--help`. `REMIT_INSTALL_ENCRYPTION_KEY` in the environment supplies an existing key instead of a
   generated one; keys are never accepted through argv.
 - **Effects:** checks host prerequisites through `_check-prereqs.sh --for install`, generates the
-  database, object-store and auth secrets and the encryption key, writes `.env` with mode `0600`,
-  pulls the images, makes the bind-mounted data directory writable by the app's user, runs
-  `docker compose up -d --no-build`, and waits through `_wait-for-health.sh`. With an existing
-  `.env` holding a key, it only starts the stack, pulling nothing already present.
+  database, object-store (`S3_SECRET_ACCESS_KEY`) and auth secrets and the encryption key, writes
+  `.env` with mode `0600`, pulls the images, makes the bind-mounted data directory writable by the
+  app's user, runs `docker compose up -d --no-build`, and waits through `_wait-for-health.sh`. With
+  an existing `.env` holding a key, it only starts the stack, pulling nothing already present.
 - **Limitations:** no IPv6 literal as the public URL, no reconfiguration of an existing install, and
   no installation of Docker itself. Exit codes are `0`, `1` for a failure and `2` for a usage error.
   Detailed steps are in the [Installation runbook](../../operations/INSTALL.md).
