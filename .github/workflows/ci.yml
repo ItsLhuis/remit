@@ -138,17 +138,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `--wait` holds until every service reports healthy — PostgreSQL, Redis, and the bundled object
+      # store the storage, backup and restore suites write to — so no suite starts against a store
+      # that is still booting.
       - name: Start test services
-        run: docker compose -f docker-compose.test.yml up -d
-
-      - name: Wait for test services
-        run: |
-          until docker compose -f docker-compose.test.yml exec -T database_test pg_isready -U remit_test -d remit_test; do
-            sleep 1
-          done
-          until docker compose -f docker-compose.test.yml exec -T redis_test redis-cli ping; do
-            sleep 1
-          done
+        run: docker compose -f docker-compose.test.yml up -d --wait
 
       - name: Run test migrations
         run: pnpm database:test:migrate
@@ -167,10 +161,9 @@ jobs:
       REMIT_PUBLIC_URL: http://localhost:3000
       REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       REDIS_URL: redis://localhost:6379
-      MINIO_ENDPOINT: http://localhost:9000
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_BUCKET: remit
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: ci-build-not-used
+      S3_SECRET_ACCESS_KEY: ci-build-not-used
     steps:
       - name: Checkout
         uses: actions/checkout@v6

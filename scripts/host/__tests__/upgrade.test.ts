@@ -9,7 +9,7 @@ import {
   writeFileSync
 } from "node:fs"
 import { tmpdir } from "node:os"
-import { delimiter, join } from "node:path"
+import { basename, delimiter, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { afterEach, describe, expect, test, vi } from "vitest"
@@ -230,5 +230,29 @@ describe("upgrade.sh run", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("app service is not running")
     expect(readUpgradeSteps(checkout)).toEqual([])
+  })
+
+  test("upgrades its own checkout, not the repository it is run from", () => {
+    const checkout = makeCheckout()
+    const elsewhere = mkdtempSync(join(tmpdir(), "remit-elsewhere-"))
+    checkouts.push(elsewhere)
+    spawnSync("git", ["init", "-q"], { cwd: elsewhere })
+    const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH"
+
+    const result = spawnSync("bash", [join(checkout.directory, "scripts", "host", "upgrade.sh")], {
+      cwd: elsewhere,
+      encoding: "utf8",
+      input: "",
+      env: {
+        ...process.env,
+        [pathKey]: `${checkout.binDirectory}${delimiter}${process.env[pathKey] ?? ""}`
+      }
+    })
+
+    const projectRoot = /project root: (.*)/.exec(result.stdout)?.[1] ?? ""
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(projectRoot).toContain(basename(checkout.directory))
+    expect(projectRoot).not.toContain(basename(elsewhere))
   })
 })

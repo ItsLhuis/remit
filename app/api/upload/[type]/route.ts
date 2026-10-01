@@ -16,7 +16,8 @@ import { logger } from "@/lib/logger"
 
 import { applySecurityHeaders } from "@/lib/securityHeaders"
 import { IMAGE_UPLOAD_MAX_BYTES, type IMAGE_UPLOAD_MIME_TYPES } from "@/lib/storage"
-import { putUploadedObject, type StorageBucketName } from "@/lib/storage/s3"
+import { type StorageBucketName } from "@/lib/storage/bucketNames"
+import { putUploadedObject } from "@/lib/storage/s3"
 
 // Built from `lib/storage/limits.ts` rather than restated: unlike the expense constants below, that
 // module is not a feature — it pulls in nothing but the numbers themselves — so the client's

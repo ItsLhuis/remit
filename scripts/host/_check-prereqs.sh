@@ -6,8 +6,8 @@ purpose=upgrade
 app_port=""
 with_proxy=0
 
-# Five gigabytes: the two Remit images, PostgreSQL, Redis, MinIO and Caddy come to about three, and
-# the first backup archives and a database that has started to grow need the rest.
+# Five gigabytes: the two Remit images, PostgreSQL, Redis, the object store and Caddy come to about
+# three, and the first backup archives and a database that has started to grow need the rest.
 minimum_free_kilobytes=$((5 * 1024 * 1024))
 
 show_help() {

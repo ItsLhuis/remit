@@ -35,16 +35,16 @@ export default defineConfig({
       REMIT_DATA_DIR: ".tmp/integration-data",
       BETTER_AUTH_SECRET: "test-secret-for-integration-tests-not-real",
       REMIT_PUBLIC_URL: "http://localhost:3000",
-      // Placeholders. Real object-storage credentials are operator-chosen secrets and must never be
-      // committed (`security.md`), and `.env.test` — which `NODE_ENV=test` makes the authority —
-      // carries its own. Tests that would otherwise write real objects stub the PUT instead, so the
-      // suite never depends on these reaching a live MinIO.
-      MINIO_ENDPOINT: "http://localhost:9000",
-      MINIO_ROOT_USER: "minioadmin",
-      MINIO_ROOT_PASSWORD: "minioadmin",
-      // A bucket of its own, never the developer's `remit`: the PDF tests write real objects, and a
-      // suite that truncates its database between tests must not be able to touch real uploads.
-      MINIO_BUCKET: "remit-test"
+      // The test stack's own store, published by docker-compose.test.yml on 9020 and never the
+      // development stack's 9000, with throwaway credentials that exist only there. Suites that are
+      // about something other than storage still stub their writes; the storage, backup, restore and
+      // migration suites write real objects here.
+      S3_ENDPOINT: "http://localhost:9020",
+      S3_ACCESS_KEY_ID: "remit-test",
+      S3_SECRET_ACCESS_KEY: "remit-test-secret",
+      // A bucket of its own, never the developer's `remit`: a suite that truncates its database
+      // between tests must not be able to touch real uploads.
+      S3_BUCKET: "remit-test"
     }
   }
 })

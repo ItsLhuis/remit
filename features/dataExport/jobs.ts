@@ -12,7 +12,8 @@ import { logger } from "@/lib/logger"
 
 import { ZipWriter } from "@/lib/archive"
 import { registerJobHandler } from "@/lib/jobs"
-import { getStorageObjectBytes, putExportObject, type StorageBucketName } from "@/lib/storage/s3"
+import { type StorageBucketName } from "@/lib/storage/bucketNames"
+import { getStorageObjectBytes, putExportObject } from "@/lib/storage/s3"
 
 import { database } from "@/database"
 import { clients, dataExports } from "@/database/schema"

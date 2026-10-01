@@ -4188,7 +4188,7 @@ export const english: Language = {
           "Your Cloudflare account identifier, or any region when you give an endpoint below.",
         endpoint: "Endpoint",
         endpointPlaceholder: "https://s3.example.com",
-        endpointHelp: "Optional. Set it for MinIO or another S3-compatible service.",
+        endpointHelp: "Optional. Set it for a self-hosted or other S3-compatible service.",
         endpointR2Help:
           "Required unless the region above is your Cloudflare account identifier, which the endpoint is otherwise built from.",
         accessKey: "Access key",

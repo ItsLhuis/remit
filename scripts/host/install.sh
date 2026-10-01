@@ -624,7 +624,7 @@ if [ "$env_only" = "0" ]; then
 fi
 
 if [ "$dry_run" = "1" ]; then
-  say "dry run: generate POSTGRES_PASSWORD, BETTER_AUTH_SECRET and MINIO_ROOT_PASSWORD (openssl rand -hex 32)"
+  say "dry run: generate POSTGRES_PASSWORD, BETTER_AUTH_SECRET and S3_SECRET_ACCESS_KEY (openssl rand -hex 32)"
 
   if [ -n "$supplied_key" ]; then
     say "dry run: use REMIT_ENCRYPTION_KEY from REMIT_INSTALL_ENCRYPTION_KEY"
@@ -636,7 +636,7 @@ if [ "$dry_run" = "1" ]; then
 else
   postgres_password=$(random_hex)
   auth_secret=$(random_hex)
-  minio_password=$(random_hex)
+  storage_secret_key=$(random_hex)
 
   if [ -n "$supplied_key" ]; then
     encryption_key=$supplied_key
@@ -705,9 +705,10 @@ else
     echo "# Back this value up off the server. Without it no encrypted column and no backup can be read."
     echo "REMIT_ENCRYPTION_KEY=$encryption_key"
     echo ""
-    echo "MINIO_ROOT_USER=remit"
-    echo "MINIO_ROOT_PASSWORD=$minio_password"
-    echo "MINIO_BUCKET=remit"
+    echo "# The bundled object store starts with this pair, and the app and worker sign with it."
+    echo "S3_ACCESS_KEY_ID=remit"
+    echo "S3_SECRET_ACCESS_KEY=$storage_secret_key"
+    echo "S3_BUCKET=remit"
     echo ""
     echo "REMIT_DATA_DIR=./data"
     echo "REMIT_METRICS_TOKEN="

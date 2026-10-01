@@ -58,7 +58,9 @@ done
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
-if project_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+# From the script's own checkout, never the caller's directory: run from inside another repository,
+# a bare `git rev-parse` names that repository, and the upgrade would rewrite its `.env`.
+if project_root=$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null); then
   :
 else
   project_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd)

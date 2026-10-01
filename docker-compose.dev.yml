@@ -35,30 +35,27 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    # Chainguard's build of its maintained MinIO fork. MinIO no longer publishes a public image:
-    # minio/minio on Docker Hub and quay.io/minio/minio both refuse anonymous pulls.
-    image: cgr.dev/chainguard/minio:latest
-    # Root, not the image's default uid 65532: the official image ran as root, so every existing
-    # minio_dev_data volume is root-owned, and as a non-root user MinIO refuses to start on one
-    # ("Unable to write to the backend").
-    user: "0:0"
+  storage:
+    # The store docker-compose.yml bundles, pinned to the same digest (ADR-0045).
+    image: ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-remit}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-remitremit}
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-remit}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-remitremit}
+      RUSTFS_CONSOLE_ENABLE: "false"
+      RUSTFS_CHECK_UPDATE: "false"
+      RUSTFS_OBS_LOG_DIRECTORY: ""
     volumes:
-      - minio_dev_data:/data
+      - storage_dev_data:/data
     ports:
-      - "${MINIO_PORT:-9000}:9000"
-      # Console port exposed in dev for the MinIO web UI.
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      # The S3 API, exposed to the host in development only - the app and the worker both run on the
+      # host there. There is no console to publish.
+      - "${STORAGE_PORT:-9000}:9000"
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health/ready"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   # Development-only mail sink. It accepts every message and delivers none of them, which is what
   # makes the email-configured half of a flow testable without a real provider or a real inbox:
@@ -82,4 +79,4 @@ services:
 volumes:
   postgres_dev_data:
   redis_dev_data:
-  minio_dev_data:
+  storage_dev_data:

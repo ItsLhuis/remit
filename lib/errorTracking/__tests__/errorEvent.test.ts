@@ -42,7 +42,7 @@ const BANNED_VALUES = {
   betterAuthSecret: "better-auth-secret-7yHn3Kd",
   databaseUrl: "postgresql://remit:db-password-3kD9@database:5432/remit",
   redisUrl: "redis://:redis-password-8sK2@redis:6379",
-  minioRootPassword: "minio-root-password-5Lp0",
+  storageSecretKey: "storage-secret-key-5Lp0",
   publicToken: "Yk3mQ9vT2xL7pR4sN8wZ1cF6hB0jD5gU3eA9iO2nKqM",
   apiToken: "remit_pat_9fK2mQ7vX3pL8sT4nR6w",
   sessionCookie: "better-auth.session_token=ses_4Kd9mQ2xT7pL",
@@ -159,7 +159,7 @@ describe("what never leaves the instance", () => {
       REDIS_URL: BANNED_VALUES.redisUrl,
       BETTER_AUTH_SECRET: BANNED_VALUES.betterAuthSecret,
       REMIT_ENCRYPTION_KEY: BANNED_VALUES.encryptionKey,
-      MINIO_ROOT_PASSWORD: BANNED_VALUES.minioRootPassword
+      S3_SECRET_ACCESS_KEY: BANNED_VALUES.storageSecretKey
     }
     const error = new Error(`Startup failed with ${JSON.stringify(environment)}`)
 

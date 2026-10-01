@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto"
 
-import { getStorageObjectBytes, type StorageBucketName } from "@/lib/storage/s3"
+import { getStorageObjectBytes } from "@/lib/storage/s3"
 
+import { type StorageBucketName } from "./bucketNames"
 import { isMissingObjectError } from "./objectErrors"
 
 export type VerifiedUploadObject = {

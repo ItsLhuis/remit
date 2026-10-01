@@ -2,9 +2,9 @@ import { BlockList, isIP } from "node:net"
 
 // The address half of the SSRF defence (ADR-0039). A webhook URL is typed by a user and fetched by
 // the server, and a self-hosted server sits inside a private network: a naive fetcher pointed at
-// `http://postgres:5432`, `http://redis:6379`, the MinIO console, `/api/metrics` on localhost, or a
-// cloud metadata service at 169.254.169.254 would make Remit itself the attacker's client. Every
-// range below reads as paranoia until one is removed.
+// `http://database:5432`, `http://redis:6379`, the object store at `http://storage:9000`,
+// `/api/metrics` on localhost, or a cloud metadata service at 169.254.169.254 would make Remit
+// itself the attacker's client. Every range below reads as paranoia until one is removed.
 //
 // `net.BlockList` rather than prefix string matching, because it compares numerically and matches
 // an IPv4 rule against the IPv4-mapped IPv6 spelling of the same address (`::ffff:10.0.0.1`), which

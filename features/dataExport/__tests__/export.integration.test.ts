@@ -31,7 +31,7 @@ vi.mock("@/lib/jobs", () => ({
 }))
 
 // Storage is stubbed at the module boundary and the uploaded archive is captured on the way past, which
-// is what lets these tests assert the actual bytes an owner would download without a MinIO round trip.
+// is what lets these tests assert the actual bytes an owner would download without a store round trip.
 vi.mock("@/lib/storage/s3", () => ({
   getStorageObjectBytes: mocks.getStorageObjectBytes,
   putExportObject: mocks.putExportObject

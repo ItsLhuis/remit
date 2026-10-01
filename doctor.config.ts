@@ -57,7 +57,7 @@ const config = {
       },
       {
         // next/image cannot serve these: `images.remotePatterns` is resolved at BUILD time, but the
-        // MinIO/S3 endpoint of a self-hosted Remit is a per-instance RUNTIME env var, so the hosts
+        // S3 endpoint of a self-hosted Remit is a per-instance RUNTIME env var, so the hosts
         // cannot be enumerated when the image is built. A `hostname: "**"` pattern would "work"
         // only by disabling the SSRF protection remotePatterns exists for, and would route
         // instance-local assets through the optimizer for no gain. The adjacent line at both call

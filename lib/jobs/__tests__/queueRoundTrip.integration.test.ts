@@ -51,7 +51,7 @@ vi.mock("@/lib/pdf", async (importOriginal) => ({
 }))
 
 // The object PUT is stubbed for the same reason and no further: `.env.test` owns this suite's
-// storage credentials and they need not match a live MinIO. Everything the test asserts is still a
+// storage credentials and they need not match a live store. Everything the test asserts is still a
 // real effect — the `uploads` row, its `bucket`, the pointer on the invoice, and the fact that a
 // second delivery renders nothing. Writing a real object is covered by the manual worker smoke.
 vi.mock("@/lib/storage/s3", async (importOriginal) => ({

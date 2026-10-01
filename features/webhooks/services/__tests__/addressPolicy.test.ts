@@ -14,7 +14,8 @@ describe("webhook address policy", () => {
   )
 
   // Each of these is somewhere a self-hosted instance's own network answers: the database, Redis,
-  // MinIO, the metrics endpoint on localhost, a router's admin page, a cloud metadata service.
+  // the object store, the metrics endpoint on localhost, a router's admin page, a cloud metadata
+  // service.
   test.each([
     ["127.0.0.1"],
     ["127.10.20.30"],
@@ -36,6 +37,12 @@ describe("webhook address policy", () => {
     ["224.0.0.1"]
   ])("refuses the private or reserved address %s", (address) => {
     expect(isAddressAllowed(address, publicOnly)).toBe(false)
+  })
+
+  // What `storage`, the bundled object store's service name, resolves to inside a Compose network:
+  // Docker hands out addresses from 172.16.0.0/12, and the store holds every file the instance keeps.
+  test("refuses the address the bundled object store answers on inside the Compose network", () => {
+    expect(isAddressAllowed("172.18.0.3", publicOnly)).toBe(false)
   })
 
   test("admits loopback and private ranges only for a host the operator allowlisted", () => {

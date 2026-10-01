@@ -34,6 +34,14 @@ describe("webhook URL evaluation", () => {
     }
   )
 
+  // The bundled object store's own address, as another container on the Compose network reaches it.
+  test("refuses the bundled object store by its service name unless the operator allowlisted it", () => {
+    expect(evaluateWebhookUrl("http://storage:9000/remit", [])).toEqual({
+      ok: false,
+      reason: "scheme"
+    })
+  })
+
   test("refuses a URL that embeds credentials", () => {
     expect(evaluateWebhookUrl("https://user:pass@example.com/hook", [])).toEqual({
       ok: false,

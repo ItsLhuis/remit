@@ -18,10 +18,9 @@ const parsed = isBuildEnvValidationSkipped
       BETTER_AUTH_SECRET: "build-time-placeholder-secret",
       REMIT_PUBLIC_URL: "http://localhost:3000",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      MINIO_ENDPOINT: "http://localhost:9000",
-      MINIO_ROOT_USER: "build-time-placeholder-user",
-      MINIO_ROOT_PASSWORD: "build-time-placeholder-password",
-      MINIO_BUCKET: "remit"
+      S3_ENDPOINT: "http://localhost:9000",
+      S3_ACCESS_KEY_ID: "build-time-placeholder-access-key",
+      S3_SECRET_ACCESS_KEY: "build-time-placeholder-secret-key"
     })
   : envSchema.safeParse(process.env)
 

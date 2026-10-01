@@ -59,6 +59,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # A copy of the bundled store's image, digest for digest, in this project's own namespace
+      # (ADR-0045), so a tag withdrawn upstream cannot stop an install: switching the reference
+      # changes the registry and nothing else. The reference matches docker-compose.yml, which
+      # `tests/docs/pinnedImages.test.ts` holds.
+      - name: Mirror the pinned store image
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          prefix="${REGISTRY}/${owner}/${IMAGE_NAME}"
+
+          docker buildx imagetools create --tag "${prefix}/storage:1.0.0" \
+            ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
+
       # Two images under one name, `remit/app` and `remit/worker`, matching the `image:` lines in
       # docker-compose.yml. Both are tagged in the same step so a push can never publish one tag for
       # the app and a different one for the worker.

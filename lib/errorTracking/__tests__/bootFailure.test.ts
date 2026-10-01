@@ -30,9 +30,9 @@ const INVALID_ENVIRONMENT = {
   BETTER_AUTH_SECRET: "better-auth-secret-7yHn3Kd",
   REMIT_PUBLIC_URL: "https://remit.example.com",
   REMIT_ENCRYPTION_KEY: "not-a-key-but-a-secret-anyway-9Qm2",
-  MINIO_ENDPOINT: "http://minio:9000",
-  MINIO_ROOT_USER: "remit",
-  MINIO_ROOT_PASSWORD: "minio-root-password-5Lp0"
+  S3_ENDPOINT: "http://storage:9000",
+  S3_ACCESS_KEY_ID: "remit",
+  S3_SECRET_ACCESS_KEY: "storage-secret-key-5Lp0"
 }
 
 const SECRET_VALUES = [
@@ -40,7 +40,7 @@ const SECRET_VALUES = [
   "redis-password-8sK2",
   "better-auth-secret-7yHn3Kd",
   "not-a-key-but-a-secret-anyway-9Qm2",
-  "minio-root-password-5Lp0",
+  "storage-secret-key-5Lp0",
   "0123456789abcdef0123456789abcdef"
 ]
 

@@ -177,6 +177,25 @@ describe("install.sh configuration", () => {
   )
 
   test(
+    "starts the bundled store with the credentials the app and the worker sign with",
+    () => {
+      const checkout = makeCheckout()
+
+      runInstaller(checkout, unattended("http://localhost:3000"))
+
+      const rendered = renderComposeConfig(checkout)
+      const app = rendered.services.app?.environment ?? {}
+
+      expect(app.S3_ENDPOINT).toBe("http://storage:9000")
+      expect(rendered.services.storage?.environment).toMatchObject({
+        RUSTFS_ACCESS_KEY: app.S3_ACCESS_KEY_ID,
+        RUSTFS_SECRET_KEY: app.S3_SECRET_ACCESS_KEY
+      })
+    },
+    COMPOSE_TIMEOUT_MS
+  )
+
+  test(
     "puts the app behind Caddy on loopback when the proxy is chosen",
     () => {
       const checkout = makeCheckout()
@@ -213,7 +232,7 @@ describe("install.sh configuration", () => {
     for (const name of [
       "POSTGRES_PASSWORD",
       "BETTER_AUTH_SECRET",
-      "MINIO_ROOT_PASSWORD",
+      "S3_SECRET_ACCESS_KEY",
       "REMIT_ENCRYPTION_KEY"
     ]) {
       expect(firstEnv[name]).toBeTruthy()

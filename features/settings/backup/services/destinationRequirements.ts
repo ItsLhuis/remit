@@ -46,7 +46,7 @@ export function getMissingBackupCredentialFields(
   // `https://<region>.r2.cloudflarestorage.com` only when `region` is carrying a Cloudflare account
   // identifier instead of a region, and has nowhere to send the request otherwise. S3 defaults to
   // AWS and B2 derives its endpoint from the region, so for those the field stays optional and
-  // carries a custom endpoint such as MinIO.
+  // carries a custom endpoint for another S3-compatible service.
   if (
     destination === "r2" &&
     !credentials.endpoint.trim() &&

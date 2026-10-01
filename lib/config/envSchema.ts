@@ -3,6 +3,7 @@ import { z } from "zod"
 // From its own file rather than the `@/lib/errorTracking` barrel, which brings the logger and the
 // sender with it into a module the installer's test imports precisely because it has neither.
 import { parseErrorTrackingDsn } from "@/lib/errorTracking/dsn"
+import { BUCKET_BASE_NAME_PATTERN } from "@/lib/storage/bucketNames"
 
 const encryptionKeySchema = z
   .string()
@@ -90,10 +91,28 @@ export const envSchema = z.object({
     .transform((value) => value === "true" || value === "1"),
   REMIT_DATA_DIR: z.string().min(1).default("data"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  MINIO_ENDPOINT: z.url(),
-  MINIO_ROOT_USER: z.string().min(1),
-  MINIO_ROOT_PASSWORD: z.string().min(1),
-  MINIO_BUCKET: z.string().min(1).default("remit"),
+  // Required even though the SDK could derive an AWS endpoint from the region: an unset endpoint
+  // must stop the boot, never send the store's credentials to AWS (ADR-0045). The names are the
+  // vendor-neutral ones on purpose, and never `AWS_*`, which the SDK's default credential chain would
+  // read on its own.
+  S3_ENDPOINT: z.url(),
+  S3_REGION: z.string().trim().min(1).default("us-east-1"),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  S3_BUCKET: z
+    .string()
+    .trim()
+    .regex(
+      BUCKET_BASE_NAME_PATTERN,
+      "Must be a lowercase S3 bucket name of 3 to 53 characters, so the -documents and -exports buckets derived from it are valid too"
+    )
+    .default("remit"),
+  // An enum, not a lenient parse: this flag defaults to on, so reading every unrecognised spelling
+  // as true would turn `False` or `off` into path-style requests that only fail at the provider. A
+  // blank value is the default, as an empty line in `.env` leaves it.
+  S3_FORCE_PATH_STYLE: optionalEnvString(
+    z.enum(["true", "false", "1", "0"], "Must be true or false")
+  ).transform((value) => value === undefined || value === "true" || value === "1"),
   // Shape-checked here rather than where error tracking starts, so a DSN that is set but unusable
   // stops the boot instead of leaving the operator believing errors are being reported.
   SENTRY_DSN: optionalEnvString(

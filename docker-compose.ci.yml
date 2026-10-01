@@ -27,3 +27,10 @@ services:
   redis:
     ports:
       - "6379:6379"
+
+  # `remit:backup` and the scheduled-backup flow run from the runner too, and a backup now reads
+  # every stored file, so the runner needs the store's S3 API the same way it needs PostgreSQL. The
+  # app and the worker keep reaching it over the compose network as `storage:9000`.
+  storage:
+    ports:
+      - "9000:9000"

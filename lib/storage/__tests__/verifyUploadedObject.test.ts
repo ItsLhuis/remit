@@ -81,7 +81,7 @@ describe("verifyUploadedObject", () => {
     expect(result).toBeNull()
   })
 
-  // S3 and MinIO answer a GET for a missing key with AccessDenied when the caller lacks ListBucket,
+  // S3 services answer a GET for a missing key with AccessDenied when the caller lacks ListBucket,
   // so a 403 has to mean the same thing as a 404 or a legitimate upload would look like an outage.
   test("returns null when the store answers a missing key with access denied", async () => {
     mocks.getStorageObjectBytes.mockRejectedValue(serviceError(403))
