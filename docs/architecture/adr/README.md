@@ -58,3 +58,5 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0042](0042-mcp-server.md)                                | MCP server — off by default, the API's own tokens over Streamable HTTP, read-only tools   | Accepted |
 | [0043](0043-built-in-document-layouts.md)                 | Built-in document layouts live in code and are resolved when no template exists           | Accepted |
 | [0044](0044-invoice-outstanding-and-credit-settlement.md) | One outstanding amount, credit notes settle an invoice, and a late fee re-renders its PDF | Accepted |
+| [0045](0045-bundled-object-store.md)                      | RustFS as the bundled object store, behind one vendor-neutral S3 adapter                  | Accepted |
+| [0046](0046-backups-carry-stored-files.md)                | Backups carry the stored files                                                            | Accepted |

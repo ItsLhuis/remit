@@ -35,7 +35,7 @@ parents are all _documents_, and these four are heterogeneous entities with diff
 different authorization stories. The **shape** matches; the analogy does not carry further than
 that, and the argument below stands on its own merits rather than on the precedent.
 
-**Attachable in v1: clients, projects, invoices, expenses.**
+**Attachable: clients, projects, invoices, expenses.**
 
 - **Clients** and **projects** are where a freelancer's reference material actually accumulates —
   briefs, brand assets, signed paperwork.
@@ -47,8 +47,8 @@ that, and the argument below stands on its own merits rather than on the precede
 Excluded, each for a reason rather than an oversight:
 
 - **Proposals and contracts** are reachable from public token routes. Every file attached to one
-  would be an exposure decision rather than a storage decision, and the v1 answer is that no
-  attachment is reachable anonymously.
+  would be an exposure decision rather than a storage decision, and the answer is that no attachment
+  is reachable anonymously.
 - **Tasks and time entries** are children of a project that can carry the file, and neither has a
   surface where a file would be looked for.
 - **Leads** stay light, following [ADR-0027](0027-contact-identity.md)'s precedent for pre-client
@@ -76,7 +76,7 @@ who removes a file expects it gone, not hidden while the object stays readable t
 key.
 
 **Orphaned objects are accepted and not swept.** An object can outlive its row — a `PUT` that
-succeeds while the follow-up write fails, a storage delete that fails after the row is gone. v1
+succeeds while the follow-up write fails, a storage delete that fails after the row is gone. Remit
 ships no sweeper: a sweeper is a scheduled job that deletes user data based on the _absence_ of a
 reference, and getting its query subtly wrong destroys files nobody asked it to touch. The failure
 mode of no sweeper is wasted disk on a self-hosted box; the failure mode of a wrong sweeper is data
@@ -125,8 +125,8 @@ losing either is a silent integrity regression nothing in the type system catche
 
 **A squash invalidates every existing database.** There is no upgrade path across one: replay is
 keyed by migration hash and the old hashes no longer exist, so any developer or deployment on the
-old history must reset and lose its data. This is safe only because v1 has not shipped, and it stops
-being available the moment it has.
+old history must reset and lose its data. This is safe only because Remit has not been released, and
+it stops being available the moment it is.
 
 ## Consequences
 
@@ -205,7 +205,7 @@ states, and the fallback would compete with the data.
 
 ### An orphan sweeper job
 
-A scheduled pass listing the bucket and deleting objects no row references. Rejected for v1 on the
+A scheduled pass listing the bucket and deleting objects no row references. Rejected on the
 asymmetry of its failure modes: wasted disk versus deleted user files, with a query whose
 correctness depends on every future table that references `uploads` being remembered. `attachments`
 is now the fifth such reference. When one is added and the sweeper is not updated, the sweeper

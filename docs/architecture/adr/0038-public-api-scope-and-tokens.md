@@ -46,7 +46,7 @@ not breaking. A breaking change ships as `/api/v2/` beside v1.
 **One convention for every collection:** `page` and `perPage` (at most 100), a
 `{ data, pagination: { page, perPage, total } }` envelope, and the default order of the matching
 screen. Any other parameter is refused with `400` rather than ignored, so a caller asking for a
-filter learns that v1 has none.
+filter learns that `/api/v1` has none.
 
 **A token is a bearer credential, stored as a hash, shown once.** Format `remit_` plus 32 random
 bytes in base64url, minted through `lib/publicToken.ts`'s CSPRNG. The database holds its SHA-256
@@ -92,7 +92,7 @@ document would announce that this particular instance exposes the API.
 ### Negative
 
 - No integration can write: a script that creates a time entry still needs the UI.
-- No filtering or sorting in v1; a consumer pages through a collection and filters locally.
+- No filtering or sorting in `/api/v1`; a consumer pages through a collection and filters locally.
 - Every request costs a token lookup and a membership lookup, and at most one timestamp write a
   minute per token.
 
