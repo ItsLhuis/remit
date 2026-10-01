@@ -20,8 +20,8 @@ import {
   parseTarHeader,
   type TarEntry
 } from "../archive/tar"
+import { hasControlCharacter, parseArchivedObjectPath } from "../backup/objectPlan"
 import { AsyncBufferReader, TarTruncatedError } from "../utils/asyncBufferReader"
-import { isSameOrChildPath } from "../utils/fs"
 import { sha256Hex } from "../utils/hash"
 
 import { RestoreCliError } from "./errors"
@@ -38,14 +38,22 @@ export type ChecksumDescriptor = {
   size: number
 }
 
+export type StagedObject = ChecksumDescriptor & {
+  contentType: string
+  key: string
+  role: "public" | "documents"
+  // Where the verified bytes were staged, or null in a dry run, which stages nothing.
+  stagedPath: string | null
+}
+
 export type VerifiedArchive = {
   checksumsPathCount: number
   databaseDumpPath: string | null
   databaseSize: number
   header: HeaderDescriptor
   manifest: RestoreManifest
-  uploads: ChecksumDescriptor[]
-  uploadsStagingDir: string | null
+  objects: StagedObject[]
+  objectsStagingDir: string | null
 }
 
 export type VerifyArchiveMode = "stage" | "verify-only"
@@ -56,7 +64,7 @@ export type VerifyArchiveOptions = {
   encryptionKey: Buffer
   header: HeaderDescriptor
   mode: VerifyArchiveMode
-  uploadsStagingDir?: string
+  objectsStagingDir?: string
   workDir?: string
 }
 
@@ -121,7 +129,7 @@ export async function verifyArchivePayload(
 
 type VerificationState = {
   actualDatabase: ChecksumDescriptor | null
-  actualUploads: ChecksumDescriptor[]
+  actualObjects: StagedObject[]
   checksums: Map<string, string> | null
   currentAppVersion: string
   databaseDumpPath: string | null
@@ -129,15 +137,15 @@ type VerificationState = {
   header: HeaderDescriptor
   manifest: RestoreManifest | null
   mode: VerifyArchiveMode
+  objectsStagingDir: string | null
   seenPaths: Set<string>
-  uploadsStagingDir: string | null
   workDir: string | null
 }
 
 function createVerificationState(options: VerifyArchiveOptions): VerificationState {
   return {
     actualDatabase: null,
-    actualUploads: [],
+    actualObjects: [],
     checksums: null,
     currentAppVersion: options.currentAppVersion,
     databaseDumpPath:
@@ -148,8 +156,8 @@ function createVerificationState(options: VerifyArchiveOptions): VerificationSta
     header: options.header,
     manifest: null,
     mode: options.mode,
+    objectsStagingDir: options.mode === "stage" ? (options.objectsStagingDir ?? null) : null,
     seenPaths: new Set(),
-    uploadsStagingDir: options.mode === "stage" ? (options.uploadsStagingDir ?? null) : null,
     workDir: options.mode === "stage" ? (options.workDir ?? null) : null
   }
 }
@@ -240,7 +248,7 @@ async function processTarEntry(
     const manifest = requireManifest(state)
     const checksumsSha256 = sha256Hex(checksumBuffer)
 
-    if (checksumsSha256 !== manifest.components.uploads.sha256Manifest) {
+    if (checksumsSha256 !== manifest.components.objects.sha256Manifest) {
       throw new RestoreCliError(
         "Refusing restore: checksums.sha256 does not match the manifest checksum.",
         "checksums-manifest-mismatch"
@@ -262,7 +270,9 @@ async function processTarEntry(
     )
   }
 
-  if (entry.name !== "database/remit.dump" && !entry.name.startsWith("uploads/")) {
+  const objectLocation = parseArchivedObjectPath(entry.name)
+
+  if (entry.name !== "database/remit.dump" && !objectLocation) {
     throw new RestoreCliError(
       `Refusing restore: archive contains unsupported entry ${entry.name}.`,
       "tar-unsupported-entry"
@@ -297,7 +307,17 @@ async function processTarEntry(
     return
   }
 
-  state.actualUploads.push(descriptor)
+  if (!objectLocation) return
+
+  state.actualObjects.push({
+    ...descriptor,
+    contentType: manifest.components.objects.contentTypes[entry.name] ?? "application/octet-stream",
+    key: objectLocation.key,
+    role: objectLocation.role,
+    stagedPath: state.objectsStagingDir
+      ? stagedObjectPath(state.objectsStagingDir, state.entryIndex)
+      : null
+  })
 }
 
 function parseAndValidateManifest(
@@ -394,34 +414,27 @@ async function createEntryOutput(
     return createWriteStream(state.databaseDumpPath, { flags: "wx" })
   }
 
-  if (!state.uploadsStagingDir) {
+  if (!state.objectsStagingDir) {
     throw new RestoreCliError(
-      "Refusing restore: uploads staging path was not configured.",
-      "uploads-staging-missing"
+      "Refusing restore: object staging path was not configured.",
+      "objects-staging-missing"
     )
   }
 
-  const uploadPath = archivePath.slice("uploads/".length)
+  await mkdir(state.objectsStagingDir, { recursive: true })
 
-  if (!uploadPath) {
-    throw new RestoreCliError(
-      "Refusing restore: uploads archive entry is missing a file path.",
-      "uploads-entry-invalid"
-    )
-  }
+  return createWriteStream(stagedObjectPath(state.objectsStagingDir, state.entryIndex), {
+    flags: "wx"
+  })
+}
 
-  const destination = path.resolve(state.uploadsStagingDir, uploadPath)
-
-  if (!isSameOrChildPath(destination, state.uploadsStagingDir)) {
-    throw new RestoreCliError(
-      "Refusing restore: uploads archive entry escapes the staging directory.",
-      "uploads-entry-invalid"
-    )
-  }
-
-  await mkdir(path.dirname(destination), { recursive: true })
-
-  return createWriteStream(destination, { flags: "wx" })
+// Named by the entry's position in the tar, never by its key. An archive is untrusted until every
+// checksum has matched, and a name that owes nothing to the key cannot reach outside the staging
+// directory; and two keys that are distinct in a bucket can still collide on a filesystem — `a`
+// beside `a/b`, or `Logo.png` beside `logo.png` where names fold case — which would make an archive
+// the backup wrote without complaint impossible to restore.
+function stagedObjectPath(objectsStagingDir: string, entryIndex: number): string {
+  return path.join(objectsStagingDir, String(entryIndex))
 }
 
 function finalizeVerification(state: VerificationState): VerifiedArchive {
@@ -444,16 +457,21 @@ function finalizeVerification(state: VerificationState): VerifiedArchive {
     }
   }
 
-  const uploadsTotalSize = state.actualUploads.reduce((sum, upload) => sum + upload.size, 0)
+  const expectations = manifest.components.objects
 
-  if (
-    state.actualUploads.length !== manifest.components.uploads.fileCount ||
-    uploadsTotalSize !== manifest.components.uploads.totalSize
-  ) {
-    throw new RestoreCliError(
-      "Refusing restore: uploads entries do not match the manifest descriptor.",
-      "uploads-manifest-mismatch"
-    )
+  for (const role of ["public", "documents"] as const) {
+    const objects = state.actualObjects.filter((object) => object.role === role)
+    const totalSize = objects.reduce((sum, object) => sum + object.size, 0)
+
+    if (
+      objects.length !== expectations.buckets[role].fileCount ||
+      totalSize !== expectations.buckets[role].totalSize
+    ) {
+      throw new RestoreCliError(
+        "Refusing restore: the archived files do not match the manifest descriptor.",
+        "objects-manifest-mismatch"
+      )
+    }
   }
 
   return {
@@ -462,8 +480,8 @@ function finalizeVerification(state: VerificationState): VerifiedArchive {
     databaseSize: state.actualDatabase.size,
     header: state.header,
     manifest,
-    uploads: state.actualUploads,
-    uploadsStagingDir: state.uploadsStagingDir
+    objects: state.actualObjects,
+    objectsStagingDir: state.objectsStagingDir
   }
 }
 
@@ -523,6 +541,7 @@ function validateArchivePath(archivePath: string): void {
     archivePath.length === 0 ||
     archivePath.includes("\\") ||
     archivePath.startsWith("/") ||
+    hasControlCharacter(archivePath) ||
     archivePath.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
   ) {
     throw new RestoreCliError(
@@ -555,8 +574,8 @@ function requireChecksums(state: VerificationState): Map<string, string> {
 async function cleanupVerificationState(state: VerificationState): Promise<void> {
   await Promise.all([
     state.workDir ? rm(state.workDir, { recursive: true, force: true }) : Promise.resolve(),
-    state.uploadsStagingDir
-      ? rm(state.uploadsStagingDir, { recursive: true, force: true })
+    state.objectsStagingDir
+      ? rm(state.objectsStagingDir, { recursive: true, force: true })
       : Promise.resolve()
   ])
 }

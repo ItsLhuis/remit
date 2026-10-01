@@ -1,6 +1,8 @@
 import { mkdir, rm } from "node:fs/promises"
 import path from "node:path"
 
+import { type ObjectStore } from "@/lib/storage/objectStore"
+
 import pkg from "@/package.json"
 
 import { writeOperationalAudit } from "../audit/operationalAudit"
@@ -11,9 +13,10 @@ import { buildConfiguredDestinationAdapter } from "./credentials"
 import { dumpDatabaseToTempFile, type DatabaseDumpDescriptor } from "./databaseDump"
 import { DEFAULT_BACKUP_DIRNAME } from "./filename"
 import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "./manifest"
+import { buildChecksumsFile, totalArchivedObjects } from "./objectPlan"
+import { collectArchivedObjects, type CollectedObjects } from "./objects"
 import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
 import { updateBackupFailure, updateBackupSuccess } from "./statusUpdate"
-import { buildChecksumsFile, describeUploads } from "./uploads"
 import { enforceRemoteRetention, uploadArchive, writeEncryptedTar } from "./writeArchive"
 
 type Database = typeof import("@/database").database
@@ -24,6 +27,12 @@ export class BackupCliError extends Error {}
 export type BackupResult = {
   archivePath: string
   manifest: ReturnType<typeof buildBackupManifest>
+  // Files the archive lacks: `uploads` rows whose object was already gone (an interrupted delete)
+  // and objects deleted while the backup read them. Reported rather than fatal (`objects.ts`).
+  missingObjectCount: number
+  // Objects the buckets hold under a key no archive can carry, which the application never mints.
+  // Left out, and reported so an operator sharing a bucket learns it holds something not backed up.
+  unarchivableObjectCount: number
   wrote: boolean
 }
 
@@ -58,6 +67,7 @@ export async function executeBackup(
   try {
     settingsRow = await database.query.settings.findFirst()
 
+    const store = await loadRuntimeObjectStore()
     const plan = await buildBackupPlan(
       database,
       options.destinationOverride ?? settingsRow?.backupDestination ?? "local",
@@ -71,7 +81,12 @@ export async function executeBackup(
 
     await options.onPlanned?.(plan)
 
-    const result = await writeBackupArchive(database, plan, options, destinationAdapter)
+    const result = await writeBackupArchive(
+      { database, schema, store },
+      plan,
+      options,
+      destinationAdapter
+    )
 
     if (!options.skipStatusUpdate) {
       await updateBackupSuccess(database, schema, settingsRow?.id ?? null)
@@ -108,7 +123,7 @@ export async function executeBackup(
 }
 
 async function writeBackupArchive(
-  database: Database,
+  { database, schema, store }: { database: Database; schema: Schema; store: ObjectStore },
   plan: BackupPlan,
   options: ExecuteBackupOptions,
   destinationAdapter: BackupDestinationAdapter | null
@@ -121,17 +136,38 @@ async function writeBackupArchive(
   await mkdir(tempDir, { recursive: true })
 
   const dump: DatabaseDumpDescriptor = await dumpDatabaseToTempFile(options.databaseUrl, tempDir)
-  const uploadDescriptors = await describeUploads(plan.uploads)
-  const checksums = buildChecksumsFile(dump, uploadDescriptors)
+
+  let collected: CollectedObjects
+
+  // Collected after the dump, never before: every file the dump references was already stored, so
+  // the only file the archive can lack is one deleted while the backup ran.
+  try {
+    collected = await collectArchivedObjects(
+      store,
+      async () =>
+        await database
+          .select({ bucket: schema.uploads.bucket, path: schema.uploads.path })
+          .from(schema.uploads)
+    )
+  } catch (error) {
+    await rm(dump.path, { force: true })
+
+    throw error
+  }
+
+  const { objects, missingObjectCount, unarchivableObjectCount } = collected
+  const checksums = buildChecksumsFile(dump, objects)
   const checksumsBuffer = Buffer.from(checksums, "utf8")
   const manifest = buildBackupManifest({
     appVersion: pkg.version,
     checksumsSha256: sha256Hex(checksumsBuffer),
     components: {
       database: { size: dump.size, sha256: dump.sha256 },
-      uploads: {
-        fileCount: uploadDescriptors.length,
-        totalSize: uploadDescriptors.reduce((sum, upload) => sum + upload.size, 0)
+      objects: {
+        buckets: totalArchivedObjects(objects),
+        contentTypes: Object.fromEntries(
+          objects.map((object) => [object.archivePath, object.contentType])
+        )
       }
     },
     createdAt: new Date().toISOString(),
@@ -146,8 +182,9 @@ async function writeBackupArchive(
       databaseDump: dump,
       encryptionKey: options.encryptionKey,
       manifest: serializeBackupManifest(manifest),
+      objects,
       outputPath: plan.outputPath,
-      uploads: uploadDescriptors
+      store
     })
   } finally {
     await rm(dump.path, { force: true })
@@ -162,7 +199,21 @@ async function writeBackupArchive(
     await enforceRemoteRetention(destinationAdapter, plan)
   }
 
-  return { archivePath: plan.archiveUri, manifest, wrote: true }
+  return {
+    archivePath: plan.archiveUri,
+    manifest,
+    missingObjectCount,
+    unarchivableObjectCount,
+    wrote: true
+  }
+}
+
+// Imported when a backup runs rather than at module load: `lib/storage/s3.ts` validates the whole
+// environment as it loads, and the CLI entry points load `.env` only once they start.
+async function loadRuntimeObjectStore(): Promise<ObjectStore> {
+  const { storage } = await import("@/lib/storage/s3")
+
+  return storage
 }
 
 // Swallowed rather than surfaced: the archive is already written and uploaded by the time this runs,

@@ -198,16 +198,3 @@ export function parseTarEntries(tar: Buffer): TarBufferEntry[] {
 
   return entries
 }
-
-export function writeTarEntries(entries: readonly TarBufferEntry[]): Buffer {
-  return Buffer.concat([
-    ...entries.map((entry) =>
-      Buffer.concat([
-        buildTarHeader({ name: entry.name, size: entry.content.length }),
-        entry.content,
-        Buffer.alloc(paddingFor(entry.content.length))
-      ])
-    ),
-    Buffer.alloc(TAR_BLOCK_SIZE * 2)
-  ])
-}

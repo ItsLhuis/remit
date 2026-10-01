@@ -6,11 +6,15 @@ import { pipeline } from "node:stream/promises"
 import { type ReadableStream as NodeReadableStream } from "node:stream/web"
 
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
-  S3Client
+  S3Client,
+  UploadPartCommand
 } from "@aws-sdk/client-s3"
 
 import {
@@ -21,6 +25,7 @@ import {
   type BackupDestinationAdapter,
   type CompleteBackupCredentials
 } from "./destinationConfig"
+import { planMultipartUpload } from "./multipart"
 
 export {
   buildS3ClientConfig,
@@ -38,7 +43,8 @@ export type {
 
 export function buildDestinationAdapter(
   destination: BackupDestination,
-  credentials: BackupCredentials
+  credentials: BackupCredentials,
+  options: { multipartThresholdBytes?: number } = {}
 ): BackupDestinationAdapter {
   if (destination === "local") {
     return buildLocalDestinationAdapter(credentials.localDirectory ?? "data/backups")
@@ -56,6 +62,22 @@ export function buildDestinationAdapter(
 
   return {
     async put(key, body, sizeHint) {
+      const plan = planMultipartUpload(sizeHint, {
+        thresholdBytes: options.multipartThresholdBytes
+      })
+
+      if (plan.kind === "multipart") {
+        await putInParts(client, {
+          bucket,
+          key,
+          body,
+          partSize: plan.partSize,
+          sizeBytes: sizeHint
+        })
+
+        return { key }
+      }
+
       await client.send(
         new PutObjectCommand({
           Body: body,
@@ -104,6 +126,99 @@ export function buildDestinationAdapter(
 
       return toNodeReadable(response.Body)
     }
+  }
+}
+
+// Copies the body into one part-sized buffer and sends it each time it fills, so the upload holds a
+// single part in memory whatever the archive's size. The buffer is reused: a part's request has
+// finished, retries included, by the time `sendPart` resolves. A failure part-way aborts the upload,
+// so the destination never keeps the parts of an archive that was not completed; a body shorter or
+// longer than announced is such a failure. A process killed outright cannot abort, which is why the
+// destination bucket wants a lifecycle rule for incomplete uploads (BACKUP-ARCHIVE.md).
+async function putInParts(
+  client: S3Client,
+  input: { bucket: string; key: string; body: Readable; partSize: number; sizeBytes: number }
+): Promise<void> {
+  const created = await client.send(
+    new CreateMultipartUploadCommand({
+      Bucket: input.bucket,
+      Key: input.key,
+      ContentType: "application/octet-stream"
+    })
+  )
+  const uploadId = created.UploadId
+
+  if (!uploadId) throw new Error("The backup destination did not start a multipart upload.")
+
+  const parts: Array<{ ETag: string; PartNumber: number }> = []
+  const part = Buffer.allocUnsafe(input.partSize)
+  let filledBytes = 0
+  let sentBytes = 0
+
+  const sendPart = async (bytes: Buffer): Promise<void> => {
+    const partNumber = parts.length + 1
+    const uploaded = await client.send(
+      new UploadPartCommand({
+        Bucket: input.bucket,
+        Key: input.key,
+        UploadId: uploadId,
+        PartNumber: partNumber,
+        Body: bytes,
+        ContentLength: bytes.length
+      })
+    )
+
+    if (!uploaded.ETag) throw new Error("The backup destination did not acknowledge a part.")
+
+    parts.push({ ETag: uploaded.ETag, PartNumber: partNumber })
+    sentBytes += bytes.length
+  }
+
+  try {
+    for await (const chunk of input.body) {
+      const bytes = chunk as Buffer
+      let offset = 0
+
+      while (offset < bytes.length) {
+        const copied = bytes.copy(part, filledBytes, offset)
+
+        offset += copied
+        filledBytes += copied
+
+        if (filledBytes === input.partSize) {
+          await sendPart(part)
+
+          filledBytes = 0
+        }
+      }
+    }
+
+    if (filledBytes > 0) await sendPart(part.subarray(0, filledBytes))
+
+    if (sentBytes !== input.sizeBytes) {
+      throw new Error("The backup archive changed size while it was being uploaded.")
+    }
+
+    await client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: input.bucket,
+        Key: input.key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: parts }
+      })
+    )
+  } catch (error) {
+    await client
+      .send(
+        new AbortMultipartUploadCommand({
+          Bucket: input.bucket,
+          Key: input.key,
+          UploadId: uploadId
+        })
+      )
+      .catch(() => undefined)
+
+    throw error
   }
 }
 

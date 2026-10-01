@@ -1,11 +1,14 @@
-import { createHash } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
 import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { PassThrough } from "node:stream"
 import { gzipSync } from "node:zlib"
 
-import { afterEach, expect, test } from "vitest"
+import { afterEach, beforeEach, expect, test } from "vitest"
+
+import { type StorageBucketName } from "@/lib/storage/bucketNames"
+import { storage } from "@/lib/storage/s3"
 
 import { auditLogs, settings } from "@/database/schema"
 
@@ -21,21 +24,25 @@ import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../../b
 import { startS3TestServer } from "../../destination/testing/s3TestServer"
 
 const originalPath = process.env.PATH
-const originalUploadsDir = process.env.REMIT_UPLOADS_DIR
 const originalAllowUnattendedRestore = process.env.REMIT_ALLOW_UNATTENDED_RESTORE
 const key = Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64")
 const databaseUrl = "postgresql://remit_test:remit_test@localhost:5433/remit_test"
 const tempRoots: string[] = []
 const testBucket = "remit-test"
 
+// The suite's own buckets, emptied before each test: a restore replaces their whole contents, so
+// anything another test left there would read as a file this one expected to be deleted or kept.
+beforeEach(async () => {
+  for (const role of ["public", "documents"] as const) {
+    await storage.ensureBucket(role)
+
+    for await (const object of storage.listObjects(role))
+      await storage.deleteObject(role, object.key)
+  }
+})
+
 afterEach(async () => {
   process.env.PATH = originalPath
-
-  if (originalUploadsDir) {
-    process.env.REMIT_UPLOADS_DIR = originalUploadsDir
-  } else {
-    delete process.env.REMIT_UPLOADS_DIR
-  }
 
   if (originalAllowUnattendedRestore) {
     process.env.REMIT_ALLOW_UNATTENDED_RESTORE = originalAllowUnattendedRestore
@@ -50,16 +57,14 @@ afterEach(async () => {
 
 test("restores a local backup archive and records restore audit events", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const archivePath = path.join(tempRoot, "backups", "roundtrip.remitbak")
   const shimDir = path.join(tempRoot, "bin")
-  await mkdir(path.join(uploadsDir, "client-files"), { recursive: true })
   await mkdir(shimDir, { recursive: true })
-  await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "archived upload")
+  await putStoredText("documents", "attachments/invoice.pdf", "archived upload")
+  await putStoredText("public", "logos/kept.png", "archived logo")
   await writePgToolShims(shimDir)
 
   process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`
-  process.env.REMIT_UPLOADS_DIR = uploadsDir
 
   await database.insert(settings).values({ businessName: "Archived business" })
 
@@ -78,9 +83,10 @@ test("restores a local backup archive and records restore audit events", async (
   })
 
   await database.update(settings).set({ businessName: "Changed business" })
-  await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "changed upload")
+  await putStoredText("documents", "attachments/invoice.pdf", "changed upload")
+  await putStoredText("public", "avatars/after-backup.png", "not in the archive")
 
-  const result = await runRestoreCli(archivePath, tempRoot, uploadsDir, shimDir, ["--yes"])
+  const result = await runRestoreCli(archivePath, tempRoot, shimDir, ["--yes"])
 
   const [settingsRow] = await database.select().from(settings)
   const auditRows = await database
@@ -90,9 +96,11 @@ test("restores a local backup archive and records restore audit events", async (
 
   expect(result.exitCode, result.output).toBe(0)
   expect(settingsRow?.businessName).toBe("Archived business")
-  await expect(
-    readFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "utf8")
-  ).resolves.toBe("archived upload")
+  await expect(readStoredText("documents", "attachments/invoice.pdf")).resolves.toBe(
+    "archived upload"
+  )
+  await expect(readStoredText("public", "logos/kept.png")).resolves.toBe("archived logo")
+  await expect(storage.headObject("public", "avatars/after-backup.png")).resolves.toBeNull()
   expect(backupFiles.some((file) => file.endsWith(".pre-restore.remitbak"))).toBe(true)
   expect(auditRows.map((row) => row.event)).toEqual(
     expect.arrayContaining([
@@ -103,17 +111,76 @@ test("restores a local backup archive and records restore audit events", async (
   )
 })
 
+test("restores every stored file byte for byte, with its type, into an instance whose store is empty", async () => {
+  const tempRoot = await makeTempDirectory()
+  const archivePath = path.join(tempRoot, "backups", "empty-target.remitbak")
+  const shimDir = path.join(tempRoot, "bin")
+  const files = [
+    { role: "public", key: "logos/logo.png", type: "image/png", body: randomBytes(40_000) },
+    { role: "public", key: "avatars/u/a.webp", type: "image/webp", body: randomBytes(3_000) },
+    {
+      role: "documents",
+      key: "documents/invoice/i-1/r.pdf",
+      type: "application/pdf",
+      body: randomBytes(120_000)
+    },
+    { role: "documents", key: "attachments/c/x.zip", type: "application/zip", body: randomBytes(9) }
+  ] as const
+  await mkdir(shimDir, { recursive: true })
+  await writePgToolShims(shimDir)
+
+  for (const file of files) {
+    await storage.putObject({
+      role: file.role,
+      key: file.key,
+      body: file.body,
+      contentLength: file.body.length,
+      contentType: file.type
+    })
+  }
+
+  process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`
+
+  const { runBackup } = await import("../../backup/runBackup")
+  const schema = await import("@/database/schema")
+  await runBackup(database, schema, {
+    databaseUrl,
+    destinationOverride: "local",
+    dryRun: false,
+    encryptionKey: key,
+    help: false,
+    output: archivePath,
+    remitDataDir: tempRoot,
+    skipStatusUpdate: true,
+    yes: true
+  })
+
+  for (const role of ["public", "documents"] as const) {
+    for await (const object of storage.listObjects(role))
+      await storage.deleteObject(role, object.key)
+  }
+
+  const result = await runRestoreCli(archivePath, tempRoot, shimDir, ["--yes"])
+
+  expect(result.exitCode, result.output).toBe(0)
+
+  for (const file of files) {
+    const read = await storage.getObject(file.role, file.key)
+    const restored = Buffer.from(await read.body.transformToByteArray())
+
+    expect(sha256(restored)).toBe(sha256(file.body))
+    expect(read.contentType).toBe(file.type)
+  }
+})
+
 test("refuses a tampered local backup archive before applying live data", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const archivePath = path.join(tempRoot, "backups", "tampered.remitbak")
   const shimDir = path.join(tempRoot, "bin")
-  await mkdir(uploadsDir, { recursive: true })
   await mkdir(shimDir, { recursive: true })
   await writePgToolShims(shimDir)
 
   process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`
-  process.env.REMIT_UPLOADS_DIR = uploadsDir
 
   await database.insert(settings).values({ businessName: "Archived business" })
 
@@ -136,7 +203,7 @@ test("refuses a tampered local backup archive before applying live data", async 
   await writeFile(archivePath, archive)
   await database.update(settings).set({ businessName: "Changed business" })
 
-  const result = await runRestoreCli(archivePath, tempRoot, uploadsDir, shimDir, ["--yes"])
+  const result = await runRestoreCli(archivePath, tempRoot, shimDir, ["--yes"])
   const [settingsRow] = await database.select().from(settings)
 
   expect(result.exitCode).toBe(1)
@@ -146,14 +213,12 @@ test("refuses a tampered local backup archive before applying live data", async 
 
 test("refuses a local archive created by a newer app version", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const shimDir = path.join(tempRoot, "bin")
   const archivePath = path.join(tempRoot, "newer.remitbak")
-  await mkdir(uploadsDir, { recursive: true })
   await mkdir(shimDir, { recursive: true })
   await writeFile(archivePath, await buildMinimalArchive({ appVersion: "9.0.0" }))
 
-  const result = await runRestoreCli(archivePath, tempRoot, uploadsDir, shimDir, ["--dry-run"])
+  const result = await runRestoreCli(archivePath, tempRoot, shimDir, ["--dry-run"])
 
   expect(result.exitCode).toBe(1)
   expect(result.output).toContain("upgrade the running build")
@@ -161,18 +226,14 @@ test("refuses a local archive created by a newer app version", async () => {
 
 test("restores a remote backup archive from a remit URI", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const shimDir = path.join(tempRoot, "bin")
-  await mkdir(path.join(uploadsDir, "client-files"), { recursive: true })
   await mkdir(shimDir, { recursive: true })
-  await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "remote archived upload")
+  await putStoredText("documents", "attachments/invoice.pdf", "remote archived upload")
   await writePgToolShims(shimDir)
   const s3 = await startS3TestServer()
 
   try {
     process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`
-    process.env.REMIT_UPLOADS_DIR = uploadsDir
-
     await database.insert(settings).values({
       backupDestination: "s3",
       backupS3AccessKey: "test-access-key",
@@ -197,17 +258,17 @@ test("restores a remote backup archive from a remit URI", async () => {
     })
 
     await database.update(settings).set({ businessName: "Changed business" })
-    await writeFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "changed upload")
+    await putStoredText("documents", "attachments/invoice.pdf", "changed upload")
 
-    const result = await runRestoreCli(backup.archivePath, tempRoot, uploadsDir, shimDir, ["--yes"])
+    const result = await runRestoreCli(backup.archivePath, tempRoot, shimDir, ["--yes"])
 
     const [settingsRow] = await database.select().from(settings)
 
     expect(result.exitCode, result.output).toBe(0)
     expect(settingsRow?.businessName).toBe("Remote archived business")
-    await expect(
-      readFile(path.join(uploadsDir, "client-files", "invoice.pdf"), "utf8")
-    ).resolves.toBe("remote archived upload")
+    await expect(readStoredText("documents", "attachments/invoice.pdf")).resolves.toBe(
+      "remote archived upload"
+    )
   } finally {
     await s3.close()
   }
@@ -216,7 +277,6 @@ test("restores a remote backup archive from a remit URI", async () => {
 async function runRestoreCli(
   archivePath: string,
   remitDataDir: string,
-  uploadsDir: string,
   shimDir: string,
   args: string[]
 ): Promise<{ exitCode: number; output: string }> {
@@ -228,8 +288,7 @@ async function runRestoreCli(
       DATABASE_URL: databaseUrl,
       PATH: `${shimDir}${path.delimiter}${originalPath ?? ""}`,
       REMIT_ALLOW_UNATTENDED_RESTORE: "1",
-      REMIT_DATA_DIR: remitDataDir,
-      REMIT_UPLOADS_DIR: uploadsDir
+      REMIT_DATA_DIR: remitDataDir
     },
     stdio: ["ignore", "pipe", "pipe"]
   })
@@ -328,9 +387,12 @@ async function buildMinimalArchive(options: { appVersion: string }): Promise<Buf
         size: databaseDump.length,
         sha256: sha256(databaseDump)
       },
-      uploads: {
-        fileCount: 0,
-        totalSize: 0
+      objects: {
+        buckets: {
+          public: { fileCount: 0, totalSize: 0 },
+          documents: { fileCount: 0, totalSize: 0 }
+        },
+        contentTypes: {}
       }
     },
     createdAt: "2026-05-20T12:00:00.000Z",
@@ -421,4 +483,22 @@ async function makeTempDirectory(): Promise<string> {
 
 function sha256(value: Buffer | string): string {
   return createHash("sha256").update(value).digest("hex")
+}
+
+async function putStoredText(role: StorageBucketName, key: string, text: string): Promise<void> {
+  const body = Buffer.from(text, "utf8")
+
+  await storage.putObject({
+    role,
+    key,
+    body,
+    contentLength: body.length,
+    contentType: "text/plain"
+  })
+}
+
+async function readStoredText(role: StorageBucketName, key: string): Promise<string> {
+  const read = await storage.getObject(role, key)
+
+  return Buffer.from(await read.body.transformToByteArray()).toString("utf8")
 }

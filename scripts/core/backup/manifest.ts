@@ -1,3 +1,5 @@
+import { type StorageBucketName } from "@/lib/storage/bucketNames"
+
 import {
   ARCHIVE_FORMAT_VERSION,
   ENCRYPTION_ALGORITHM_NAME,
@@ -6,11 +8,19 @@ import {
 import { type BackupDestination } from "../destination"
 import { sha256Hex } from "../utils/hash"
 
+import { type ObjectBucketTotals } from "./objectPlan"
+
 export { sha256Hex }
 
 export type BackupComponentDescriptor = {
   database: { size: number; sha256: string }
-  uploads: { fileCount: number; totalSize: number }
+  objects: {
+    buckets: Record<StorageBucketName, ObjectBucketTotals>
+    // Each archived object's content type, keyed by its archive path. The store served it with that
+    // type, and a restore has to put it back with it: an image returned as octet-stream under
+    // `nosniff` would never render.
+    contentTypes: Record<string, string>
+  }
 }
 
 export type BackupManifestInput = {
@@ -24,7 +34,7 @@ export type BackupManifestInput = {
 }
 
 export type BackupManifest = {
-  archiveFormatVersion: 1
+  archiveFormatVersion: typeof ARCHIVE_FORMAT_VERSION
   appVersion: string
   createdAt: string
   createdBy: "remit:backup"
@@ -37,7 +47,12 @@ export type BackupManifest = {
   compression: "gzip"
   components: {
     database: { format: "pg_dump-custom"; size: number; sha256: string }
-    uploads: { format: "tar-stream"; fileCount: number; totalSize: number; sha256Manifest: string }
+    objects: {
+      format: "tar-stream"
+      sha256Manifest: string
+      buckets: Record<StorageBucketName, ObjectBucketTotals>
+      contentTypes: Record<string, string>
+    }
   }
   destination: BackupDestination
 }
@@ -61,11 +76,11 @@ export function buildBackupManifest(input: BackupManifestInput): BackupManifest 
         size: input.components.database.size,
         sha256: input.components.database.sha256
       },
-      uploads: {
+      objects: {
         format: "tar-stream",
-        fileCount: input.components.uploads.fileCount,
-        totalSize: input.components.uploads.totalSize,
-        sha256Manifest: input.checksumsSha256
+        sha256Manifest: input.checksumsSha256,
+        buckets: input.components.objects.buckets,
+        contentTypes: input.components.objects.contentTypes
       }
     },
     destination: input.destination

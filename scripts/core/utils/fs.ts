@@ -1,5 +1,4 @@
 import { stat } from "node:fs/promises"
-import path from "node:path"
 
 export function isMissingPathError(error: unknown): boolean {
   return (
@@ -19,10 +18,4 @@ export async function pathExists(filePath: string): Promise<boolean> {
   } catch (error) {
     return !isMissingPathError(error)
   }
-}
-
-export function isSameOrChildPath(value: string, parent: string): boolean {
-  const relative = path.relative(parent, value)
-
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
 }

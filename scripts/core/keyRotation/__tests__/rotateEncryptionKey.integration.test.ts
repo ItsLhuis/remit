@@ -5,7 +5,9 @@ import path from "node:path"
 import { PassThrough } from "node:stream"
 import { gzipSync } from "node:zlib"
 
-import { afterEach, expect, test } from "vitest"
+import { afterEach, beforeAll, expect, test } from "vitest"
+
+import { storage } from "@/lib/storage/s3"
 
 import { auditLogs, clients, settings } from "@/database/schema"
 
@@ -30,6 +32,12 @@ const otherKey = Buffer.alloc(32, 2)
 const databaseUrl = "postgresql://remit_test:remit_test@localhost:5433/remit_test"
 const tempRoots: string[] = []
 const rotationLockId = "5928229461845757780"
+
+// What `instrumentation.ts` does at boot. The pre-rotation backup refuses to treat a missing public
+// bucket as an empty one, and on a fresh test stack nothing else has created it yet.
+beforeAll(async () => {
+  await storage.ensureBucket("public")
+})
 
 afterEach(async () => {
   await Promise.all(
@@ -273,9 +281,12 @@ async function buildMinimalArchive(encryptionKey: Buffer): Promise<Buffer> {
         size: databaseDump.length,
         sha256: sha256(databaseDump)
       },
-      uploads: {
-        fileCount: 0,
-        totalSize: 0
+      objects: {
+        buckets: {
+          public: { fileCount: 0, totalSize: 0 },
+          documents: { fileCount: 0, totalSize: 0 }
+        },
+        contentTypes: {}
       }
     },
     createdAt: "2026-05-26T12:00:00.000Z",

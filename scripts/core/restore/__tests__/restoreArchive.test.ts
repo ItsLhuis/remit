@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises"
+import { readFile, rm, stat, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { PassThrough } from "node:stream"
@@ -16,7 +16,6 @@ import {
 } from "../../archive/header"
 import { buildBackupManifest, serializeBackupManifest, sha256Hex } from "../../backup/manifest"
 import { readAndValidateRestoreHeader } from "../header"
-import { applyUploadsAtomicSwap } from "../uploadsSwap"
 import { verifyArchivePayload } from "../verifyArchive"
 
 const key = Buffer.from("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "base64")
@@ -45,11 +44,11 @@ describe("restore archive refusal rules", () => {
   test("refuses a backup file when the archive format version is newer", async () => {
     const tempRoot = await makeTempDirectory()
     const archivePath = path.join(tempRoot, "bad-version.remitbak")
-    const archive = await buildArchive({ headerVersion: 2 })
+    const archive = await buildArchive({ headerVersion: 3 })
     await writeFile(archivePath, archive)
 
     await expect(readAndValidateRestoreHeader(archivePath, key)).rejects.toThrow(
-      "archive format version 2 is newer"
+      "archive format version 3 is newer"
     )
   })
 
@@ -107,24 +106,6 @@ describe("restore archive refusal rules", () => {
     ).rejects.toThrow("archive failed integrity check")
   })
 
-  test("refuses a backup file when the manifest version differs from the header", async () => {
-    const tempRoot = await makeTempDirectory()
-    const archivePath = path.join(tempRoot, "bad-manifest.remitbak")
-    const archive = await buildArchive({ manifestVersion: 2 })
-    await writeFile(archivePath, archive)
-    const header = await readAndValidateRestoreHeader(archivePath, key)
-
-    await expect(
-      verifyArchivePayload({
-        archivePath,
-        currentAppVersion: "1.0.0",
-        encryptionKey: key,
-        header,
-        mode: "verify-only"
-      })
-    ).rejects.toThrow("manifest archive format does not match")
-  })
-
   test("refuses a backup file when an entry checksum differs", async () => {
     const tempRoot = await makeTempDirectory()
     const archivePath = path.join(tempRoot, "bad-checksum.remitbak")
@@ -166,7 +147,7 @@ test("verifies an archive without writing staging files when dry-run mode is use
   const tempRoot = await makeTempDirectory()
   const archivePath = path.join(tempRoot, "valid.remitbak")
   const workDir = path.join(tempRoot, "work")
-  const uploadsStagingDir = path.join(tempRoot, "uploads-staging")
+  const objectsStagingDir = path.join(tempRoot, "objects-staging")
   await writeFile(archivePath, await buildArchive())
   const header = await readAndValidateRestoreHeader(archivePath, key)
 
@@ -176,78 +157,110 @@ test("verifies an archive without writing staging files when dry-run mode is use
     encryptionKey: key,
     header,
     mode: "verify-only",
-    uploadsStagingDir,
+    objectsStagingDir,
     workDir
   })
 
   await expect(pathExists(workDir)).resolves.toBe(false)
-  await expect(pathExists(uploadsStagingDir)).resolves.toBe(false)
+  await expect(pathExists(objectsStagingDir)).resolves.toBe(false)
   expect(verified.databaseDumpPath).toBeNull()
-  expect(verified.uploadsStagingDir).toBeNull()
+  expect(verified.objectsStagingDir).toBeNull()
+  expect(verified.objects.map((object) => object.stagedPath)).toEqual([null])
 })
 
-test("restores an empty uploads directory when the archive carried no uploads", async () => {
+test("stages keys that would collide as file paths, so an archive the backup accepted always restores", async () => {
   const tempRoot = await makeTempDirectory()
-  const liveUploadsDir = path.join(tempRoot, "uploads")
-  const stagingUploadsDir = path.join(tempRoot, ".uploads.restore-staging-empty")
+  const archivePath = path.join(tempRoot, "colliding.remitbak")
+  await writeFile(
+    archivePath,
+    await buildArchive({
+      objects: [
+        { path: "objects/documents/a", body: "file named a" },
+        { path: "objects/documents/a/b", body: "file under a" },
+        { path: "objects/documents/Logo.png", body: "upper" },
+        { path: "objects/documents/logo.png", body: "lower" }
+      ]
+    })
+  )
+  const header = await readAndValidateRestoreHeader(archivePath, key)
 
-  const result = await applyUploadsAtomicSwap({
-    expectedUploads: [],
-    liveUploadsDir,
-    stagingUploadsDir,
-    timestamp: "empty"
+  const verified = await verifyArchivePayload({
+    archivePath,
+    currentAppVersion: "1.0.0",
+    encryptionKey: key,
+    header,
+    mode: "stage",
+    objectsStagingDir: path.join(tempRoot, "objects-staging"),
+    workDir: path.join(tempRoot, "work")
   })
 
-  expect(result.restoredUploadsDir).toBe(liveUploadsDir)
-  await expect(pathExists(liveUploadsDir)).resolves.toBe(true)
-  await expect(pathExists(stagingUploadsDir)).resolves.toBe(false)
+  const staged = await Promise.all(
+    verified.objects.map(async (object) => [
+      object.key,
+      await readFile(object.stagedPath ?? "", "utf8")
+    ])
+  )
+
+  expect(staged).toEqual([
+    ["a", "file named a"],
+    ["a/b", "file under a"],
+    ["Logo.png", "upper"],
+    ["logo.png", "lower"]
+  ])
 })
 
-test("atomically swaps staged uploads into the live uploads directory", async () => {
+test("stages a version 2 archive's files with their bucket role, key and content type", async () => {
   const tempRoot = await makeTempDirectory()
-  const liveUploadsDir = path.join(tempRoot, "uploads")
-  const stagingUploadsDir = path.join(tempRoot, ".uploads.restore-staging-test")
-  const restoredPath = path.join(stagingUploadsDir, "client-files", "invoice.pdf")
-  await mkdir(path.join(liveUploadsDir, "old"), { recursive: true })
-  await mkdir(path.dirname(restoredPath), { recursive: true })
-  await writeFile(path.join(liveUploadsDir, "old", "stale.txt"), "stale")
-  await writeFile(restoredPath, "restored")
+  const archivePath = path.join(tempRoot, "valid.remitbak")
+  const objectsStagingDir = path.join(tempRoot, "objects-staging")
+  await writeFile(archivePath, await buildArchive())
+  const header = await readAndValidateRestoreHeader(archivePath, key)
 
-  const result = await applyUploadsAtomicSwap({
-    expectedUploads: [
-      {
-        path: "uploads/client-files/invoice.pdf",
-        sha256: sha256("restored"),
-        size: Buffer.byteLength("restored")
-      }
-    ],
-    liveUploadsDir,
-    stagingUploadsDir,
-    timestamp: "20260520T120000Z"
+  const verified = await verifyArchivePayload({
+    archivePath,
+    currentAppVersion: "1.0.0",
+    encryptionKey: key,
+    header,
+    mode: "stage",
+    objectsStagingDir,
+    workDir: path.join(tempRoot, "work")
   })
 
-  await expect(
-    readFile(path.join(liveUploadsDir, "client-files", "invoice.pdf"), "utf8")
-  ).resolves.toBe("restored")
-  await expect(pathExists(path.join(liveUploadsDir, "old", "stale.txt"))).resolves.toBe(false)
-  await expect(pathExists(result.previousUploadsDir ?? "")).resolves.toBe(false)
+  expect(verified.objects).toEqual([
+    expect.objectContaining({
+      role: "documents",
+      key: "attachments/upload.txt",
+      contentType: "text/plain",
+      sha256: sha256("upload content")
+    })
+  ])
+  await expect(readFile(verified.objects[0]?.stagedPath ?? "", "utf8")).resolves.toBe(
+    "upload content"
+  )
 })
 
+// `headerVersion` is what the plaintext header claims, which a refusal test sets to one this build
+// does not read.
 async function buildArchive(
   options: {
     appVersion?: string
     databaseChecksum?: string
     headerVersion?: number
-    manifestVersion?: number
+    // Entries of the documents bucket; one attachment when a test does not care which.
+    objects?: Array<{ path: string; body: string }>
   } = {}
 ): Promise<Buffer> {
   const databaseDump = Buffer.from("database dump")
-  const upload = Buffer.from("upload content")
+  const objects = (
+    options.objects ?? [
+      { path: "objects/documents/attachments/upload.txt", body: "upload content" }
+    ]
+  ).map((object) => ({ path: object.path, body: Buffer.from(object.body) }))
   const databaseChecksum = options.databaseChecksum ?? sha256(databaseDump)
   const checksums = Buffer.from(
     [
       `${databaseChecksum}  database/remit.dump`,
-      `${sha256(upload)}  uploads/client-files/upload.txt`
+      ...objects.map((object) => `${sha256(object.body)}  ${object.path}`)
     ].join("\n") + "\n",
     "utf8"
   )
@@ -255,13 +268,16 @@ async function buildArchive(
     appVersion: options.appVersion ?? "1.0.0",
     checksumsSha256: sha256Hex(checksums),
     components: {
-      database: {
-        size: databaseDump.length,
-        sha256: databaseChecksum
-      },
-      uploads: {
-        fileCount: 1,
-        totalSize: upload.length
+      database: { size: databaseDump.length, sha256: databaseChecksum },
+      objects: {
+        buckets: {
+          public: { fileCount: 0, totalSize: 0 },
+          documents: {
+            fileCount: objects.length,
+            totalSize: objects.reduce((sum, object) => sum + object.body.length, 0)
+          }
+        },
+        contentTypes: Object.fromEntries(objects.map((object) => [object.path, "text/plain"]))
       }
     },
     createdAt: "2026-05-20T12:00:00.000Z",
@@ -269,21 +285,18 @@ async function buildArchive(
     encryptionKey: key,
     schemaMigrationId: "0001_initial"
   })
-  const manifestBuffer = serializeBackupManifest({
-    ...manifest,
-    archiveFormatVersion: (options.manifestVersion ?? manifest.archiveFormatVersion) as 1
-  })
+  const manifestBuffer = serializeBackupManifest(manifest)
   const tar = Buffer.concat([
     tarFile("manifest.json", manifestBuffer),
     tarFile("checksums.sha256", checksums),
     tarFile("database/remit.dump", databaseDump),
-    tarFile("uploads/client-files/upload.txt", upload),
+    ...objects.map((object) => tarFile(object.path, object.body)),
     Buffer.alloc(1024)
   ])
   const iv = Buffer.from("123456789012")
   const header = Buffer.alloc(ARCHIVE_HEADER_LENGTH)
   writeArchiveHeader(header, {
-    archiveFormatVersion: options.headerVersion,
+    archiveFormatVersion: options.headerVersion ?? 2,
     iv,
     keyFingerprint: computeKeyFingerprint(key)
   })

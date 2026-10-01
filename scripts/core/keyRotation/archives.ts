@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto"
-import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
+import { createReadStream, createWriteStream } from "node:fs"
+import { mkdir, readdir, rename, rm, stat } from "node:fs/promises"
 import path from "node:path"
-import { Readable } from "node:stream"
+import { pipeline } from "node:stream/promises"
 
 import type postgres from "postgres"
 
-import { reencryptArchiveBuffer } from "../archive/reencrypt"
+import { reencryptArchiveFile } from "../archive/reencrypt"
 import { DEFAULT_BACKUP_DIRNAME, REMOTE_BACKUP_PREFIX } from "../backup/filename"
 import {
   buildDestinationAdapter,
@@ -166,57 +167,65 @@ export async function reencryptConfiguredArchives(
 
 async function reencryptArchive(
   archive: ArchivePlan,
-  options: { newKey: Buffer; oldKey: Buffer }
+  options: { newKey: Buffer; oldKey: Buffer; remitDataDir: string }
 ): Promise<ArchiveReencryptionResult> {
-  const original =
-    archive.destination === "local"
-      ? await readFile(archive.path)
-      : await collectStream(await archive.adapter.get(archive.key))
-  const rotated = reencryptArchiveBuffer({
-    archive: original,
-    newKey: options.newKey,
-    oldKey: options.oldKey
-  })
-
-  if (rotated === original) {
-    return {
-      changed: false,
-      destination: archive.destination,
-      key: archive.key,
-      size: archive.size
-    }
-  }
-
   if (archive.destination === "local") {
     const tempPath = `${archive.path}.${randomUUID()}.tmp`
 
     try {
-      await writeFile(tempPath, rotated, { flag: "wx" })
+      const outcome = await reencryptArchiveFile({
+        sourcePath: archive.path,
+        outputPath: tempPath,
+        newKey: options.newKey,
+        oldKey: options.oldKey
+      })
+
+      if (outcome === "already-current") return unchanged(archive)
+
+      const { size } = await stat(tempPath)
+
       await rename(tempPath, archive.path)
-    } catch (error) {
+
+      return { changed: true, destination: archive.destination, key: archive.key, size }
+    } finally {
       await rm(tempPath, { force: true })
-      throw error
     }
-  } else {
-    await archive.adapter.put(archive.key, Readable.from(rotated), rotated.length)
   }
 
-  return {
-    changed: true,
-    destination: archive.destination,
-    key: archive.key,
-    size: rotated.length
+  // A remote archive is downloaded to disk and re-encrypted from there rather than in memory: it
+  // carries every stored file, so it can be as large as the instance. The rewritten copy goes back
+  // through the adapter's multipart upload under the same key.
+  const tempDirectory = path.join(options.remitDataDir, DEFAULT_BACKUP_DIRNAME, ".tmp")
+  const downloadPath = path.join(tempDirectory, `${randomUUID()}.download`)
+  const rotatedPath = path.join(tempDirectory, `${randomUUID()}.rotated`)
+
+  await mkdir(tempDirectory, { recursive: true })
+
+  try {
+    await pipeline(await archive.adapter.get(archive.key), createWriteStream(downloadPath))
+
+    const outcome = await reencryptArchiveFile({
+      sourcePath: downloadPath,
+      outputPath: rotatedPath,
+      newKey: options.newKey,
+      oldKey: options.oldKey
+    })
+
+    if (outcome === "already-current") return unchanged(archive)
+
+    const { size } = await stat(rotatedPath)
+
+    await archive.adapter.put(archive.key, createReadStream(rotatedPath), size)
+
+    return { changed: true, destination: archive.destination, key: archive.key, size }
+  } finally {
+    await rm(downloadPath, { force: true })
+    await rm(rotatedPath, { force: true })
   }
 }
 
-async function collectStream(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = []
-
-  for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-  }
-
-  return Buffer.concat(chunks)
+function unchanged(archive: ArchivePlan): ArchiveReencryptionResult {
+  return { changed: false, destination: archive.destination, key: archive.key, size: archive.size }
 }
 
 export function formatArchiveForAudit(result: ArchiveReencryptionResult): string {

@@ -17,10 +17,18 @@ import {
   type BackupResult
 } from "./executeBackup"
 import { buildBackupManifest } from "./manifest"
+import { totalArchivedObjects } from "./objectPlan"
+import { listArchivedObjects } from "./objects"
 import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
+type ObjectTotals = ReturnType<typeof totalArchivedObjects>
+
+type ListedObjectTotals = {
+  totals: ObjectTotals
+  unarchivableObjectCount: number
+}
 
 const CLI_USER_AGENT = "cli/backup"
 
@@ -60,7 +68,7 @@ export async function runBackup(
         planSpinner.stop("Backup plan ready.")
         progress.planned = true
 
-        p.note(formatPlan(plan), "Plan")
+        p.note(formatPlan(plan, (await listObjectTotals()).totals), "Plan")
 
         if (plan.destination === "local") await confirmOverwrite(plan.outputPath, options.yes)
 
@@ -77,6 +85,14 @@ export async function runBackup(
         ? "Encrypted archive written."
         : "Encrypted archive uploaded."
     )
+
+    if (result.missingObjectCount > 0) {
+      p.log.warn(
+        `${result.missingObjectCount} stored file(s) could not be archived: the database names them but they were missing from object storage, or they were deleted while the backup ran.`
+      )
+    }
+
+    warnAboutUnarchivableObjects(result.unarchivableObjectCount)
 
     return result
   } catch (error) {
@@ -109,10 +125,13 @@ async function runBackupDryRun(
       settingsRow,
       options
     )
+    const { totals: objectTotals, unarchivableObjectCount } = await listObjectTotals()
 
     planSpinner.stop("Backup plan ready.")
 
-    p.note(formatPlan(plan), "Dry run")
+    p.note(formatPlan(plan, objectTotals), "Dry run")
+
+    warnAboutUnarchivableObjects(unarchivableObjectCount)
 
     return {
       archivePath: plan.archiveUri,
@@ -121,13 +140,15 @@ async function runBackupDryRun(
         checksumsSha256: "0".repeat(64),
         components: {
           database: { size: 0, sha256: "0".repeat(64) },
-          uploads: { fileCount: plan.uploads.length, totalSize: plan.uploadsTotalSize }
+          objects: { buckets: objectTotals, contentTypes: {} }
         },
         createdAt: new Date().toISOString(),
         destination: plan.destination,
         encryptionKey: options.encryptionKey,
         schemaMigrationId: await getLatestAppliedMigrationId(database)
       }),
+      missingObjectCount: 0,
+      unarchivableObjectCount,
       wrote: false
     }
   } catch (error) {
@@ -154,12 +175,31 @@ async function confirmOverwrite(outputPath: string, yes: boolean): Promise<void>
   }
 }
 
-function formatPlan(plan: BackupPlan): string {
+// What the buckets hold as the plan is shown, for the operator's note and a dry run only: the backup
+// itself lists them again after the database dump (`objects.ts`'s `collectArchivedObjects`), so the
+// scheduled path, which shows nothing, never pays for this listing.
+async function listObjectTotals(): Promise<ListedObjectTotals> {
+  const { storage } = await import("@/lib/storage/s3")
+  const { objects, unarchivableObjectCount } = await listArchivedObjects(storage)
+
+  return { totals: totalArchivedObjects(objects), unarchivableObjectCount }
+}
+
+// Counted, never named: a public key is the only thing between its object and an anonymous reader.
+function warnAboutUnarchivableObjects(count: number): void {
+  if (count === 0) return
+
+  p.log.warn(
+    `${count} object(s) in the storage buckets were left out: their keys are not ones Remit writes and a backup archive cannot hold them. Remit's buckets should hold nothing else.`
+  )
+}
+
+function formatPlan(plan: BackupPlan, objectTotals: ObjectTotals): string {
   return [
     `${chalk.bold("Destination")}: ${plan.destination}`,
     `${chalk.bold("Archive")}: ${plan.archiveUri}`,
-    `${chalk.bold("Uploads directory")}: ${plan.uploadsDirectory}`,
-    `${chalk.bold("Uploads")}: ${plan.uploads.length} files, ${formatBytes(plan.uploadsTotalSize)}`,
+    `${chalk.bold("Stored files (public)")}: ${objectTotals.public.fileCount} files, ${formatBytes(objectTotals.public.totalSize)}`,
+    `${chalk.bold("Stored files (documents)")}: ${objectTotals.documents.fileCount} files, ${formatBytes(objectTotals.documents.totalSize)}`,
     "",
     chalk.bold("Tables"),
     ...plan.tableNames.map((table) => `  ${table}`)

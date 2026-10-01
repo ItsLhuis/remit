@@ -8,11 +8,12 @@ const HEX_64 = /^[a-f0-9]{64}$/
 const MANIFEST_FINGERPRINT = /^sha256:[a-f0-9]{32}$/
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/
 
-export const SUPPORTED_ARCHIVE_VERSIONS = [1] as const
+// Every version a release has written; restore reads them all
+// (docs/architecture/specs/BACKUP-ARCHIVE.md, "Forward compatibility").
+export const SUPPORTED_ARCHIVE_VERSIONS = [2] as const
 export type SupportedArchiveVersion = (typeof SUPPORTED_ARCHIVE_VERSIONS)[number]
 
-export const restoreManifestSchema = z.strictObject({
-  archiveFormatVersion: z.number().int().positive(),
+const manifestFields = {
   appVersion: z.string().regex(SEMVER),
   createdAt: z.string().refine((value) => !Number.isNaN(Date.parse(value))),
   createdBy: z.literal("remit:backup"),
@@ -23,20 +24,33 @@ export const restoreManifestSchema = z.strictObject({
     keyFingerprint: z.string().regex(MANIFEST_FINGERPRINT)
   }),
   compression: z.literal("gzip"),
-  components: z.strictObject({
-    database: z.strictObject({
-      format: z.literal("pg_dump-custom"),
-      size: z.number().int().nonnegative(),
-      sha256: z.string().regex(HEX_64)
-    }),
-    uploads: z.strictObject({
-      format: z.literal("tar-stream"),
-      fileCount: z.number().int().nonnegative(),
-      totalSize: z.number().int().nonnegative(),
-      sha256Manifest: z.string().regex(HEX_64)
-    })
-  }),
   destination: z.enum(["local", "s3", "r2", "b2"])
+}
+
+const databaseComponent = z.strictObject({
+  format: z.literal("pg_dump-custom"),
+  size: z.number().int().nonnegative(),
+  sha256: z.string().regex(HEX_64)
+})
+
+const bucketTotals = z.strictObject({
+  fileCount: z.number().int().nonnegative(),
+  totalSize: z.number().int().nonnegative()
+})
+
+// Version 2: the database and every object of the public and documents buckets (ADR-0046).
+export const restoreManifestSchema = z.strictObject({
+  archiveFormatVersion: z.literal(2),
+  ...manifestFields,
+  components: z.strictObject({
+    database: databaseComponent,
+    objects: z.strictObject({
+      format: z.literal("tar-stream"),
+      sha256Manifest: z.string().regex(HEX_64),
+      buckets: z.strictObject({ public: bucketTotals, documents: bucketTotals }),
+      contentTypes: z.record(z.string(), z.string().min(1).max(255))
+    })
+  })
 })
 
 export type RestoreManifest = z.infer<typeof restoreManifestSchema>

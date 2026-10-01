@@ -5,7 +5,7 @@ import path from "node:path"
 import { finished } from "node:stream/promises"
 import { createGzip } from "node:zlib"
 
-import { createLocalStorageReadStream } from "@/lib/storage/local"
+import { type ObjectStore } from "@/lib/storage/objectStore"
 
 import {
   ARCHIVE_HEADER_LENGTH,
@@ -19,9 +19,9 @@ import { type BackupDestinationAdapter } from "../destination"
 
 import { type DatabaseDumpDescriptor } from "./databaseDump"
 import { REMOTE_BACKUP_PREFIX } from "./filename"
+import { openVerifiedObjectStream, type ArchivedObject } from "./objects"
 import { type BackupPlan } from "./plan"
 import { computeRetentionDeletions } from "./retention"
-import { type UploadDescriptor } from "./uploads"
 
 export class BackupWriteError extends Error {}
 
@@ -30,8 +30,9 @@ export type WriteEncryptedTarInput = {
   databaseDump: DatabaseDumpDescriptor
   encryptionKey: Buffer
   manifest: Buffer
+  objects: readonly ArchivedObject[]
   outputPath: string
-  uploads: readonly UploadDescriptor[]
+  store: ObjectStore
 }
 
 export async function writeEncryptedTar(input: WriteEncryptedTarInput): Promise<void> {
@@ -68,11 +69,11 @@ export async function writeEncryptedTar(input: WriteEncryptedTarInput): Promise<
       createReadStream(input.databaseDump.path)
     )
 
-    for (const upload of input.uploads) {
+    for (const object of input.objects) {
       await tar.writeFileEntry(
-        upload.archivePath,
-        upload.size,
-        createLocalStorageReadStream(upload)
+        object.archivePath,
+        object.size,
+        await openVerifiedObjectStream(input.store, object)
       )
     }
 
@@ -120,8 +121,8 @@ export async function uploadArchive(
   archivePath: string,
   objectKey: string
 ): Promise<void> {
-  // A single PutObject, which caps an archive at the S3 5 GiB per-request limit. An instance
-  // whose backup exceeds that needs a multipart upload here.
+  // The adapter switches to a multipart upload above `lib/backups/multipart.ts`'s threshold, so an
+  // archive that carries every stored file is not bounded by S3's 5 GiB single-request limit.
   const archiveStats = await stat(archivePath)
 
   try {

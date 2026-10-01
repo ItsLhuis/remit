@@ -28,7 +28,7 @@ export type RestoreRuntimeState = {
   databaseApplied: boolean
   schema: Schema | null
   snapshotPath: string | null
-  stagedUploadsDir: string | null
+  stagedObjectsDir: string | null
   workDir: string | null
 }
 
@@ -147,8 +147,8 @@ export async function cleanupRuntimeState(state: RestoreRuntimeState): Promise<v
 
   await Promise.all([
     state.workDir ? rm(state.workDir, { recursive: true, force: true }) : Promise.resolve(),
-    state.stagedUploadsDir
-      ? rm(state.stagedUploadsDir, { recursive: true, force: true })
+    state.stagedObjectsDir
+      ? rm(state.stagedObjectsDir, { recursive: true, force: true })
       : Promise.resolve()
   ])
 

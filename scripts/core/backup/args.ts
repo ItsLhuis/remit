@@ -105,7 +105,7 @@ export function getBackupHelpText(): string {
     `  ${command} ${option("[--destination <local|s3|r2|b2>]")} ${option("[--output <path>]")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
     "",
     heading("Purpose"),
-    "  Write an encrypted .remitbak archive containing the PostgreSQL dump and uploads.",
+    "  Write an encrypted .remitbak archive containing the PostgreSQL dump and every stored file.",
     "",
     heading("Options"),
     optionLine(

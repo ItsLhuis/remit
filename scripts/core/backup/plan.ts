@@ -3,9 +3,6 @@ import path from "node:path"
 
 import { sql } from "drizzle-orm"
 
-import { listLocalStorageObjects, resolveLocalUploadsDirectory } from "@/lib/storage/local"
-import { type LocalStorageObject } from "@/lib/storage/local"
-
 import migrationJournal from "@/drizzle/migrations/meta/_journal.json"
 import pkg from "@/package.json"
 
@@ -24,9 +21,6 @@ export type BackupPlan = {
   outputPath: string
   retentionPolicy: { daily: number; monthly: number; weekly: number }
   tableNames: string[]
-  uploads: LocalStorageObject[]
-  uploadsDirectory: string
-  uploadsTotalSize: number
 }
 
 export class BackupPlanError extends Error {}
@@ -53,12 +47,7 @@ export async function buildBackupPlan(
     destination === "local"
       ? path.resolve(options.output ?? path.join(backupsDir, archiveFilename))
       : path.join(backupsDir, ".tmp", `${archiveFilename}.${randomUUID()}.upload`)
-  const uploadsDirectory = resolveLocalUploadsDirectory(dataDir)
-  const [tableNames, uploads] = await Promise.all([
-    listDatabaseTables(database),
-    listLocalStorageObjects({ rootDir: uploadsDirectory, skipDir: backupsDir })
-  ])
-  const uploadsTotalSize = uploads.reduce((sum, upload) => sum + upload.size, 0)
+  const tableNames = await listDatabaseTables(database)
 
   return {
     archiveFilename,
@@ -71,10 +60,7 @@ export async function buildBackupPlan(
       monthly: settingsRow?.backupRetentionMonthly ?? 12,
       weekly: settingsRow?.backupRetentionWeekly ?? 4
     },
-    tableNames,
-    uploads,
-    uploadsDirectory,
-    uploadsTotalSize
+    tableNames
   }
 }
 

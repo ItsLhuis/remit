@@ -5,13 +5,12 @@ import * as p from "@clack/prompts"
 
 import chalk from "chalk"
 
-import { resolveLocalUploadsDirectory } from "@/lib/storage/local"
-
 import pkg from "@/package.json"
 
 import { buildPreRestoreSnapshotPath, formatArchiveTimestamp } from "../backup/filename"
 import { formatBytes } from "../utils/format"
 
+import { deleteObjectsAbsentFromArchive, putArchivedObjects } from "./applyObjects"
 import { getRestoreHelpText, parseRestoreArgs } from "./args"
 import {
   cleanupRuntimeState,
@@ -34,8 +33,12 @@ import {
 } from "./remoteDownload"
 import { restoreDatabaseDump } from "./restoreDump"
 import { takePreRestoreSnapshot } from "./snapshot"
-import { applyUploadsAtomicSwap } from "./uploadsSwap"
-import { getDatabaseName, verifyArchivePayload, type ChecksumDescriptor } from "./verifyArchive"
+import {
+  getDatabaseName,
+  verifyArchivePayload,
+  type ChecksumDescriptor,
+  type StagedObject
+} from "./verifyArchive"
 
 export async function runRestore(): Promise<void> {
   const parsed = parseRestoreArgs(process.argv.slice(2))
@@ -61,7 +64,7 @@ export async function runRestore(): Promise<void> {
     databaseApplied: false,
     schema: null,
     snapshotPath: null,
-    stagedUploadsDir: null,
+    stagedObjectsDir: null,
     workDir: null
   }
   const operationId = randomUUID()
@@ -75,15 +78,10 @@ export async function runRestore(): Promise<void> {
     const remitDataDir = path.resolve(env.REMIT_DATA_DIR)
     const snapshotDate = new Date()
     const timestamp = formatArchiveTimestamp(snapshotDate)
-    const liveUploadsDir = resolveLocalUploadsDirectory(remitDataDir)
-    const uploadsBaseName = path.basename(liveUploadsDir)
     const stagingToken = `${timestamp}-${randomUUID()}`
 
     state.workDir = path.join(remitDataDir, `.restore-work-${stagingToken}`)
-    state.stagedUploadsDir = path.join(
-      path.dirname(liveUploadsDir),
-      `.${uploadsBaseName}.restore-staging-${stagingToken}`
-    )
+    state.stagedObjectsDir = path.join(remitDataDir, `.restore-objects-${stagingToken}`)
 
     if (restoreSource.type === "remote") {
       const [{ database, client }, schema] = await Promise.all([
@@ -106,7 +104,7 @@ export async function runRestore(): Promise<void> {
       encryptionKey,
       header,
       mode: parsed.data.dryRun ? "verify-only" : "stage",
-      uploadsStagingDir: state.stagedUploadsDir,
+      objectsStagingDir: state.stagedObjectsDir,
       workDir: state.workDir
     })
 
@@ -117,14 +115,12 @@ export async function runRestore(): Promise<void> {
         formatDryRunSummary({
           archivePath: formatRestoreSourceForAudit(restoreSource),
           databaseName,
-          liveUploadsDir,
-          manifest: verified.manifest
+          manifest: verified.manifest,
+          objects: verified.objects
         }),
         "Dry run"
       )
-      p.outro(
-        "Dry run complete. No snapshot, audit entry, database restore, or uploads swap was performed."
-      )
+      p.outro("Dry run complete. No snapshot, audit entry, database restore or file was written.")
       process.exit(0)
     }
 
@@ -179,26 +175,32 @@ export async function runRestore(): Promise<void> {
       yes: parsed.data.yes
     })
 
-    if (!verified.databaseDumpPath || !verified.uploadsStagingDir) {
+    if (!verified.databaseDumpPath || !verified.objectsStagingDir) {
       throw new RestoreCliError(
-        "Restore verification did not produce staged database and uploads artifacts.",
+        "Restore verification did not produce the staged database and files.",
         "restore-staging-missing"
       )
     }
 
+    const { storage } = await import("@/lib/storage/s3")
+
+    // The order is what keeps a failure repairable without an atomic swap (ADR-0046): files are
+    // written and verified first, the database is replaced in one transaction second, and only then
+    // is anything the archive lacks deleted. Every stop leaves the store a superset of what the
+    // database names, and running the restore again completes it.
+    await putArchivedObjects(storage, verified.objects)
+
     await restoreDatabaseDump(verified.databaseDumpPath, env.DATABASE_URL)
     state.databaseApplied = true
 
-    await applyUploadsAtomicSwap({
-      expectedUploads: verified.uploads,
-      liveUploadsDir,
-      stagingUploadsDir: verified.uploadsStagingDir,
-      timestamp: stagingToken
-    })
-    state.stagedUploadsDir = null
-
+    // Migrations and the audit replay come before the deletions, not after: deleting is one request
+    // per stale object and the step most likely to fail, and a failure there must leave a migrated
+    // database with its operation trail rather than an older schema under a newer build.
     await runPostRestoreMigrations(env.DATABASE_URL)
     await replayPreRestoreAuditTrail(state)
+
+    await deleteObjectsAbsentFromArchive(storage, verified.objects)
+
     await writeRestoreAudit(state, "instance.restore.completed", {
       operationId,
       archiveAppVersion: verified.manifest.appVersion,
@@ -227,23 +229,28 @@ export async function runRestore(): Promise<void> {
 function formatDryRunSummary(input: {
   archivePath: string
   databaseName: string
-  liveUploadsDir: string
   manifest: RestoreManifest
+  objects: readonly StagedObject[]
 }): string {
+  const countFor = (role: StagedObject["role"]) => {
+    const objects = input.objects.filter((object) => object.role === role)
+
+    return `${objects.length} files, ${formatBytes(objects.reduce((sum, object) => sum + object.size, 0))}`
+  }
+
   return [
     `${chalk.bold("Archive")}: ${input.archivePath}`,
     `${chalk.bold("Created")}: ${input.manifest.createdAt}`,
+    `${chalk.bold("Archive format")}: ${input.manifest.archiveFormatVersion}`,
     `${chalk.bold("Archive app version")}: ${input.manifest.appVersion}`,
     `${chalk.bold("Schema migration")}: ${input.manifest.schemaMigrationId}`,
     `${chalk.bold("Destination recorded")}: ${input.manifest.destination}`,
     `${chalk.bold("Database target")}: ${input.databaseName}`,
     `${chalk.bold("Database dump")}: ${formatBytes(input.manifest.components.database.size)}`,
-    `${chalk.bold("Uploads target")}: ${input.liveUploadsDir}`,
-    `${chalk.bold("Uploads")}: ${input.manifest.components.uploads.fileCount} files, ${formatBytes(
-      input.manifest.components.uploads.totalSize
-    )}`,
+    `${chalk.bold("Stored files (public)")}: ${countFor("public")}`,
+    `${chalk.bold("Stored files (documents)")}: ${countFor("documents")}`,
     "",
-    "Would create a mandatory local pre-restore snapshot, run pg_restore with --single-transaction, apply forward migrations, and atomically swap uploads."
+    "Would create a mandatory local pre-restore snapshot, write and verify every archived file, run pg_restore with --single-transaction, apply forward migrations, and delete stored files the archive does not contain."
   ].join("\n")
 }
 

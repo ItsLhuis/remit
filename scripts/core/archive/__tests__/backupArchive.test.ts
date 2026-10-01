@@ -1,7 +1,11 @@
+import { randomBytes } from "node:crypto"
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
 import { PassThrough } from "node:stream"
 import { gunzipSync, gzipSync } from "node:zlib"
 
-import { describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test } from "vitest"
 
 import {
   ARCHIVE_FORMAT_VERSION,
@@ -13,7 +17,17 @@ import {
   readArchiveHeader,
   writeArchiveHeader
 } from "../header"
-import { reencryptArchiveBuffer } from "../reencrypt"
+import { reencryptArchiveFile } from "../reencrypt"
+
+let tempRoot: string
+
+beforeEach(async () => {
+  tempRoot = await mkdtemp(path.join(os.tmpdir(), "remit-archive-"))
+})
+
+afterEach(async () => {
+  await rm(tempRoot, { force: true, recursive: true })
+})
 
 describe("backup archive helpers", () => {
   test("round-trips the plaintext header when fields are valid", () => {
@@ -61,29 +75,19 @@ describe("backup archive helpers", () => {
     expect(decrypted).toEqual(plaintext)
   })
 
-  test("re-encrypts archive headers and manifest fingerprints with a new key", async () => {
+  test("re-encrypts the header and manifest fingerprint and passes every other entry through unchanged", async () => {
     const oldKey = Buffer.from("a".repeat(32))
     const newKey = Buffer.from("b".repeat(32))
-    const iv = Buffer.from("123456789012")
-    const manifest = Buffer.from(
-      JSON.stringify(
-        {
-          encryption: {
-            keyFingerprint: `sha256:${computeKeyFingerprint(oldKey)}`
-          }
-        },
-        null,
-        2
-      ),
-      "utf8"
-    )
-    const tar = Buffer.concat([tarFile("manifest.json", manifest), Buffer.alloc(1024)])
-    const header = Buffer.alloc(ARCHIVE_HEADER_LENGTH)
-    writeArchiveHeader(header, { iv, keyFingerprint: computeKeyFingerprint(oldKey) })
-    const encrypted = await collectEncryptedPayload(gzip(tar), oldKey, iv)
-    const archive = Buffer.concat([header, encrypted.ciphertext, encrypted.authTag])
+    const storedFile = randomBytes(70_000)
+    const sourcePath = await writeArchive(oldKey, [
+      ["manifest.json", manifestFor(oldKey)],
+      ["objects/public/logos/a.png", storedFile]
+    ])
+    const outputPath = path.join(tempRoot, "rotated.remitbak")
 
-    const rotated = reencryptArchiveBuffer({ archive, newKey, oldKey })
+    const result = await reencryptArchiveFile({ sourcePath, outputPath, newKey, oldKey })
+
+    const rotated = await readFile(outputPath)
     const rotatedHeader = readArchiveHeader(rotated.subarray(0, ARCHIVE_HEADER_LENGTH))
     const rotatedPayload = await collectStream(
       PassThrough.from(rotated.subarray(ARCHIVE_HEADER_LENGTH, -16)).pipe(
@@ -95,12 +99,86 @@ describe("backup archive helpers", () => {
       encryption?: { keyFingerprint?: string }
     }
 
+    expect(result).toBe("rewritten")
     expect(rotatedHeader.keyFingerprint).toBe(computeKeyFingerprint(newKey))
     expect(rotatedManifest.encryption?.keyFingerprint).toBe(
       `sha256:${computeKeyFingerprint(newKey)}`
     )
+    expect(entries.get("objects/public/logos/a.png")?.equals(storedFile)).toBe(true)
+  })
+
+  test("writes nothing when the archive is already on the new key", async () => {
+    const newKey = Buffer.from("b".repeat(32))
+    const sourcePath = await writeArchive(newKey, [["manifest.json", manifestFor(newKey)]])
+    const outputPath = path.join(tempRoot, "rotated.remitbak")
+
+    const result = await reencryptArchiveFile({
+      sourcePath,
+      outputPath,
+      newKey,
+      oldKey: Buffer.from("a".repeat(32))
+    })
+
+    expect(result).toBe("already-current")
+    await expect(access(outputPath)).rejects.toThrow()
+  })
+
+  test("leaves no output when the archive fails authentication", async () => {
+    const oldKey = Buffer.from("a".repeat(32))
+    const sourcePath = await writeArchive(oldKey, [["manifest.json", manifestFor(oldKey)]])
+    const archive = await readFile(sourcePath)
+    archive[ARCHIVE_HEADER_LENGTH + 4] ^= 0xff
+    await writeFile(sourcePath, archive)
+    const outputPath = path.join(tempRoot, "rotated.remitbak")
+
+    await expect(
+      reencryptArchiveFile({ sourcePath, outputPath, newKey: Buffer.from("b".repeat(32)), oldKey })
+    ).rejects.toThrow()
+    await expect(access(outputPath)).rejects.toThrow()
+  })
+
+  test("refuses an archive encrypted with neither key", async () => {
+    const sourcePath = await writeArchive(Buffer.from("c".repeat(32)), [
+      ["manifest.json", manifestFor(Buffer.from("c".repeat(32)))]
+    ])
+
+    await expect(
+      reencryptArchiveFile({
+        sourcePath,
+        outputPath: path.join(tempRoot, "rotated.remitbak"),
+        newKey: Buffer.from("b".repeat(32)),
+        oldKey: Buffer.from("a".repeat(32))
+      })
+    ).rejects.toThrow("not encrypted with the provided old key")
   })
 })
+
+function manifestFor(key: Buffer): Buffer {
+  return Buffer.from(
+    JSON.stringify(
+      { encryption: { keyFingerprint: `sha256:${computeKeyFingerprint(key)}` } },
+      null,
+      2
+    ),
+    "utf8"
+  )
+}
+
+async function writeArchive(key: Buffer, entries: Array<[string, Buffer]>): Promise<string> {
+  const iv = randomBytes(12)
+  const tar = Buffer.concat([
+    ...entries.map(([name, content]) => tarFile(name, content)),
+    Buffer.alloc(1024)
+  ])
+  const header = Buffer.alloc(ARCHIVE_HEADER_LENGTH)
+  writeArchiveHeader(header, { iv, keyFingerprint: computeKeyFingerprint(key) })
+  const encrypted = await collectEncryptedPayload(gzip(tar), key, iv)
+  const archivePath = path.join(tempRoot, `${randomBytes(4).toString("hex")}.remitbak`)
+
+  await writeFile(archivePath, Buffer.concat([header, encrypted.ciphertext, encrypted.authTag]))
+
+  return archivePath
+}
 
 async function collectEncryptedPayload(
   plaintext: Buffer,

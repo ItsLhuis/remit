@@ -22,7 +22,8 @@ import {
 //
 // The two reserved runs are verified on read, not skipped, so a corrupt or foreign file is rejected
 // at the header instead of failing later as an authentication error nobody can diagnose.
-export const ARCHIVE_FORMAT_VERSION = 1
+// Version 2 carries the stored objects by bucket role (ADR-0046).
+export const ARCHIVE_FORMAT_VERSION = 2
 export const ARCHIVE_HEADER_LENGTH = 64
 export const AUTH_TAG_LENGTH = 16
 export const ENCRYPTION_ALGORITHM_BYTE = 0x01

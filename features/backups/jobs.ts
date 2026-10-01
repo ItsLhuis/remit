@@ -80,10 +80,26 @@ async function runScheduledBackup(): Promise<void> {
       {
         action: "backup.run.sweep",
         destination: result.manifest.destination,
-        archive: result.archivePath
+        archive: result.archivePath,
+        missingObjectCount: result.missingObjectCount,
+        unarchivableObjectCount: result.unarchivableObjectCount
       },
       "Scheduled backup completed"
     )
+
+    if (result.missingObjectCount > 0) {
+      logger.warn(
+        { action: "backup.run.sweep", missingObjectCount: result.missingObjectCount },
+        "Scheduled backup could not archive every stored file the database names"
+      )
+    }
+
+    if (result.unarchivableObjectCount > 0) {
+      logger.warn(
+        { action: "backup.run.sweep", unarchivableObjectCount: result.unarchivableObjectCount },
+        "Scheduled backup left out objects whose keys a backup archive cannot hold"
+      )
+    }
   } catch (error) {
     // Swallowed rather than rethrown, and that is the one place this job departs from the sweeps
     // beside it. `DEFAULT_JOB_OPTIONS` gives every job five attempts, and a backup that failed

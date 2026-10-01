@@ -5,7 +5,9 @@ import path from "node:path"
 import { PassThrough } from "node:stream"
 import { createGunzip } from "node:zlib"
 
-import { afterEach, expect, test } from "vitest"
+import { afterEach, beforeEach, expect, test } from "vitest"
+
+import { storage } from "@/lib/storage/s3"
 
 import { settings } from "@/database/schema"
 
@@ -15,31 +17,46 @@ import { decryptStream, readArchiveHeader } from "../../archive/header"
 import { startS3TestServer } from "../../destination/testing/s3TestServer"
 
 const originalPath = process.env.PATH
-const originalUploadsDir = process.env.REMIT_UPLOADS_DIR
 const testBucket = "remit-test"
 
-afterEach(async () => {
-  process.env.PATH = originalPath
+// The suite's own buckets, emptied before each test so an archive holds exactly what the test put.
+beforeEach(async () => {
+  for (const role of ["public", "documents"] as const) {
+    await storage.ensureBucket(role)
 
-  if (originalUploadsDir) {
-    process.env.REMIT_UPLOADS_DIR = originalUploadsDir
-  } else {
-    delete process.env.REMIT_UPLOADS_DIR
+    for await (const object of storage.listObjects(role))
+      await storage.deleteObject(role, object.key)
   }
 })
 
-test("writes a decryptable local backup archive when Postgres and uploads are available", async () => {
+afterEach(async () => {
+  process.env.PATH = originalPath
+})
+
+test("writes a decryptable local archive carrying the database and every stored file", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const outputPath = path.join(tempRoot, "backups", "fixture.remitbak")
   const pgDumpShimDir = path.join(tempRoot, "bin")
-  await mkdir(path.join(uploadsDir, "avatars", "user-1"), { recursive: true })
+  const avatar = Buffer.from("avatar fixture")
+  const attachment = Buffer.from("attachment fixture")
   await mkdir(pgDumpShimDir, { recursive: true })
-  await writeFile(path.join(uploadsDir, "avatars", "user-1", "avatar.txt"), "avatar fixture")
   await writePgDumpShim(pgDumpShimDir)
+  await storage.putObject({
+    role: "public",
+    key: "avatars/user-1/avatar.png",
+    body: avatar,
+    contentLength: avatar.length,
+    contentType: "image/png"
+  })
+  await storage.putObject({
+    role: "documents",
+    key: "attachments/a.pdf",
+    body: attachment,
+    contentLength: attachment.length,
+    contentType: "application/pdf"
+  })
 
   process.env.PATH = `${pgDumpShimDir}${path.delimiter}${originalPath ?? ""}`
-  process.env.REMIT_UPLOADS_DIR = uploadsDir
 
   await database.insert(settings).values({})
 
@@ -65,29 +82,41 @@ test("writes a decryptable local backup archive when Postgres and uploads are av
     archiveFormatVersion?: number
     components?: {
       database?: { sha256?: string; size?: number }
-      uploads?: { fileCount?: number; sha256Manifest?: string; totalSize?: number }
+      objects?: {
+        buckets?: Record<string, { fileCount?: number; totalSize?: number }>
+        contentTypes?: Record<string, string>
+        sha256Manifest?: string
+      }
     }
     destination?: string
     encryption?: { keyFingerprint?: string }
   }
   const checksums = entries.get("checksums.sha256")
   const databaseDump = entries.get("database/remit.dump")
-  const upload = entries.get("uploads/avatars/user-1/avatar.txt")
+  const archivedAvatar = entries.get("objects/public/avatars/user-1/avatar.png")
+  const archivedAttachment = entries.get("objects/documents/attachments/a.pdf")
   const [settingsRow] = await database.select().from(settings)
 
-  expect(header.archiveFormatVersion).toBe(1)
-  expect(manifest.archiveFormatVersion).toBe(1)
+  expect(header.archiveFormatVersion).toBe(2)
+  expect(manifest.archiveFormatVersion).toBe(2)
   expect(manifest.destination).toBe("local")
   expect(manifest.encryption?.keyFingerprint).toBe(`sha256:${header.keyFingerprint}`)
   expect(databaseDump).toBeDefined()
-  expect(upload?.toString("utf8")).toBe("avatar fixture")
+  expect(archivedAvatar?.equals(avatar)).toBe(true)
+  expect(archivedAttachment?.equals(attachment)).toBe(true)
   expect(manifest.components?.database?.sha256).toBe(sha256(databaseDump ?? Buffer.alloc(0)))
   expect(manifest.components?.database?.size).toBe(databaseDump?.length)
-  expect(manifest.components?.uploads?.fileCount).toBe(1)
-  expect(manifest.components?.uploads?.totalSize).toBe(Buffer.byteLength("avatar fixture"))
-  expect(manifest.components?.uploads?.sha256Manifest).toBe(sha256(checksums ?? Buffer.alloc(0)))
+  expect(manifest.components?.objects?.buckets).toEqual({
+    public: { fileCount: 1, totalSize: avatar.length },
+    documents: { fileCount: 1, totalSize: attachment.length }
+  })
+  expect(manifest.components?.objects?.contentTypes).toEqual({
+    "objects/public/avatars/user-1/avatar.png": "image/png",
+    "objects/documents/attachments/a.pdf": "application/pdf"
+  })
+  expect(manifest.components?.objects?.sha256Manifest).toBe(sha256(checksums ?? Buffer.alloc(0)))
   expect(checksums?.toString("utf8")).toContain(
-    `${sha256(upload ?? Buffer.alloc(0))}  uploads/avatars/user-1/avatar.txt`
+    `${sha256(avatar)}  objects/public/avatars/user-1/avatar.png`
   )
   expect(settingsRow?.backupLastSuccessAt).toBeInstanceOf(Date)
   expect(settingsRow?.backupLastFailureAt).toBeNull()
@@ -98,16 +127,13 @@ test("writes a decryptable local backup archive when Postgres and uploads are av
 
 test("uploads an encrypted remote backup archive and applies retention cleanup", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const pgDumpShimDir = path.join(tempRoot, "bin")
-  await mkdir(uploadsDir, { recursive: true })
   await mkdir(pgDumpShimDir, { recursive: true })
   await writePgDumpShim(pgDumpShimDir)
   const s3 = await startS3TestServer()
 
   try {
     process.env.PATH = `${pgDumpShimDir}${path.delimiter}${originalPath ?? ""}`
-    process.env.REMIT_UPLOADS_DIR = uploadsDir
 
     const staleKey = "remit-backups/2020/01/remit-backup-stale.remitbak"
     s3.objects.set(staleKey, {
@@ -156,24 +182,21 @@ test("uploads an encrypted remote backup archive and applies retention cleanup",
 
 test("preserves the previous successful backup timestamp when remote upload fails", async () => {
   const tempRoot = await makeTempDirectory()
-  const uploadsDir = path.join(tempRoot, "uploads")
   const pgDumpShimDir = path.join(tempRoot, "bin")
   const lastSuccessAt = new Date("2026-05-01T00:00:00.000Z")
-  await mkdir(uploadsDir, { recursive: true })
   await mkdir(pgDumpShimDir, { recursive: true })
   await writePgDumpShim(pgDumpShimDir)
 
   process.env.PATH = `${pgDumpShimDir}${path.delimiter}${originalPath ?? ""}`
-  process.env.REMIT_UPLOADS_DIR = uploadsDir
 
   await database.insert(settings).values({
     backupDestination: "s3",
     backupLastSuccessAt: lastSuccessAt,
-    backupS3AccessKey: "minioadmin",
+    backupS3AccessKey: "unreachable-access-key",
     backupS3Bucket: testBucket,
     backupS3Endpoint: "http://127.0.0.1:1",
     backupS3Region: "us-east-1",
-    backupS3SecretKey: "minioadmin"
+    backupS3SecretKey: "unreachable-secret-key"
   })
 
   const { runBackup } = await import("../runBackup")

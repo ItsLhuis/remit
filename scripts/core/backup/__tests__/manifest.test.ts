@@ -12,7 +12,13 @@ describe("backup manifest helpers", () => {
       checksumsSha256: "f".repeat(64),
       components: {
         database: { size: 123, sha256: "a".repeat(64) },
-        uploads: { fileCount: 2, totalSize: 456 }
+        objects: {
+          buckets: {
+            public: { fileCount: 2, totalSize: 456 },
+            documents: { fileCount: 1, totalSize: 789 }
+          },
+          contentTypes: { "objects/public/logos/a.png": "image/png" }
+        }
       },
       createdAt: "2026-05-17T10:00:00.000Z",
       destination: "local",
@@ -21,7 +27,7 @@ describe("backup manifest helpers", () => {
     })
 
     expect(manifest).toEqual({
-      archiveFormatVersion: 1,
+      archiveFormatVersion: 2,
       appVersion: "1.2.3",
       createdAt: "2026-05-17T10:00:00.000Z",
       createdBy: "remit:backup",
@@ -38,11 +44,14 @@ describe("backup manifest helpers", () => {
           size: 123,
           sha256: "a".repeat(64)
         },
-        uploads: {
+        objects: {
           format: "tar-stream",
-          fileCount: 2,
-          totalSize: 456,
-          sha256Manifest: "f".repeat(64)
+          sha256Manifest: "f".repeat(64),
+          buckets: {
+            public: { fileCount: 2, totalSize: 456 },
+            documents: { fileCount: 1, totalSize: 789 }
+          },
+          contentTypes: { "objects/public/logos/a.png": "image/png" }
         }
       },
       destination: "local"
@@ -56,7 +65,13 @@ describe("backup manifest helpers", () => {
       checksumsSha256: sha256Hex("checksums"),
       components: {
         database: { size: 1, sha256: sha256Hex("database") },
-        uploads: { fileCount: 0, totalSize: 0 }
+        objects: {
+          buckets: {
+            public: { fileCount: 0, totalSize: 0 },
+            documents: { fileCount: 0, totalSize: 0 }
+          },
+          contentTypes: {}
+        }
       },
       createdAt: "2026-05-17T10:00:00.000Z",
       destination: "local",

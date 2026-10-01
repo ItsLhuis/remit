@@ -9,6 +9,7 @@ import { acquireBackupLock, releaseBackupLock } from "@/lib/backups/backupLock"
 import { enqueueJob } from "@/lib/jobs"
 import { getQueue } from "@/lib/jobs/queue"
 import { startWorker, stopWorker } from "@/lib/jobs/worker"
+import { storage } from "@/lib/storage/s3"
 
 import { auditLogs, settings } from "@/database/schema"
 
@@ -110,6 +111,10 @@ beforeAll(async () => {
   await writePgDumpShim(shimDirectory)
 
   process.env.PATH = `${shimDirectory}${path.delimiter}${originalPath ?? ""}`
+
+  // What `instrumentation.ts` does at boot. A backup refuses to treat a missing public bucket as an
+  // empty one, and on a fresh test stack nothing else has created it yet.
+  await storage.ensureBucket("public")
 
   await getQueue().obliterate({ force: true })
 

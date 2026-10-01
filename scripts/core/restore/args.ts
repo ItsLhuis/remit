@@ -77,7 +77,7 @@ export function getRestoreHelpText(): string {
     optionLine("--help", "Print this help text."),
     "",
     heading("Safety"),
-    "  Restore always takes a local pre-restore snapshot before destructive work, applies the database with pg_restore --single-transaction, and swaps uploads atomically.",
+    "  Restore always takes a local pre-restore snapshot before destructive work, writes and verifies every archived file, applies the database with pg_restore --single-transaction, then deletes stored files the archive does not contain.",
     "",
     heading("Remote archives"),
     "  Use remit://<destination>/<key> for remote archives, for example remit://s3/remit-backups/2026/05/archive.remitbak. Destination must be s3, r2, or b2.",
