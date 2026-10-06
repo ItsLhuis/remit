@@ -354,6 +354,8 @@ export type Translations = {
         invalidDetail: string
         unreachable: string
         unreachableDetail: string
+        untrustedCertificate: string
+        untrustedCertificateDetail: string
       }
     }
   }
@@ -714,6 +716,7 @@ export type Translations = {
       email: string
       phone: string
       currency: string
+      locale: string
       taxId: string
       addressLine1: string
       addressLine2: string
@@ -805,6 +808,8 @@ export type Translations = {
       editDescription: string
       profileSection: string
       profileDescription: string
+      localeDefault: string
+      localeDescription: string
       addressSection: string
       addressDescription: string
       notesSection: string
@@ -926,9 +931,13 @@ export type Translations = {
     }
     errors: {
       notFound: string
+      createFailed: string
       updateFailed: string
+      deleteFailed: string
       contactNotFound: string
       contactUpdateFailed: string
+      contactCreateFailed: string
+      contactDeleteFailed: string
       contactPrimaryConflict: string
       invalidImageFileType: string
       imageUploadUrlFailed: string
@@ -1031,6 +1040,7 @@ export type Translations = {
       textTooLong: string
       websiteInvalid: string
       currencyInvalid: string
+      localeInvalid: string
       countryInvalid: string
       hourlyRateInvalid: string
       idInvalid: string
@@ -1188,7 +1198,10 @@ export type Translations = {
     }
     errors: {
       notFound: string
+      createFailed: string
       updateFailed: string
+      deleteFailed: string
+      convertFailed: string
       invalidTransition: string
       alreadyConverted: string
     }
@@ -1330,7 +1343,9 @@ export type Translations = {
       notFound: string
       clientNotFound: string
       clientChangeBlocked: string
+      createFailed: string
       updateFailed: string
+      deleteFailed: string
       invalidTransition: string
     }
     validation: {
@@ -1469,7 +1484,9 @@ export type Translations = {
       notFound: string
       projectNotFound: string
       invalidTransition: string
+      createFailed: string
       updateFailed: string
+      deleteFailed: string
     }
   }
   timeTracking: {
@@ -1600,6 +1617,7 @@ export type Translations = {
       endBeforeStart: string
       alreadyInvoiced: string
       updateFailed: string
+      deleteFailed: string
     }
   }
   expenses: {
@@ -1760,6 +1778,7 @@ export type Translations = {
       clientProjectMismatch: string
       alreadyInvoiced: string
       updateFailed: string
+      deleteFailed: string
       exportFailed: string
       invalidFileType: string
       uploadUrlFailed: string
@@ -2060,7 +2079,9 @@ export type Translations = {
       clientProjectMismatch: string
       notDraft: string
       invalidTransition: string
+      createFailed: string
       updateFailed: string
+      deleteFailed: string
       sendFailed: string
       publicLinkNotIssued: string
       publicLinkAlreadyRevoked: string
@@ -4267,7 +4288,9 @@ export type Translations = {
       deleted: string
       defaultUpdated: string
       errors: {
+        createFailed: string
         updateFailed: string
+        deleteFailed: string
         notFound: string
         defaultConflict: string
       }
@@ -4771,6 +4794,7 @@ export type Translations = {
       restore: string
     }
     restored: string
+    restoredClientPortalOff: string
     entities: {
       client: string
       clientContact: string
@@ -4825,6 +4849,9 @@ export type Translations = {
       overdueDescription: string
       lastRunFailedTitle: string
       lastRunFailedUnknown: string
+      lastFailureAt: string
+      lastSuccessAt: string
+      lastSuccessNever: string
       action: string
     }
   }

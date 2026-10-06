@@ -257,7 +257,8 @@ export async function updateInvoice(input: unknown): Promise<InvoiceMutationResu
     return handleInvoiceActionError(error, {
       action: "updateInvoice",
       userId: context.userId,
-      invoiceId: parsed.data.id
+      invoiceId: parsed.data.id,
+      fallbackMessage: t("invoices.errors.updateFailed")
     })
   }
 }

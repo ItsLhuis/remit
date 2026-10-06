@@ -87,7 +87,11 @@ export async function createTaxRate(input: unknown): Promise<TaxRateWriteResult>
 
     return { data: { taxRate: toTaxRateListItem(createdTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "createTaxRate", context.userId)
+    return handleTaxRateActionError(error, {
+      action: "createTaxRate",
+      userId: context.userId,
+      fallbackMessage: t("settings.taxRates.errors.createFailed")
+    })
   }
 }
 
@@ -122,7 +126,11 @@ export async function updateTaxRate(input: unknown): Promise<TaxRateWriteResult>
 
     return { data: { taxRate: toTaxRateListItem(updatedTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "updateTaxRate", context.userId)
+    return handleTaxRateActionError(error, {
+      action: "updateTaxRate",
+      userId: context.userId,
+      fallbackMessage: t("settings.taxRates.errors.updateFailed")
+    })
   }
 }
 
@@ -168,7 +176,11 @@ export async function setDefaultTaxRate(input: unknown): Promise<TaxRateWriteRes
 
     return { data: { taxRate: toTaxRateListItem(defaultTaxRate) } }
   } catch (error) {
-    return handleTaxRateActionError(error, "setDefaultTaxRate", context.userId)
+    return handleTaxRateActionError(error, {
+      action: "setDefaultTaxRate",
+      userId: context.userId,
+      fallbackMessage: t("settings.taxRates.errors.updateFailed")
+    })
   }
 }
 
@@ -203,7 +215,11 @@ export async function restoreTaxRate(input: unknown): Promise<DeleteTaxRateResul
 
     return { data: { id: restoredTaxRate.id } }
   } catch (error) {
-    return handleTaxRateActionError(error, "restoreTaxRate", context.userId)
+    return handleTaxRateActionError(error, {
+      action: "restoreTaxRate",
+      userId: context.userId,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -235,7 +251,11 @@ export async function deleteTaxRate(input: unknown): Promise<DeleteTaxRateResult
 
     return { data: { id: deletedTaxRate.id } }
   } catch (error) {
-    return handleTaxRateActionError(error, "deleteTaxRate", context.userId)
+    return handleTaxRateActionError(error, {
+      action: "deleteTaxRate",
+      userId: context.userId,
+      fallbackMessage: t("settings.taxRates.errors.deleteFailed")
+    })
   }
 }
 
@@ -282,8 +302,11 @@ function toTaxRatePercentageValue(percentage: number): string {
 
 function handleTaxRateActionError(
   error: unknown,
-  action: string,
-  userId: string | null
+  {
+    action,
+    userId,
+    fallbackMessage
+  }: { action: string; userId: string | null; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedTaxRateError) return { error: error.message }
 
@@ -293,7 +316,7 @@ function handleTaxRateActionError(
 
   logger.error({ action, userId, err: error }, "Tax rate action failed")
 
-  return { error: t("settings.taxRates.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isTaxRateDefaultConstraintError(error: unknown): boolean {

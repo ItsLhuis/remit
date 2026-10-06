@@ -4,11 +4,14 @@ import Link from "next/link"
 
 import { useTranslation, type TFunction } from "@/lib/i18n"
 
+import { formatDate } from "@/lib/utils"
+
 import { Alert, AlertDescription, AlertTitle, Button, Icon, type IconProps } from "@/components/ui"
 
 import { type BackupBanner } from "../types"
 
 type BannerPresentation = {
+  dates: string[]
   description: string
   icon: IconProps["name"]
   title: string
@@ -23,6 +26,16 @@ function getBannerPresentation(banner: BackupBanner, t: TFunction): BannerPresen
   switch (banner.state) {
     case "lastRunFailed":
       return {
+        dates: [
+          ...(banner.lastFailureAt
+            ? [
+                t("backups.banner.lastFailureAt", {
+                  date: formatBannerDate(banner.lastFailureAt, banner)
+                })
+              ]
+            : []),
+          getLastSuccessLine(banner, t)
+        ],
         // The stored reason, which `redactBackupReason` already stripped of provider detail before
         // it reached the column.
         description: banner.lastFailureReason ?? t("backups.banner.lastRunFailedUnknown"),
@@ -32,6 +45,7 @@ function getBannerPresentation(banner: BackupBanner, t: TFunction): BannerPresen
       }
     case "overdue":
       return {
+        dates: [getLastSuccessLine(banner, t)],
         description: t("backups.banner.overdueDescription"),
         icon: "Clock",
         title: t("backups.banner.overdueTitle"),
@@ -39,12 +53,23 @@ function getBannerPresentation(banner: BackupBanner, t: TFunction): BannerPresen
       }
     case "neverRun":
       return {
+        dates: [],
         description: t("backups.banner.neverRunDescription"),
         icon: "DatabaseBackup",
         title: t("backups.banner.neverRunTitle"),
         variant: "default"
       }
   }
+}
+
+function getLastSuccessLine(banner: BackupBanner, t: TFunction): string {
+  if (!banner.lastSuccessAt) return t("backups.banner.lastSuccessNever")
+
+  return t("backups.banner.lastSuccessAt", { date: formatBannerDate(banner.lastSuccessAt, banner) })
+}
+
+function formatBannerDate(date: Date, banner: BackupBanner): string {
+  return formatDate(date, { locale: banner.locale, timeZone: banner.timeZone })
 }
 
 const BackupStatusBanner = ({ banner }: { banner: BackupBanner }) => {
@@ -60,7 +85,10 @@ const BackupStatusBanner = ({ banner }: { banner: BackupBanner }) => {
     <Alert variant={presentation.variant} role="status">
       <Icon name={presentation.icon} aria-hidden="true" />
       <AlertTitle>{presentation.title}</AlertTitle>
-      <AlertDescription>{presentation.description}</AlertDescription>
+      <AlertDescription>
+        <p>{presentation.description}</p>
+        {presentation.dates.length > 0 ? <p>{presentation.dates.join(" ")}</p> : null}
+      </AlertDescription>
       <Button asChild variant="outline" size="sm" className="mt-2 w-fit">
         <Link href="/settings/backup">{t("backups.banner.action")}</Link>
       </Button>

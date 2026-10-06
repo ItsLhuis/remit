@@ -45,7 +45,10 @@ const PublicContractSignForm = ({ token, consentText, onSigned }: PublicContract
     defaultValues: { signerName: "", signerEmail: "", consentAccepted: false }
   })
 
-  const { isDirty, isSubmitting, isValid } = form.formState
+  // Not gated on `isDirty && isValid`, for the reason `PublicProposalIdentityForm` gives: under
+  // `mode: "onBlur"` a signer who fills the last field and clicks straight through would meet a
+  // disabled button. Submitting runs the resolver and surfaces each message in `FieldError`.
+  const { isSubmitting } = form.formState
 
   const onSubmit = async (values: SignContractValues) => {
     setServerError(null)
@@ -103,10 +106,10 @@ const PublicContractSignForm = ({ token, consentText, onSigned }: PublicContract
                     aria-invalid={fieldState.invalid}
                     disabled={isSubmitting}
                     onBlur={field.onBlur}
-                    // `onBlur()` right after the change is what makes the submit button react to
-                    // this box. The form validates on blur, and a checkbox that is clicked and left
-                    // focused never blurs — without this the signer ticks the consent and the
-                    // button stays disabled until they happen to click elsewhere.
+                    // `onBlur()` right after the change validates the box as soon as it is ticked.
+                    // The form validates on blur, and a checkbox that is clicked and left focused
+                    // never blurs, so a consent error shown by a failed submit would otherwise stay
+                    // on screen after the signer had already ticked it.
                     onCheckedChange={(checked) => {
                       field.onChange(checked === true)
                       field.onBlur()
@@ -120,7 +123,7 @@ const PublicContractSignForm = ({ token, consentText, onSigned }: PublicContract
               </Field>
             )}
           />
-          <Button type="submit" disabled={isSubmitting || !(isDirty && isValid)}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Spinner /> : <Icon name="FileSignature" aria-hidden="true" />}
             {t("contracts.public.sign.submit")}
           </Button>

@@ -54,7 +54,7 @@ export type InvoiceActionErrorContext = {
   action: string
   userId: string | null
   invoiceId?: string
-  fallbackMessage?: string
+  fallbackMessage: string
 }
 
 export type InvoiceParentIds = {
@@ -129,7 +129,7 @@ export function handleInvoiceActionError(
 
   logger.error({ action, userId, invoiceId, err: error }, "Invoice action failed")
 
-  return { error: fallbackMessage ?? t("invoices.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 // An invoice is reachable from its project's invoice list and its own detail route, and both the

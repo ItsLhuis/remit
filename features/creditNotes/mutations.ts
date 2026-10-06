@@ -192,7 +192,7 @@ export async function restoreCreditNote(input: unknown): Promise<CreditNoteMutat
       action: "restoreCreditNote",
       userId: context.userId,
       creditNoteId: parsed.data.id,
-      fallbackMessage: t("creditNotes.errors.deleteFailed")
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

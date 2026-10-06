@@ -53,6 +53,7 @@ type ClientAuditField =
   | "email"
   | "phone"
   | "currency"
+  | "locale"
   | "taxId"
   | "addressLine1"
   | "addressLine2"
@@ -96,6 +97,7 @@ const auditFields = [
   "email",
   "phone",
   "currency",
+  "locale",
   "taxId",
   "addressLine1",
   "addressLine2",
@@ -134,7 +136,11 @@ export async function createClient(input: unknown): Promise<ClientMutationResult
 
     return { data: { client: toClientFormData(createdClient) } }
   } catch (error) {
-    return handleClientActionError(error, "createClient", context.userId)
+    return handleClientActionError(error, {
+      action: "createClient",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.createFailed")
+    })
   }
 }
 
@@ -178,7 +184,12 @@ export async function updateClient(input: unknown): Promise<ClientMutationResult
 
     return { data: { client: toClientFormData(updatedClient) } }
   } catch (error) {
-    return handleClientActionError(error, "updateClient", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "updateClient",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.updateFailed")
+    })
   }
 }
 
@@ -214,7 +225,12 @@ export async function softDeleteClient(input: unknown): Promise<DeleteClientResu
 
     return { data: { id: deletedClient.id } }
   } catch (error) {
-    return handleClientActionError(error, "softDeleteClient", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "softDeleteClient",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.deleteFailed")
+    })
   }
 }
 
@@ -252,7 +268,12 @@ export async function rotateClientPortalLink(input: unknown): Promise<ClientPort
 
     return { data: { id: rotated.id } }
   } catch (error) {
-    return handleClientActionError(error, "rotateClientPortalLink", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "rotateClientPortalLink",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.portalLinkFailed")
+    })
   }
 }
 
@@ -289,7 +310,12 @@ export async function revokeClientPortalLink(input: unknown): Promise<ClientPort
 
     return { data: { id: revoked.id } }
   } catch (error) {
-    return handleClientActionError(error, "revokeClientPortalLink", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "revokeClientPortalLink",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.portalLinkFailed")
+    })
   }
 }
 
@@ -338,7 +364,12 @@ export async function createClientContact(input: unknown): Promise<ClientContact
 
     return { data: { id: contactId } }
   } catch (error) {
-    return handleClientContactActionError(error, "createClientContact", context.userId, clientId)
+    return handleClientContactActionError(error, {
+      action: "createClientContact",
+      userId: context.userId,
+      clientId: clientId,
+      fallbackMessage: t("clients.errors.contactCreateFailed")
+    })
   }
 }
 
@@ -377,7 +408,11 @@ export async function updateClientContact(input: unknown): Promise<ClientContact
 
     return { data: { id } }
   } catch (error) {
-    return handleClientContactActionError(error, "updateClientContact", context.userId)
+    return handleClientContactActionError(error, {
+      action: "updateClientContact",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.contactUpdateFailed")
+    })
   }
 }
 
@@ -418,7 +453,11 @@ export async function setPrimaryClientContact(
 
     return { data: { id } }
   } catch (error) {
-    return handleClientContactActionError(error, "setPrimaryClientContact", context.userId)
+    return handleClientContactActionError(error, {
+      action: "setPrimaryClientContact",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.contactUpdateFailed")
+    })
   }
 }
 
@@ -457,7 +496,11 @@ export async function softDeleteClientContact(
 
     return { data: { id: deleted.id } }
   } catch (error) {
-    return handleClientContactActionError(error, "softDeleteClientContact", context.userId)
+    return handleClientContactActionError(error, {
+      action: "softDeleteClientContact",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.contactDeleteFailed")
+    })
   }
 }
 
@@ -480,6 +523,7 @@ function toClientWriteValues(values: ClientFormValues): typeof clients.$inferIns
     email: values.email,
     phone: emptyToNull(values.phone),
     currency: values.currency,
+    locale: emptyToNull(values.locale),
     taxId: emptyToNull(values.taxId),
     addressLine1: emptyToNull(values.addressLine1),
     addressLine2: emptyToNull(values.addressLine2),

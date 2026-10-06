@@ -18,8 +18,8 @@ runs. **Self-hosting is the first-class deployment model.**
 
 Self-hosting is Docker Compose. The repository ships production, development and test Compose
 assets, the password-reset recovery CLI, encrypted local and S3-compatible backups, destructive-safe
-local and remote restores, encryption key rotation, deterministic demo-data seeding and its matching
-instance data reset, and the host-side upgrade script and runbook.
+local and remote restores, encryption key rotation, seeded demo data and its matching instance data
+reset, and the host-side upgrade script and runbook.
 
 ## Principles
 
@@ -262,8 +262,11 @@ Operational support:
     documented in
     [`docs/architecture/adr/0021-encryption-key-rotation.md`](./docs/architecture/adr/0021-encryption-key-rotation.md).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
-  - `pnpm remit:seed-demo` creates deterministic demo data for screenshots, screencasts, and local
-    demo deployments, with presets and capped numeric overrides.
+  - `pnpm remit:seed-demo` creates demo data for screenshots, screencasts, and local demo
+    deployments, with presets and capped numeric overrides. The same seed produces the same records
+    every time except for public document links: those are real bearer credentials, so they come
+    from the cryptographic random source on every run rather than from the seed, and a demo instance
+    exposed to the internet never carries a link anyone could predict.
   - `pnpm remit:reset-data` is its inverse: it empties the instance's domain data in one transaction
     while the account, organization, settings, tax rates, templates, and audit trail survive. The
     scope is documented in

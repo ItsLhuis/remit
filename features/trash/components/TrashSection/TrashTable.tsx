@@ -49,6 +49,14 @@ const TrashTable = ({ items, locale, timeZone }: TrashTableProps) => {
         return
       }
 
+      // A client comes back with its portal link off (`restoreClient`), so its restore says so
+      // rather than leaving the owner to find a dead link the next time they send one.
+      if (item.kind === "client") {
+        toast.success(t("trash.restored"), { description: t("trash.restoredClientPortalOff") })
+
+        return
+      }
+
       toast.success(t("trash.restored"))
     },
     [t]

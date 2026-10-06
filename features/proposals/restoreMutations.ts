@@ -86,7 +86,8 @@ export async function restoreProposal(input: unknown): Promise<DeleteProposalRes
     return handleProposalActionError(error, {
       action: "restoreProposal",
       userId: context.userId,
-      proposalId: parsed.data.id
+      proposalId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

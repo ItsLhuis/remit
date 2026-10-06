@@ -79,6 +79,30 @@ describe("restoring deleted records", () => {
     expect(auditRows.map((row) => row.event)).toContain("client.restored")
   })
 
+  test("restores a client without bringing its revoked portal link back to life", async () => {
+    const { softDeleteClient } = await import("@/features/clients/server")
+    const { getClientPortal } = await import("@/features/clients/server")
+    const { restoreTrashedRecord } = await import("../mutations")
+
+    const client = await makeClient({ portalToken: "revoked-portal-token-value" })
+
+    await softDeleteClient({ id: client.id })
+
+    const result = await restoreTrashedRecord({ kind: "client", id: client.id })
+    const [restored] = await database.select().from(clients).where(eq(clients.id, client.id))
+    const [restoreAudit] = await database
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.event, "client.restored"))
+    const portal = await getClientPortal({ token: "revoked-portal-token-value" })
+
+    expect(result).toEqual({ data: { id: client.id } })
+    expect(restored?.deletedAt).toBeNull()
+    expect(restored?.portalToken).toBeNull()
+    expect(portal).toBeNull()
+    expect(restoreAudit?.metadata).toEqual({ portalLink: "none" })
+  })
+
   test("refuses to restore an invoice whose client is still deleted", async () => {
     const { restoreTrashedRecord } = await import("../mutations")
 

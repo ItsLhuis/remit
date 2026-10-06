@@ -1,10 +1,23 @@
 "use client"
 
+import { useId } from "react"
+
 import { useTranslation, type TFunction } from "@/lib/i18n"
 
 import { formatCurrency, formatDate } from "@/lib/utils"
 
-import { Card, CardContent, CardHeader, CardTitle, Separator, Typography } from "@/components/ui"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+  Separator,
+  Typography
+} from "@/components/ui"
 
 import { type RecurringInvoiceEndCondition } from "../../schemas"
 import { toRetainerTerms } from "../../services"
@@ -43,12 +56,24 @@ type RecurringInvoiceSummaryRowProps = {
   mono?: boolean
 }
 
-const RecurringInvoiceSummaryRow = ({ label, value, mono }: RecurringInvoiceSummaryRowProps) => (
-  <div className="flex items-baseline justify-between gap-4">
-    <Typography affects={["muted", "small"]}>{label}</Typography>
-    <span className={mono ? "font-mono text-sm tabular-nums" : "text-sm"}>{value}</span>
-  </div>
-)
+// `aria-labelledby` names each value by its term. A `<dl>` already pairs them for a screen reader
+// walking the list, but a `definition` has no accessible name of its own, so without the link a
+// value cannot be reached by its label — by assistive technology jumping to it, or by a test.
+const RecurringInvoiceSummaryRow = ({ label, value, mono }: RecurringInvoiceSummaryRowProps) => {
+  const termId = useId()
+
+  return (
+    <DescriptionItem>
+      <DescriptionTerm id={termId}>{label}</DescriptionTerm>
+      <DescriptionDetails
+        aria-labelledby={termId}
+        className={mono ? "font-mono tabular-nums" : undefined}
+      >
+        {value}
+      </DescriptionDetails>
+    </DescriptionItem>
+  )
+}
 
 type RecurringInvoiceSummaryCardProps = {
   schedule: RecurringInvoiceDetail
@@ -75,67 +100,73 @@ const RecurringInvoiceSummaryCard = ({
         <CardTitle>{t("recurringInvoices.detail.scheduleSummary")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.fields.client")}
-          value={schedule.clientName}
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.fields.project")}
-          value={schedule.projectName ?? t("recurringInvoices.detail.noProject")}
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.fields.cadence")}
-          value={t(`recurringInvoices.cadence.${schedule.cadence}`)}
-        />
-        {schedule.cadenceDay === null ? null : (
+        <DescriptionList>
           <RecurringInvoiceSummaryRow
-            label={t("recurringInvoices.fields.cadenceDay")}
-            value={String(schedule.cadenceDay)}
+            label={t("recurringInvoices.fields.client")}
+            value={schedule.clientName}
+          />
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.fields.project")}
+            value={schedule.projectName ?? t("recurringInvoices.detail.noProject")}
+          />
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.fields.cadence")}
+            value={t(`recurringInvoices.cadence.${schedule.cadence}`)}
+          />
+          {schedule.cadenceDay === null ? null : (
+            <RecurringInvoiceSummaryRow
+              label={t("recurringInvoices.fields.cadenceDay")}
+              value={String(schedule.cadenceDay)}
+              mono
+            />
+          )}
+        </DescriptionList>
+        <Separator />
+        <DescriptionList>
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.detail.nextRun")}
+            value={formatDate(schedule.nextRunAt, { locale, timeZone })}
+          />
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.detail.lastRun")}
+            value={schedule.lastRunAt ? formatDate(schedule.lastRunAt, { locale, timeZone }) : "—"}
+          />
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.list.columns.occurrences")}
+            value={t("recurringInvoices.detail.occurrences", {
+              count: schedule.occurrencesGenerated
+            })}
+          />
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.detail.endCondition")}
+            value={t(`recurringInvoices.endCondition.${endCondition}`)}
+          />
+          {schedule.endAfterCount === null ? null : (
+            <RecurringInvoiceSummaryRow
+              label={t("recurringInvoices.fields.endAfterCount")}
+              value={String(schedule.endAfterCount)}
+              mono
+            />
+          )}
+          {schedule.endByDate ? (
+            <RecurringInvoiceSummaryRow
+              label={t("recurringInvoices.fields.endByDate")}
+              value={formatDate(schedule.endByDate, { locale, timeZone })}
+            />
+          ) : null}
+        </DescriptionList>
+        <Separator />
+        <DescriptionList>
+          <RecurringInvoiceSummaryRow
+            label={t("recurringInvoices.fields.currency")}
+            value={schedule.currency}
             mono
           />
-        )}
-        <Separator />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.detail.nextRun")}
-          value={formatDate(schedule.nextRunAt, { locale, timeZone })}
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.detail.lastRun")}
-          value={schedule.lastRunAt ? formatDate(schedule.lastRunAt, { locale, timeZone }) : "—"}
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.list.columns.occurrences")}
-          value={t("recurringInvoices.detail.occurrences", {
-            count: schedule.occurrencesGenerated
-          })}
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.detail.endCondition")}
-          value={t(`recurringInvoices.endCondition.${endCondition}`)}
-        />
-        {schedule.endAfterCount === null ? null : (
           <RecurringInvoiceSummaryRow
-            label={t("recurringInvoices.fields.endAfterCount")}
-            value={String(schedule.endAfterCount)}
-            mono
+            label={t("recurringInvoices.fields.autoSend")}
+            value={schedule.autoSend ? t("common.status.yes") : t("common.status.no")}
           />
-        )}
-        {schedule.endByDate ? (
-          <RecurringInvoiceSummaryRow
-            label={t("recurringInvoices.fields.endByDate")}
-            value={formatDate(schedule.endByDate, { locale, timeZone })}
-          />
-        ) : null}
-        <Separator />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.fields.currency")}
-          value={schedule.currency}
-          mono
-        />
-        <RecurringInvoiceSummaryRow
-          label={t("recurringInvoices.fields.autoSend")}
-          value={schedule.autoSend ? t("common.status.yes") : t("common.status.no")}
-        />
+        </DescriptionList>
         <Separator />
         <div className="flex flex-col gap-1">
           <Typography affects={["small", "medium"]}>

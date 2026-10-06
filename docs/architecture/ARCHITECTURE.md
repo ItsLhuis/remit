@@ -171,7 +171,7 @@ compiler's guarantees hold all the way from the database schema to the React com
 ### 8 — The self-hosting experience is part of the product
 
 Self-hosting operations are product work, not afterthoughts. Password-reset recovery, encrypted
-backup archives, destructive-safe restores, deterministic demo seeding and its inverse data reset,
+backup archives, destructive-safe restores, seeded demo data and its inverse data reset,
 encryption-key rotation, host-side upgrades, and the background job worker are operational surfaces
 of the product, built and documented as such. See the Self-hosting experience section.
 
@@ -1081,14 +1081,19 @@ rendering it.
 | --------------------------- | ------------------------------------------------------------------------------ |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)                    |
 | `Content-Security-Policy`   | `'self'` for every source except the flag images, and `frame-ancestors 'none'` |
-| `X-Frame-Options`           | `DENY`, dropped on public token routes                                         |
+| `X-Frame-Options`           | `DENY` on every route                                                          |
 | `X-Content-Type-Options`    | `nosniff`                                                                      |
 | `Referrer-Policy`           | `strict-origin-when-cross-origin`                                              |
 | `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                     |
 
-Dropping `X-Frame-Options` on a public token route does not make that page embeddable: the CSP's
-`frame-ancestors 'none'` is unconditional and is the directive a modern browser honours. The header
-is dropped there so the two are not in conflict, not to permit framing.
+No page is frameable, the public token routes included, and the two framing headers agree on every
+response: `frame-ancestors 'none'` for browsers that honour the CSP and `X-Frame-Options: DENY` for
+those that do not. Every public token route carries a control a framing page could steer a client
+into — paying an invoice, accepting a proposal with a one-time code, signing a contract — and the
+client portal links to all three. Letting an invoice be embedded was considered and rejected:
+nothing in Remit embeds one, and the cost of a clickjacked payment or signature outweighs the
+convenience. The anonymous storage route sets neither header, because a stored file carries no
+control to hijack and a framing policy on a PDF only blocks the browser's own viewer.
 
 Session cookies: `httpOnly: true`, `secure: true` (production), `sameSite: "lax"`. Terminating TLS
 is the reverse proxy's job; the application does not check the scheme it is reached over.
@@ -1615,8 +1620,9 @@ carry the command-level detail.
 The repository ships Docker Compose files, an entrypoint migration script, the `/settings/system`
 health surface, `pnpm remit:reset-password` for credential recovery, `pnpm remit:backup` for
 encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for destructive-safe local and
-remote restores, `pnpm remit:seed-demo` for deterministic local/demo data, `pnpm remit:reset-data`
-for returning a demoed instance to zero domain data without losing the account or its configuration,
+remote restores, `pnpm remit:seed-demo` for seeded local/demo data (deterministic except its public
+tokens, which are minted at random because they are bearer credentials), `pnpm remit:reset-data` for
+returning a demoed instance to zero domain data without losing the account or its configuration,
 `pnpm remit:rotate-encryption-key` for operational master-key rotation, and two host-side scripts:
 `scripts/host/install.sh`, which takes a host with Docker on it to a running instance and is
 documented in the [installation runbook](../operations/INSTALL.md), and the

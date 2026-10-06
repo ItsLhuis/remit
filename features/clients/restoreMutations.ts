@@ -38,7 +38,10 @@ export async function restoreClient(input: unknown): Promise<DeleteClientResult>
   try {
     // The portal token stays null. `softDeleteClient` revoked it deliberately, and a restore that
     // silently re-opened a standing bearer door into everything Remit holds about this client would
-    // undo that decision without anybody asking for it (ADR-0029).
+    // undo that decision without anybody asking for it (ADR-0029). Minting a fresh link here was
+    // rejected for the same reason: the owner restores a record, not its exposure. What they are
+    // told instead is the audit entry below and the trash's restore message, and the client page
+    // shows the portal as off with the one action that issues a new link.
     const [restored] = await database
       .update(clients)
       .set({ deletedAt: null })
@@ -47,14 +50,19 @@ export async function restoreClient(input: unknown): Promise<DeleteClientResult>
 
     if (!restored) throw new ExpectedClientError(t("clients.errors.notFound"))
 
-    await writeClientAudit(context, "client.restored", restored.id, {})
+    await writeClientAudit(context, "client.restored", restored.id, { portalLink: "none" })
 
     revalidatePath(clientsPath)
     revalidatePath(`${clientsPath}/${restored.id}`)
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleClientActionError(error, "restoreClient", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "restoreClient",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -124,6 +132,10 @@ export async function restoreClientContact(input: unknown): Promise<ClientContac
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleClientContactActionError(error, "restoreClientContact", context.userId)
+    return handleClientContactActionError(error, {
+      action: "restoreClientContact",
+      userId: context.userId,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }

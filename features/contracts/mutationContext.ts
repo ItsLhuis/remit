@@ -39,7 +39,7 @@ export type ContractActionErrorContext = {
   action: string
   userId: string | null
   contractId?: string
-  fallbackMessage?: string
+  fallbackMessage: string
 }
 
 // A failure the user is meant to read: thrown to unwind whatever the action was midway through and
@@ -115,7 +115,7 @@ export function handleContractActionError(
 
   logger.error({ action, userId, contractId, err: error }, "Contract action failed")
 
-  return { error: fallbackMessage ?? t("contracts.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 async function requireContractRole(allowed: Role[]): Promise<ContractWriteGate> {

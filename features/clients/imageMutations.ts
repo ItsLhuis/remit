@@ -82,7 +82,11 @@ export async function confirmClientImageUpload(input: unknown): Promise<ClientIm
 
     return { data: { storageKey: parsed.data.objectKey } }
   } catch (error) {
-    return handleClientActionError(error, "confirmClientImageUpload", context.userId)
+    return handleClientActionError(error, {
+      action: "confirmClientImageUpload",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.imageUpdateFailed")
+    })
   }
 }
 
@@ -122,7 +126,12 @@ export async function removeClientImage(input: unknown): Promise<ClientImageResu
 
     return { data: { storageKey: null } }
   } catch (error) {
-    return handleClientActionError(error, "removeClientImage", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "removeClientImage",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.imageUpdateFailed")
+    })
   }
 }
 

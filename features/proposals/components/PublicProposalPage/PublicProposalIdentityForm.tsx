@@ -50,7 +50,10 @@ const PublicProposalIdentityForm = ({
     defaultValues: { action, email: "", rejectionReason: "" }
   })
 
-  const { isDirty, isSubmitting, isValid } = form.formState
+  // No `isDirty && isValid` gate on the submit button. Under `mode: "onBlur"` validity is only known
+  // once a field has blurred, so a client who types an address and clicks straight through would
+  // meet a disabled button. The resolver still runs on submit and shows its message in `FieldError`.
+  const { isSubmitting } = form.formState
 
   const isReject = action === "reject"
 
@@ -122,7 +125,7 @@ const PublicProposalIdentityForm = ({
           <Icon name="ArrowLeft" aria-hidden="true" />
           {t("proposals.public.respond.back")}
         </Button>
-        <Button type="submit" disabled={isSubmitting || !(isDirty && isValid)}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? <Spinner /> : <Icon name="Mail" aria-hidden="true" />}
           {t("proposals.public.identity.submit")}
         </Button>

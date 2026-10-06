@@ -164,3 +164,35 @@ export function evaluatePublicUrl(configuredUrl: string): boolean {
     return false
   }
 }
+
+export type PublicUrlProbeFailure = "untrustedCertificate" | "unreachable"
+
+// The verification codes Node's TLS layer reports when a handshake reached the server and the
+// certificate it presented could not be trusted. Each means the address answered, so the probe
+// failing on one is a statement about this container's trust store, not about whether clients can
+// open the link: a private authority, a self-signed origin certificate behind a proxy, or a chain
+// the container lacks all look like this while every browser that trusts them works.
+const UNTRUSTED_CERTIFICATE_CODES = new Set([
+  "CERT_HAS_EXPIRED",
+  "CERT_NOT_YET_VALID",
+  "CERT_REVOKED",
+  "CERT_UNTRUSTED",
+  "CERT_REJECTED",
+  "CERT_CHAIN_TOO_LONG",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "HOSTNAME_MISMATCH",
+  "INVALID_CA",
+  "INVALID_PURPOSE",
+  "PATH_LENGTH_EXCEEDED",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_GET_ISSUER_CERT",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+])
+
+export function classifyPublicUrlProbeFailure(errorCode: string | null): PublicUrlProbeFailure {
+  return errorCode !== null && UNTRUSTED_CERTIFICATE_CODES.has(errorCode)
+    ? "untrustedCertificate"
+    : "unreachable"
+}

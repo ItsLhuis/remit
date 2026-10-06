@@ -38,7 +38,7 @@ export type ProposalActionErrorContext = {
   action: string
   userId: string | null
   proposalId?: string
-  fallbackMessage?: string
+  fallbackMessage: string
 }
 
 // A failure the user is meant to read: thrown to unwind whatever the action was midway through and
@@ -110,7 +110,7 @@ export function handleProposalActionError(
 
   logger.error({ action, userId, proposalId, err: error }, "Proposal action failed")
 
-  return { error: fallbackMessage ?? t("proposals.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 async function requireProposalRole(allowed: Role[]): Promise<ProposalWriteGate> {

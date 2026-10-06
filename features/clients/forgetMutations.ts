@@ -69,6 +69,11 @@ export async function forgetClient(input: unknown): Promise<ForgetClientResultSh
 
     return { data: { id: existing.id } }
   } catch (error) {
-    return handleClientActionError(error, "forgetClient", context.userId, parsed.data.id)
+    return handleClientActionError(error, {
+      action: "forgetClient",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.forget.errors.failed")
+    })
   }
 }

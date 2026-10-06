@@ -117,7 +117,11 @@ export async function createExpense(input: unknown): Promise<ExpenseMutationResu
 
     return await loadExpenseResult(created.id)
   } catch (error) {
-    return handleExpenseError(error, "createExpense", context.userId)
+    return handleExpenseError(error, {
+      action: "createExpense",
+      userId: context.userId,
+      fallbackMessage: t("expenses.errors.updateFailed")
+    })
   }
 }
 
@@ -185,7 +189,12 @@ export async function updateExpense(input: unknown): Promise<ExpenseMutationResu
 
     return await loadExpenseResult(updated.id)
   } catch (error) {
-    return handleExpenseError(error, "updateExpense", context.userId, parsed.data.id)
+    return handleExpenseError(error, {
+      action: "updateExpense",
+      userId: context.userId,
+      expenseId: parsed.data.id,
+      fallbackMessage: t("expenses.errors.updateFailed")
+    })
   }
 }
 
@@ -242,7 +251,12 @@ export async function restoreExpense(input: unknown): Promise<DeleteExpenseResul
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleExpenseError(error, "restoreExpense", context.userId, parsed.data.id)
+    return handleExpenseError(error, {
+      action: "restoreExpense",
+      userId: context.userId,
+      expenseId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -287,7 +301,12 @@ export async function softDeleteExpense(input: unknown): Promise<DeleteExpenseRe
 
     return { data: { id: deleted.id } }
   } catch (error) {
-    return handleExpenseError(error, "softDeleteExpense", context.userId, parsed.data.id)
+    return handleExpenseError(error, {
+      action: "softDeleteExpense",
+      userId: context.userId,
+      expenseId: parsed.data.id,
+      fallbackMessage: t("expenses.errors.deleteFailed")
+    })
   }
 }
 
@@ -582,15 +601,18 @@ async function writeExpenseAudit(
 
 function handleExpenseError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  expenseId?: string
+  {
+    action,
+    userId,
+    expenseId,
+    fallbackMessage
+  }: { action: string; userId: string | null; expenseId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedExpenseError) return { error: error.message }
 
   logger.error({ action, userId, expenseId, err: error }, "Expense action failed")
 
-  return { error: t("expenses.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function handleExportError(error: unknown, userId: string | null): { error: string } {

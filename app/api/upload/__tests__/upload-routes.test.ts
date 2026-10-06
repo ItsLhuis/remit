@@ -319,3 +319,20 @@ describe("client image upload route", () => {
     expect(mocks.putUploadedObject).not.toHaveBeenCalled()
   })
 })
+
+// `app/api/storage/[...key]/route.ts` serves every public object as `immutable`, which is only safe
+// while a replaced image always arrives under a key nothing has served before.
+describe("replaceable images", () => {
+  test("mint a new key for every upload, so a replacement is never served from a stale cache", async () => {
+    for (const type of ["avatar", "business-logo", "client-image", "template-image"]) {
+      const first = (await (
+        await upload(type, { contentType: "image/png", sizeBytes: 1024 })
+      ).json()) as { objectKey: string }
+      const second = (await (
+        await upload(type, { contentType: "image/png", sizeBytes: 1024 })
+      ).json()) as { objectKey: string }
+
+      expect(second.objectKey).not.toBe(first.objectKey)
+    }
+  })
+})

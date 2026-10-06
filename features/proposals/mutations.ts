@@ -149,7 +149,11 @@ export async function createProposal(input: unknown): Promise<ProposalMutationRe
 
     return await loadProposalResult(proposalId)
   } catch (error) {
-    return handleProposalActionError(error, { action: "createProposal", userId: context.userId })
+    return handleProposalActionError(error, {
+      action: "createProposal",
+      userId: context.userId,
+      fallbackMessage: t("proposals.errors.createFailed")
+    })
   }
 }
 
@@ -247,7 +251,8 @@ export async function updateProposal(input: unknown): Promise<ProposalMutationRe
     return handleProposalActionError(error, {
       action: "updateProposal",
       userId: context.userId,
-      proposalId: parsed.data.id
+      proposalId: parsed.data.id,
+      fallbackMessage: t("proposals.errors.updateFailed")
     })
   }
 }
@@ -386,7 +391,8 @@ export async function softDeleteProposal(input: unknown): Promise<DeleteProposal
     return handleProposalActionError(error, {
       action: "softDeleteProposal",
       userId: context.userId,
-      proposalId: parsed.data.id
+      proposalId: parsed.data.id,
+      fallbackMessage: t("proposals.errors.deleteFailed")
     })
   }
 }

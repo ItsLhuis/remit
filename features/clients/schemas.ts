@@ -3,6 +3,7 @@ import { z } from "zod"
 import i18n from "@/lib/i18n/i18n"
 
 import {
+  isFormattingLocale,
   isSafeHttpUrl,
   isValidAmount,
   readArrayParam,
@@ -77,6 +78,15 @@ const optionalHourlyRateSchema = z
     message: i18n.t("clients.validation.hourlyRateInvalid")
   })
 
+// Empty means "the instance default", which is how the column's null reaches the form and how the
+// form says "no override" back.
+const optionalLocaleSchema = z
+  .string()
+  .trim()
+  .refine((value): boolean => value === "" || isFormattingLocale(value), {
+    message: i18n.t("clients.validation.localeInvalid")
+  })
+
 const clientStatusFilterSchema = z.enum(CLIENT_STATUS_FILTERS).catch("active")
 
 export const clientFormSchema = z.object({
@@ -91,6 +101,7 @@ export const clientFormSchema = z.object({
   email: optionalEmailSchema,
   phone: optionalTextSchema(),
   currency: currencySchema,
+  locale: optionalLocaleSchema,
   taxId: optionalTextSchema(),
   addressLine1: optionalTextSchema(),
   addressLine2: optionalTextSchema(),

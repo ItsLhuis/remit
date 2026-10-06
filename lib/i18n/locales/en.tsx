@@ -375,7 +375,11 @@ export const english: Language = {
           invalidDetail: "Update the configured app URL before sending public links to clients.",
           unreachable: "{origin} could not be reached from the server.",
           unreachableDetail:
-            "This can be normal behind a reverse proxy. Confirm clients can open public links from outside your network."
+            "This can be normal behind a reverse proxy. Confirm clients can open public links from outside your network.",
+          untrustedCertificate:
+            "{origin} answered, but this server does not trust its certificate.",
+          untrustedCertificateDetail:
+            "Clients whose browsers trust the certificate can open public links normally. If it is self-signed or issued by a private authority, open a public link from outside your network to confirm, and give the container that authority's certificate through NODE_EXTRA_CA_CERTS if Remit should verify it too."
         }
       }
     },
@@ -743,6 +747,7 @@ export const english: Language = {
         email: "Email",
         phone: "Phone",
         currency: "Currency",
+        locale: "Formatting locale",
         taxId: "VAT / tax ID",
         addressLine1: "Address line 1",
         addressLine2: "Address line 2",
@@ -835,6 +840,9 @@ export const english: Language = {
         editDescription: "Update this client's profile and billing defaults.",
         profileSection: "Profile",
         profileDescription: "Core contact and billing defaults for this client.",
+        localeDefault: "Instance default",
+        localeDescription:
+          "How amounts and dates are written in this client's portal. Leave it on the instance default unless this client reads them differently.",
         addressSection: "Address",
         addressDescription: "Postal address used on future client-facing documents.",
         notesSection: "Private notes",
@@ -963,9 +971,13 @@ export const english: Language = {
       },
       errors: {
         notFound: "Client not found",
+        createFailed: "Failed to create client",
         updateFailed: "Failed to update client",
+        deleteFailed: "Failed to delete client",
         contactNotFound: "Contact not found",
         contactUpdateFailed: "Failed to update contact",
+        contactCreateFailed: "Failed to add contact",
+        contactDeleteFailed: "Failed to delete contact",
         contactPrimaryConflict:
           "Another contact was made primary at the same time. Reload and try again",
         invalidImageFileType: "That image type is not supported",
@@ -1080,6 +1092,7 @@ export const english: Language = {
           "This field must be {count, plural, one {# character} other {# characters}} or fewer.",
         websiteInvalid: "Enter a valid URL.",
         currencyInvalid: "Select a valid ISO 4217 currency.",
+        localeInvalid: "Choose a formatting locale from the list.",
         countryInvalid: "Select a valid country.",
         hourlyRateInvalid: "Enter a valid hourly rate.",
         idInvalid: "Invalid client.",
@@ -1239,7 +1252,10 @@ export const english: Language = {
       },
       errors: {
         notFound: "Lead not found",
+        createFailed: "Failed to create lead",
         updateFailed: "Failed to update lead",
+        deleteFailed: "Failed to delete lead",
+        convertFailed: "Failed to convert the lead into a client",
         invalidTransition: "That stage change is not allowed",
         alreadyConverted: "This lead has already been converted"
       },
@@ -1387,7 +1403,9 @@ export const english: Language = {
         clientNotFound: "Client not found",
         clientChangeBlocked:
           "This project already has invoices, expenses, contracts, recurring schedules, or proposals, so it cannot be moved to another client",
+        createFailed: "Failed to create project",
         updateFailed: "Failed to update project",
+        deleteFailed: "Failed to delete project",
         invalidTransition: "That status change is not allowed"
       },
       validation: {
@@ -1531,7 +1549,9 @@ export const english: Language = {
         notFound: "Task not found",
         projectNotFound: "Project not found",
         invalidTransition: "That status change is not allowed",
-        updateFailed: "Failed to update task"
+        createFailed: "Failed to create task",
+        updateFailed: "Failed to update task",
+        deleteFailed: "Failed to delete task"
       }
     },
     timeTracking: {
@@ -1662,7 +1682,8 @@ export const english: Language = {
         timerRunning: "Stop the timer before editing this entry",
         endBeforeStart: "The end time must be after the start time",
         alreadyInvoiced: "This entry has already been invoiced and can no longer be changed",
-        updateFailed: "Failed to save the time entry"
+        updateFailed: "Failed to save the time entry",
+        deleteFailed: "Failed to delete the time entry"
       }
     },
     expenses: {
@@ -1825,6 +1846,7 @@ export const english: Language = {
         clientProjectMismatch: "That client does not own the selected project",
         alreadyInvoiced: "This expense has already been invoiced and can no longer be changed",
         updateFailed: "Failed to save the expense",
+        deleteFailed: "Failed to delete the expense",
         exportFailed: "Failed to export the expenses",
         invalidFileType: "Receipts must be an image or a PDF",
         uploadUrlFailed: "Could not prepare the receipt upload",
@@ -2139,7 +2161,9 @@ export const english: Language = {
         clientProjectMismatch: "The selected client does not own the selected project",
         notDraft: "Only draft proposals can be changed",
         invalidTransition: "That status change is not allowed",
+        createFailed: "Failed to create proposal",
         updateFailed: "Failed to update proposal",
+        deleteFailed: "Failed to delete proposal",
         sendFailed: "Failed to send proposal",
         publicLinkNotIssued: "Send the proposal before managing its client link",
         publicLinkAlreadyRevoked: "This proposal has no client link",
@@ -4429,7 +4453,9 @@ export const english: Language = {
         deleted: "Tax rate deleted",
         defaultUpdated: "Default tax rate updated",
         errors: {
+          createFailed: "Failed to create tax rate",
           updateFailed: "Failed to update tax rates",
+          deleteFailed: "Failed to delete tax rate",
           notFound: "Tax rate not found",
           defaultConflict: "Only one default tax rate can be active"
         },
@@ -4971,6 +4997,8 @@ export const english: Language = {
         restore: "Restore"
       },
       restored: "Record restored",
+      restoredClientPortalOff:
+        "Its portal link stays off. Enable a new one from the client's page when you want to share it again",
       entities: {
         client: "Client",
         clientContact: "Contact",
@@ -5031,6 +5059,9 @@ export const english: Language = {
           "The scheduled backup has not completed within the configured cadence. Check the destination and the last recorded outcome.",
         lastRunFailedTitle: "The last backup did not complete",
         lastRunFailedUnknown: "No failure reason was recorded.",
+        lastFailureAt: "Failed {date}.",
+        lastSuccessAt: "Last successful backup: {date}.",
+        lastSuccessNever: "No backup has completed on this instance yet.",
         action: "Backup settings"
       }
     }

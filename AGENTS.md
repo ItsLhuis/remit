@@ -42,7 +42,7 @@ pnpm database:test:up      # Start Dockerized test Postgres
 pnpm database:test:down    # Stop and remove Dockerized test Postgres volume
 pnpm database:test:migrate # Apply migrations to the test database
 pnpm remit:reset-password  # Interactive password reset recovery CLI
-pnpm remit:seed-demo       # Seed deterministic demo data
+pnpm remit:seed-demo       # Seed demo data (same per seed, except random public tokens)
 pnpm remit:backup          # Write encrypted backup archive
 pnpm remit:restore         # Restore from encrypted backup archive
 pnpm remit:rotate-encryption-key # Rotate Remit encryption key

@@ -87,7 +87,7 @@ export async function restoreContract(input: unknown): Promise<DeleteContractRes
       action: "restoreContract",
       userId: context.userId,
       contractId: parsed.data.id,
-      fallbackMessage: t("contracts.errors.deleteFailed")
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

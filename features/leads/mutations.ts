@@ -109,7 +109,11 @@ export async function createLead(input: unknown): Promise<LeadMutationResult> {
 
     return { data: { lead: toLeadFormData(createdLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "createLead", context.userId)
+    return handleLeadActionError(error, {
+      action: "createLead",
+      userId: context.userId,
+      fallbackMessage: t("leads.errors.createFailed")
+    })
   }
 }
 
@@ -149,7 +153,12 @@ export async function updateLead(input: unknown): Promise<LeadMutationResult> {
 
     return { data: { lead: toLeadFormData(updatedLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "updateLead", context.userId, parsed.data.id)
+    return handleLeadActionError(error, {
+      action: "updateLead",
+      userId: context.userId,
+      leadId: parsed.data.id,
+      fallbackMessage: t("leads.errors.updateFailed")
+    })
   }
 }
 
@@ -201,7 +210,12 @@ export async function updateLeadStatus(input: unknown): Promise<LeadMutationResu
 
     return { data: { lead: toLeadFormData(updatedLead) } }
   } catch (error) {
-    return handleLeadActionError(error, "updateLeadStatus", context.userId, parsed.data.id)
+    return handleLeadActionError(error, {
+      action: "updateLeadStatus",
+      userId: context.userId,
+      leadId: parsed.data.id,
+      fallbackMessage: t("leads.errors.updateFailed")
+    })
   }
 }
 
@@ -235,6 +249,7 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
       email: existingLead.email,
       phone: existingLead.phone ?? "",
       currency: parsed.data.currency,
+      locale: "",
       taxId: "",
       addressLine1: "",
       addressLine2: "",
@@ -268,7 +283,12 @@ export async function convertLeadToClient(input: unknown): Promise<ConvertLeadRe
 
     return { data: { clientId } }
   } catch (error) {
-    return handleLeadActionError(error, "convertLeadToClient", context.userId, parsed.data.id)
+    return handleLeadActionError(error, {
+      action: "convertLeadToClient",
+      userId: context.userId,
+      leadId: parsed.data.id,
+      fallbackMessage: t("leads.errors.convertFailed")
+    })
   }
 }
 
@@ -299,7 +319,12 @@ export async function restoreLead(input: unknown): Promise<DeleteLeadResult> {
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleLeadActionError(error, "restoreLead", context.userId, parsed.data.id)
+    return handleLeadActionError(error, {
+      action: "restoreLead",
+      userId: context.userId,
+      leadId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -331,7 +356,12 @@ export async function softDeleteLead(input: unknown): Promise<DeleteLeadResult> 
 
     return { data: { id: deletedLead.id } }
   } catch (error) {
-    return handleLeadActionError(error, "softDeleteLead", context.userId, parsed.data.id)
+    return handleLeadActionError(error, {
+      action: "softDeleteLead",
+      userId: context.userId,
+      leadId: parsed.data.id,
+      fallbackMessage: t("leads.errors.deleteFailed")
+    })
   }
 }
 
@@ -428,15 +458,18 @@ function emptyToNull(value: string): string | null {
 
 function handleLeadActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  leadId?: string
+  {
+    action,
+    userId,
+    leadId,
+    fallbackMessage
+  }: { action: string; userId: string | null; leadId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedLeadError) return { error: error.message }
 
   logger.error({ action, userId, leadId, err: error }, "Lead action failed")
 
-  return { error: t("leads.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isRole(value: string | null | undefined): value is Role {

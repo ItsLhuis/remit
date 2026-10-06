@@ -89,15 +89,18 @@ export async function writeClientAudit(
 
 export function handleClientActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  clientId?: string
+  {
+    action,
+    userId,
+    clientId,
+    fallbackMessage
+  }: { action: string; userId: string | null; clientId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedClientError) return { error: error.message }
 
   logger.error({ action, userId, clientId, err: error }, "Client action failed")
 
-  return { error: t("clients.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 async function requireClientRole(allowed: Role[]): Promise<ClientWriteGate> {
@@ -153,9 +156,12 @@ export async function writeClientContactAudit(
 
 export function handleClientContactActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  clientId?: string
+  {
+    action,
+    userId,
+    clientId,
+    fallbackMessage
+  }: { action: string; userId: string | null; clientId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedClientError) return { error: error.message }
 
@@ -166,7 +172,7 @@ export function handleClientContactActionError(
 
   logger.error({ action, userId, clientId, err: error }, "Client contact action failed")
 
-  return { error: t("clients.errors.contactUpdateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isPrimaryContactConflict(error: unknown): boolean {

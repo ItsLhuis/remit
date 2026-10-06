@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 
 import {
+  classifyPublicUrlProbeFailure,
   evaluateBackupFreshness,
   evaluateDiskUsage,
   evaluateEmailHealth,
@@ -196,5 +197,25 @@ describe("evaluatePublicUrl", () => {
     const result = evaluatePublicUrl("not-a-url")
 
     expect(result).toBe(false)
+  })
+})
+
+describe("classifyPublicUrlProbeFailure", () => {
+  test("reads a self-signed or expired certificate as reachable but untrusted", () => {
+    expect(classifyPublicUrlProbeFailure("SELF_SIGNED_CERT_IN_CHAIN")).toBe("untrustedCertificate")
+    expect(classifyPublicUrlProbeFailure("DEPTH_ZERO_SELF_SIGNED_CERT")).toBe(
+      "untrustedCertificate"
+    )
+    expect(classifyPublicUrlProbeFailure("CERT_HAS_EXPIRED")).toBe("untrustedCertificate")
+    expect(classifyPublicUrlProbeFailure("ERR_TLS_CERT_ALTNAME_INVALID")).toBe(
+      "untrustedCertificate"
+    )
+  })
+
+  test("reads a refused, unresolved or timed-out connection as unreachable", () => {
+    expect(classifyPublicUrlProbeFailure("ECONNREFUSED")).toBe("unreachable")
+    expect(classifyPublicUrlProbeFailure("ENOTFOUND")).toBe("unreachable")
+    expect(classifyPublicUrlProbeFailure("UND_ERR_CONNECT_TIMEOUT")).toBe("unreachable")
+    expect(classifyPublicUrlProbeFailure(null)).toBe("unreachable")
   })
 })

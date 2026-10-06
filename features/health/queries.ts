@@ -22,12 +22,14 @@ import pkg from "@/package.json"
 
 import { getStorageHealthCheck } from "./checks/storageHealthCheck"
 import {
+  classifyPublicUrlProbeFailure,
   evaluateBackupFreshness,
   evaluateDiskUsage,
   evaluateEmailHealth,
   evaluateMigrationDrift,
   evaluatePublicUrl,
-  evaluateStripeHealth
+  evaluateStripeHealth,
+  type PublicUrlProbeFailure
 } from "./services/evaluateHealth"
 import { getReleaseLinks } from "./services/releaseLinks"
 import { type HealthCheckResult, type MigrationDrift, type SystemInfo } from "./types"
@@ -491,9 +493,21 @@ async function getPublicUrlHealthCheck(): Promise<HealthCheckResult> {
   }
 
   const origin = new URL(configuredUrl).origin
-  const reachable = await probePublicUrl(configuredUrl)
+  const failure = await probePublicUrl(configuredUrl)
 
-  if (!reachable) {
+  if (failure === "untrustedCertificate") {
+    return {
+      id: "public-url",
+      category: "core",
+      title: t("health.checks.publicUrl.title"),
+      status: "info",
+      summary: t("health.checks.publicUrl.untrustedCertificate", { origin }),
+      detail: t("health.checks.publicUrl.untrustedCertificateDetail"),
+      countsAsIssue: false
+    }
+  }
+
+  if (failure === "unreachable") {
     return {
       id: "public-url",
       category: "core",
@@ -516,7 +530,10 @@ async function getPublicUrlHealthCheck(): Promise<HealthCheckResult> {
   }
 }
 
-async function probePublicUrl(url: string): Promise<boolean> {
+// Certificate verification stays on. Turning it off would make the check pass for exactly the
+// deployments it exists to describe, and would be one setting away from a server-side fetch that
+// trusts anything; the untrusted state is reported for what it is instead.
+async function probePublicUrl(url: string): Promise<PublicUrlProbeFailure | null> {
   try {
     await fetch(url, {
       method: "HEAD",
@@ -524,8 +541,20 @@ async function probePublicUrl(url: string): Promise<boolean> {
       signal: AbortSignal.timeout(PUBLIC_URL_PROBE_TIMEOUT_MS)
     })
 
-    return true
-  } catch {
-    return false
+    return null
+  } catch (error) {
+    return classifyPublicUrlProbeFailure(getErrorCauseCode(error))
   }
+}
+
+// Node's fetch throws one `TypeError("fetch failed")` for every network failure and carries the
+// socket's or the TLS layer's own code on `cause`, which is the only place the two can be told apart.
+function getErrorCauseCode(error: unknown): string | null {
+  if (!(error instanceof Error) || typeof error.cause !== "object" || error.cause === null) {
+    return null
+  }
+
+  const code = (error.cause as { code?: unknown }).code
+
+  return typeof code === "string" ? code : null
 }

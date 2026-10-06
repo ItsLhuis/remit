@@ -288,6 +288,7 @@ export function toClientFormData(row: ClientDetailRow): ClientFormData {
     email: row.email,
     phone: row.phone ?? "",
     currency: row.currency ?? "EUR",
+    locale: row.locale ?? "",
     taxId: row.taxId ?? "",
     addressLine1: row.addressLine1 ?? "",
     addressLine2: row.addressLine2 ?? "",

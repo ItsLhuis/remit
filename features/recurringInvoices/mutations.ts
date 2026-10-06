@@ -246,7 +246,7 @@ export async function restoreRecurringInvoice(
       action: "restoreRecurringInvoice",
       userId: context.userId,
       recurringInvoiceId: parsed.data.id,
-      fallbackMessage: t("recurringInvoices.errors.deleteFailed")
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

@@ -27,10 +27,14 @@ test("generates one draft invoice for a due schedule and nothing more when the o
 
   await expect(page.getByText("Nothing has been generated yet")).toBeVisible()
 
-  // A structural locator because the summary card pairs its label and value as two siblings with no
-  // accessible association, so `getByRole` cannot reach the value by its label. Reported as a
-  // finding rather than worked around in the component.
-  const nextRunValue = page.getByText("Next run").locator("xpath=following-sibling::span")
+  // Follows the summary's own label link rather than `getByRole("definition", { name })`: Chromium's
+  // accessibility tree names each value by its term through `aria-labelledby`, but Playwright's role
+  // engine computes no name for the `definition` role, so a named lookup never matches.
+  const nextRunTermId = await page
+    .getByRole("term")
+    .filter({ hasText: "Next run" })
+    .getAttribute("id")
+  const nextRunValue = page.locator(`[aria-labelledby="${nextRunTermId}"]`)
   const nextRunBefore = await nextRunValue.innerText()
 
   const generatedInvoiceLink = page.getByRole("link", { name: new RegExp(seeded.invoicePrefix) })

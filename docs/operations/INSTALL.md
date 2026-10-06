@@ -265,9 +265,10 @@ To see Remit with data in it before committing to a real instance:
 docker compose exec app pnpm remit:seed-demo
 ```
 
-This creates deterministic demo clients, projects, invoices, payments and expenses. Its inverse,
-`pnpm remit:reset-data`, empties the domain data again while leaving your account, settings, tax
-rates and templates intact.
+This creates demo clients, projects, invoices, payments and expenses, the same ones for the same
+seed except for the public document links, which are random on every run because they are real
+bearer credentials. Its inverse, `pnpm remit:reset-data`, empties the domain data again while
+leaving your account, settings, tax rates and templates intact.
 
 ## Where to go next
 

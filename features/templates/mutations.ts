@@ -102,7 +102,11 @@ export async function createTemplate(input: unknown): Promise<TemplateMutationRe
 
     return { data: { template: toTemplateEditorData(created) } }
   } catch (error) {
-    return handleTemplateActionError(error, "createTemplate", context.userId)
+    return handleTemplateActionError(error, {
+      action: "createTemplate",
+      userId: context.userId,
+      fallbackMessage: t("templates.errors.saveFailed")
+    })
   }
 }
 
@@ -164,7 +168,12 @@ export async function updateTemplate(input: unknown): Promise<TemplateMutationRe
 
     return { data: { template: toTemplateEditorData(updated) } }
   } catch (error) {
-    return handleTemplateActionError(error, "updateTemplate", context.userId, parsed.data.id)
+    return handleTemplateActionError(error, {
+      action: "updateTemplate",
+      userId: context.userId,
+      templateId: parsed.data.id,
+      fallbackMessage: t("templates.errors.saveFailed")
+    })
   }
 }
 
@@ -195,7 +204,12 @@ export async function restoreTemplate(input: unknown): Promise<DeleteTemplateRes
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleTemplateActionError(error, "restoreTemplate", context.userId, parsed.data.id)
+    return handleTemplateActionError(error, {
+      action: "restoreTemplate",
+      userId: context.userId,
+      templateId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -235,7 +249,12 @@ export async function softDeleteTemplate(input: unknown): Promise<DeleteTemplate
 
     return { data: { id: deleted.id } }
   } catch (error) {
-    return handleTemplateActionError(error, "softDeleteTemplate", context.userId, parsed.data.id)
+    return handleTemplateActionError(error, {
+      action: "softDeleteTemplate",
+      userId: context.userId,
+      templateId: parsed.data.id,
+      fallbackMessage: t("templates.errors.deleteFailed")
+    })
   }
 }
 
@@ -288,7 +307,12 @@ export async function setDefaultTemplate(input: unknown): Promise<SetDefaultTemp
 
     return { data: { id: updated.id } }
   } catch (error) {
-    return handleTemplateActionError(error, "setDefaultTemplate", context.userId, parsed.data.id)
+    return handleTemplateActionError(error, {
+      action: "setDefaultTemplate",
+      userId: context.userId,
+      templateId: parsed.data.id,
+      fallbackMessage: t("templates.errors.saveFailed")
+    })
   }
 }
 
@@ -491,15 +515,18 @@ function emptyToNull(value: string): string | null {
 
 function handleTemplateActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  templateId?: string
+  {
+    action,
+    userId,
+    templateId,
+    fallbackMessage
+  }: { action: string; userId: string | null; templateId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedTemplateError) return { error: error.message }
 
   logger.error({ action, userId, templateId, err: error }, "Template action failed")
 
-  return { error: t("templates.errors.saveFailed") }
+  return { error: fallbackMessage }
 }
 
 function isRole(value: string | null | undefined): value is Role {

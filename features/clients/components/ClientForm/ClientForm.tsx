@@ -68,6 +68,7 @@ const ClientForm = (props: ClientFormProps) => {
       email: "",
       phone: "",
       currency: props.defaultCurrency,
+      locale: "",
       taxId: "",
       addressLine1: "",
       addressLine2: "",

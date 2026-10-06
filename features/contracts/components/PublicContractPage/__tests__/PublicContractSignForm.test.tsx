@@ -67,14 +67,28 @@ test("shows the exact consent statement the server will snapshot", () => {
   expect(screen.getByText(consentText)).toBeInTheDocument()
 })
 
-test("keeps the submit button disabled until the consent box is checked", async () => {
+test("refuses to sign without consent and says why", async () => {
   const user = userEvent.setup()
 
   renderForm()
 
   await fillIdentity(user)
+  await user.click(screen.getByRole("button", { name: "contracts.public.sign.submit" }))
 
-  expect(screen.getByRole("button", { name: "contracts.public.sign.submit" })).toBeDisabled()
+  expect(await screen.findByText("You must agree before signing")).toBeInTheDocument()
+  expect(mocks.signContract).not.toHaveBeenCalled()
+})
+
+test("signs when the signer types the email last and clicks straight through", async () => {
+  const user = userEvent.setup()
+
+  renderForm()
+
+  await user.click(screen.getByRole("checkbox", { name: "contracts.public.sign.consentLabel" }))
+  await fillIdentity(user)
+  await user.click(screen.getByRole("button", { name: "contracts.public.sign.submit" }))
+
+  await waitFor(() => expect(mocks.signContract).toHaveBeenCalledTimes(1))
 })
 
 test("submits the signer identity and the accepted consent when the form is complete", async () => {

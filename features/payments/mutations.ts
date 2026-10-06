@@ -180,7 +180,7 @@ export async function restorePayment(input: unknown): Promise<PaymentMutationRes
     return handlePaymentActionError(error, {
       action: "restorePayment",
       userId: context.userId,
-      fallbackMessage: t("payments.errors.deleteFailed")
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

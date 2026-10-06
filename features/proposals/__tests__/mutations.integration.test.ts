@@ -126,6 +126,17 @@ describe("proposal mutations", () => {
     expect(settingsRow[0]?.nextProposalNumber).toBe(2)
   })
 
+  test("reports a create failure rather than an update failure when creating breaks", async () => {
+    const { createProposal } = await import("../mutations")
+
+    const project = await makeProject()
+    mocks.emit.mockRejectedValueOnce(new Error("bus down"))
+
+    const result = await createProposal(makeProposalInput({ projectId: project.id }))
+
+    expect(result).toEqual({ error: "Failed to create proposal" })
+  })
+
   test("stores totals in integer cents from the pure service", async () => {
     const { createProposal } = await import("../mutations")
 

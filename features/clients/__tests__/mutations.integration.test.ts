@@ -56,6 +56,7 @@ const validClient = {
   email: "billing@example.com",
   phone: "+15550100",
   currency: "EUR",
+  locale: "pt-PT",
   taxId: "VAT123",
   addressLine1: "1 Main Street",
   addressLine2: "",
@@ -187,6 +188,44 @@ describe("client mutations", () => {
       clientId: existingClient.id,
       userId: ownerId
     })
+  })
+
+  test("stores a chosen formatting locale and clears it back to the instance default", async () => {
+    const { createClient, updateClient } = await import("../mutations")
+
+    const created = await createClient(validClient)
+
+    if ("error" in created) throw new Error(created.error)
+
+    const [stored] = await database.select().from(clients)
+    const cleared = await updateClient({ ...validClient, id: created.data.client.id, locale: "" })
+    const [afterClear] = await database.select().from(clients)
+
+    expect(stored?.locale).toBe("pt-PT")
+    expect(cleared).toEqual({ data: { client: expect.objectContaining({ locale: "" }) } })
+    expect(afterClear?.locale).toBeNull()
+  })
+
+  test("refuses a locale outside the formatting list", async () => {
+    const { createClient } = await import("../mutations")
+
+    const result = await createClient({ ...validClient, locale: "pt_PT" })
+
+    expect(result).toEqual({ error: "Choose a formatting locale from the list." })
+  })
+
+  test("names the operation that failed when a create or a delete breaks", async () => {
+    const { createClient, softDeleteClient } = await import("../mutations")
+
+    const existingClient = await makeClient()
+    mocks.emit.mockRejectedValueOnce(new Error("bus down"))
+    mocks.emit.mockRejectedValueOnce(new Error("bus down"))
+
+    const created = await createClient(validClient)
+    const deleted = await softDeleteClient({ id: existingClient.id })
+
+    expect(created).toEqual({ error: "Failed to create client" })
+    expect(deleted).toEqual({ error: "Failed to delete client" })
   })
 
   test("prevents assistants from deleting clients", async () => {

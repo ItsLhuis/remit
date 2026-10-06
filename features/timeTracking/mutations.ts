@@ -124,7 +124,11 @@ export async function startTimer(input: unknown): Promise<TimerMutationResult> {
 
     return { data: { id: created.id } }
   } catch (error) {
-    return handleTimeEntryError(error, "startTimer", context.userId)
+    return handleTimeEntryError(error, {
+      action: "startTimer",
+      userId: context.userId,
+      fallbackMessage: t("timeTracking.errors.updateFailed")
+    })
   }
 }
 
@@ -183,7 +187,12 @@ export async function stopTimer(input: unknown): Promise<TimerMutationResult> {
 
     return { data: { id: stopped.id } }
   } catch (error) {
-    return handleTimeEntryError(error, "stopTimer", context.userId, parsed.data.id)
+    return handleTimeEntryError(error, {
+      action: "stopTimer",
+      userId: context.userId,
+      timeEntryId: parsed.data.id,
+      fallbackMessage: t("timeTracking.errors.updateFailed")
+    })
   }
 }
 
@@ -240,7 +249,11 @@ export async function createManualTimeEntry(input: unknown): Promise<TimeEntryMu
 
     return await loadTimeEntryResult(created.id)
   } catch (error) {
-    return handleTimeEntryError(error, "createManualTimeEntry", context.userId)
+    return handleTimeEntryError(error, {
+      action: "createManualTimeEntry",
+      userId: context.userId,
+      fallbackMessage: t("timeTracking.errors.updateFailed")
+    })
   }
 }
 
@@ -303,7 +316,12 @@ export async function updateTimeEntry(input: unknown): Promise<TimeEntryMutation
 
     return await loadTimeEntryResult(updated.id)
   } catch (error) {
-    return handleTimeEntryError(error, "updateTimeEntry", context.userId, parsed.data.id)
+    return handleTimeEntryError(error, {
+      action: "updateTimeEntry",
+      userId: context.userId,
+      timeEntryId: parsed.data.id,
+      fallbackMessage: t("timeTracking.errors.updateFailed")
+    })
   }
 }
 
@@ -358,7 +376,12 @@ export async function restoreTimeEntry(input: unknown): Promise<DeleteTimeEntryR
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleTimeEntryError(error, "restoreTimeEntry", context.userId, parsed.data.id)
+    return handleTimeEntryError(error, {
+      action: "restoreTimeEntry",
+      userId: context.userId,
+      timeEntryId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -402,7 +425,12 @@ export async function softDeleteTimeEntry(input: unknown): Promise<DeleteTimeEnt
 
     return { data: { id: deleted.id } }
   } catch (error) {
-    return handleTimeEntryError(error, "softDeleteTimeEntry", context.userId, parsed.data.id)
+    return handleTimeEntryError(error, {
+      action: "softDeleteTimeEntry",
+      userId: context.userId,
+      timeEntryId: parsed.data.id,
+      fallbackMessage: t("timeTracking.errors.deleteFailed")
+    })
   }
 }
 
@@ -540,15 +568,18 @@ async function writeTimeEntryAudit(
 
 function handleTimeEntryError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  timeEntryId?: string
+  {
+    action,
+    userId,
+    timeEntryId,
+    fallbackMessage
+  }: { action: string; userId: string | null; timeEntryId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedTimeEntryError) return { error: error.message }
 
   logger.error({ action, userId, timeEntryId, err: error }, "Time entry action failed")
 
-  return { error: t("timeTracking.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isRole(value: string | null | undefined): value is Role {

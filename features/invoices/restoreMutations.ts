@@ -87,7 +87,7 @@ export async function restoreInvoice(input: unknown): Promise<DeleteInvoiceResul
       action: "restoreInvoice",
       userId: context.userId,
       invoiceId: parsed.data.id,
-      fallbackMessage: t("invoices.errors.deleteFailed")
+      fallbackMessage: t("trash.errors.restoreFailed")
     })
   }
 }

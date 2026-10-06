@@ -126,7 +126,7 @@ implemented command.
 | Install flow                  | Shipped | Host-side    | `scripts/host/install.sh`; runbook in `docs/operations/INSTALL.md`. No `remit:install`.  |
 | Upgrade flow                  | Shipped | Host-side    | `scripts/host/upgrade.sh`; runbook in `docs/operations/UPGRADE.md`. No `remit:upgrade`.  |
 | `remit:rotate-encryption-key` | Shipped | In-container | ADR-0021. Rotates registered encrypted columns and `.remitbak` archive encryption.       |
-| `remit:seed-demo`             | Shipped | In-container | Deterministic demo data; presets plus capped numeric count overrides.                    |
+| `remit:seed-demo`             | Shipped | In-container | Seeded demo data, random public tokens; presets plus capped numeric count overrides.     |
 | `remit:reset-data`            | Shipped | In-container | ADR-0025. Empties domain data; account, organization, and instance configuration stay.   |
 
 ## Operator command reference
@@ -156,9 +156,10 @@ implemented command.
 - **Flags:** `--dry-run`, `--yes`, `--reseed`, `--seed <number>`,
   `--size <small|medium|large|clients>`, `--clients <number>`, `--projects <number>`,
   `--invoices <number>`, and `--help`.
-- **Effects:** seeds deterministic demo/domain data only: settings, tax rates, leads, clients,
-  projects, tasks, time entries, expenses, proposals, invoices, line items, payments, credit notes,
-  contracts, and recurring invoice schedules.
+- **Effects:** seeds demo/domain data only, the same for the same seed apart from the public tokens
+  described under Limitations: settings, tax rates, leads, clients, projects, tasks, time entries,
+  expenses, proposals, invoices, line items, payments, credit notes, contracts, and recurring
+  invoice schedules.
 - **Limitations:** refuses to proceed when seedable rows already exist unless `--reseed` is
   supplied; does not seed or mutate Better Auth-owned auth tables, organization tables, uploads,
   email logs, audit logs, or activity logs. Public tokens are the one field a seed does not

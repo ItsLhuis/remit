@@ -130,7 +130,11 @@ export async function createProject(input: unknown): Promise<ProjectMutationResu
 
     return await loadProjectResult(createdProject.id)
   } catch (error) {
-    return handleProjectActionError(error, "createProject", context.userId)
+    return handleProjectActionError(error, {
+      action: "createProject",
+      userId: context.userId,
+      fallbackMessage: t("projects.errors.createFailed")
+    })
   }
 }
 
@@ -185,7 +189,12 @@ export async function updateProject(input: unknown): Promise<ProjectMutationResu
 
     return await loadProjectResult(updatedProject.id)
   } catch (error) {
-    return handleProjectActionError(error, "updateProject", context.userId, parsed.data.id)
+    return handleProjectActionError(error, {
+      action: "updateProject",
+      userId: context.userId,
+      projectId: parsed.data.id,
+      fallbackMessage: t("projects.errors.updateFailed")
+    })
   }
 }
 
@@ -235,7 +244,12 @@ export async function updateProjectStatus(input: unknown): Promise<ProjectMutati
 
     return await loadProjectResult(updatedProject.id)
   } catch (error) {
-    return handleProjectActionError(error, "updateProjectStatus", context.userId, parsed.data.id)
+    return handleProjectActionError(error, {
+      action: "updateProjectStatus",
+      userId: context.userId,
+      projectId: parsed.data.id,
+      fallbackMessage: t("projects.errors.updateFailed")
+    })
   }
 }
 
@@ -289,7 +303,12 @@ export async function restoreProject(input: unknown): Promise<DeleteProjectResul
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleProjectActionError(error, "restoreProject", context.userId, parsed.data.id)
+    return handleProjectActionError(error, {
+      action: "restoreProject",
+      userId: context.userId,
+      projectId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -322,7 +341,12 @@ export async function softDeleteProject(input: unknown): Promise<DeleteProjectRe
 
     return { data: { id: deletedProject.id } }
   } catch (error) {
-    return handleProjectActionError(error, "softDeleteProject", context.userId, parsed.data.id)
+    return handleProjectActionError(error, {
+      action: "softDeleteProject",
+      userId: context.userId,
+      projectId: parsed.data.id,
+      fallbackMessage: t("projects.errors.deleteFailed")
+    })
   }
 }
 
@@ -469,15 +493,18 @@ function emptyToNull(value: string): string | null {
 
 function handleProjectActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  projectId?: string
+  {
+    action,
+    userId,
+    projectId,
+    fallbackMessage
+  }: { action: string; userId: string | null; projectId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedProjectError) return { error: error.message }
 
   logger.error({ action, userId, projectId, err: error }, "Project action failed")
 
-  return { error: t("projects.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isRole(value: string | null | undefined): value is Role {

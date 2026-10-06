@@ -14,6 +14,7 @@ const formInput: ClientFormInputValues = {
   email: "billing@acme.test",
   phone: "",
   currency: "eur",
+  locale: "",
   taxId: "",
   addressLine1: "",
   addressLine2: "",

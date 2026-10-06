@@ -123,7 +123,11 @@ export async function createTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(createdTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "createTask", context.userId)
+    return handleTaskActionError(error, {
+      action: "createTask",
+      userId: context.userId,
+      fallbackMessage: t("tasks.errors.createFailed")
+    })
   }
 }
 
@@ -181,7 +185,12 @@ export async function updateTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(updatedTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "updateTask", context.userId, parsed.data.id)
+    return handleTaskActionError(error, {
+      action: "updateTask",
+      userId: context.userId,
+      taskId: parsed.data.id,
+      fallbackMessage: t("tasks.errors.updateFailed")
+    })
   }
 }
 
@@ -238,7 +247,12 @@ export async function updateTaskStatus(input: unknown): Promise<TaskMutationResu
 
     return await loadTaskResult(updatedTask.id)
   } catch (error) {
-    return handleTaskActionError(error, "updateTaskStatus", context.userId, parsed.data.id)
+    return handleTaskActionError(error, {
+      action: "updateTaskStatus",
+      userId: context.userId,
+      taskId: parsed.data.id,
+      fallbackMessage: t("tasks.errors.updateFailed")
+    })
   }
 }
 
@@ -307,7 +321,12 @@ export async function reorderTask(input: unknown): Promise<TaskMutationResult> {
 
     return await loadTaskResult(existing.id)
   } catch (error) {
-    return handleTaskActionError(error, "reorderTask", context.userId, parsed.data.id)
+    return handleTaskActionError(error, {
+      action: "reorderTask",
+      userId: context.userId,
+      taskId: parsed.data.id,
+      fallbackMessage: t("tasks.errors.updateFailed")
+    })
   }
 }
 
@@ -359,7 +378,12 @@ export async function restoreTask(input: unknown): Promise<DeleteTaskResult> {
 
     return { data: { id: restored.id } }
   } catch (error) {
-    return handleTaskActionError(error, "restoreTask", context.userId, parsed.data.id)
+    return handleTaskActionError(error, {
+      action: "restoreTask",
+      userId: context.userId,
+      taskId: parsed.data.id,
+      fallbackMessage: t("trash.errors.restoreFailed")
+    })
   }
 }
 
@@ -397,7 +421,12 @@ export async function softDeleteTask(input: unknown): Promise<DeleteTaskResult> 
 
     return { data: { id: deletedTask.id } }
   } catch (error) {
-    return handleTaskActionError(error, "softDeleteTask", context.userId, parsed.data.id)
+    return handleTaskActionError(error, {
+      action: "softDeleteTask",
+      userId: context.userId,
+      taskId: parsed.data.id,
+      fallbackMessage: t("tasks.errors.deleteFailed")
+    })
   }
 }
 
@@ -519,15 +548,18 @@ function revalidateTaskPaths(projectId: string): void {
 
 function handleTaskActionError(
   error: unknown,
-  action: string,
-  userId: string | null,
-  taskId?: string
+  {
+    action,
+    userId,
+    taskId,
+    fallbackMessage
+  }: { action: string; userId: string | null; taskId?: string; fallbackMessage: string }
 ): { error: string } {
   if (error instanceof ExpectedTaskError) return { error: error.message }
 
   logger.error({ action, userId, taskId, err: error }, "Task action failed")
 
-  return { error: t("tasks.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 function isRole(value: string | null | undefined): value is Role {

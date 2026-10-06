@@ -34,7 +34,9 @@ export async function getBackupBanner(): Promise<BackupBanner | null> {
       backupCadence: true,
       backupLastFailureAt: true,
       backupLastFailureReason: true,
-      backupLastSuccessAt: true
+      backupLastSuccessAt: true,
+      defaultLocale: true,
+      defaultTimezone: true
     }
   })
 
@@ -49,5 +51,12 @@ export async function getBackupBanner(): Promise<BackupBanner | null> {
 
   if (state === "healthy") return null
 
-  return { state, lastFailureReason: settingsRow.backupLastFailureReason }
+  return {
+    state,
+    lastFailureReason: settingsRow.backupLastFailureReason,
+    lastFailureAt: settingsRow.backupLastFailureAt,
+    lastSuccessAt: settingsRow.backupLastSuccessAt,
+    locale: settingsRow.defaultLocale,
+    timeZone: settingsRow.defaultTimezone
+  }
 }

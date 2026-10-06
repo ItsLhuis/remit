@@ -147,11 +147,9 @@ test("carries a proposal through anonymous acceptance into an invoice that is pa
       clientPage.getByRole("button", { name: "Accept proposal" }),
       clientPage.getByLabel("Email address")
     )
-    // Blurred deliberately: the identity form validates on blur and gates its submit on `isValid`,
-    // so a filled-but-still-focused field leaves the button disabled. Reported as a finding.
+    // Typed and submitted in one motion, with no blur in between, because that is what a client does
+    // and what the identity form once refused by gating its button on blur validity.
     await clientPage.getByLabel("Email address").fill(CLIENT_EMAIL)
-    await clientPage.getByLabel("Email address").blur()
-
     await clientPage.getByRole("button", { name: "Send code" }).click()
 
     const mail = await waitForLatestMailTo(CLIENT_EMAIL)

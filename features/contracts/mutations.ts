@@ -291,7 +291,8 @@ export async function updateContract(input: unknown): Promise<ContractMutationRe
     return handleContractActionError(error, {
       action: "updateContract",
       userId: context.userId,
-      contractId: parsed.data.id
+      contractId: parsed.data.id,
+      fallbackMessage: t("contracts.errors.updateFailed")
     })
   }
 }

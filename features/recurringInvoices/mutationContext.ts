@@ -40,7 +40,7 @@ export type RecurringInvoiceActionErrorContext = {
   action: string
   userId: string | null
   recurringInvoiceId?: string
-  fallbackMessage?: string
+  fallbackMessage: string
 }
 
 // A failure the user is meant to read: thrown to unwind the action midway and caught by
@@ -93,7 +93,7 @@ export function handleRecurringInvoiceActionError(
     "Recurring invoice action failed"
   )
 
-  return { error: fallbackMessage ?? t("recurringInvoices.errors.updateFailed") }
+  return { error: fallbackMessage }
 }
 
 // A schedule is reachable from its own list and detail routes, and the client it bills summarises
