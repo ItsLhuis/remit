@@ -255,9 +255,9 @@ function isInvitationRoute(pathname: string): boolean {
   return pathname.startsWith("/invite/")
 }
 
-// Not `applySecurityHeaders(response, true)`: that branch is for the anonymous document routes,
-// which also drop `X-Frame-Options` so an invoice can be embedded. An invitation page must stay
-// unframeable — it carries a sign-up form — and only wants the crawler directive.
+// Not `applySecurityHeaders(response, true)`: that flag names the anonymous document routes, and an
+// invitation is not one of them. Its response already carries the framing denial every route does;
+// it only adds the crawler directive.
 function withNoIndex(response: NextResponse): NextResponse {
   response.headers.set("X-Robots-Tag", "noindex, nofollow")
 

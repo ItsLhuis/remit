@@ -43,13 +43,24 @@ describe("applySecurityHeaders", () => {
     expect(response.headers.get("X-Robots-Tag")).toBeNull()
   })
 
-  test("sets robots protection and omits frame denial on public-token routes", () => {
+  test("sets robots protection on public-token routes and still refuses framing there", () => {
     const response = NextResponse.next()
 
     applySecurityHeaders(response, true)
 
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow")
-    expect(response.headers.get("X-Frame-Options")).toBeNull()
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY")
+    expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'")
+  })
+
+  test("refuses framing the same way on a private and a public route", () => {
+    const privateResponse = applySecurityHeaders(NextResponse.next(), false)
+    const publicResponse = applySecurityHeaders(NextResponse.next(), true)
+
+    for (const response of [privateResponse, publicResponse]) {
+      expect(response.headers.get("X-Frame-Options")).toBe("DENY")
+      expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'")
+    }
   })
 
   test("applies baseline headers to public API pass-through routes", async () => {

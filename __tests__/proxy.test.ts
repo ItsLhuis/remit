@@ -165,15 +165,13 @@ describe("proxy on public token routes", () => {
     )
   })
 
-  test("allows a public token route to be framed while keeping other routes denied", async () => {
-    const { applySecurityHeaders } = await import("@/lib/securityHeaders")
-    const { NextResponse } = await import("next/server")
+  test("refuses to be framed on a public token route exactly as on every other route", async () => {
+    const { proxy } = await import("../proxy")
 
-    const framed = applySecurityHeaders(NextResponse.next(), true)
-    const denied = applySecurityHeaders(NextResponse.next(), false)
+    const response = await proxy(createRequest("/i/some-token"))
 
-    expect(framed.headers.get("x-frame-options")).toBeNull()
-    expect(denied.headers.get("x-frame-options")).toBe("DENY")
+    expect(response.headers.get("x-frame-options")).toBe("DENY")
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'")
   })
 })
 
