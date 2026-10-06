@@ -114,6 +114,42 @@ describe("buildReportDocument", () => {
     expect(html).toContain("&lt;script&gt;")
   })
 
+  test("prints a wrapping label on a row tall enough for every line instead of clipping it", () => {
+    const label = "Northwind Traders International Holdings and Logistics Partners Europe Limited"
+
+    const { html } = buildReportDocument(makeInput([makeBucket({ label })]))
+    const heights = [...html.matchAll(/<tr style="height:(\d+)px">/g)].map((match) =>
+      Number(match[1])
+    )
+
+    expect(heights[0]).toBeGreaterThan(26)
+    expect(html).not.toContain("line-clamp")
+  })
+
+  test("shrinks the figures of a wide report until its largest amount fits whole", () => {
+    const columns: ReportColumnId[] = [
+      "invoiced",
+      "credited",
+      "netRevenue",
+      "paid",
+      "outstanding",
+      "netTaxable"
+    ]
+    const cells = columns.map(() => ({ kind: "money" as const, cents: 123_456_789_012 }))
+    const labels = { ...LABELS, columns }
+
+    const { html } = buildReportDocument(
+      makeInput([makeBucket({ cells })], {
+        result: toReportResult(columns, [makeBucket({ cells })]),
+        labels
+      })
+    )
+    const fontPx = Number(/td\.figure\{font-size:([\d.]+)px/.exec(html)?.[1])
+
+    expect(fontPx).toBeLessThan(10)
+    expect(html).toContain("€1,234,567,890.12")
+  })
+
   test("prints the page at the size the renderer is told to print", () => {
     const document = buildReportDocument(makeInput([makeBucket()]))
 

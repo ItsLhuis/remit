@@ -2,17 +2,21 @@ import { escapeHtml, formatDate } from "@/lib/utils"
 
 import { formatReportCell } from "./formatReportCell"
 import {
+  layoutReportColumns,
   paginateReportDocumentItems,
+  REPORT_CELL_PADDING_PX,
   REPORT_FOOTER_HEIGHT_PX,
   REPORT_GROUP_HEIGHT_PX,
   REPORT_INTRO_HEIGHT_PX,
+  REPORT_LINE_HEIGHT_PX,
   REPORT_PAGE_HEIGHT_PX,
   REPORT_PAGE_MARGIN_PX,
   REPORT_PAGE_WIDTH_PX,
-  REPORT_ROW_HEIGHT_PX,
   REPORT_TABLE_HEADER_HEIGHT_PX,
+  REPORT_TEXT_FONT_PX,
   REPORT_TOTALS_HEIGHT_PX,
   toReportDocumentItems,
+  type ReportColumnLayout,
   type ReportDocumentItem
 } from "./reportDocumentPages"
 import { type ReportCell, type ReportResult } from "./reportTable"
@@ -63,7 +67,8 @@ export type ReportDocument = {
 }
 
 export function buildReportDocument(input: ReportDocumentInput): ReportDocument {
-  const pages = paginateReportDocumentItems(toReportDocumentItems(input.result))
+  const layout = layoutReportColumns(input.labels.columns.length, getWidestFigureLength(input))
+  const pages = paginateReportDocumentItems(toReportDocumentItems(input.result, layout))
 
   const body = pages.map((items, index) => renderPage(input, items, index, pages.length)).join("")
 
@@ -71,7 +76,7 @@ export function buildReportDocument(input: ReportDocumentInput): ReportDocument 
     html: [
       "<!doctype html>",
       '<html><head><meta charset="utf-8" />',
-      `<style>${documentCss(input.labels.columns.length)}</style>`,
+      `<style>${documentCss(layout)}</style>`,
       "</head><body>",
       body,
       "</body></html>"
@@ -153,8 +158,8 @@ function renderItem(input: ReportDocumentInput, item: ReportDocumentItem): strin
   }
 
   return [
-    "<tr>",
-    `<td class="label"><span class="clamp">${escapeHtml(item.row.label)}</span></td>`,
+    `<tr style="height:${item.heightPx}px">`,
+    `<td class="label">${escapeHtml(item.row.label)}</td>`,
     `<td class="detail">${escapeHtml(item.row.sublabel ?? "")}</td>`,
     renderFigures(item.row.cells, item.currency, input.locale),
     "</tr>"
@@ -178,28 +183,38 @@ function renderFooter(input: ReportDocumentInput, index: number, pages: number):
   ].join("")
 }
 
-// Every height here is the CSS half of a constant `reportDocumentPages.ts` paginated against. A
-// change to one without the other overflows a page silently, which prints as a clipped last row
-// rather than as an error.
+// The longest figure the document prints, in characters, across every row and every total. The
+// column layout is sized to it, so it has to be measured in the same locale-aware form the cells
+// print in, symbol and separators included.
+function getWidestFigureLength(input: ReportDocumentInput): number {
+  let widest = 0
+
+  for (const group of input.result.groups) {
+    const cells = [...group.rows.flatMap((row) => row.cells), ...group.totals]
+
+    for (const cell of cells) {
+      widest = Math.max(widest, formatReportCell(cell, group.currency, input.locale).length)
+    }
+  }
+
+  return widest
+}
+
+// Every height and width here is the CSS half of a number `reportDocumentPages.ts` paginated or
+// fitted against. A change to one without the other overflows a page or a column silently, which
+// prints as a clipped row or a lost digit rather than as an error.
 //
 // The font stacks name local families only. The renderer aborts every network request
 // (`lib/pdf/renderPdf.ts`), so DESIGN.md's JetBrains Mono cannot be fetched here and naming it would
 // fall back mid-document; the tabular-figure rule it exists to serve is kept by
 // `font-variant-numeric` instead, which every local family honours.
-function documentCss(figureColumnCount: number): string {
-  const figureWidth = (64 / Math.max(figureColumnCount, 1)).toFixed(3)
-  // A wide report divides the same page across more columns, so the figures step down a size rather
-  // than clip: `table-layout: fixed` gives each column its share whatever fits, and an amount that
-  // overflows is truncated silently. Eleven point is what a six-column report needs to hold a
-  // six-figure amount.
-  const figureFontSize = figureColumnCount >= 5 ? 10 : 11
-
+function documentCss(layout: ReportColumnLayout): string {
   return [
     `@page{size:${REPORT_PAGE_WIDTH_PX}px ${REPORT_PAGE_HEIGHT_PX}px;margin:0}`,
     "*{box-sizing:border-box}",
     "html,body{margin:0;padding:0;background:#fff;color:#0f172a}",
     "body{font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;",
-    "font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
+    `font-size:${REPORT_TEXT_FONT_PX}px;-webkit-print-color-adjust:exact;print-color-adjust:exact}`,
     `.page{width:${REPORT_PAGE_WIDTH_PX}px;height:${REPORT_PAGE_HEIGHT_PX}px;`,
     `padding:${REPORT_PAGE_MARGIN_PX}px;overflow:hidden;page-break-after:always}`,
     ".page:last-child{page-break-after:auto}",
@@ -214,13 +229,17 @@ function documentCss(figureColumnCount: number): string {
     "table{width:100%;border-collapse:collapse;table-layout:fixed}",
     `thead th{height:${REPORT_TABLE_HEADER_HEIGHT_PX}px;border-bottom:1px solid #cbd5e1;`,
     "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:#475569}",
-    `tbody td{height:${REPORT_ROW_HEIGHT_PX}px;border-bottom:1px solid #e2e8f0;overflow:hidden}`,
-    "th.label,td.label{width:24%;text-align:left;padding-right:8px}",
-    "th.detail,td.detail{width:12%;text-align:left;padding-right:8px;color:#64748b}",
-    `th.figure,td.figure{width:${figureWidth}%;text-align:right;padding-left:8px;`,
-    `font-size:${figureFontSize}px;font-variant-numeric:tabular-nums;`,
+    `tbody td{border-bottom:1px solid #e2e8f0;overflow:hidden;line-height:${REPORT_LINE_HEIGHT_PX}px;`,
+    "padding-top:0;padding-bottom:0;overflow-wrap:anywhere}",
+    `th.label,td.label{width:${layout.labelPercent.toFixed(3)}%;text-align:left;`,
+    `padding-right:${REPORT_CELL_PADDING_PX}px}`,
+    `th.detail,td.detail{width:${layout.detailPercent.toFixed(3)}%;text-align:left;`,
+    `padding-right:${REPORT_CELL_PADDING_PX}px;color:#64748b}`,
+    `th.figure,td.figure{width:${layout.figurePercent.toFixed(3)}%;text-align:right;`,
+    `padding-left:${REPORT_CELL_PADDING_PX}px;padding-right:0;`,
+    "font-variant-numeric:tabular-nums;",
     "font-family:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace}",
-    ".clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:13px}",
+    `td.figure{font-size:${layout.figureFontPx}px;white-space:nowrap;overflow-wrap:normal}`,
     `tr.group td{height:${REPORT_GROUP_HEIGHT_PX}px;border-bottom:1px solid #94a3b8;`,
     "font-weight:600;letter-spacing:0.06em;vertical-align:bottom;padding-bottom:4px}",
     `tr.totals td{height:${REPORT_TOTALS_HEIGHT_PX}px;border-top:1px solid #0f172a;`,
