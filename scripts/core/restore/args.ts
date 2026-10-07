@@ -1,6 +1,7 @@
 import chalk from "chalk"
 
 export type RestoreCliOptions = {
+  acceptOlderSchema: boolean
   backupFile: string
   dryRun: boolean
   help: boolean
@@ -11,6 +12,7 @@ export type RestoreArgsParseResult = { data: RestoreCliOptions } | { error: stri
 
 export function parseRestoreArgs(args: string[]): RestoreArgsParseResult {
   const options: RestoreCliOptions = {
+    acceptOlderSchema: false,
     backupFile: "",
     dryRun: false,
     help: false,
@@ -18,6 +20,11 @@ export function parseRestoreArgs(args: string[]): RestoreArgsParseResult {
   }
 
   for (const arg of args) {
+    if (arg === "--accept-older-schema") {
+      options.acceptOlderSchema = true
+      continue
+    }
+
     if (arg === "--dry-run") {
       options.dryRun = true
       continue
@@ -56,11 +63,11 @@ export function getRestoreHelpText(): string {
   const option = (value: string) => chalk.cyan(value)
   const heading = (value: string) => chalk.bold(value)
   const optionLine = (flag: string, description: string) =>
-    `  ${option(flag.padEnd(12))} ${description}`
+    `  ${option(flag.padEnd(21))} ${description}`
 
   return [
     heading("Usage"),
-    `  ${command} ${option("<backup-file|remit://destination/key>")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--help]")}`,
+    `  ${command} ${option("<backup-file|remit://destination/key>")} ${option("[--dry-run]")} ${option("[--yes]")} ${option("[--accept-older-schema]")} ${option("[--help]")}`,
     "",
     heading("Purpose"),
     "  Validate, decrypt, and restore a .remitbak archive produced by pnpm remit:backup.",
@@ -74,7 +81,14 @@ export function getRestoreHelpText(): string {
       "--yes",
       "Skip typed confirmations only when REMIT_ALLOW_UNATTENDED_RESTORE=1 is also set."
     ),
+    optionLine(
+      "--accept-older-schema",
+      "Acknowledge an archive from an older schema migration, which is migrated forward after the restore. Required with --yes; asked for otherwise."
+    ),
     optionLine("--help", "Print this help text."),
+    "",
+    heading("Schema"),
+    "  An archive from an older schema migration is restored and migrated forward once acknowledged. An archive from a newer or unknown migration is refused: migrations only run forwards.",
     "",
     heading("Safety"),
     "  Restore always takes a local pre-restore snapshot before destructive work, writes and verifies every archived file, applies the database with pg_restore --single-transaction, then deletes stored files the archive does not contain.",

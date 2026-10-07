@@ -1,5 +1,9 @@
 import { sql } from "drizzle-orm"
 
+import type postgres from "postgres"
+
+import { releaseBackupLock } from "@/lib/backups/backupLock"
+
 import { writeOperationalAudit } from "../audit/operationalAudit"
 
 import { type RestoreCliOptions } from "./args"
@@ -23,6 +27,7 @@ export type RestoreAuditRecord = {
 
 export type RestoreRuntimeState = {
   auditTrail: RestoreAuditRecord[]
+  backupLock: postgres.ReservedSql | null
   client: DatabaseClient | null
   database: Database | null
   databaseApplied: boolean
@@ -151,6 +156,10 @@ export async function cleanupRuntimeState(state: RestoreRuntimeState): Promise<v
       ? rm(state.stagedObjectsDir, { recursive: true, force: true })
       : Promise.resolve()
   ])
+
+  await releaseBackupLock(state.backupLock).catch(() => undefined)
+
+  state.backupLock = null
 
   if (state.client) {
     await state.client.end()

@@ -3,12 +3,13 @@ import path from "node:path"
 
 import * as p from "@clack/prompts"
 
-import chalk from "chalk"
+import { acquireBackupLock, findBackupLockHolder } from "@/lib/backups/backupLock"
+import { describeBackupLockHolder } from "@/lib/backups/backupLockHolder"
 
+import migrationJournal from "@/drizzle/migrations/meta/_journal.json"
 import pkg from "@/package.json"
 
 import { buildPreRestoreSnapshotPath, formatArchiveTimestamp } from "../backup/filename"
-import { formatBytes } from "../utils/format"
 
 import { deleteObjectsAbsentFromArchive, putArchivedObjects } from "./applyObjects"
 import { getRestoreHelpText, parseRestoreArgs } from "./args"
@@ -19,10 +20,10 @@ import {
   writeRestoreAudit,
   type RestoreRuntimeState
 } from "./auditTrail"
-import { confirmDestructiveRestore } from "./confirm"
+import { confirmDestructiveRestore, confirmOlderArchiveSchema } from "./confirm"
+import { formatDryRunSummary } from "./dryRunSummary"
 import { RestoreCliError } from "./errors"
 import { readAndValidateRestoreHeader } from "./header"
-import { type RestoreManifest } from "./manifestSchema"
 import { runPostRestoreMigrations } from "./postRestoreMigrations"
 import { redactRestoreReason } from "./redact"
 import {
@@ -32,13 +33,9 @@ import {
   type RestoreSource
 } from "./remoteDownload"
 import { restoreDatabaseDump } from "./restoreDump"
+import { assertArchiveSchemaRestorable, compareArchiveSchema } from "./schemaGate"
 import { takePreRestoreSnapshot } from "./snapshot"
-import {
-  getDatabaseName,
-  verifyArchivePayload,
-  type ChecksumDescriptor,
-  type StagedObject
-} from "./verifyArchive"
+import { getDatabaseName, verifyArchivePayload, type ChecksumDescriptor } from "./verifyArchive"
 
 export async function runRestore(): Promise<void> {
   const parsed = parseRestoreArgs(process.argv.slice(2))
@@ -59,6 +56,7 @@ export async function runRestore(): Promise<void> {
 
   const state: RestoreRuntimeState = {
     auditTrail: [],
+    backupLock: null,
     client: null,
     database: null,
     databaseApplied: false,
@@ -70,6 +68,10 @@ export async function runRestore(): Promise<void> {
   const operationId = randomUUID()
   const restoreSource = parseRestoreSource(parsed.data.backupFile)
   let archivePath = formatRestoreSourceForAudit(restoreSource)
+  // Every exit goes through the `finally` below rather than `process.exit` inside the `try`: an
+  // exit there skips the `finally`, which is what removes the staged dump and files and releases the
+  // backup lock.
+  let exitCode = 1
 
   try {
     const { env } = await import("@/lib/config/env")
@@ -109,6 +111,10 @@ export async function runRestore(): Promise<void> {
     })
 
     const databaseName = getDatabaseName(env.DATABASE_URL)
+    const schemaComparison = compareArchiveSchema(
+      verified.manifest.schemaMigrationId,
+      migrationJournal.entries.map((entry) => entry.tag)
+    )
 
     if (parsed.data.dryRun) {
       p.note(
@@ -116,12 +122,32 @@ export async function runRestore(): Promise<void> {
           archivePath: formatRestoreSourceForAudit(restoreSource),
           databaseName,
           manifest: verified.manifest,
-          objects: verified.objects
+          objects: verified.objects,
+          schemaComparison
         }),
         "Dry run"
       )
+      assertArchiveSchemaRestorable(schemaComparison)
       p.outro("Dry run complete. No snapshot, audit entry, database restore or file was written.")
-      process.exit(0)
+      exitCode = 0
+
+      return
+    }
+
+    assertArchiveSchemaRestorable(schemaComparison)
+
+    if (
+      schemaComparison.kind === "older" &&
+      !(await confirmOlderArchiveSchema({
+        acceptOlderSchema: parsed.data.acceptOlderSchema,
+        comparison: schemaComparison,
+        yes: parsed.data.yes
+      }))
+    ) {
+      p.cancel("Restore cancelled. No restore was applied.")
+      exitCode = 0
+
+      return
     }
 
     if (!state.database || !state.client || !state.schema) {
@@ -135,10 +161,27 @@ export async function runRestore(): Promise<void> {
       state.schema = schema
     }
 
-    const database = state.database
-    const schema = state.schema
+    const { client, database, schema } = state
+
+    // Held from before the snapshot until the process ends, and taken before the started entry so a
+    // refused restore leaves no trail of having begun. The snapshot runs the backup pipeline under
+    // this lock without taking it (`lib/backups/backupLock.ts`), and nothing else can start a backup
+    // while files are written, the database is swapped and stale files are deleted — an archive
+    // taken half-way through would hold a store and a database that never existed together.
+    state.backupLock = await acquireBackupLock(client, "restore")
+
+    if (!state.backupLock) {
+      const holder = describeBackupLockHolder(await findBackupLockHolder(client))
+
+      throw new RestoreCliError(
+        `Refusing restore: ${holder} holds the backup lock. Run pnpm remit:restore again once it has finished.`,
+        "backup-lock-held",
+        false
+      )
+    }
 
     await writeRestoreAudit(state, "instance.restore.started", {
+      schemaComparison: schemaComparison.kind,
       operationId,
       archiveAppVersion: verified.manifest.appVersion,
       archivePath: formatRestoreSourceForAudit(restoreSource),
@@ -209,7 +252,7 @@ export async function runRestore(): Promise<void> {
     })
 
     p.outro("Restore complete.")
-    process.exit(0)
+    exitCode = 0
   } catch (error) {
     p.cancel("Restore failed.")
     console.error(formatRestoreError(error))
@@ -219,39 +262,15 @@ export async function runRestore(): Promise<void> {
       operationId,
       parsed: parsed.data
     })
-
-    process.exit(1)
   } finally {
-    await cleanupRuntimeState(state)
+    // A failed cleanup is printed and never allowed to stop the exit below: the process ending is
+    // what finally releases a lock or a connection the cleanup could not.
+    await cleanupRuntimeState(state).catch((error: unknown) => {
+      console.error(`Restore cleanup failed: ${redactRestoreReason(error)}`)
+    })
+
+    process.exit(exitCode)
   }
-}
-
-function formatDryRunSummary(input: {
-  archivePath: string
-  databaseName: string
-  manifest: RestoreManifest
-  objects: readonly StagedObject[]
-}): string {
-  const countFor = (role: StagedObject["role"]) => {
-    const objects = input.objects.filter((object) => object.role === role)
-
-    return `${objects.length} files, ${formatBytes(objects.reduce((sum, object) => sum + object.size, 0))}`
-  }
-
-  return [
-    `${chalk.bold("Archive")}: ${input.archivePath}`,
-    `${chalk.bold("Created")}: ${input.manifest.createdAt}`,
-    `${chalk.bold("Archive format")}: ${input.manifest.archiveFormatVersion}`,
-    `${chalk.bold("Archive app version")}: ${input.manifest.appVersion}`,
-    `${chalk.bold("Schema migration")}: ${input.manifest.schemaMigrationId}`,
-    `${chalk.bold("Destination recorded")}: ${input.manifest.destination}`,
-    `${chalk.bold("Database target")}: ${input.databaseName}`,
-    `${chalk.bold("Database dump")}: ${formatBytes(input.manifest.components.database.size)}`,
-    `${chalk.bold("Stored files (public)")}: ${countFor("public")}`,
-    `${chalk.bold("Stored files (documents)")}: ${countFor("documents")}`,
-    "",
-    "Would create a mandatory local pre-restore snapshot, write and verify every archived file, run pg_restore with --single-transaction, apply forward migrations, and delete stored files the archive does not contain."
-  ].join("\n")
 }
 
 function formatRestoreError(error: unknown): string {
