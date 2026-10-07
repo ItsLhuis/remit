@@ -1,6 +1,10 @@
 import { logger } from "@/lib/logger"
 
-import { acquireBackupLock, releaseBackupLock } from "@/lib/backups/backupLock"
+import {
+  acquireBackupLock,
+  findBackupLockHolder,
+  releaseBackupLock
+} from "@/lib/backups/backupLock"
 import { env } from "@/lib/config/env"
 import { registerJobHandler } from "@/lib/jobs"
 
@@ -56,12 +60,12 @@ async function runScheduledBackup(): Promise<void> {
     return
   }
 
-  const lock = await acquireBackupLock(client)
+  const lock = await acquireBackupLock(client, "scheduled-backup")
 
   if (!lock) {
     logger.warn(
-      { action: "backup.run.sweep" },
-      "Scheduled backup skipped: another backup is already running"
+      { action: "backup.run.sweep", ...(await findBackupLockHolder(client)) },
+      "Scheduled backup skipped: a backup, restore or key rotation holds the backup lock"
     )
 
     return

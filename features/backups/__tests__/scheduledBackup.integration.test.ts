@@ -160,10 +160,10 @@ test("writes no second archive when the sweep runs again inside the cadence", as
   expect(await listArchives()).toEqual([])
 })
 
-test("writes no archive while another backup holds the lock", async () => {
+test("writes no archive while a restore holds the backup lock", async () => {
   await makeSettings({ backupCadence: "daily", backupDestination: "local" })
 
-  const lock = await acquireBackupLock(client)
+  const lock = await acquireBackupLock(client, "restore")
 
   try {
     await enqueueJob("backup.run.sweep", {}, { jobId: "test.backup.sweep.locked" })
@@ -171,6 +171,21 @@ test("writes no archive while another backup holds the lock", async () => {
 
     expect(await listArchives()).toEqual([])
     expect((await readBackupStatus())?.lastSuccessAt).toBeNull()
+  } finally {
+    await releaseBackupLock(lock)
+  }
+})
+
+test("writes no archive while an operator's backup holds the lock", async () => {
+  await makeSettings({ backupCadence: "daily", backupDestination: "local" })
+
+  const lock = await acquireBackupLock(client, "manual-backup")
+
+  try {
+    await enqueueJob("backup.run.sweep", {}, { jobId: "test.backup.sweep.manual" })
+    await waitForJob("test.backup.sweep.manual")
+
+    expect(await listArchives()).toEqual([])
   } finally {
     await releaseBackupLock(lock)
   }
