@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import { once } from "node:events"
 import { createWriteStream } from "node:fs"
@@ -7,7 +6,7 @@ import path from "node:path"
 import { type Readable, type Writable } from "node:stream"
 import { finished } from "node:stream/promises"
 
-import { waitForProcess } from "../utils/process"
+import { spawnPostgresTool, waitForProcess } from "../utils/process"
 
 export type DatabaseDumpDescriptor = {
   path: string
@@ -34,16 +33,12 @@ export async function dumpDatabaseToTempFile(
   let size = 0
   let stderr = ""
 
-  // On Windows pg_dump is resolved through the shell so PATHEXT finds pg_dump.exe
-  // or pg_dump.cmd. Arguments are a fixed static array; the shell never receives
-  // untrusted input.
-  const child = spawn("pg_dump", ["--format=custom", "--no-owner", "--no-privileges"], {
+  const child = spawnPostgresTool("pg_dump", ["--format=custom", "--no-owner", "--no-privileges"], {
     env: {
       ...process.env,
       ...databaseUrlToPgEnv(databaseUrl),
       PG_COLOR: "never"
     },
-    shell: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe"]
   })
 

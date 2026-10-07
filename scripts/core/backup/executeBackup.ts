@@ -17,7 +17,12 @@ import { buildChecksumsFile, totalArchivedObjects } from "./objectPlan"
 import { collectArchivedObjects, type CollectedObjects } from "./objects"
 import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
 import { updateBackupFailure, updateBackupSuccess } from "./statusUpdate"
-import { enforceRemoteRetention, uploadArchive, writeEncryptedTar } from "./writeArchive"
+import {
+  enforceLocalRetention,
+  enforceRemoteRetention,
+  uploadArchive,
+  writeEncryptedTar
+} from "./writeArchive"
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
@@ -189,6 +194,10 @@ async function writeBackupArchive(
   } finally {
     await rm(dump.path, { force: true })
   }
+
+  // Only an archive Remit named and placed itself is pruned around. One written to --output — every
+  // pre-restore snapshot and pre-rotation backup among them — is the operator's to keep.
+  if (plan.destination === "local" && options.output === null) await enforceLocalRetention(plan)
 
   if (plan.destination !== "local") {
     if (!destinationAdapter || !plan.objectKey) {

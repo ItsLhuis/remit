@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto"
 import { createReadStream, createWriteStream } from "node:fs"
-import { mkdir, rename, rm, stat } from "node:fs/promises"
+import { mkdir, readdir, rename, rm, stat } from "node:fs/promises"
 import path from "node:path"
 import { finished } from "node:stream/promises"
 import { createGzip } from "node:zlib"
@@ -18,7 +18,7 @@ import { TarWriter } from "../archive/tar"
 import { type BackupDestinationAdapter } from "../destination"
 
 import { type DatabaseDumpDescriptor } from "./databaseDump"
-import { REMOTE_BACKUP_PREFIX } from "./filename"
+import { parseBackupFilenameTimestamp, REMOTE_BACKUP_PREFIX } from "./filename"
 import { openVerifiedObjectStream, type ArchivedObject } from "./objects"
 import { type BackupPlan } from "./plan"
 import { computeRetentionDeletions } from "./retention"
@@ -113,6 +113,32 @@ export async function enforceRemoteRetention(
     }
   } catch {
     console.warn("Backup retention cleanup failed; the uploaded archive remains available.")
+  }
+}
+
+// The local counterpart of `enforceRemoteRetention`, over the same policy and the same pure
+// selection, for an archive written under its own name into the backups directory. The archive's
+// time is read from its name rather than its modification time, so copying the directory to another
+// disk does not make every archive look a day old.
+export async function enforceLocalRetention(plan: BackupPlan): Promise<void> {
+  const backupsDir = path.dirname(plan.outputPath)
+
+  try {
+    const existing = (await readdir(backupsDir)).flatMap((filename) => {
+      const createdAt = parseBackupFilenameTimestamp(filename)
+
+      return createdAt ? [{ key: filename, createdAt }] : []
+    })
+    const deletions = computeRetentionDeletions(existing, plan.retentionPolicy, new Date())
+
+    for (const filename of deletions) {
+      // The same guard as the remote pass, for the same reason.
+      if (filename === plan.archiveFilename) continue
+
+      await rm(path.join(backupsDir, filename), { force: true })
+    }
+  } catch {
+    console.warn("Local backup retention cleanup failed; the new archive remains available.")
   }
 }
 

@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts"
 
 import { getBackupHelpText, parseBackupArgs } from "./core/backup/args"
-import { formatBackupError, runBackup } from "./core/backup/runBackup"
+import { formatBackupError, runBackup, runOperatorBackup } from "./core/backup/runBackup"
 import { loadCliEnvironment } from "./core/cli/bootstrap"
 import { isDirectRunNamed } from "./core/cli/isDirectRun"
 
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   ])
 
   try {
-    const result = await runBackup(database, schema, {
+    const result = await runOperatorBackup(client, database, schema, {
       ...parsed.data,
       databaseUrl: env.DATABASE_URL,
       encryptionKey: Buffer.from(env.REMIT_ENCRYPTION_KEY, "base64"),

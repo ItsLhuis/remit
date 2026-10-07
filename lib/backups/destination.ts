@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream } from "node:fs"
-import { mkdir, rm, stat } from "node:fs/promises"
+import { mkdir, rm, rmdir, stat } from "node:fs/promises"
 import path from "node:path"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
@@ -241,10 +241,32 @@ function buildLocalDestinationAdapter(rootDirectory: string): BackupDestinationA
       return await listLocalBackupObjects(rootDir, prefixPath)
     },
     async delete(key) {
-      await rm(resolveLocalKeyPath(rootDir, key), { force: true })
+      const keyPath = resolveLocalKeyPath(rootDir, key)
+
+      await rm(keyPath, { force: true })
+      await removeEmptyParents(rootDir, path.dirname(keyPath))
     },
     async get(key) {
       return createReadStream(resolveLocalKeyPath(rootDir, key))
+    }
+  }
+}
+
+// A key's prefix is a directory here and nothing at all in a bucket, so deleting the last key under
+// one leaves a directory a bucket would not show — the connection test's `remit-connection-test/`
+// being the case an operator sees. Walks up to, and never removes, the backup directory itself.
+// `rmdir` refuses a directory that is not empty, which is what stops the walk at the first one still
+// holding something; that refusal, and a parent already gone, are the expected ends of the walk.
+async function removeEmptyParents(rootDir: string, directory: string): Promise<void> {
+  for (
+    let current = directory;
+    current !== rootDir && !path.relative(rootDir, current).startsWith("..");
+    current = path.dirname(current)
+  ) {
+    try {
+      await rmdir(current)
+    } catch {
+      return
     }
   }
 }

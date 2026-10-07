@@ -2,6 +2,13 @@ import * as p from "@clack/prompts"
 
 import chalk from "chalk"
 
+import {
+  acquireBackupLock,
+  findBackupLockHolder,
+  releaseBackupLock
+} from "@/lib/backups/backupLock"
+import { describeBackupLockHolder } from "@/lib/backups/backupLockHolder"
+
 import pkg from "@/package.json"
 
 import { exitOnCancel } from "../cli/exitOnCancel"
@@ -22,6 +29,7 @@ import { listArchivedObjects } from "./objects"
 import { buildBackupPlan, getLatestAppliedMigrationId, type BackupPlan } from "./plan"
 
 type Database = typeof import("@/database").database
+type DatabaseClient = typeof import("@/database").client
 type Schema = typeof import("@/database/schema")
 type ObjectTotals = ReturnType<typeof totalArchivedObjects>
 
@@ -41,6 +49,41 @@ export type RunBackupOptions = BackupCliOptions & {
 }
 
 export { BackupCliError, redactBackupReason, type BackupResult }
+
+// `pnpm remit:backup` under the backup lock (`lib/backups/backupLock.ts`). A held lock is refused
+// with the holder named rather than waited on. Waiting was rejected: the realistic holders are a
+// restore and a key rotation, each of which can run for as long as its archive is large, and an
+// operator — or a host cron entry — left blocked behind one has no idea why the command hangs, while
+// a backup that starts the moment a restore finishes archives a database nobody has checked yet.
+// The refusal costs one re-run and says exactly when to make it. A dry run writes nothing, so it
+// takes no lock and is never refused.
+//
+// `runBackup` itself stays unlocked: the pre-restore snapshot and the pre-rotation backup call it
+// from inside an operation that already holds the lock, and must never be refused by it.
+export async function runOperatorBackup(
+  client: DatabaseClient,
+  database: Database,
+  schema: Schema,
+  options: RunBackupOptions
+): Promise<BackupResult> {
+  if (options.dryRun) return await runBackup(database, schema, options)
+
+  const lock = await acquireBackupLock(client, "manual-backup")
+
+  if (!lock) {
+    const holder = describeBackupLockHolder(await findBackupLockHolder(client))
+
+    throw new BackupCliError(
+      `Refusing backup: ${holder} holds the backup lock. Run pnpm remit:backup again once it has finished.`
+    )
+  }
+
+  try {
+    return await runBackup(database, schema, options)
+  } finally {
+    await releaseBackupLock(lock)
+  }
+}
 
 // The operator-facing wrapper around `executeBackup`. Everything it adds is presentation — spinners,
 // the plan note, the overwrite confirmation — and it adds it through the one `onPlanned` hook rather

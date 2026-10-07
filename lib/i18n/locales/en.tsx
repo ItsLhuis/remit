@@ -4242,7 +4242,7 @@ export const english: Language = {
         retentionWarning:
           "Everything outside these windows is deleted the next time a backup runs. Lowering a number discards the archives it no longer covers, and 0 keeps nothing in that window.",
         retentionLocalNote:
-          "Retention applies to Amazon S3, Cloudflare R2 and Backblaze B2. Local archives are never deleted; remove them yourself.",
+          "Retention applies to every destination, including archives in the local backups directory. Pre-restore snapshots, pre-rotation backups and archives written to a path you chose with --output are never deleted.",
         statusTitle: "Status",
         statusDescription: "The last backup run and the last time these credentials were verified.",
         lastSuccess: "Last successful backup {date}",
