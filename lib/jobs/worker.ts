@@ -4,9 +4,10 @@ import { logger } from "@/lib/logger"
 
 import { reportError } from "@/lib/errorTracking"
 
+import { isFinalJobAttempt } from "./attempts"
 import { createRedisConnection } from "./connection"
 import { closeQueue, QUEUE_NAME } from "./queue"
-import { getJobHandler, getRegisteredJobNames } from "./registry"
+import { getJobExhaustedHandler, getJobHandler, getRegisteredJobNames } from "./registry"
 import { registerRepeatableJobs } from "./schedules"
 import { closeStatsConnection, recordScheduledJobOutcome } from "./stats"
 import { type JobName } from "./types"
@@ -72,17 +73,33 @@ export async function stopWorker(): Promise<void> {
   logger.info({ action: "worker.stop" }, "Job worker stopped")
 }
 
-// `failed` fires on every attempt, retries included, and `attemptsMade` already counts this one
-// when it does. Only the attempt that exhausts the budget is a failed run, so only it is counted and
-// reported; an attempt that a later retry recovers is neither. Returns the reported event's id.
+// Only the attempt that exhausts the budget is a failed run (`attempts.ts`), so only it is counted,
+// reported and handed to the job's exhausted handler; an attempt that a later retry recovers is
+// none of these. Returns the reported event's id.
 function settleFailedAttempt(job: Job, error: Error): string | null {
-  if (job.attemptsMade < (job.opts.attempts ?? 1)) return null
+  if (!isFinalJobAttempt(job.attemptsMade, job.opts.attempts)) return null
 
   void recordScheduledJobOutcome(job.name, "failed", Date.now())
+  void runExhaustedHandler(job)
 
   // The job's id stays out of the report: several are deterministic and embed the record they work
   // on. The caller's log line carries it beside the event id instead.
   return reportError(error, { source: "job", jobName: job.name, attempts: job.attemptsMade })
+}
+
+async function runExhaustedHandler(job: Job): Promise<void> {
+  const onExhausted = getJobExhaustedHandler(job.name as JobName)
+
+  if (!onExhausted) return
+
+  try {
+    await onExhausted(job.data)
+  } catch (error) {
+    logger.error(
+      { action: "worker.job.exhausted", job: job.name, jobId: job.id, err: error },
+      "Exhausted job handler failed"
+    )
+  }
 }
 
 async function processJob(job: Job): Promise<void> {

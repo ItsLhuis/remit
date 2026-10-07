@@ -1,11 +1,20 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 type FailedHandler = (
-  job: { name: string; id: string; attemptsMade: number; opts: { attempts?: number } } | undefined,
+  job:
+    | {
+        name: string
+        id: string
+        attemptsMade: number
+        opts: { attempts?: number }
+        data?: unknown
+      }
+    | undefined,
   error: Error
 ) => void
 
 const mocks = vi.hoisted(() => ({
+  getJobExhaustedHandler: vi.fn((): ((payload: unknown) => Promise<void>) | null => null),
   handlers: new Map<string, (...args: unknown[]) => void>(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   reportError: vi.fn(() => "0123456789abcdef0123456789abcdef"),
@@ -32,7 +41,11 @@ vi.mock("../connection", () => ({ createRedisConnection: vi.fn() }))
 
 vi.mock("../queue", () => ({ QUEUE_NAME: "remit", closeQueue: vi.fn(async () => undefined) }))
 
-vi.mock("../registry", () => ({ getJobHandler: vi.fn(), getRegisteredJobNames: vi.fn(() => []) }))
+vi.mock("../registry", () => ({
+  getJobExhaustedHandler: mocks.getJobExhaustedHandler,
+  getJobHandler: vi.fn(),
+  getRegisteredJobNames: vi.fn(() => [])
+}))
 
 vi.mock("../schedules", () => ({ registerRepeatableJobs: vi.fn(async () => undefined) }))
 
@@ -65,6 +78,7 @@ afterEach(async () => {
   await stopWorker()
 
   mocks.handlers.clear()
+  mocks.getJobExhaustedHandler.mockReturnValue(null)
   vi.clearAllMocks()
 })
 
@@ -103,5 +117,40 @@ test("a job that exhausts its attempts is reported by name, without its id", asy
     "invoice.pdf.render",
     "failed",
     expect.any(Number)
+  )
+})
+
+test("a job that exhausts its attempts is handed to its exhausted handler with its payload", async () => {
+  const onExhausted = vi.fn(async () => undefined)
+  mocks.getJobExhaustedHandler.mockReturnValue(onExhausted)
+  const onFailed = await startAndGetFailedHandler()
+
+  onFailed({ ...RENDER_JOB, data: { invoiceId: "i-1" }, attemptsMade: 5 }, new Error("boom"))
+
+  await vi.waitFor(() => expect(onExhausted).toHaveBeenCalledWith({ invoiceId: "i-1" }))
+})
+
+test("an attempt a retry may still recover never reaches the exhausted handler", async () => {
+  const onExhausted = vi.fn(async () => undefined)
+  mocks.getJobExhaustedHandler.mockReturnValue(onExhausted)
+  const onFailed = await startAndGetFailedHandler()
+
+  onFailed({ ...RENDER_JOB, data: { invoiceId: "i-1" }, attemptsMade: 4 }, new Error("boom"))
+
+  expect(onExhausted).not.toHaveBeenCalled()
+})
+
+test("a failing exhausted handler is logged rather than thrown", async () => {
+  const failure = new Error("database unavailable")
+  mocks.getJobExhaustedHandler.mockReturnValue(vi.fn(async () => Promise.reject(failure)))
+  const onFailed = await startAndGetFailedHandler()
+
+  onFailed({ ...RENDER_JOB, data: { invoiceId: "i-1" }, attemptsMade: 5 }, new Error("boom"))
+
+  await vi.waitFor(() =>
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "worker.job.exhausted", err: failure }),
+      "Exhausted job handler failed"
+    )
   )
 })

@@ -12,6 +12,7 @@ import { webhookDeliveries, webhookEndpoints } from "@/database/schema"
 import { safePost, type SafePostResult, type WebhookResolver } from "./safePost"
 import {
   decideWebhookDelivery,
+  getStrandedDeliveryCutoff,
   shouldDisableWebhookEndpoint,
   WEBHOOK_DELIVERY_RETENTION_DAYS,
   type WebhookDeliveryDecision
@@ -78,6 +79,28 @@ export async function sendWebhookDelivery(
   if (decision === "retry") throw new WebhookRetryError()
 
   return decision
+}
+
+// The job's exhausted handler (`jobs.ts`): BullMQ has given up, so a delivery still `pending` is one
+// whose last attempts failed before they could record an outcome, or recorded a retry that will now
+// never come. It ends `failed` with the status code and attempt log its recorded attempts left, and
+// counts toward the endpoint's failure streak like any other delivery that ran out of retries.
+export async function settleExhaustedWebhookDelivery(
+  deliveryId: string,
+  now: Date = new Date()
+): Promise<boolean> {
+  const [settled] = await database
+    .update(webhookDeliveries)
+    .set({ status: "failed", completedAt: now })
+    .where(and(eq(webhookDeliveries.id, deliveryId), eq(webhookDeliveries.status, "pending")))
+    .returning({ endpointId: webhookDeliveries.endpointId })
+
+  if (!settled) return false
+
+  await settleEndpoint(settled.endpointId, "failed")
+  await pruneDeliveries(settled.endpointId, now)
+
+  return true
 }
 
 async function loadDelivery(deliveryId: string): Promise<DeliveryRow | null> {
@@ -224,7 +247,22 @@ async function settleEndpoint(
 
 // Bounded by age rather than by a sweep of its own: every completed delivery trims its endpoint's
 // history, so a busy endpoint's log stays short and an idle one has nothing to trim.
+//
+// It also fails every stranded delivery, on any endpoint (`getStrandedDeliveryCutoff`): one whose
+// exhausted handler never ran, or ran against a database that was down. These do not count toward an
+// endpoint's failure streak: they are old, the streak measures the receiver's recent behaviour, and
+// counting a backlog of them at once could switch off an endpoint that is answering today.
 async function pruneDeliveries(endpointId: string, now: Date): Promise<void> {
+  await database
+    .update(webhookDeliveries)
+    .set({ status: "failed", completedAt: now })
+    .where(
+      and(
+        eq(webhookDeliveries.status, "pending"),
+        lt(webhookDeliveries.createdAt, getStrandedDeliveryCutoff(now))
+      )
+    )
+
   await database
     .delete(webhookDeliveries)
     .where(

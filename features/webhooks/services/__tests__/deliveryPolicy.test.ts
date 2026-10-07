@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest"
 import {
   classifyHttpStatus,
   decideWebhookDelivery,
+  getStrandedDeliveryCutoff,
   shouldDisableWebhookEndpoint,
   WEBHOOK_DISABLE_AFTER_FAILURES,
   WEBHOOK_MAX_ATTEMPTS
@@ -43,5 +44,13 @@ describe("webhook delivery policy", () => {
   test("switches an endpoint off only once its failure streak reaches the threshold", () => {
     expect(shouldDisableWebhookEndpoint(WEBHOOK_DISABLE_AFTER_FAILURES - 1)).toBe(false)
     expect(shouldDisableWebhookEndpoint(WEBHOOK_DISABLE_AFTER_FAILURES)).toBe(true)
+  })
+
+  test("treats a delivery as stranded once it is a day old, well past the whole retry schedule", () => {
+    const now = new Date("2026-10-06T12:00:00.000Z")
+
+    const cutoff = getStrandedDeliveryCutoff(now)
+
+    expect(cutoff.toISOString()).toBe("2026-10-05T12:00:00.000Z")
   })
 })

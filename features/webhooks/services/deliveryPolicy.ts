@@ -13,6 +13,18 @@ export const WEBHOOK_DISABLE_AFTER_FAILURES = 10
 
 export const WEBHOOK_DELIVERY_RETENTION_DAYS = 30
 
+// The whole retry schedule above runs in about sixteen minutes. A delivery still `pending` a day after
+// it was created has no attempt left coming: its job was exhausted before an outcome could be
+// recorded, by a build that did not settle exhausted jobs or by an exhausted handler that could not
+// reach the database. The day is margin, not arithmetic — a worker stopped for longer than that and
+// then restarted still holds the job, and its late attempt finds the delivery already `failed` and
+// sends nothing, which is the price of never leaving a delivery `pending` forever.
+const STRANDED_DELIVERY_AGE_MS = 24 * 60 * 60 * 1000
+
+export function getStrandedDeliveryCutoff(now: Date): Date {
+  return new Date(now.getTime() - STRANDED_DELIVERY_AGE_MS)
+}
+
 export type WebhookAttemptOutcome =
   | "delivered"
   | "http_error"

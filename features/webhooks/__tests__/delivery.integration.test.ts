@@ -10,7 +10,7 @@ import { auditLogs, webhookDeliveries, webhookEndpoints } from "@/database/schem
 import { makeWebhookDelivery, makeWebhookEndpoint } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
-import { sendWebhookDelivery, WebhookRetryError } from "../delivery"
+import { sendWebhookDelivery, settleExhaustedWebhookDelivery, WebhookRetryError } from "../delivery"
 import { WEBHOOK_DISABLE_AFTER_FAILURES, WEBHOOK_MAX_ATTEMPTS } from "../services/deliveryPolicy"
 import { verifyWebhookSignature } from "../services/signature"
 
@@ -229,5 +229,66 @@ describe("webhook delivery", () => {
     expect(decision).toBe("failed")
     expect(received).toHaveLength(0)
     expect(firstOutcome((await readDelivery(delivery.id))?.attempts)).toBe("endpoint_inactive")
+  })
+})
+
+describe("deliveries that outlive their job", () => {
+  test("an exhausted job settles its still-pending delivery failed and extends the streak", async () => {
+    const endpoint = await makeWebhookEndpoint({ url: receiverUrl })
+    const delivery = await makeWebhookDelivery({
+      endpointId: endpoint.id,
+      attemptCount: 2,
+      lastStatusCode: 502
+    })
+
+    const settled = await settleExhaustedWebhookDelivery(delivery.id)
+
+    const row = await readDelivery(delivery.id)
+    const [endpointRow] = await database
+      .select({ consecutiveFailures: webhookEndpoints.consecutiveFailures })
+      .from(webhookEndpoints)
+      .where(eq(webhookEndpoints.id, endpoint.id))
+
+    expect(settled).toBe(true)
+    expect(row?.status).toBe("failed")
+    expect(row?.lastStatusCode).toBe(502)
+    expect(row?.completedAt).not.toBeNull()
+    expect(endpointRow?.consecutiveFailures).toBe(1)
+  })
+
+  test("an exhausted job leaves a delivery that already finished as it was", async () => {
+    const endpoint = await makeWebhookEndpoint({ url: receiverUrl })
+    const delivery = await makeWebhookDelivery({ endpointId: endpoint.id, status: "succeeded" })
+
+    const settled = await settleExhaustedWebhookDelivery(delivery.id)
+
+    expect(settled).toBe(false)
+    expect((await readDelivery(delivery.id))?.status).toBe("succeeded")
+  })
+
+  test("a completed delivery fails every day-old pending one without counting it against its endpoint", async () => {
+    const now = new Date()
+    const strandedEndpoint = await makeWebhookEndpoint({ url: receiverUrl })
+    const stranded = await makeWebhookDelivery({
+      endpointId: strandedEndpoint.id,
+      createdAt: new Date(now.getTime() - 25 * 60 * 60 * 1000)
+    })
+    const recent = await makeWebhookDelivery({
+      endpointId: strandedEndpoint.id,
+      createdAt: new Date(now.getTime() - 60 * 60 * 1000)
+    })
+    const endpoint = await makeWebhookEndpoint({ url: receiverUrl })
+    const delivery = await makeWebhookDelivery({ endpointId: endpoint.id })
+
+    await sendWebhookDelivery(delivery.id)
+
+    const [strandedEndpointRow] = await database
+      .select({ consecutiveFailures: webhookEndpoints.consecutiveFailures })
+      .from(webhookEndpoints)
+      .where(eq(webhookEndpoints.id, strandedEndpoint.id))
+
+    expect((await readDelivery(stranded.id))?.status).toBe("failed")
+    expect((await readDelivery(recent.id))?.status).toBe("pending")
+    expect(strandedEndpointRow?.consecutiveFailures).toBe(0)
   })
 })
