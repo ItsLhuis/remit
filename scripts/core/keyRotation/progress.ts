@@ -71,7 +71,7 @@ function readOperationId(metadata: unknown): string | null {
   return readStringMetadata(metadata, "operationId")
 }
 
-function readStringMetadata(metadata: unknown, key: string): string | null {
+export function readStringMetadata(metadata: unknown, key: string): string | null {
   if (typeof metadata !== "object" || metadata === null || !(key in metadata)) return null
 
   const value = (metadata as Record<string, unknown>)[key]

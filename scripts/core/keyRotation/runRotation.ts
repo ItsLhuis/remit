@@ -7,26 +7,28 @@ import chalk from "chalk"
 
 import type postgres from "postgres"
 
+import {
+  acquireBackupLock,
+  findBackupLockHolder,
+  releaseBackupLock
+} from "@/lib/backups/backupLock"
+import { describeBackupLockHolder } from "@/lib/backups/backupLockHolder"
+
 import pkg from "@/package.json"
 
 import { buildPreRotationBackupPath } from "../backup/filename"
 import { runBackup } from "../backup/runBackup"
-import { decryptValue, encryptValue } from "../encryption/values"
 import { readAndValidateRestoreHeader } from "../restore/header"
 import { verifyArchivePayload } from "../restore/verifyArchive"
-import { formatBytes } from "../utils/format"
 
-import { listArchivePlans, reencryptConfiguredArchives, type ArchivePlan } from "./archives"
+import { reencryptConfiguredArchives, type ArchivePlan } from "./archives"
 import { type RotateCliOptions } from "./args"
 import { writeRotationAudit } from "./audit"
-import { groupEncryptedColumns, type EncryptedTable } from "./columns"
+import { groupEncryptedColumns } from "./columns"
+import { runDryRun } from "./dryRun"
 import { RotationCliError } from "./errors"
 import { acquireRotationLock, releaseRotationLock } from "./lock"
-import {
-  resolveRotationProgress,
-  type RotationAuditEvent,
-  type RotationAuditRecord
-} from "./progress"
+import { loadRotationProgress, readStartedBackupPath } from "./progressTrail"
 import { validateRuntimeKeys } from "./readKeys"
 import { redactRotationReason } from "./redact"
 import { rotateEncryptedTables, type TableRotationResult } from "./rotateTables"
@@ -49,6 +51,7 @@ export type RotationRuntimeOptions = RotateCliOptions & {
 }
 
 type RotationState = {
+  backupLock: ReservedSql | null
   client: Sql | null
   lock: ReservedSql | null
   operationId: string | null
@@ -61,6 +64,7 @@ export async function runKeyRotation(
   options: RotationRuntimeOptions
 ): Promise<void> {
   const state: RotationState = {
+    backupLock: null,
     client,
     lock: null,
     operationId: null
@@ -99,6 +103,21 @@ export async function runKeyRotation(
     if (options.dryRun) {
       await runDryRun(client, options, tables)
       return
+    }
+
+    // Held for the whole rotation, the way a restore holds it (`lib/backups/backupLock.ts`): the
+    // pre-rotation backup runs under it without taking it, and no other backup can write or prune an
+    // archive while this run re-encrypts them — an archive uploaded after that pass has listed the
+    // destination stays readable only by the retired key. It also covers the moment below when the
+    // rotation lock is dropped for the pre-rotation backup.
+    state.backupLock = await acquireBackupLock(client, "key-rotation")
+
+    if (!state.backupLock) {
+      const holder = describeBackupLockHolder(await findBackupLockHolder(client))
+
+      throw new RotationCliError(
+        `Refusing rotation: ${holder} holds the backup lock. Run the rotation again once it has finished.`
+      )
     }
 
     let operationId: string = randomUUID()
@@ -164,8 +183,10 @@ export async function runKeyRotation(
     }
     throw error
   } finally {
+    await releaseBackupLock(state.backupLock)
     await releaseRotationLock(state.lock)
 
+    state.backupLock = null
     state.lock = null
   }
 }
@@ -205,153 +226,6 @@ async function ensurePreRotationBackup(
   })
 
   return outputPath
-}
-
-async function runDryRun(
-  client: Sql,
-  options: RotationRuntimeOptions,
-  tables: readonly EncryptedTable[]
-): Promise<void> {
-  const tableSummaries = await Promise.all(
-    tables.map(async (table) => {
-      const rowCount = await countRows(client, table.table)
-      const verified = await verifyTableRoundTrip(client, table, options)
-      return { table: table.table, rowCount, verified }
-    })
-  )
-  const archivePlans = await listArchivePlans(client, options, options.oldKey)
-
-  p.note(
-    [
-      chalk.bold("Encrypted tables"),
-      ...tableSummaries.map(
-        (summary) =>
-          `  ${summary.table}: ${summary.rowCount} rows; ${summary.verified ? "round-trip verified" : "no encrypted value to sample"}`
-      ),
-      "",
-      chalk.bold("Backup archives"),
-      ...(archivePlans.length === 0
-        ? ["  No .remitbak archives found."]
-        : archivePlans.map((archive) => {
-            const descriptor =
-              archive.destination === "local"
-                ? archive.path
-                : `remit://${archive.destination}/${archive.key}`
-
-            return `  ${descriptor} (${formatBytes(archive.size)})`
-          }))
-    ].join("\n"),
-    "Dry run"
-  )
-
-  p.outro("Dry run complete. No backup, audit entry, database update, or archive rewrite was made.")
-}
-
-async function verifyTableRoundTrip(
-  client: Sql,
-  table: EncryptedTable,
-  options: { newKey: Buffer; oldKey: Buffer }
-): Promise<boolean> {
-  for (const column of table.columns) {
-    const rows = await client<Array<Record<string, unknown>>>`
-      SELECT ${client(column)}
-      FROM ${client(table.table)}
-      WHERE ${client(column)} IS NOT NULL
-      LIMIT 1
-    `
-    const row = rows[0]
-    const value = row ? row[column] : null
-    if (typeof value !== "string" || !value) continue
-
-    const plaintext = decryptValue(value, options.oldKey)
-    const reencrypted = encryptValue(plaintext, options.newKey)
-
-    if (decryptValue(reencrypted, options.newKey) !== plaintext) {
-      throw new RotationCliError(
-        `Round-trip verification failed for ${table.table}.${column}; rotation was not started.`
-      )
-    }
-
-    return true
-  }
-
-  return false
-}
-
-async function countRows(client: Sql, table: string): Promise<number> {
-  const [row] = await client<Array<{ count: number }>>`
-    SELECT COUNT(*)::int AS count
-    FROM ${client(table)}
-  `
-
-  return row?.count ?? 0
-}
-
-async function loadRotationProgress(client: Sql) {
-  const rows = await client<
-    Array<{ created_at: Date | string; event: RotationAuditEvent; metadata: unknown }>
-  >`
-    SELECT event, metadata, created_at
-    FROM audit_logs
-    WHERE event LIKE 'instance.key_rotation.%'
-    ORDER BY created_at ASC
-  `
-  const records: RotationAuditRecord[] = rows.map((row) => ({
-    event: row.event,
-    createdAt: readAuditCreatedAt(row.created_at),
-    metadata: row.metadata
-  }))
-
-  return resolveRotationProgress(records)
-}
-
-function readAuditCreatedAt(value: Date | string): Date {
-  const createdAt = value instanceof Date ? value : new Date(value)
-
-  if (Number.isNaN(createdAt.getTime())) {
-    throw new RotationCliError("Key rotation audit trail contains an invalid created_at timestamp.")
-  }
-
-  return createdAt
-}
-
-async function readStartedBackupPath(client: Sql, operationId: string): Promise<string> {
-  const [row] = await client<Array<{ metadata: unknown }>>`
-    SELECT metadata
-    FROM audit_logs
-    WHERE event = 'instance.key_rotation.started'
-    ORDER BY created_at DESC
-    LIMIT 1
-  `
-  const metadata = row?.metadata
-
-  if (!metadataMatchesOperation(metadata, operationId)) {
-    throw new RotationCliError(
-      "Refusing resume: latest key rotation start marker does not match the resume operation."
-    )
-  }
-
-  const backupPath = readMetadataString(metadata, "backupPath")
-
-  if (!backupPath) {
-    throw new RotationCliError(
-      "Refusing resume: key rotation audit trail is missing the pre-rotation backup path."
-    )
-  }
-
-  return backupPath
-}
-
-function metadataMatchesOperation(metadata: unknown, operationId: string): boolean {
-  return readMetadataString(metadata, "operationId") === operationId
-}
-
-function readMetadataString(metadata: unknown, key: string): string | null {
-  if (typeof metadata !== "object" || metadata === null || !(key in metadata)) return null
-
-  const value = (metadata as Record<string, unknown>)[key]
-
-  return typeof value === "string" && value.length > 0 ? value : null
 }
 
 function printSuccessSummary(input: {
