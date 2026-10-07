@@ -60,3 +60,5 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0044](0044-invoice-outstanding-and-credit-settlement.md) | One outstanding amount, credit notes settle an invoice, and a late fee re-renders its PDF | Accepted |
 | [0045](0045-bundled-object-store.md)                      | RustFS as the bundled object store, behind one vendor-neutral S3 adapter                  | Accepted |
 | [0046](0046-backups-carry-stored-files.md)                | Backups carry the stored files                                                            | Accepted |
+| [0047](0047-one-backup-lock.md)                           | One backup lock for every backup, restore and key rotation                                | Accepted |
+| [0048](0048-worker-crash-and-request-error-log.md)        | A worker crash is reported, and a request error is logged once                            | Accepted |

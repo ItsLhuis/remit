@@ -209,10 +209,11 @@ implemented command.
   missing public bucket; a file the store no longer holds is counted and reported as a warning, as
   is an object under a key Remit never writes, which is left out.
 - **Limitations:** a single run writes to one destination. The archive format is specified in
-  [Backup archive format](../specs/BACKUP-ARCHIVE.md). The command takes no concurrency lock of its
-  own, so it can overlap the worker's scheduled backup; the scheduled path holds the lock and the
-  command does not, because the pre-restore snapshot and the pre-rotation backup run the same
-  pipeline and must never be refused (ADR-0035).
+  [Backup archive format](../specs/BACKUP-ARCHIVE.md). The command holds the backup lock for its run
+  and exits 1 without writing anything when a scheduled backup, a restore or a key rotation already
+  holds it, naming the holder and when it started; run it again once that finishes. A dry run takes
+  no lock (ADR-0047). A local run to the default path prunes the backups directory by the retention
+  policy, never the archive it just wrote and never an archive it did not name itself.
 
 ### `pnpm remit:restore`
 
@@ -226,19 +227,24 @@ implemented command.
 - **Confirmation:** always creates a mandatory local pre-restore snapshot before destructive work.
   Interactive restore requires typed confirmation of the database name and the exact snapshot path.
   Unattended restore requires both `--yes` and `REMIT_ALLOW_UNATTENDED_RESTORE=1`.
-- **Flags:** `<backup-file|remit://destination/key>`, `--dry-run`, `--yes`, and `--help`.
+- **Flags:** `<backup-file|remit://destination/key>`, `--dry-run`, `--yes`, `--accept-older-schema`,
+  and `--help`.
 - **Effects:** accepts local archive paths or `remit://s3|r2|b2/<key>` remote references, verifies
   the archive, restores the database with
-  `pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname <DATABASE_URL>`,
-  and runs forward migrations through the compiled migration entrypoint. Files are written and
-  verified before the database is replaced, and files the archive lacks are deleted last, after the
+  `pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction`, with the target
+  database passed through the `PG*` environment variables rather than on the command line, and runs
+  forward migrations through the compiled migration entrypoint. Files are written and verified
+  before the database is replaced, and files the archive lacks are deleted last, after the
   migrations, so a re-run repairs any stop (ADR-0046).
 - **Audit:** writes `instance.restore.started`, `instance.restore.snapshot_taken`,
   `instance.restore.completed`, and, when eligible, `instance.restore.aborted`.
-- **Limitations:** no `--force-version`, partial restore, or point-in-time recovery. Restore records
-  the archive `schemaMigrationId` for audit and dry-run visibility; it does not implement a separate
-  older-than-current migration warning gate. Detailed operator guidance is in the
-  [Restore runbook](../../operations/RESTORE.md).
+- **Refusals:** an archive whose `schemaMigrationId` this build's journal does not know is refused,
+  dry run included. An older one is migrated forward after a warning naming both migrations, which
+  an interactive run confirms and an unattended run acknowledges with `--accept-older-schema`.
+  Restore holds the backup lock from before its snapshot until it exits, and is refused while
+  another backup, restore or rotation holds it (ADR-0047).
+- **Limitations:** no `--force-version`, partial restore, or point-in-time recovery. Detailed
+  operator guidance is in the [Restore runbook](../../operations/RESTORE.md).
 
 ### `pnpm remit:rotate-encryption-key`
 
@@ -256,7 +262,9 @@ implemented command.
   `--backup-file` is supplied, rotates registered Remit-owned encrypted database columns, and
   re-encrypts local and configured remote `.remitbak` archive envelopes. Re-encryption streams
   through temporary files under `REMIT_DATA_DIR`, so it needs free space for one archive (two for a
-  remote one) rather than memory for it.
+  remote one) rather than memory for it. Outside a dry run it holds the backup lock for the whole
+  rotation, so no backup is written or pruned while archives are re-encrypted, and it is refused
+  while a backup or restore holds it (ADR-0047).
 - **Audit:** writes `instance.key_rotation.started`, `instance.key_rotation.table_completed`,
   `instance.key_rotation.backup_reencrypted`, `instance.key_rotation.completed`, and
   `instance.key_rotation.aborted`.

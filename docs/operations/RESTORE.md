@@ -65,6 +65,9 @@ There are no default-yes prompts. Non-interactive restore requires both:
 That double opt-in is intentional. A script must make unattended destructive restore explicit in
 both command arguments and environment.
 
+An archive from an older schema migration needs one more acknowledgement, described under
+[Schema migrations](#schema-migrations).
+
 ## Refusal rules
 
 Restore refuses with exit code 1 and takes no destructive action when:
@@ -78,11 +81,33 @@ Restore refuses with exit code 1 and takes no destructive action when:
 6. Any file's SHA-256 in `checksums.sha256` fails verification.
 7. An archived path does not name the public or documents bucket, or is not a key a backup writes:
    empty, absolute, with an empty, `.` or `..` segment, a backslash or a control character.
+8. The archive's `schemaMigrationId` is not in the running build's migration journal, which means it
+   was written by a newer build or another fork. A dry run refuses it too.
+9. The archive is from an older schema migration and the run is unattended without
+   `--accept-older-schema`.
+10. Another backup, restore or key rotation holds the backup lock. The message names it and when it
+    started; nothing is written, not even the pre-restore snapshot.
 
-Restore records the archive's `schemaMigrationId` for audit entries and dry-run visibility. It does
-not compare that value with the current migration head or implement a separate older-than-current
-migration warning gate. After restore completes, migrations are applied forward through the same
-compiled entrypoint path used on container start.
+## Schema migrations
+
+Restore compares the archive's `schemaMigrationId` with the last migration in the running build's
+journal, and a dry run prints the comparison:
+
+- **The same migration:** restore proceeds.
+- **An older migration:** restore warns, naming both migrations, that the restored database will be
+  migrated forward to this build's schema and that only the pre-restore snapshot undoes it. An
+  interactive run asks for confirmation; declining exits 0 having changed nothing. An unattended run
+  refuses unless `--accept-older-schema` is passed. After the database is restored, migrations are
+  applied forward through the same compiled entrypoint used on container start.
+- **A migration this build does not know:** refused, because migrations only run forwards. Upgrade
+  to the build that wrote the archive, then restore.
+
+## Concurrency
+
+Restore holds the backup lock from before its pre-restore snapshot until it exits, so no scheduled
+or manual backup and no key rotation can start while it writes files, swaps the database and deletes
+stale files ([ADR-0047](../architecture/adr/0047-one-backup-lock.md)). Its own pre-restore snapshot
+runs under that lock and is never refused.
 
 ## Order of the destructive steps
 
@@ -102,17 +127,21 @@ they are one request per file and the step most likely to fail, and by then the 
 migrated and carries its audit trail. In every case, running the same restore again completes it;
 the pre-restore snapshot remains the way back to the state before the first attempt.
 
-Between steps 1 and 4 the store holds files of both states. A scheduled backup that ran in that
-window would archive them; stop the worker (`docker compose stop worker`) for the length of a
-restore if a scheduled backup is due.
+Between steps 1 and 4 the store holds files of both states. No backup can archive that window: the
+restore holds the backup lock throughout, so a scheduled backup that falls due skips its occurrence
+and a manual one is refused ([Concurrency](#concurrency)).
 
 ## Database and file effects
 
 Database restore uses:
 
 ```text
-pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname <DATABASE_URL>
+pg_restore --clean --if-exists --no-owner --no-privileges --single-transaction --dbname=postgresql://
 ```
+
+The target database reaches `pg_restore` through the `PG*` environment variables derived from
+`DATABASE_URL`, which the empty connection URI takes every part from, so no credential is on its
+command line.
 
 The restore runs against the live database and drops and recreates objects from the dump. Settings
 rows containing encrypted columns remain valid after restore because the encryption key fingerprint

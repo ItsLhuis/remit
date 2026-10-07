@@ -104,8 +104,15 @@ Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure
 
 - An error that **escapes** a server component, a route handler, a server action or the proxy.
   Next.js hands it to `onRequestError` in `instrumentation.ts`.
-- A job whose **last attempt** fails in the worker (`lib/jobs/worker.ts`), and a worker that fails
-  to start (`scripts/worker.ts`). An attempt a retry may still recover is only logged.
+- A job whose **last attempt** fails in the worker (`lib/jobs/worker.ts`), a worker that fails to
+  start, and a worker that crashes after starting on an unhandled rejection or an uncaught exception
+  (`scripts/worker.ts`, `scripts/core/worker/crash.ts`). An attempt a retry may still recover is
+  only logged. A crash is the same class as a failed start
+  ([ADR-0048](../../docs/architecture/adr/0048-worker-crash-and-request-error-log.md)): nobody is
+  watching the process, so it reports, logs, and exits non-zero for its container to restart.
+
+At the request boundary Next.js has already logged the error itself, so `onRequestError` logs a
+receipt — the event id, route, error type and digest — and never the error a second time (ADR-0048).
 
 A failure a handler catches is logged and **not** reported: catching it is the decision that it is
 handled. That covers every server action's `try`/`catch`, every event bus handler, `enqueueJob`
@@ -124,7 +131,8 @@ Feature and route code never imports `@/lib/errorTracking`; `no-restricted-impor
 `features/` and `app/`. Nothing in a log entry's context is sent either: an event carries the
 error's type, code and stack frames and the boundary's own context, never the message and never a
 record's id. The boundary logs the full error with the same `errorEventId` the receiver shows, which
-is how an event is traced back to its log line.
+is how an event is traced back to its log line; at the request boundary that full error is the line
+Next.js writes, and the receipt beside it carries the id and the digest that tie the two together.
 
 ## Database errors
 

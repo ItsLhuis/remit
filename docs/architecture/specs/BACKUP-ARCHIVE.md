@@ -195,7 +195,10 @@ lifecycle rule that expires incomplete multipart uploads.
 A single `remit:backup` run writes to exactly one destination: the `--destination` flag when
 provided, otherwise the destination configured in settings. Multi-destination fan-out is deferred.
 An operator who wants redundant remote backups runs the command once per destination. Retention is
-configurable as N daily, M weekly, and K monthly snapshots.
+configurable as N daily, M weekly, and K monthly snapshots. It prunes the remote destination's
+`remit-backups/` prefix and, for a local run, the archives in the backups directory whose names the
+backup wrote itself, dated by the time in that name. The archive just written is never pruned, and
+neither is a pre-restore snapshot, a pre-rotation backup or an archive written to `--output`.
 
 ## Forward compatibility
 

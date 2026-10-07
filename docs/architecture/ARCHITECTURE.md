@@ -1764,15 +1764,19 @@ and never the authorization.
 UTC pattern; the cadence decides at run time whether tonight is a backup night, so switching daily
 to weekly writes nothing to Redis and leaves exactly one scheduler registered. The hour sits ahead
 of `retention.purge.sweep` at 02:30 so the most recent archive always still holds the last rows that
-purge destroyed. A scheduled run takes a session advisory lock, so two workers or a re-delivered job
-produce one archive; it stands down while an encryption key rotation is in progress, because a
-rotation re-encrypts the archives at the destination and one uploaded behind that pass would keep
-the retired key. A failure is recorded rather than retried: the same two
-`settings.backup_last_failure_*` columns and the same `instance.backup.failed` audit entry the
-command writes, distinguished from an operator's run only by a `worker/backup` user agent. On a
-hosted instance the sweep does nothing, for the same reason the settings page refuses.
-[ADR-0035](adr/0035-scheduled-backup-execution.md) records the four decisions. An operator can still
-run `remit:backup` at any time.
+purge destroyed. One session advisory lock guards every backup: the sweep and `remit:backup` hold it
+for their run, and a restore and a key rotation hold it for theirs, running their own internal
+backup under it without taking it again. A second holder is refused with the first one named, so two
+workers, a re-delivered job or an operator's run produce one archive, and no backup is taken while a
+restore swaps data or a rotation re-encrypts archives ([ADR-0047](adr/0047-one-backup-lock.md)). The
+sweep also stands down while an encryption key rotation holds its own lock. A failure is recorded
+rather than retried: the same two `settings.backup_last_failure_*` columns and the same
+`instance.backup.failed` audit entry the command writes, distinguished from an operator's run only
+by a `worker/backup` user agent. On a hosted instance the sweep does nothing, for the same reason
+the settings page refuses. [ADR-0035](adr/0035-scheduled-backup-execution.md) records the four
+decisions. An operator can still run `remit:backup` at any time the lock is free. Retention prunes
+the remote destination and the local backups directory alike, never the archive just written, and
+never a pre-restore snapshot, a pre-rotation backup or an archive written to `--output`.
 
 The dashboard says when that has not been happening. An owner sees a banner when no backup has ever
 run, when the last recorded outcome was a failure, or when the newest archive is older than the
@@ -1966,12 +1970,15 @@ sender exists, which is what keeps the one error that carries the environment fr
 Hosted mode changes none of this: whoever operates the instance sets the DSN.
 
 **Two boundaries report, and nothing else does.** An error that escapes a server component, a route
-handler, a server action or the proxy reaches `onRequestError` in `instrumentation.ts`. A job that
-fails its last attempt, and a worker that fails to start, are reported from `lib/jobs/worker.ts` and
-`scripts/worker.ts`. A failure a handler catches is logged and not reported; the rule is in
-`.agents/rules/errors.md`. The browser reports nothing — a client-side handler sees form state and
-rendered line items, and reaching a receiver from there would mean giving the browser the DSN — and
-neither do the operational CLI commands, which run with the operator watching.
+handler, a server action or the proxy reaches `onRequestError` in `instrumentation.ts`, which logs a
+receipt carrying the event id beside the line Next.js writes with the error itself. A job that fails
+its last attempt, and a worker that fails to start or crashes after starting, are reported from
+`lib/jobs/worker.ts` and `scripts/worker.ts`
+([ADR-0048](adr/0048-worker-crash-and-request-error-log.md)). A failure a handler catches is logged
+and not reported; the rule is in `.agents/rules/errors.md`. The browser reports nothing — a
+client-side handler sees form state and rendered line items, and reaching a receiver from there
+would mean giving the browser the DSN — and neither do the operational CLI commands, which run with
+the operator watching.
 
 **An event carries exactly this, and `lib/errorTracking/errorEvent.ts`'s `buildErrorEvent` is the
 only code that produces one:**
@@ -2247,6 +2254,8 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0044](adr/0044-invoice-outstanding-and-credit-settlement.md) | One outstanding amount, credit notes settle an invoice, and a late fee re-renders its PDF | Accepted |
 | [0045](adr/0045-bundled-object-store.md)                      | RustFS as the bundled object store, behind one vendor-neutral S3 adapter                  | Accepted |
 | [0046](adr/0046-backups-carry-stored-files.md)                | Backups carry the stored files                                                            | Accepted |
+| [0047](adr/0047-one-backup-lock.md)                           | One backup lock for every backup, restore and key rotation                                | Accepted |
+| [0048](adr/0048-worker-crash-and-request-error-log.md)        | A worker crash is reported, and a request error is logged once                            | Accepted |
 
 ---
 
