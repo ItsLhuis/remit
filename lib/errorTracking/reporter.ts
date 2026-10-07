@@ -66,7 +66,8 @@ export function startErrorTracking(options: ErrorTrackingOptions): boolean {
 // The only way an event reaches the network: every error passes through `buildErrorEvent` here, at
 // the transport, rather than at each call site, so a capture point added later cannot forget the
 // scrubbing — there is no other door. Returns the event id when an event is on its way, for the
-// caller's log line, which keeps everything the event withholds. It never throws and never waits
+// caller's log line, which keeps everything the event withholds — or, for a request error, sits
+// beside the line Next.js writes itself with the error in full (`instrumentation.ts`). It never throws and never waits
 // for the network, because a reporting failure must not fail the request or job it reports on.
 export function reportError(error: unknown, context: ErrorReportContext): string | null {
   if (!reporter) return null

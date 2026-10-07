@@ -81,8 +81,26 @@ export const onRequestError: Instrumentation.onRequestError = async (error, _req
 
   if (!errorEventId) return
 
+  // Next.js has already written this error to the log itself, stack and all, and nothing supported
+  // turns that off: the production server logs every request error unless it was started `quiet`, an
+  // option of its internal `startServer` that the standalone `server.js` never passes. So this line
+  // does not log the error a second time. It records that it was reported, with the event id the
+  // receiver shows and the digest Next.js prints beside a rendering error, which is how an operator
+  // gets from an event to its log line.
   logger.error(
-    { action: "request.error", errorEventId, routePath: context.routePath, err: error },
+    {
+      action: "request.error",
+      errorEventId,
+      routePath: context.routePath,
+      errorType: error instanceof Error ? error.name : typeof error,
+      digest: readDigest(error)
+    },
     "Request error reported"
   )
+}
+
+function readDigest(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("digest" in error)) return undefined
+
+  return typeof error.digest === "string" ? error.digest : undefined
 }

@@ -1,6 +1,7 @@
 import pkg from "@/package.json"
 
 import { loadCliEnvironment } from "./core/cli/bootstrap"
+import { exitOnWorkerCrash } from "./core/worker/crash"
 import { loadWorkerFeatureModules } from "./core/worker/loadWorkerFeatureModules"
 
 const START_FAILURE_FLUSH_TIMEOUT_MS = 3_000
@@ -27,6 +28,8 @@ async function main(): Promise<void> {
       environment: env.NODE_ENV
     })
   }
+
+  exitOnWorkerCrash()
 
   const [{ startWorker, stopWorker }] = await Promise.all([
     import("@/lib/jobs/worker"),

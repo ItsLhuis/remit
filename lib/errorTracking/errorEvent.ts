@@ -15,7 +15,7 @@ export type ErrorReportContext =
       renderSource?: string
     }
   | { source: "job"; jobName: string; attempts: number }
-  | { source: "process"; phase: "start" }
+  | { source: "process"; phase: "start" | "run" }
 
 export type ErrorEventCandidate = {
   error: unknown
@@ -117,7 +117,7 @@ const contextSchema = z.discriminatedUnion("source", [
   }),
   z.strictObject({
     source: z.literal("process"),
-    phase: z.literal("start")
+    phase: z.enum(["start", "run"])
   })
 ])
 

@@ -101,12 +101,12 @@ describe("with SENTRY_DSN set", () => {
     expect(body).not.toContain(CLIENT_NOTE)
   })
 
-  test("the log line keeps the withheld error under the event id it was sent with", async () => {
+  test("one receipt line carries the event id and digest without logging the error again", async () => {
     mocks.env.SENTRY_DSN = "https://0123456789abcdef0123456789abcdef@errors.example.com/7"
 
     const { onRequestError, register } = await import("@/instrumentation")
     const { flushErrorReports } = await import("@/lib/errorTracking")
-    const error = new Error("boom")
+    const error = Object.assign(new TypeError("boom"), { digest: "2915486391" })
 
     await register()
     await onRequestError(error, REQUEST, CONTEXT)
@@ -115,12 +115,14 @@ describe("with SENTRY_DSN set", () => {
     const body = fetchMock.mock.calls[0][1]?.body as string
     const eventId = (JSON.parse(body.split("\n")[0]) as { event_id: string }).event_id
 
+    expect(mocks.logger.error).toHaveBeenCalledTimes(1)
     expect(mocks.logger.error).toHaveBeenCalledWith(
       {
         action: "request.error",
         errorEventId: eventId,
         routePath: "/i/[token]",
-        err: error
+        errorType: "TypeError",
+        digest: "2915486391"
       },
       "Request error reported"
     )
