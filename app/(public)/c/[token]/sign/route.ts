@@ -1,12 +1,12 @@
 import { headers } from "next/headers"
 
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import { t } from "@/lib/i18n/server"
 
 import { writeAudit } from "@/lib/audit"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
 
@@ -63,18 +63,6 @@ export async function POST(
   if ("error" in result) return noindexJson({ error: result.error }, 400)
 
   return noindexJson({ status: result.data.status, signedAt: result.data.signedAt }, 200)
-}
-
-// `proxy.ts` already stamps `X-Robots-Tag` on everything under `/c/`, and this sets it again at the
-// handler: the proxy matcher is one edit away from not covering a path, and a public token response
-// that reaches a crawler is not recoverable once indexed. The twin of `noindexJson` in
-// `app/(public)/p/[token]/otp/publicOtpRoute.ts`, which must keep setting the same header.
-function noindexJson(body: unknown, status: number): NextResponse {
-  const response = NextResponse.json(body, { status })
-
-  response.headers.set("X-Robots-Tag", "noindex, nofollow")
-
-  return response
 }
 
 // A malformed body becomes `null` rather than a thrown parse error, so it falls through to the same

@@ -8,6 +8,8 @@ import { auth } from "@/lib/auth"
 
 import { logger } from "@/lib/logger"
 
+import { noindexJson } from "@/lib/utils"
+
 import { getDocumentObjectStream } from "@/lib/storage/s3"
 
 import { getAttachmentForDownload } from "@/features/attachments/server"
@@ -86,11 +88,4 @@ function toContentDisposition(filename: string): string {
   const asciiFallback = filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_")
 
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`
-}
-
-function noindexJson(body: unknown, status: number): NextResponse {
-  return NextResponse.json(body, {
-    status,
-    headers: { "X-Robots-Tag": "noindex, nofollow" }
-  })
 }

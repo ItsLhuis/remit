@@ -11,7 +11,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { getExportObjectStream } from "@/lib/storage/s3"
 
@@ -101,12 +101,5 @@ async function writeDownloadAudit(context: DownloadContext, exportId: string): P
     metadata: { exportId },
     ipAddress: context.ipAddress,
     userAgent: context.userAgent
-  })
-}
-
-function noindexJson(body: unknown, status: number): NextResponse {
-  return NextResponse.json(body, {
-    status,
-    headers: { "X-Robots-Tag": "noindex, nofollow" }
   })
 }

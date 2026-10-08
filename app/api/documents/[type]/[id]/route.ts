@@ -10,6 +10,8 @@ import { auth } from "@/lib/auth"
 
 import { logger } from "@/lib/logger"
 
+import { noindexJson } from "@/lib/utils"
+
 import { findDocumentPdf } from "@/lib/pdf"
 import { getDocumentObjectStream } from "@/lib/storage/s3"
 
@@ -84,11 +86,4 @@ export async function GET(
 
     return noindexJson({ error: t("errors.somethingWentWrong") }, 500)
   }
-}
-
-function noindexJson(body: unknown, status: number): NextResponse {
-  return NextResponse.json(body, {
-    status,
-    headers: { "X-Robots-Tag": "noindex, nofollow" }
-  })
 }

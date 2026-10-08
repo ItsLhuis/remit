@@ -1,12 +1,12 @@
 import { headers } from "next/headers"
 
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest } from "next/server"
 
 import { t } from "@/lib/i18n/server"
 
 import { writeAudit } from "@/lib/audit"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
 
@@ -65,14 +65,4 @@ export async function POST(request: NextRequest): Promise<Response> {
   // record. Stripe retries a non-2xx, and no number of retries will make an overpayment fit or an
   // unknown invoice appear — the refusal is already logged and audited by the receiver.
   return noindexJson({ received: true, status: result.data.status }, 200)
-}
-
-// The endpoint is public, so it carries the same `noindex` guarantee as the token routes
-// (`security.md`). `proxy.ts` does not stamp `/api/`, which makes this the only place it is set.
-function noindexJson(body: unknown, status: number): NextResponse {
-  const response = NextResponse.json(body, { status })
-
-  response.headers.set("X-Robots-Tag", "noindex, nofollow")
-
-  return response
 }

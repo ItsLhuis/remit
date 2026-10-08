@@ -13,7 +13,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { getExportObjectStream } from "@/lib/storage/s3"
 
@@ -100,11 +100,4 @@ export async function GET(
 
     return noindexJson({ error: t("reports.errors.pdfExportFailed") }, 500)
   }
-}
-
-function noindexJson(body: unknown, status: number): NextResponse {
-  return NextResponse.json(body, {
-    status,
-    headers: { "X-Robots-Tag": "noindex, nofollow" }
-  })
 }

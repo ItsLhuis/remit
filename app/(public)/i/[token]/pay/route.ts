@@ -1,12 +1,10 @@
 import { headers } from "next/headers"
 
-import { NextResponse } from "next/server"
-
 import { t } from "@/lib/i18n/server"
 
 import { writeAudit } from "@/lib/audit"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
 
@@ -64,15 +62,4 @@ export async function POST(
   if ("error" in result) return noindexJson({ error: result.error }, 400)
 
   return noindexJson(result.data, 200)
-}
-
-// `proxy.ts` already stamps `X-Robots-Tag` on everything under `/i/`, and this sets it again at the
-// handler: the proxy matcher is one edit away from not covering a path, and a public token response
-// that reaches a crawler is not recoverable once indexed.
-function noindexJson(body: unknown, status: number): NextResponse {
-  const response = NextResponse.json(body, { status })
-
-  response.headers.set("X-Robots-Tag", "noindex, nofollow")
-
-  return response
 }

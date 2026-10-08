@@ -6,13 +6,13 @@ import { t } from "@/lib/i18n/server"
 
 import { writeAudit } from "@/lib/audit"
 
-import { getIpAddress } from "@/lib/utils"
+import { getIpAddress, noindexJson } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
 
 import { verifyProposalOtp } from "@/features/proposals/server"
 
-import { noindexJson, readJsonBody } from "../publicOtpRoute"
+import { readJsonBody } from "../publicOtpRoute"
 
 // Rate limit for POST /p/[token]/otp/verify, declared at the top of the module per
 // `.agents/rules/security.md`. It sits above the request limit because a client legitimately
