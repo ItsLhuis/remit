@@ -21,7 +21,7 @@
     "features/recurringInvoices/jobs.ts",
     "features/dataExport/jobs.ts",
     "features/reports/jobs.ts",
-    "features/activityLog/events.ts",
+    "features/activityLog/events/index.ts",
     "features/proposals/jobs.ts",
     "features/creditNotes/jobs.ts",
     "features/contracts/jobs.ts",
