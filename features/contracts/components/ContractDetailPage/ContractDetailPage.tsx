@@ -26,8 +26,9 @@ import {
   toast
 } from "@/components/ui"
 
-import { sendContract, softDeleteContract, terminateContract } from "../../mutations"
+import { sendContract, terminateContract } from "../../mutations"
 import { getNextContractStatuses, isContractEditable } from "../../services"
+import { softDeleteContract } from "../../trashMutations"
 import { type ContractDetail } from "../../types"
 import { ContractStatusBadge } from "../ContractStatusBadge"
 import { DeleteContractDialog } from "../DeleteContractDialog"

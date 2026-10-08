@@ -489,7 +489,7 @@ describe("proposal mutations", () => {
   })
 
   test("soft deletes a proposal and audits the deletion", async () => {
-    const { softDeleteProposal } = await import("../mutations")
+    const { softDeleteProposal } = await import("../trashMutations")
 
     const project = await makeProject()
     const proposal = await makeProposal({ projectId: project.id })
@@ -508,7 +508,8 @@ describe("proposal mutations", () => {
   })
 
   test("refuses every write for a role without proposal permissions", async () => {
-    const { createProposal, sendProposal, softDeleteProposal } = await import("../mutations")
+    const { createProposal, sendProposal } = await import("../mutations")
+    const { softDeleteProposal } = await import("../trashMutations")
 
     mocks.getCurrentRole.mockResolvedValue("accountant")
 
@@ -523,7 +524,8 @@ describe("proposal mutations", () => {
   })
 
   test("refuses every write when no session is present", async () => {
-    const { createProposal, sendProposal, softDeleteProposal } = await import("../mutations")
+    const { createProposal, sendProposal } = await import("../mutations")
+    const { softDeleteProposal } = await import("../trashMutations")
 
     mocks.getSession.mockResolvedValue(null)
 
@@ -539,7 +541,8 @@ describe("proposal mutations", () => {
   })
 
   test("lets an assistant draft a proposal but not send or delete it", async () => {
-    const { createProposal, sendProposal, softDeleteProposal } = await import("../mutations")
+    const { createProposal, sendProposal } = await import("../mutations")
+    const { softDeleteProposal } = await import("../trashMutations")
 
     mocks.getCurrentRole.mockResolvedValue("assistant")
 

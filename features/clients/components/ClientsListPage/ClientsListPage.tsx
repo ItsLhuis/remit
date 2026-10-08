@@ -42,7 +42,7 @@ import {
 import { useDataTable, type ColumnDef } from "@/hooks"
 
 import { useClientListState } from "../../hooks"
-import { softDeleteClient } from "../../mutations"
+import { softDeleteClient } from "../../trashMutations"
 import { type ClientListItem, type ClientListPageData } from "../../types"
 import { ClientFormSheet } from "../ClientFormSheet"
 

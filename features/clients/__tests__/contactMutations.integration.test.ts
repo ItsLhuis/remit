@@ -197,7 +197,8 @@ describe("client contact mutations", () => {
   })
 
   test("frees the primary slot when the primary contact is deleted", async () => {
-    const { createClientContact, softDeleteClientContact } = await import("../mutations")
+    const { createClientContact } = await import("../mutations")
+    const { softDeleteClientContact } = await import("../trashMutations")
 
     const client = await makeClient()
     const primary = await makeClientContact({ clientId: client.id, isPrimary: true })
@@ -220,8 +221,8 @@ describe("client contact mutations", () => {
   })
 
   test("refuses every contact write for a role without client permissions", async () => {
-    const { createClientContact, setPrimaryClientContact, softDeleteClientContact } =
-      await import("../mutations")
+    const { createClientContact, setPrimaryClientContact } = await import("../mutations")
+    const { softDeleteClientContact } = await import("../trashMutations")
 
     mocks.getCurrentRole.mockResolvedValue("accountant")
 
@@ -236,7 +237,8 @@ describe("client contact mutations", () => {
   })
 
   test("lets an assistant edit a contact but not delete one", async () => {
-    const { softDeleteClientContact, updateClientContact } = await import("../mutations")
+    const { updateClientContact } = await import("../mutations")
+    const { softDeleteClientContact } = await import("../trashMutations")
 
     mocks.getCurrentRole.mockResolvedValue("assistant")
 

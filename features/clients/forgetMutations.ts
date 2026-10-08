@@ -11,14 +11,13 @@ import { clients } from "@/database/schema"
 
 import { forgetClientWrite } from "./forget"
 import {
+  clientsPath,
   ExpectedClientError,
   handleClientActionError,
   requireClientDelete,
   writeClientAudit
 } from "./mutationContext"
 import { forgetClientSchema } from "./schemas"
-
-const clientsPath = "/clients"
 
 type ForgetClientResultShape = { data: { id: string } } | { error: string }
 

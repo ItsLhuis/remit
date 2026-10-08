@@ -1,6 +1,6 @@
 "use server"
 
-import { and, eq, isNotNull } from "drizzle-orm"
+import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
@@ -9,6 +9,7 @@ import { clients, contracts, projects } from "@/database/schema"
 
 import { resolveRestoreBlocker } from "@/features/trash"
 
+import { emitContractDeleted } from "./events"
 import {
   ExpectedContractError,
   handleContractActionError,
@@ -16,12 +17,55 @@ import {
   revalidateContractPaths,
   writeContractAudit
 } from "./mutationContext"
-import { type DeleteContractResult } from "./mutations"
 import { contractIdSchema } from "./schemas"
 
-// Split out of mutations.ts rather than sitting beside its `softDelete` sibling, which is where
-// `actions.md` would put it: that file is already at the 500-line lint ceiling and one more action
-// crosses it.
+export type DeleteContractResult = { data: { id: string } } | { error: string }
+
+export async function softDeleteContract(input: unknown): Promise<DeleteContractResult> {
+  const gate = await requireContractDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = contractIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    const [deleted] = await database
+      .update(contracts)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(contracts.id, parsed.data.id), isNull(contracts.deletedAt)))
+      .returning({
+        id: contracts.id,
+        projectId: contracts.projectId,
+        clientId: contracts.clientId,
+        status: contracts.status
+      })
+
+    if (!deleted) throw new ExpectedContractError(t("contracts.errors.notFound"))
+
+    await writeContractAudit(context, "contract.deleted", deleted.id, {
+      projectId: deleted.projectId,
+      clientId: deleted.clientId,
+      status: deleted.status,
+      softDeleted: true
+    })
+    await emitContractDeleted({ contractId: deleted.id, userId: context.userId })
+
+    revalidateContractPaths(deleted)
+
+    return { data: { id: deleted.id } }
+  } catch (error) {
+    return handleContractActionError(error, {
+      action: "softDeleteContract",
+      userId: context.userId,
+      contractId: parsed.data.id,
+      fallbackMessage: t("contracts.errors.deleteFailed")
+    })
+  }
+}
 
 export async function restoreContract(input: unknown): Promise<DeleteContractResult> {
   const gate = await requireContractDelete()

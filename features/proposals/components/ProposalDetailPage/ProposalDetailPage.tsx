@@ -20,8 +20,9 @@ import {
   toast
 } from "@/components/ui"
 
-import { sendProposal, softDeleteProposal } from "../../mutations"
+import { sendProposal } from "../../mutations"
 import { isProposalEditable } from "../../services"
+import { softDeleteProposal } from "../../trashMutations"
 import { type ProposalDetail } from "../../types"
 import { DeleteProposalDialog } from "../DeleteProposalDialog"
 import { ProposalLineItemsTable } from "../ProposalLineItemsTable"

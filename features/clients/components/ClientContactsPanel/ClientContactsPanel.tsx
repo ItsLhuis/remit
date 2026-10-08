@@ -21,7 +21,8 @@ import {
 
 import { useDataTable, type ColumnDef } from "@/hooks"
 
-import { setPrimaryClientContact, softDeleteClientContact } from "../../mutations"
+import { setPrimaryClientContact } from "../../mutations"
+import { softDeleteClientContact } from "../../trashMutations"
 import { type ClientContact } from "../../types"
 
 import { ClientContactDialog } from "./ClientContactDialog"

@@ -25,8 +25,11 @@ vi.mock("next/navigation", () => ({
 vi.mock("../../../mutations", () => ({
   createClientContact: vi.fn(),
   setPrimaryClientContact: mocks.setPrimaryClientContact,
-  softDeleteClientContact: mocks.softDeleteClientContact,
   updateClientContact: vi.fn()
+}))
+
+vi.mock("../../../trashMutations", () => ({
+  softDeleteClientContact: mocks.softDeleteClientContact
 }))
 
 vi.mock("@/lib/i18n", () => ({

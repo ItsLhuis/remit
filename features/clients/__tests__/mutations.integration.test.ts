@@ -166,7 +166,7 @@ describe("client mutations", () => {
   })
 
   test("soft deletes a client and hides it from normal list queries", async () => {
-    const { softDeleteClient } = await import("../mutations")
+    const { softDeleteClient } = await import("../trashMutations")
     const { listClients } = await import("../queries")
     const { parseClientListQuery } = await import("../schemas")
 
@@ -215,7 +215,8 @@ describe("client mutations", () => {
   })
 
   test("names the operation that failed when a create or a delete breaks", async () => {
-    const { createClient, softDeleteClient } = await import("../mutations")
+    const { createClient } = await import("../mutations")
+    const { softDeleteClient } = await import("../trashMutations")
 
     const existingClient = await makeClient()
     mocks.emit.mockRejectedValueOnce(new Error("bus down"))
@@ -229,7 +230,7 @@ describe("client mutations", () => {
   })
 
   test("prevents assistants from deleting clients", async () => {
-    const { softDeleteClient } = await import("../mutations")
+    const { softDeleteClient } = await import("../trashMutations")
 
     const existingClient = await makeClient({ name: "Keep Me", email: "keep@example.com" })
     mocks.getCurrentRole.mockResolvedValueOnce("assistant")

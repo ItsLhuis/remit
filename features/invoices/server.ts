@@ -1,12 +1,6 @@
-export {
-  createInvoice,
-  markInvoicePaid,
-  sendInvoice,
-  softDeleteInvoice,
-  updateInvoice
-} from "./mutations"
+export { createInvoice, markInvoicePaid, sendInvoice, updateInvoice } from "./mutations"
 
-export { restoreInvoice } from "./restoreMutations"
+export { restoreInvoice, softDeleteInvoice } from "./trashMutations"
 
 export { createInvoiceFromProposal } from "./conversion"
 

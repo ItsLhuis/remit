@@ -105,7 +105,8 @@ describe("client portal link lifecycle", () => {
   })
 
   test("withdraws the portal when the client is soft-deleted, and refuses to re-enable it", async () => {
-    const { rotateClientPortalLink, softDeleteClient } = await import("../mutations")
+    const { rotateClientPortalLink } = await import("../mutations")
+    const { softDeleteClient } = await import("../trashMutations")
 
     const client = await makeClient()
 

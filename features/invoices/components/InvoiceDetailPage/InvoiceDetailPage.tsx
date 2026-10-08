@@ -35,13 +35,14 @@ import {
 
 import { InvoicePaymentsCard, type PaymentListItem } from "@/features/payments"
 
-import { markInvoicePaid, sendInvoice, softDeleteInvoice } from "../../mutations"
+import { markInvoicePaid, sendInvoice } from "../../mutations"
 import {
   canTransitionInvoiceStatus,
   deriveInvoiceStatusView,
   getInvoiceOutstandingCents,
   isInvoiceEditable
 } from "../../services"
+import { softDeleteInvoice } from "../../trashMutations"
 import { type InvoiceDetail } from "../../types"
 import { DeleteInvoiceDialog } from "../DeleteInvoiceDialog"
 import { InvoiceLineItemsTable } from "../InvoiceLineItemsTable"

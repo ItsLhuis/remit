@@ -27,7 +27,7 @@ import {
 
 import { useDataTable, type ColumnDef } from "@/hooks"
 
-import { softDeleteProposal } from "../../mutations"
+import { softDeleteProposal } from "../../trashMutations"
 import { type ProposalListItem, type ProposalListPageData } from "../../types"
 import { DeleteProposalDialog } from "../DeleteProposalDialog"
 import { ProposalsSummaryBand } from "../ProposalsSummaryBand"

@@ -4,15 +4,14 @@ export {
   type ClientImageResult
 } from "./imageMutations"
 
-export {
-  createClient,
-  softDeleteClient,
-  updateClient,
-  type ClientMutationResult,
-  type DeleteClientResult
-} from "./mutations"
+export { createClient, updateClient, type ClientMutationResult } from "./mutations"
 
-export { restoreClient, restoreClientContact } from "./restoreMutations"
+export {
+  restoreClient,
+  restoreClientContact,
+  softDeleteClient,
+  type DeleteClientResult
+} from "./trashMutations"
 
 export { forgetClient } from "./forgetMutations"
 

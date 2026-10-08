@@ -1,14 +1,12 @@
 export {
   createProposal,
   sendProposal,
-  softDeleteProposal,
   updateProposal,
-  type DeleteProposalResult,
   type ProposalMutationResult,
   type SendProposalResult
 } from "./mutations"
 
-export { restoreProposal } from "./restoreMutations"
+export { restoreProposal, softDeleteProposal, type DeleteProposalResult } from "./trashMutations"
 
 export { getPublicProposal } from "./publicQueries"
 

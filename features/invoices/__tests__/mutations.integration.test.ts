@@ -445,7 +445,8 @@ describe("invoice mutations", () => {
   })
 
   test("soft deletes an invoice and audits the deletion", async () => {
-    const { createInvoice, softDeleteInvoice } = await import("../mutations")
+    const { createInvoice } = await import("../mutations")
+    const { softDeleteInvoice } = await import("../trashMutations")
 
     const project = await makeProject()
     const created = await createInvoice({ projectId: project.id, ...makeInvoiceInput() })
@@ -465,7 +466,8 @@ describe("invoice mutations", () => {
   })
 
   test("refuses every write to an assistant that is send-only privileged", async () => {
-    const { sendInvoice, softDeleteInvoice } = await import("../mutations")
+    const { sendInvoice } = await import("../mutations")
+    const { softDeleteInvoice } = await import("../trashMutations")
 
     const project = await makeProject()
     const invoiceId = await createSentInvoice(project.id)

@@ -295,7 +295,7 @@ describe("contract mutations", () => {
   })
 
   test("soft deletes a contract and hides it from the list read", async () => {
-    const { softDeleteContract } = await import("../mutations")
+    const { softDeleteContract } = await import("../trashMutations")
     const { listContracts } = await import("../queries")
     const { parseContractListQuery } = await import("../schemas")
 

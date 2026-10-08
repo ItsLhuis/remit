@@ -2,16 +2,14 @@ export {
   createContract,
   createContractFromProposal,
   sendContract,
-  softDeleteContract,
   terminateContract,
   updateContract,
   type ContractMutationResult,
-  type DeleteContractResult,
   type SendContractResult,
   type TerminateContractResult
 } from "./mutations"
 
-export { restoreContract } from "./restoreMutations"
+export { restoreContract, softDeleteContract, type DeleteContractResult } from "./trashMutations"
 
 export {
   getContractDefaults,

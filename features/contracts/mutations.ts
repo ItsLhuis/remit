@@ -20,14 +20,12 @@ import { blocksSchema, type Blocks } from "@/features/templates"
 
 import {
   emitContractCreated,
-  emitContractDeleted,
   emitContractSent,
   emitContractTerminated,
   emitContractUpdated
 } from "./events"
 import {
   handleContractActionError,
-  requireContractDelete,
   requireContractSend,
   requireContractTerminate,
   requireContractWrite,
@@ -59,8 +57,6 @@ export type ContractMutationResult = { data: { contract: ContractFormData } } | 
 export type SendContractResult = { data: { id: string; emailed: boolean } } | { error: string }
 
 export type TerminateContractResult = { data: { id: string } } | { error: string }
-
-export type DeleteContractResult = { data: { id: string } } | { error: string }
 
 const AUDIT_FIELDS = [
   "title",
@@ -443,52 +439,6 @@ export async function terminateContract(input: unknown): Promise<TerminateContra
       userId: context.userId,
       contractId: parsed.data.id,
       fallbackMessage: t("contracts.errors.terminateFailed")
-    })
-  }
-}
-
-export async function softDeleteContract(input: unknown): Promise<DeleteContractResult> {
-  const gate = await requireContractDelete()
-
-  if ("error" in gate) return gate
-
-  const parsed = contractIdSchema.safeParse(input)
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
-  const { context } = gate
-
-  try {
-    const [deleted] = await database
-      .update(contracts)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(contracts.id, parsed.data.id), isNull(contracts.deletedAt)))
-      .returning({
-        id: contracts.id,
-        projectId: contracts.projectId,
-        clientId: contracts.clientId,
-        status: contracts.status
-      })
-
-    if (!deleted) throw new ExpectedContractError(t("contracts.errors.notFound"))
-
-    await writeContractAudit(context, "contract.deleted", deleted.id, {
-      projectId: deleted.projectId,
-      clientId: deleted.clientId,
-      status: deleted.status,
-      softDeleted: true
-    })
-    await emitContractDeleted({ contractId: deleted.id, userId: context.userId })
-
-    revalidateContractPaths(deleted)
-
-    return { data: { id: deleted.id } }
-  } catch (error) {
-    return handleContractActionError(error, {
-      action: "softDeleteContract",
-      userId: context.userId,
-      contractId: parsed.data.id,
-      fallbackMessage: t("contracts.errors.deleteFailed")
     })
   }
 }

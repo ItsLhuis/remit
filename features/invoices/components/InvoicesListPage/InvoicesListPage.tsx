@@ -32,7 +32,7 @@ import {
 import { useDataTable, type ColumnDef } from "@/hooks"
 
 import { createInvoiceFromProposal } from "../../conversion"
-import { softDeleteInvoice } from "../../mutations"
+import { softDeleteInvoice } from "../../trashMutations"
 import {
   type ConvertibleProposalOption,
   type InvoiceListItem,

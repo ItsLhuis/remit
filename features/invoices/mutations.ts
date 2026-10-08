@@ -15,13 +15,7 @@ import { invoices, lineItems, projects, taxRates } from "@/database/schema"
 import { evaluateInvoiceSettlement } from "@/features/payments"
 import { recordInvoiceSettlement } from "@/features/payments/server"
 
-import {
-  emitInvoiceCreated,
-  emitInvoiceDeleted,
-  emitInvoicePaid,
-  emitInvoiceSent,
-  emitInvoiceUpdated
-} from "./events"
+import { emitInvoiceCreated, emitInvoicePaid, emitInvoiceSent, emitInvoiceUpdated } from "./events"
 import { writeInvoiceLineItems, type InvoiceLineItemRow } from "./invoiceWrites"
 import {
   claimInvoiceNumber,
@@ -29,7 +23,6 @@ import {
   handleInvoiceActionError,
   loadInvoiceResult,
   queueInvoiceClientCopy,
-  requireInvoiceDelete,
   requireInvoiceLateFee,
   requireInvoiceMarkPaid,
   requireInvoiceSend,
@@ -58,7 +51,6 @@ import {
 } from "./services"
 import {
   type AdjustInvoiceLateFeeResult,
-  type DeleteInvoiceResult,
   type InvoiceMutationResult,
   type MarkInvoicePaidResult,
   type SendInvoiceResult
@@ -393,52 +385,6 @@ export async function markInvoicePaid(input: unknown): Promise<MarkInvoicePaidRe
       userId: context.userId,
       invoiceId: parsed.data.id,
       fallbackMessage: t("invoices.errors.markPaidFailed")
-    })
-  }
-}
-
-export async function softDeleteInvoice(input: unknown): Promise<DeleteInvoiceResult> {
-  const gate = await requireInvoiceDelete()
-
-  if ("error" in gate) return gate
-
-  const parsed = invoiceIdSchema.safeParse(input)
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
-  const { context } = gate
-
-  try {
-    const [deleted] = await database
-      .update(invoices)
-      .set({ deletedAt: new Date() })
-      .where(and(eq(invoices.id, parsed.data.id), isNull(invoices.deletedAt)))
-      .returning({
-        id: invoices.id,
-        projectId: invoices.projectId,
-        clientId: invoices.clientId,
-        status: invoices.status
-      })
-
-    if (!deleted) throw new ExpectedInvoiceError(t("invoices.errors.notFound"))
-
-    await writeInvoiceAudit(context, "invoice.deleted", deleted.id, {
-      projectId: deleted.projectId,
-      clientId: deleted.clientId,
-      status: deleted.status,
-      softDeleted: true
-    })
-    await emitInvoiceDeleted({ invoiceId: deleted.id, userId: context.userId })
-
-    revalidateInvoicePaths(deleted)
-
-    return { data: { id: deleted.id } }
-  } catch (error) {
-    return handleInvoiceActionError(error, {
-      action: "softDeleteInvoice",
-      userId: context.userId,
-      invoiceId: parsed.data.id,
-      fallbackMessage: t("invoices.errors.deleteFailed")
     })
   }
 }

@@ -16,7 +16,7 @@ import { getIpAddress } from "@/lib/utils"
 // `"use server"` module may export nothing but async functions, so the synchronous helpers, the
 // types and the error class below could not live there. Splitting it also keeps `mutations.ts` and
 // `imageMutations.ts` reading from one gate instead of two copies.
-// Shared by mutations.ts, restoreMutations.ts and forgetMutations.ts, which all revalidate the same
+// Shared by mutations.ts, trashMutations.ts and forgetMutations.ts, which all revalidate the same
 // two routes.
 export const clientsPath = "/clients"
 

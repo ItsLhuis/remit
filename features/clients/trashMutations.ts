@@ -11,7 +11,9 @@ import { clientContacts, clients } from "@/database/schema"
 
 import { resolveRestoreBlocker } from "@/features/trash"
 
+import { emitClientDeleted } from "./events"
 import {
+  clientsPath,
   ExpectedClientError,
   handleClientActionError,
   handleClientContactActionError,
@@ -19,10 +21,51 @@ import {
   writeClientAudit,
   writeClientContactAudit
 } from "./mutationContext"
-import { type ClientContactMutationResult, type DeleteClientResult } from "./mutations"
+import { type ClientContactMutationResult } from "./mutations"
 import { clientContactIdSchema, clientIdSchema } from "./schemas"
 
-const clientsPath = "/clients"
+export type DeleteClientResult = { data: { id: string } } | { error: string }
+
+export async function softDeleteClient(input: unknown): Promise<DeleteClientResult> {
+  const gate = await requireClientDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = clientIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    // Clearing `portalToken` is part of the delete, not a separate decision: the portal is a standing
+    // bearer door into everything Remit holds about this client, and leaving it open on a record the
+    // owner believes is gone is the failure ADR-0029 exists to prevent. A restore
+    // therefore comes back without a portal, and re-enabling one is an explicit act.
+    const [deletedClient] = await database
+      .update(clients)
+      .set({ deletedAt: new Date(), portalToken: null })
+      .where(and(eq(clients.id, parsed.data.id), isNull(clients.deletedAt)))
+      .returning({ id: clients.id })
+
+    if (!deletedClient) throw new ExpectedClientError(t("clients.errors.notFound"))
+
+    await writeClientAudit(context, "client.deleted", deletedClient.id, { softDeleted: true })
+    await emitClientDeleted({ clientId: deletedClient.id, userId: context.userId })
+
+    revalidatePath(clientsPath)
+    revalidatePath(`${clientsPath}/${deletedClient.id}`)
+
+    return { data: { id: deletedClient.id } }
+  } catch (error) {
+    return handleClientActionError(error, {
+      action: "softDeleteClient",
+      userId: context.userId,
+      clientId: parsed.data.id,
+      fallbackMessage: t("clients.errors.deleteFailed")
+    })
+  }
+}
 
 export async function restoreClient(input: unknown): Promise<DeleteClientResult> {
   const gate = await requireClientDelete()
@@ -62,6 +105,49 @@ export async function restoreClient(input: unknown): Promise<DeleteClientResult>
       userId: context.userId,
       clientId: parsed.data.id,
       fallbackMessage: t("trash.errors.restoreFailed")
+    })
+  }
+}
+
+export async function softDeleteClientContact(
+  input: unknown
+): Promise<ClientContactMutationResult> {
+  const gate = await requireClientDelete()
+
+  if ("error" in gate) return gate
+
+  const parsed = clientContactIdSchema.safeParse(input)
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { context } = gate
+
+  try {
+    // Deleting the primary frees the slot rather than handing it to another contact:
+    // `uq_client_contacts_primary` ignores soft-deleted rows, and the client falls back to
+    // `clients.email` until someone chooses the replacement. Promoting a survivor automatically
+    // would silently redirect every future document to an address nobody picked.
+    const [deleted] = await database
+      .update(clientContacts)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(clientContacts.id, parsed.data.id), isNull(clientContacts.deletedAt)))
+      .returning({ id: clientContacts.id, clientId: clientContacts.clientId })
+
+    if (!deleted) throw new ExpectedClientError(t("clients.errors.contactNotFound"))
+
+    await writeClientContactAudit(context, "client_contact.deleted", deleted.id, {
+      clientId: deleted.clientId,
+      softDeleted: true
+    })
+
+    revalidatePath(`${clientsPath}/${deleted.clientId}`)
+
+    return { data: { id: deleted.id } }
+  } catch (error) {
+    return handleClientContactActionError(error, {
+      action: "softDeleteClientContact",
+      userId: context.userId,
+      fallbackMessage: t("clients.errors.contactDeleteFailed")
     })
   }
 }
