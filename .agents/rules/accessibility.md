@@ -27,8 +27,8 @@ navigation.
 ```
 
 This is lint-enforced by `jsx-a11y/no-static-element-interactions` and
-`jsx-a11y/click-events-have-key-events`: a `<div onClick>` fails lint. These rules currently run at
-`warn` and are promoted to `error` once the existing backlog is cleared.
+`jsx-a11y/click-events-have-key-events`: a `<div onClick>` fails lint. Every `jsx-a11y/*` rule runs
+at `error`.
 
 ## Labels
 

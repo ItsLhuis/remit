@@ -155,14 +155,24 @@ const importOrderRule = [
 // pull `next/headers` and `next/cache` into whatever imports it. Those resolve inside Next and fail
 // outright in the standalone worker process (ADR-0023). A `systemWrites` module is the session-free
 // write path — plain async functions, no request context — so a job may import it directly.
+//
+// `services` is the third, for a pure domain rule: a pure module reaches no component, no `"use
+// server"` module and no other feature's server graph, so importing one can never close a cycle that
+// the root or server barrel would. `services/` files already import each other this way under
+// `pureServicesRule`, which replaces this rule for them.
 const featureBoundaryRule = [
   "error",
   {
     patterns: [
       {
-        group: ["@/features/*/*", "!@/features/*/server", "!@/features/*/systemWrites"],
+        group: [
+          "@/features/*/*",
+          "!@/features/*/server",
+          "!@/features/*/systemWrites",
+          "!@/features/*/services"
+        ],
         message:
-          "Import feature code through the feature root barrel (@/features/<feature>), its server barrel, or its systemWrites module. Use relative imports within the same feature."
+          "Import feature code through the feature root barrel (@/features/<feature>), its server barrel, its systemWrites module or its services barrel. Use relative imports within the same feature."
       },
       // Carried by the boundary rule because it applies to the same files: the reporter's callers
       // are the two boundaries in `instrumentation.ts` and `lib/jobs/worker.ts` (ADR-0041), and a
@@ -233,7 +243,15 @@ const eslintConfig = defineConfig([
       perfectionist
     },
     rules: {
-      "@typescript-eslint/no-deprecated": "warn",
+      "@typescript-eslint/no-deprecated": "error",
+      // `nextVitals` enables these six at `warn`; restated here so the whole `jsx-a11y/*` category
+      // fails the build, like the ten the component block below adds (`accessibility.md`).
+      "jsx-a11y/alt-text": "error",
+      "jsx-a11y/aria-props": "error",
+      "jsx-a11y/aria-proptypes": "error",
+      "jsx-a11y/aria-unsupported-elements": "error",
+      "jsx-a11y/role-has-required-aria-props": "error",
+      "jsx-a11y/role-supports-aria-props": "error",
       "@typescript-eslint/consistent-type-definitions": ["error", "type"],
       "@typescript-eslint/consistent-type-imports": [
         "error",
@@ -253,7 +271,7 @@ const eslintConfig = defineConfig([
           ignoreRestSiblings: true
         }
       ],
-      "@typescript-eslint/switch-exhaustiveness-check": "warn",
+      "@typescript-eslint/switch-exhaustiveness-check": "error",
       "perfectionist/sort-imports": importOrderRule,
       "padding-line-between-statements": [
         "error",
@@ -350,17 +368,17 @@ const eslintConfig = defineConfig([
       i18next
     },
     rules: {
-      "jsx-a11y/no-static-element-interactions": "warn",
-      "jsx-a11y/click-events-have-key-events": "warn",
-      "jsx-a11y/no-noninteractive-element-interactions": "warn",
-      "jsx-a11y/label-has-associated-control": "warn",
-      "jsx-a11y/anchor-is-valid": "warn",
-      "jsx-a11y/interactive-supports-focus": "warn",
-      "jsx-a11y/mouse-events-have-key-events": "warn",
-      "jsx-a11y/no-autofocus": "warn",
-      "jsx-a11y/tabindex-no-positive": "warn",
-      "jsx-a11y/img-redundant-alt": "warn",
-      "i18next/no-literal-string": ["warn", { mode: "jsx-text-only" }]
+      "jsx-a11y/no-static-element-interactions": "error",
+      "jsx-a11y/click-events-have-key-events": "error",
+      "jsx-a11y/no-noninteractive-element-interactions": "error",
+      "jsx-a11y/label-has-associated-control": "error",
+      "jsx-a11y/anchor-is-valid": "error",
+      "jsx-a11y/interactive-supports-focus": "error",
+      "jsx-a11y/mouse-events-have-key-events": "error",
+      "jsx-a11y/no-autofocus": "error",
+      "jsx-a11y/tabindex-no-positive": "error",
+      "jsx-a11y/img-redundant-alt": "error",
+      "i18next/no-literal-string": ["error", { mode: "jsx-text-only" }]
     }
   },
   {
@@ -412,9 +430,12 @@ const eslintConfig = defineConfig([
     // `public*.ts` covers the anonymous read/write modules a `/{letter}/[token]` surface owns
     // (`features/proposals/publicQueries.ts`, `publicResponse.ts`). They are not named
     // `queries.ts`/`mutations.ts` because they answer to a different contract, but they take
-    // untrusted input from a public route and must clear the same guard.
+    // untrusted input from a public route and must clear the same guard. `*Mutations.ts` covers the
+    // concern-named siblings a large `mutations.ts` splits into (`actions.md`), which are the same
+    // server actions under another name.
     files: [
       "features/**/mutations.ts",
+      "features/**/*Mutations.ts",
       "features/**/queries.ts",
       "features/**/public*.ts",
       "app/**/route.ts"

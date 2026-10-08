@@ -824,10 +824,13 @@ member.invited         member.accepted        member.removed          invitation
 
 ### Who subscribes
 
-`features/activityLog/events.ts` is the bus's only subscriber. It registers eighteen handlers, each
-of which turns one domain event into a row in the user-facing feed, and it is imported for that side
-effect by `instrumentation.ts` so the handlers exist before the first request and by
-`scripts/worker.ts` so they exist in the job process too.
+The bus has two subscribers. `features/activityLog/events/` registers eighteen handlers, each of
+which turns one domain event into a row in the user-facing feed: one module per emitting feature,
+each exporting its subscriptions as a function that the folder's `index.ts` calls, so that file is
+the single import site. `features/webhooks/events.ts` relays the subscribable events to outbound
+webhook deliveries (see "Outbound webhooks"). Both are imported for that side effect by
+`instrumentation.ts` so the handlers exist before the first request and by `scripts/worker.ts` so
+they exist in the job process too.
 
 Those eighteen are a deliberate subset of the vocabulary above, and the `entity_type` enum is the
 record of the choice: every value of that enum has a handler here and no other, so the feed's type
@@ -838,9 +841,9 @@ to show.
 
 Every other `features/*/events.ts` is emit-only: a thin typed wrapper such as
 `features/payments/events.ts`'s `emitInvoiceSettled`, which exists so a feature's own name for what
-happened stays inside that feature. The bus is therefore carrying exactly one cross-feature consumer
-today, and the value it is buying is that adding a second one — a receipt email, a cache
-invalidation — needs no change to `markInvoicePaid`.
+happened stays inside that feature. The value the bus is buying is that adding another consumer — a
+receipt email, a cache invalidation — needs no change to `markInvoicePaid`, the way webhooks were
+added beside the feed.
 
 The security audit log is deliberately _not_ on the bus: audit writes happen inline in the mutation
 that performs the action, because an audit entry that a handler could drop is not an audit entry.

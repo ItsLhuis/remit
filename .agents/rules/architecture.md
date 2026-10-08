@@ -58,10 +58,13 @@ file:
   feature should not copy it without an equally strong reason.
 - `labels.ts` - Maps domain values to translation keys, icon names, and badge variants.
 - `queries.ts` - Read operations via Drizzle; server-only.
-- `mutations.ts` - Write operations (server actions); server-only.
+- `mutations.ts` - Write operations (server actions); server-only. Splits by concern into
+  `<concern>Mutations.ts` siblings once it reaches the line ceiling (see `actions.md`, "Splitting
+  `mutations.ts`").
 - `schemas.ts` - Zod schemas and their inferred types.
 - `types.ts` - Public types of the module not derivable from schemas.
-- `events.ts` - Event subscriptions and emissions for this feature.
+- `events.ts` - Event subscriptions and emissions for this feature. A subscriber to many features
+  splits into an `events/` folder by emitting feature (see `events.md`).
 - `index.ts` - Public client-safe barrel; re-exports only components, schemas, types, and other code
   safe for client graphs.
 - `server.ts` - Optional public server-only barrel; re-exports queries and other server-only
@@ -72,13 +75,26 @@ Not every feature needs every file. Add only what the feature requires now.
 
 ## Boundary rule
 
-`features/A` may only import from `features/B` via `features/B/index.ts` for client-safe code, or
-`features/B/server.ts` for server-only code. Never export database/auth/server-only code from
-`index.ts`. Sibling files inside a feature import by direct path to avoid circular dependencies.
+`features/A` may only import from `features/B` through one of its public doors:
+
+- `features/B/index.ts` for client-safe code.
+- `features/B/server.ts` for server-only code.
+- `features/B/systemWrites.ts` for the session-free writes a background job calls (ADR-0023).
+- `features/B/services` for a pure domain rule. A pure module imports nothing that leads back into a
+  component, a `"use server"` module or another feature's server graph, so it can never close an
+  import cycle and is safe in every graph: the browser, the server, the worker and a unit test. Use
+  it when the rule is the only thing you need — the root barrel re-exports the feature's components,
+  and `server.ts` reaches its mutations, and either can close a cycle the services door cannot.
+  `features/clients/publicQueries.ts` reads the contract display status this way, because
+  `features/contracts` reaches `features/clients/server` through its own mutations.
+
+Never export database/auth/server-only code from `index.ts`. Sibling files inside a feature import
+by direct path to avoid circular dependencies. Never restate another feature's rule to avoid a
+cycle; import it through the services door.
 
 This rule applies to code imports. Types from `database/schema` are the shared data substrate and
-may be imported directly by any feature. This boundary is enforced by ESLint
-(`eslint-plugin-boundaries` / `no-restricted-paths`).
+may be imported directly by any feature. This boundary is enforced by ESLint's
+`no-restricted-imports` (`featureBoundaryRule` in `eslint.config.mjs`).
 
 ```ts
 // Bad - imports directly from a sibling file inside another feature

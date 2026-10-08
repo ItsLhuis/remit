@@ -288,7 +288,7 @@ Indexes: `activity_logs_created_at_idx` on `created_at DESC`, `activity_logs_ent
 
 **No `updated_at`. No `deleted_at`.** Editing means delete + insert at the application level.
 
-Every value of `entity_type` is written by a handler in `features/activityLog/events.ts`, and the
+Every value of `entity_type` is written by a handler under `features/activityLog/events/`, and the
 feed's type filter is generated from the enum, so a value with no writer would be a filter option
 that can never match. Adding a value therefore means adding the handler that writes it in the same
 change.
@@ -1567,7 +1567,7 @@ and `paid_at IS NULL`, and `partially_paid` when
 organization-plugin tables (`member.role`, `invitation.role`, `invitation.status`) are stored as
 `text` to match the plugin contract.
 
-`entity_type` lines up with the activity feed exactly: `features/activityLog/events.ts` writes all
+`entity_type` lines up with the activity feed exactly: `features/activityLog/events/` writes all
 eleven of its values and nothing else writes any of them, which is what lets the feed's type filter
 be generated from the enum. `task` was a value until it became clear nothing should write it — tasks
 are the highest-volume record in the product and Remit is not a project management platform — and it

@@ -98,11 +98,11 @@ which tool owns them.
 The ESLint config (`eslint.config.mjs`) is the mechanical floor for `.agents/rules/`: import order,
 type-import style, feature boundaries, service purity, accessibility, and hardcoded-string bans are
 enforced there. Treat a rule as enforced only when a lint rule backs it; prose in `.agents/rules/`
-without a corresponding lint rule is reviewer guidance, not an automated gate. Some lint categories
-run at `warn` while an existing backlog is burned down — `jsx-a11y/*`,
-`@typescript-eslint/switch-exhaustiveness-check`, and `@typescript-eslint/no-deprecated`; they are
-promoted to `error` as each backlog reaches zero, and no change may add new warnings in those
-categories.
+without a corresponding lint rule is reviewer guidance, not an automated gate. `jsx-a11y/*`,
+`@typescript-eslint/switch-exhaustiveness-check`, `@typescript-eslint/no-deprecated` and
+`i18next/no-literal-string` run at `error`. `pnpm lint` does not fail on a warning, so a rule a
+document calls enforced must be at `error`; the rules still at `warn` (`max-lines`, `max-params`,
+`sonarjs/*`) are advisory, and no change may add new warnings to them.
 
 ## Engineering Practices
 

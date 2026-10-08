@@ -1,6 +1,7 @@
 ---
 paths:
   - "features/**/events.ts"
+  - "features/**/events/**"
   - "features/**/mutations.ts"
   - "lib/events/**"
 ---
@@ -59,6 +60,12 @@ Never use string literals for event names outside of `lib/events/types.ts`.
 Handlers live in `features/<feature>/events.ts`. They register at module load time via `on()` from
 `lib/events`. The file must be imported in the application bootstrap so that handlers register
 before any request is handled.
+
+A subscriber that listens to many features splits into an `events/` folder, one module per emitting
+feature, as `features/activityLog/events/` does. Each module exports its subscriptions as a
+`subscribe<Entity>Activity()`-style function, and the folder's `index.ts` calls every one: it stays
+the single import site the bootstrap loads, and a test pins the subscribed event set, so no handler
+can stop registering because an import was lost.
 
 ```ts
 // features/email/events.ts

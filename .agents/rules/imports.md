@@ -156,10 +156,14 @@ Cross-feature imports use:
 
 - `@/features/<feature>` for client-safe public exports.
 - `@/features/<feature>/server` for server-only public exports.
+- `@/features/<feature>/systemWrites` for the session-free writes a background job calls.
+- `@/features/<feature>/services` for a pure domain rule, when the root and server barrels would
+  drag components or `"use server"` modules into the graph (see `architecture.md`, "Boundary rule").
 
 ```ts
 import { isEmailConfigured } from "@/features/settings"
 import { getInvoiceForEmail } from "@/features/invoicing/server"
+import { resolveContractDisplayStatus } from "@/features/contracts/services"
 ```
 
 Do not reach into another feature's private component/service/schema/query/mutation file unless the
