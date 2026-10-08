@@ -191,9 +191,9 @@ async function getProposalOverviewFilterOptions(): Promise<ProposalOverviewFilte
 // A proposal outlives its parents: both parent columns are nullable, both are nulled rather than
 // cascaded when a parent goes away, and `/proposals/[proposalId]` resolves a proposal on its own id.
 // So the parent chain is left-joined for labels and filtering only and never narrows the population
-// — before stage 29 it did, because a proposal was reachable only through its project. The summary
-// counters and the client filter options run against this same condition, so the band always
-// describes the population the table is paging through.
+// — inner-joining the project would drop every client-level proposal and every proposal whose
+// project was deleted (ADR-0026). The summary counters and the client filter options run against
+// this same condition, so the band always describes the population the table is paging through.
 function getProposalOverviewBaseCondition(): SQL | undefined {
   return isNull(proposals.deletedAt)
 }

@@ -28,8 +28,9 @@ export type JobMap = {
   "credit_note.pdf.render": {
     creditNoteId: string
   }
-  // The document mails, chained *behind* the render above rather than sent alongside it. Stages 12
-  // and 16 promise the PDF is attached, so the mail cannot go before the artifact exists.
+  // The document mails, chained *behind* the render above rather than sent alongside it. A sent
+  // proposal or invoice promises its PDF is attached (ADR-0022, `email_logs.pdf_attached`), so the
+  // mail cannot go before the artifact exists.
   //
   // Two alternatives were rejected. Rendering inside the send job couples two failure domains: a
   // mail-provider outage would retry a Chromium launch five times. Sending without the attachment

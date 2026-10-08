@@ -101,7 +101,8 @@ export async function inviteTeamMember(input: unknown): Promise<InviteTeamMember
     // Delivery is attempted here rather than through the plugin's `sendInvitationEmail` hook so the
     // outcome is part of this action's return value: the owner has to be told to share the link by
     // hand whenever the mail never left, and the hook runs detached from the request with no way to
-    // report that back. An unconfigured instance skips the attempt entirely (Stage 3 optional).
+    // report that back. An instance with no email configured — email setup is optional — skips the
+    // attempt entirely.
     const emailDelivered = (await getProfileEmailConfigured())
       ? await sendInvitationEmail({
           to: email,

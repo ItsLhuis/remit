@@ -57,9 +57,9 @@ export async function listAttachments(input: unknown): Promise<AttachmentListIte
   }))
 }
 
-// The read half of the stage's security property. Two gates, and the second is the one that matters:
-// holding an attachment id is not enough — the record it hangs off has to still be live, so an
-// attachment of a soft-deleted client, project, invoice, or expense is refused here rather than
+// The read half of attachment authorization (ADR-0028). Two gates, and the second is the one that
+// matters: holding an attachment id is not enough — the record it hangs off has to still be live, so
+// an attachment of a soft-deleted client, project, invoice, or expense is refused here rather than
 // merely hidden from the list that would have shown it.
 export async function getAttachmentForDownload(input: unknown): Promise<AttachmentDownload | null> {
   const parsed = attachmentIdSchema.safeParse(input)

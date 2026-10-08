@@ -59,8 +59,9 @@ export const attachments = pgTable(
     index("attachments_uploaded_by_user_id_idx").on(table.uploadedByUserId),
     // Exactly one parent, in the same shape as `chk_line_items_parent`. It is what makes "an
     // attachment always belongs to precisely one record the requester can be checked against" a
-    // structural fact rather than an application convention, and it is the half of the stage's
-    // security property that a forgotten `where` clause cannot undo.
+    // structural fact rather than an application convention, and it is the half of attachment
+    // authorization that a forgotten `where` clause cannot undo (ADR-0028); the other half is the
+    // live-parent gate in `features/attachments/queries.ts`'s `getAttachmentForDownload`.
     check(
       "chk_attachments_parent",
       sql`(

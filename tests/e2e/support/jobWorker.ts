@@ -43,9 +43,10 @@ export async function isJobQueueReachable(): Promise<boolean> {
   })
 }
 
-// The production consumer entrypoint, spawned as its own process. Stage 28 exists because a stubbed
-// queue accepts every job id ever written, and two ids BullMQ refuses sat undetected through six
-// stages; a spec that faked the consumer would repeat that. It is a child process rather than an
+// The production consumer entrypoint, spawned as its own process. A stubbed queue accepts every job
+// id ever written, and two ids BullMQ refuses once went undetected that way until the real consumer
+// ran (`lib/jobs/jobId.ts`'s `assertValidJobId` now guards them); a spec that faked the consumer would
+// repeat that. It is a child process rather than an
 // in-process `startWorker()` because `features/dataExport/jobs.ts` imports `package.json`, and
 // Playwright's ESM loader rejects a JSON import that carries no import attribute — loading a subset
 // of the worker's modules to dodge that would recreate exactly the drift

@@ -128,8 +128,9 @@ async function getProposalClient(clientId: string | null): Promise<ProposalRende
 }
 
 // Either parent resolves to the same client — `fk_proposals_project_client` keeps the pair in
-// agreement — so the stored `client_id` answers directly and the project is only consulted for a
-// row written before stage 29's backfill ran.
+// agreement — so the stored `client_id` answers directly. The project lookup is a fallback for a row
+// with no `client_id`, which `chk_proposals_project_requires_client` only admits when the project is
+// absent too.
 async function getProjectClientId(projectId: string | null): Promise<string | null> {
   if (!projectId) return null
 

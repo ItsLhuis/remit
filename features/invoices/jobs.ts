@@ -215,8 +215,8 @@ async function sendInvoiceReminder(payload: {
   }
 
   // Rendered through the instance's `email_overdue_reminder` template, with the hand-rolled text
-  // below as the fallback. Before this stage the reminder ignored the template entirely, which meant
-  // an operator could design one and never see it used.
+  // below as the fallback for an instance that has not designed one. Ignoring the template would let
+  // an operator design a reminder and never see it used.
   const document = await buildInvoiceDocumentData(target.id)
 
   if (!document) return

@@ -1,8 +1,8 @@
 // The id shapes that never reach Redis, rejected here rather than discovered in production.
 // `queue.add` throws on a colon-bearing or integer id, and `enqueueJob` turns a throw into a log
 // line so a queue outage cannot fail a user action — which means an id this function would reject
-// enqueues nothing and reports success. That combination is what left reminder dispatch queuing
-// nothing through six stages.
+// enqueues nothing and reports success. That combination once left reminder dispatch queuing nothing
+// while every check stayed green.
 //
 // An empty id is not BullMQ's rule but this module's: `enqueueJob` would drop a falsy id and enqueue
 // under a generated one, losing the collapse-on-duplicate the caller asked for without saying so.

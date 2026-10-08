@@ -30,8 +30,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 // The mail provider is the only thing stubbed here, and that is the whole point of the file. Every
-// other integration test stubs `@/lib/jobs` too, which is precisely why a job id BullMQ refuses sat
-// undetected through six stages: a stubbed `enqueueJob` accepts every id ever written. Here the
+// other integration test stubs `@/lib/jobs` too, which is precisely how a job id BullMQ refuses once
+// went undetected: a stubbed `enqueueJob` accepts every id ever written. Here the
 // queue, the worker, the registry and the job ids are all real, and only the network is not.
 vi.mock("@/features/email/server", () => ({
   isEmailConfigured: () => true,

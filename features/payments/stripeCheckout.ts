@@ -110,8 +110,8 @@ type CheckoutSessionInput = {
   amountCents: number
 }
 
-// The whole trust boundary of this stage is the amount and the metadata key set below. Everything
-// else about the session is presentation.
+// The whole trust boundary of hosted checkout (ADR-0032) is the amount and the metadata key set
+// below. Everything else about the session is presentation.
 async function createCheckoutSession({
   secretKey,
   token,

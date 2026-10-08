@@ -8,7 +8,7 @@ import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatur
 // compiler, which checks the name against `JobMap` and never against the registry, so a job name can
 // be declared, fired from a mutation, and reach a worker that has no handler for it — where
 // `processJob` throws, burns five attempts, and dies in a process nobody is watching. Five PDF job
-// names sat in exactly that state through six stages.
+// names once sat in exactly that state, unnoticed, because every test stubbed the queue.
 //
 // An integration test rather than a unit one because it loads the real feature modules, which reach
 // `@/database` and `lib/config/env.ts`. It deliberately does not stub `@/lib/jobs`: the registry

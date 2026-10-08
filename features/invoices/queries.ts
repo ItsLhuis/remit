@@ -392,8 +392,8 @@ export async function getProposalInvoiceSnapshot(
   return {
     id: proposal.id,
     projectId: proposal.projectId,
-    // Read straight off the proposal rather than joined through its project: since stage 29 the
-    // proposal carries its own `client_id`, and `fk_proposals_project_client` keeps the two in
+    // Read straight off the proposal rather than joined through its project: the proposal carries
+    // its own `client_id` (ADR-0026), and `fk_proposals_project_client` keeps the two in
     // agreement, so the join would only re-derive what the column already says.
     clientId: proposal.clientId,
     currency: proposal.currency,
