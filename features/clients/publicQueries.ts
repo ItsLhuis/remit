@@ -5,6 +5,11 @@ import { matchesPublicToken } from "@/lib/publicToken"
 import { database } from "@/database"
 import { clients, contracts, creditNotes, invoices, projects, proposals } from "@/database/schema"
 
+// Through the services door rather than the contracts barrel: `features/contracts` reaches
+// `features/clients/server` through its own mutations, so a value import of either contracts barrel
+// from here closes an import cycle (architecture.md, "Boundary rule").
+import { resolveContractDisplayStatus } from "@/features/contracts/services"
+
 import { sumCreditNoteTotalCents } from "@/features/creditNotes"
 
 import { deriveInvoiceStatusView, getInvoiceOutstandingCents } from "@/features/invoices"
@@ -12,7 +17,7 @@ import { deriveInvoiceStatusView, getInvoiceOutstandingCents } from "@/features/
 import { isProposalExpired } from "@/features/proposals"
 
 import { clientPortalTokenSchema } from "./schemas"
-import { resolvePortalContractStatus, summarizePortalOutstanding } from "./services"
+import { summarizePortalOutstanding } from "./services"
 import {
   type ClientPortal,
   type ClientPortalContract,
@@ -53,11 +58,11 @@ type PortalIssuerContext = {
 
 const PUBLIC_TOKEN_MISS_DECOY = "0".repeat(43)
 
-// The exclusion list of this stage, expressed where Postgres enforces it rather than where a mapper
-// could forget it. `clients.notes` is encrypted because it may carry NDA-protected content and never
-// leaves the server on this path; the address, tax id, phone and negotiated hourly rate answer no
-// question the recipient of the link is asking. `name` is the one identity field kept, so the holder
-// can tell at a glance that they opened their own link.
+// The portal's exclusion list (ADR-0030), expressed where Postgres enforces it rather than where a
+// mapper could forget it. `clients.notes` is encrypted because it may carry NDA-protected content and
+// never leaves the server on this path; the address, tax id, phone and negotiated hourly rate answer
+// no question the recipient of the link is asking. `name` is the one identity field kept, so the
+// holder can tell at a glance that they opened their own link.
 const PORTAL_CLIENT_COLUMNS = {
   id: true,
   name: true,
@@ -362,7 +367,7 @@ function toPortalContract(row: PortalContractRow, now: Date): ClientPortalContra
   return {
     number: row.number,
     title: row.title,
-    status: resolvePortalContractStatus(row.status, row.effectiveUntil, now),
+    status: resolveContractDisplayStatus(row.status, row.effectiveUntil, now),
     issuedAt: row.issuedAt,
     effectiveFrom: row.effectiveFrom,
     effectiveUntil: row.effectiveUntil

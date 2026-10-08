@@ -31,10 +31,6 @@ export {
   type ClientTrendCountRow
 } from "./buildClientBillingTrend"
 
-export {
-  resolvePortalContractStatus,
-  summarizePortalOutstanding,
-  type PortalOutstandingRow
-} from "./portalStatement"
+export { summarizePortalOutstanding, type PortalOutstandingRow } from "./portalStatement"
 
 export { formatLocation } from "./formatLocation"
