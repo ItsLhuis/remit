@@ -143,4 +143,16 @@ describe("Redis rate-limit adapter", () => {
     expect(mocks.getRateLimitConnection).toHaveBeenCalledTimes(1)
     expect(result.remaining).toBe(59)
   })
+
+  // A fresh module registry stands in for the proxy's bundle, which evaluates its own copy of this
+  // module in the same process as the route handlers.
+  test("hands every evaluation of the module the one process-wide limiter", async () => {
+    const { rateLimitInstance: first } = await import("../index")
+
+    vi.resetModules()
+
+    const { rateLimitInstance: second } = await import("../index")
+
+    expect(second).toBe(first)
+  })
 })
