@@ -12,10 +12,14 @@ export const metadata: Metadata = {
   title: t("settings.metadata.data")
 }
 
-const DataPage = async () => {
+type DataPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+const DataPage = async ({ searchParams }: DataPageProps) => {
   await requireRole("owner")
 
-  return <DataSettingsPage />
+  return <DataSettingsPage searchParams={await searchParams} />
 }
 
 export default DataPage

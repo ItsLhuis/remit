@@ -21,7 +21,11 @@ vi.mock("@/lib/i18n/server", () => ({
 }))
 
 vi.mock("@/lib/audit", () => ({
-  writeAudit: mocks.writeAudit
+  writeAudit: mocks.writeAudit,
+  // Forwards to the mocked `writeAudit`, so these assertions read the entry a refusal produces; the
+  // one-entry-per-window counting itself is covered by `lib/rateLimit/__tests__/tripWindow.test.ts`.
+  writeRateLimitTripAudit: (_trip: unknown, options: unknown) =>
+    mocks.writeAudit("auth.rate_limit.tripped", options)
 }))
 
 vi.mock("@/lib/rateLimit", () => ({
@@ -29,6 +33,7 @@ vi.mock("@/lib/rateLimit", () => ({
 }))
 
 vi.mock("@/features/clients", () => ({
+  parseClientPortalPages: () => ({ invoices: 1, proposals: 1, contracts: 1, projects: 1 }),
   PublicClientPortalPage: mocks.PublicClientPortalPage,
   PublicClientPortalUnavailable: mocks.PublicClientPortalUnavailable
 }))
@@ -40,7 +45,7 @@ vi.mock("@/features/clients/server", () => ({
 const token = "T".repeat(43)
 
 function tokenParams() {
-  return { params: Promise.resolve({ token }) }
+  return { params: Promise.resolve({ token }), searchParams: Promise.resolve({}) }
 }
 
 beforeEach(() => {

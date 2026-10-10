@@ -428,6 +428,7 @@ const ClientWorkspace = ({
       />
       <ForgetClientDialog
         clientName={client.name}
+        blockingContracts={client.erasureBlockingContracts}
         open={forgetOpen}
         isForgetting={isForgetting}
         onOpenChange={(open) => {

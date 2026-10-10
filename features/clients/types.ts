@@ -89,6 +89,9 @@ export type ClientDetail = {
   updatedAt: Date
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
+  // Numbers of the countersigned contracts that make an erasure impossible (ADR-0034), so the
+  // erasure dialog warns before the owner confirms rather than after the action refuses.
+  erasureBlockingContracts: string[]
 }
 
 export type ClientFormData = ClientFormValues & {
@@ -172,9 +175,17 @@ export type ClientPortal = {
   issuer: ClientPortalIssuer
   locale: string
   timeZone: string
+  // Every invoice the client still owes, not only the page on screen: a statement total that changed
+  // with the page would quote the client a different balance on every click.
   outstanding: OutstandingByCurrency[]
-  invoices: ClientPortalInvoice[]
-  proposals: ClientPortalProposal[]
-  contracts: ClientPortalContract[]
-  projects: ClientPortalProject[]
+  invoices: ClientPortalList<ClientPortalInvoice>
+  proposals: ClientPortalList<ClientPortalProposal>
+  contracts: ClientPortalList<ClientPortalContract>
+  projects: ClientPortalList<ClientPortalProject>
+}
+
+export type ClientPortalList<Item> = {
+  items: Item[]
+  page: number
+  pageCount: number
 }

@@ -10,21 +10,26 @@ import {
   contracts,
   contractSignatures,
   invoices,
+  objectDeletions,
   payments,
   projects,
-  tasks
+  tasks,
+  uploads
 } from "@/database/schema"
 
 import {
   makeActivityLog,
+  makeAttachment,
   makeClient,
   makeClientContact,
   makeContract,
   makeContractSignature,
+  makeDataExport,
   makeInvoice,
   makePayment,
   makeProject,
   makeTask,
+  makeUpload,
   makeUser
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
@@ -35,7 +40,13 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   headers: vi.fn(),
   loggerError: vi.fn(),
-  revalidatePath: vi.fn()
+  revalidatePath: vi.fn(),
+  deleteObject: vi.fn()
+}))
+
+vi.mock("@/lib/storage/s3", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/storage/s3")>()),
+  storage: { deleteObject: mocks.deleteObject }
 }))
 
 vi.mock("next/cache", () => ({
@@ -83,6 +94,38 @@ describe("right to be forgotten", () => {
     mocks.headers.mockResolvedValue(new Headers({ "user-agent": "Vitest" }))
     mocks.getSession.mockResolvedValue({ user: { id: ownerId, email: ownerEmail } })
     mocks.getCurrentRole.mockResolvedValue("owner")
+    mocks.deleteObject.mockResolvedValue(undefined)
+  })
+
+  test("removes every file the client owned and keeps one another client still uses", async () => {
+    const { forgetClient } = await import("../forgetMutations")
+
+    const image = await makeUpload()
+    const shared = await makeUpload({ bucket: "documents" })
+    const client = await makeClient({ name: "Acme Studio", imageUploadId: image.id })
+    const project = await makeProject({ clientId: client.id })
+    const attachmentFile = await makeUpload({ bucket: "documents" })
+    await makeAttachment({ projectId: project.id, uploadId: attachmentFile.id })
+    await makeInvoice({ clientId: client.id, pdfUploadId: shared.id })
+    await makeInvoice({ pdfUploadId: shared.id })
+    await makeDataExport({ scope: "client", clientId: client.id, storageKey: "exports/acme.zip" })
+
+    await forgetClient({ id: client.id, confirmation: "Acme Studio" })
+
+    const remainingUploads = (await database.select({ id: uploads.id }).from(uploads)).map(
+      (row) => row.id
+    )
+    const deleted = mocks.deleteObject.mock.calls.map(([bucket, key]) => `${bucket}:${key}`)
+
+    expect(remainingUploads).toEqual([shared.id])
+    expect(deleted.toSorted()).toEqual(
+      [
+        `public:${image.path}`,
+        `documents:${attachmentFile.path}`,
+        "exports:exports/acme.zip"
+      ].toSorted()
+    )
+    expect(await database.select().from(objectDeletions)).toEqual([])
   })
 
   test("destroys the client and its whole subgraph", async () => {
@@ -178,5 +221,19 @@ describe("right to be forgotten", () => {
 
     expect(result).toEqual({ error: expect.any(String) })
     expect(await database.select().from(clients).where(eq(clients.id, client.id))).toHaveLength(1)
+  })
+
+  test("lists the signed contracts that would block the erasure, through its projects too", async () => {
+    const { listErasureBlockingContracts } = await import("../forget")
+
+    const client = await makeClient()
+    const project = await makeProject({ clientId: client.id })
+    const direct = await makeContract({ clientId: client.id, number: "CTR-0001" })
+    const viaProject = await makeContract({ projectId: project.id, number: "CTR-0002" })
+    await makeContract({ clientId: client.id, number: "CTR-0003" })
+    await makeContractSignature({ contractId: direct.id })
+    await makeContractSignature({ contractId: viaProject.id })
+
+    expect(await listErasureBlockingContracts(client.id)).toEqual(["CTR-0001", "CTR-0002"])
   })
 })

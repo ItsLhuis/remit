@@ -8,16 +8,22 @@ import {
   contracts,
   contractSignatures,
   invoices,
-  settings
+  objectDeletions,
+  settings,
+  uploads
 } from "@/database/schema"
 
 import { DOMAIN_DATA_INVENTORY } from "@/scripts/core/domainData/inventory"
 import {
+  makeAttachment,
   makeClient,
   makeContract,
   makeContractSignature,
+  makeCreditNote,
   makeInvoice,
   makeSettings,
+  makeTemplate,
+  makeUpload,
   makeUser
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
@@ -27,7 +33,13 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   headers: vi.fn(),
   loggerError: vi.fn(),
-  revalidatePath: vi.fn()
+  revalidatePath: vi.fn(),
+  deleteObject: vi.fn()
+}))
+
+vi.mock("@/lib/storage/s3", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/storage/s3")>()),
+  storage: { deleteObject: mocks.deleteObject }
 }))
 
 vi.mock("next/cache", () => ({
@@ -82,6 +94,7 @@ describe("retention purge", () => {
     mocks.headers.mockResolvedValue(new Headers({ "user-agent": "Vitest" }))
     mocks.getSession.mockResolvedValue({ user: { id: ownerId, email: ownerEmail } })
     mocks.getCurrentRole.mockResolvedValue("owner")
+    mocks.deleteObject.mockResolvedValue(undefined)
   })
 
   test("destroys nothing on a freshly migrated instance", async () => {
@@ -211,5 +224,117 @@ describe("retention purge", () => {
 
     expect(row?.retentionTrashDays).toBe(30)
     expect(row?.retentionFinancialDays).toBe(2555)
+  })
+
+  test("removes the objects a purged invoice owned, through its cascades too", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    const pdf = await makeUpload({ bucket: "documents" })
+    const invoice = await makeInvoice({ deletedAt: OLD, pdfUploadId: pdf.id })
+    const attachmentFile = await makeUpload({ bucket: "documents" })
+    await makeAttachment({ invoiceId: invoice.id, uploadId: attachmentFile.id })
+    const creditNotePdf = await makeUpload({ bucket: "documents" })
+    await makeCreditNote({ invoiceId: invoice.id, pdfUploadId: creditNotePdf.id })
+
+    const result = await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const remainingUploads = await database.select({ id: uploads.id }).from(uploads)
+    const deletedKeys = mocks.deleteObject.mock.calls.map(([bucket, key]) => `${bucket}:${key}`)
+
+    expect(remainingUploads).toEqual([])
+    expect(deletedKeys.toSorted()).toEqual(
+      [pdf.path, attachmentFile.path, creditNotePdf.path]
+        .map((key) => `documents:${key}`)
+        .toSorted()
+    )
+    expect(result.storageObjects).toBe(3)
+    expect(await database.select().from(objectDeletions)).toEqual([])
+  })
+
+  test("keeps an object another row still references", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    const shared = await makeUpload({ bucket: "documents" })
+    await makeInvoice({ deletedAt: OLD, pdfUploadId: shared.id })
+    await makeInvoice({ pdfUploadId: shared.id })
+
+    await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const [survivor] = await database.select().from(uploads).where(eq(uploads.id, shared.id))
+
+    expect(survivor).toBeDefined()
+    expect(mocks.deleteObject).not.toHaveBeenCalled()
+  })
+
+  test("keeps a template image another template still shows, at any nesting depth", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    const shared = await makeUpload()
+    const own = await makeUpload()
+    const nestedImage = (uploadId: string) => [
+      {
+        id: "frame",
+        type: "frame",
+        content: {
+          children: [{ id: "image", type: "image", content: { source: "upload", uploadId } }]
+        }
+      }
+    ]
+    await makeTemplate({
+      deletedAt: OLD,
+      blocks: [...nestedImage(shared.id), ...nestedImage(own.id)]
+    })
+    await makeTemplate({ blocks: nestedImage(shared.id) })
+
+    await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const remaining = (await database.select({ id: uploads.id }).from(uploads)).map((row) => row.id)
+
+    expect(remaining).toEqual([shared.id])
+    expect(mocks.deleteObject).toHaveBeenCalledWith("public", own.path)
+  })
+
+  test("leaves released objects queued when the store refuses the delete", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    mocks.deleteObject.mockRejectedValue(new Error("connect ECONNREFUSED"))
+
+    const pdf = await makeUpload({ bucket: "documents" })
+    await makeInvoice({ deletedAt: OLD, pdfUploadId: pdf.id })
+
+    await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const [queued] = await database.select().from(objectDeletions)
+    const remainingUploads = await database.select().from(uploads)
+
+    expect(remainingUploads).toEqual([])
+    expect(queued).toMatchObject({ bucket: "documents", key: pdf.path, attempts: 1 })
+  })
+
+  test("purges a client in the same run as the last documents naming it", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    const client = await makeClient({ deletedAt: OLD })
+    await makeInvoice({ clientId: client.id, deletedAt: OLD })
+
+    await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const remaining = await database.select().from(clients).where(eq(clients.id, client.id))
+
+    expect(remaining).toEqual([])
+  })
+
+  test("keeps a client a countersigned contract names, even once it is in the trash", async () => {
+    const { runRetentionPurge } = await import("../purge")
+
+    const client = await makeClient({ deletedAt: OLD })
+    const contract = await makeContract({ clientId: client.id, deletedAt: OLD })
+    await makeContractSignature({ contractId: contract.id })
+
+    await runRetentionPurge({ trashDays: 30, financialDays: 30 }, NOW)
+
+    const [survivor] = await database.select().from(clients).where(eq(clients.id, client.id))
+
+    expect(survivor).toBeDefined()
   })
 })

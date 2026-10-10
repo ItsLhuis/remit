@@ -1,12 +1,15 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState, useTransition } from "react"
+
+import Link from "next/link"
 
 import { toast } from "sonner"
 
 import { useTranslation } from "@/lib/i18n"
 
 import {
+  Button,
   DataTable,
   Empty,
   EmptyDescription,
@@ -20,18 +23,19 @@ import {
 import { useDataTable, type ColumnDef } from "@/hooks"
 
 import { restoreTrashedRecord } from "../../mutations"
-import { type TrashItem } from "../../types"
+import { TRASH_URL_KEY_PREFIX } from "../../schemas"
+import { type TrashItem, type TrashSectionData } from "../../types"
 
 import { getTrashColumns } from "./trashColumns"
 
 type TrashTableProps = {
-  items: TrashItem[]
-  locale: string
-  timeZone: string
+  data: TrashSectionData
 }
 
-const TrashTable = ({ items, locale, timeZone }: TrashTableProps) => {
+const TrashTable = ({ data }: TrashTableProps) => {
   const { t } = useTranslation()
+
+  const [isPending, startTransition] = useTransition()
 
   const [restoringId, setRestoringId] = useState<string | null>(null)
 
@@ -66,29 +70,33 @@ const TrashTable = ({ items, locale, timeZone }: TrashTableProps) => {
     () =>
       getTrashColumns({
         t,
-        locale,
-        timeZone,
+        locale: data.locale,
+        timeZone: data.timeZone,
         restoringId,
         onRestore: (item) => {
           void handleRestore(item)
         }
       }),
-    [t, locale, timeZone, restoringId, handleRestore]
+    [t, data.locale, data.timeZone, restoringId, handleRestore]
   )
 
   const { table } = useDataTable({
-    data: items,
+    data: data.items,
     columns,
-    getRowId: (item) => item.id,
+    getRowId: (item) => `${item.kind}:${item.id}`,
+    rowCount: data.rowCount,
+    shallow: false,
+    startTransition,
+    urlKeyPrefix: TRASH_URL_KEY_PREFIX,
     enableRowSelection: false,
-    columnVisibilityStorageKey: "trash:column-visibility",
-    initialState: { pagination: { pageIndex: 0, pageSize: 10 } }
+    columnVisibilityStorageKey: "trash:column-visibility"
   })
 
   return (
     <DataTable
       table={table}
       caption={t("trash.title")}
+      isLoading={isPending}
       empty={
         <Empty className="border-0 py-12">
           <EmptyHeader>
@@ -101,9 +109,18 @@ const TrashTable = ({ items, locale, timeZone }: TrashTableProps) => {
         </Empty>
       }
     >
-      <div className="flex flex-col gap-0.5">
-        <Typography affects={["small", "medium"]}>{t("trash.title")}</Typography>
-        <Typography affects={["muted", "tiny"]}>{t("trash.description")}</Typography>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-0.5">
+          <Typography affects={["small", "medium"]}>{t("trash.title")}</Typography>
+          <Typography affects={["muted", "tiny"]}>
+            {data.isNarrowedToRecord ? t("trash.narrowed") : t("trash.description")}
+          </Typography>
+        </div>
+        {data.isNarrowedToRecord ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/data#trash">{t("trash.showAll")}</Link>
+          </Button>
+        ) : null}
       </div>
     </DataTable>
   )

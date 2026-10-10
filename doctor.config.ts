@@ -116,6 +116,22 @@ const config = {
         rules: ["react-doctor/async-await-in-loop"]
       },
       {
+        // Two loops, both sequential by contract. The release batches its deletes and inserts on the
+        // caller's one transaction connection, where nothing can overlap anyway. The drain deletes one
+        // object, then its queue row, before the next: that ordering is what guarantees a row is never
+        // removed for an object still present, and stopping after three refusals in a row only means
+        // something if the refusals are counted one at a time (ADR-0049).
+        files: ["lib/storage/objectDeletions.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
+        // Batches of line inserts on the caller's invoice transaction, split only to stay under the
+        // 65,535 parameters Postgres allows one statement; the batches share one connection and run
+        // in order regardless.
+        files: ["features/invoices/invoiceWrites.ts"],
+        rules: ["react-doctor/async-await-in-loop"]
+      },
+      {
         // The two reads are logically independent but cannot overlap: every statement here runs on
         // the erasure's single transaction connection, and postgres.js serialises them regardless.
         // `Promise.all` would only hide that behind a shape that reads as concurrency.

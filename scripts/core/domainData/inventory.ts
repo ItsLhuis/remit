@@ -268,11 +268,11 @@ export const DOMAIN_DATA_INVENTORY = [
     key: "uploads",
     table: "uploads",
     seed: "skip",
-    reseed: "keep",
+    reseed: "delete",
     reset: "delete",
     trash: "none",
     retention: null,
-    reason: "only the rows the deleted documents pointed at; the logo and template images stay"
+    reason: "only the files nothing kept still points at; the logo and template images stay"
   },
   {
     key: "taxRates",
@@ -323,6 +323,16 @@ export const DOMAIN_DATA_INVENTORY = [
     trash: "none",
     retention: null,
     reason: "operator-configured delivery targets, instance configuration like provider settings"
+  },
+  {
+    key: "objectDeletions",
+    table: "object_deletions",
+    seed: "skip",
+    reseed: "keep",
+    reset: "keep",
+    trash: "none",
+    retention: null,
+    reason: "objects whose rows are already gone, still to be removed; a reset adds to it"
   },
   {
     key: "auditLogs",

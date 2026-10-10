@@ -63,34 +63,3 @@ export const activityEntityTypeLabelKeys: Record<ActivityEntityType, ActivityEnt
 export function isActivityMessageKey(value: string): value is ActivityMessageKey {
   return Object.hasOwn(activityMessagePresentation, value)
 }
-
-// Proposals, invoices and payments have no detail route of their own — each is edited from a sheet
-// on its list page — so the list is the closest addressable surface an entry can link to. A credit
-// note does have one, but only under its invoice's project, and a feed row carries no parent ids;
-// the global list is what it can reach. Adding a detail route later is the moment to revisit an arm,
-// not a reason to add a fallback now.
-export function getActivityEntityHref(entityType: ActivityEntityType, entityId: string): string {
-  switch (entityType) {
-    case "client":
-      return `/clients/${entityId}`
-    case "lead":
-      return `/leads/${entityId}`
-    case "project":
-      return `/projects/${entityId}`
-    case "contract":
-      return `/contracts/${entityId}`
-    case "recurring_invoice":
-      return `/recurring-invoices/${entityId}`
-    case "proposal":
-      return "/proposals"
-    case "invoice":
-    case "payment":
-      return "/invoices"
-    case "credit_note":
-      return "/credit-notes"
-    case "time_entry":
-      return "/time"
-    case "expense":
-      return "/expenses"
-  }
-}

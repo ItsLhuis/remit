@@ -9,7 +9,11 @@ import { getDataExportPageData } from "../../queries"
 import { DataExportContentsCard } from "./DataExportContentsCard"
 import { DataExportPanel } from "./DataExportPanel"
 
-const DataSettingsPage = async () => {
+type DataSettingsPageProps = {
+  searchParams: unknown
+}
+
+const DataSettingsPage = async ({ searchParams }: DataSettingsPageProps) => {
   const pageData = await getDataExportPageData()
 
   return (
@@ -27,7 +31,7 @@ const DataSettingsPage = async () => {
         timeZone={pageData.timeZone}
       />
       <DataExportContentsCard />
-      <TrashSection />
+      <TrashSection searchParams={searchParams} />
     </div>
   )
 }

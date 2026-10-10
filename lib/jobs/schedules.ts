@@ -15,6 +15,10 @@ type RepeatableJob = {
 // than shared: generation runs first so an invoice created overnight is already visible to overdue
 // detection, and reminders run at a civil hour because they send mail a client reads.
 //
+// `storage.deletion.sweep` is the one hourly entry: it only retries object deletes a purge, an
+// erasure or a reset already committed to, and an hour is how long a released object may outlive a
+// storage outage before the next attempt.
+//
 // The backup runs at 01:00, ahead of all of them, and the hour is a data-safety choice rather than a
 // load one. `retention.purge.sweep` at 02:30 hard-deletes rows that nothing else can bring back, so
 // an archive taken before it always still contains the last day it destroyed; taken afterwards, the
@@ -30,7 +34,8 @@ const REPEATABLE_JOBS: RepeatableJob[] = [
   { name: "recurring.schedule.sweep", pattern: "0 0 2 * * *" },
   { name: "invoice.overdue.sweep", pattern: "0 15 2 * * *" },
   { name: "invoice.reminder.sweep", pattern: "0 0 8 * * *" },
-  { name: "retention.purge.sweep", pattern: "0 30 2 * * *" }
+  { name: "retention.purge.sweep", pattern: "0 30 2 * * *" },
+  { name: "storage.deletion.sweep", pattern: "0 45 * * * *" }
 ]
 
 export const SCHEDULED_JOB_NAMES: ScheduledJobName[] = REPEATABLE_JOBS.map((job) => job.name)

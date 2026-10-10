@@ -1,3 +1,4 @@
+export * from "./artifactExpiry"
 export * from "./exportFilename"
 export * from "./exportIndex"
 export * from "./exportManifest"

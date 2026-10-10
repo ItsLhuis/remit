@@ -58,6 +58,7 @@ test("keeps the tables a reset must never touch", () => {
       "audit_logs",
       "invitations",
       "members",
+      "object_deletions",
       "organizations",
       "sessions",
       "settings",

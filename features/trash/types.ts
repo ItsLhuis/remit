@@ -1,5 +1,5 @@
 import { type TrashEntityKind } from "./schemas"
-import { type RetentionPolicy } from "./services"
+import { type PurgeSchedule, type RetentionPolicy } from "./services"
 
 export type TrashItem = {
   kind: TrashEntityKind
@@ -9,11 +9,15 @@ export type TrashItem = {
   // rows with the same title are still tellable apart in one undifferentiated list.
   context: string | null
   deletedAt: Date
-  purgeDueAt: Date | null
+  purge: PurgeSchedule
 }
 
 export type TrashSectionData = {
   items: TrashItem[]
+  rowCount: number
+  // True when an activity-feed link narrowed the trash to one record, so the surface can offer the
+  // way back to the whole list.
+  isNarrowedToRecord: boolean
   policy: RetentionPolicy
   locale: string
   timeZone: string

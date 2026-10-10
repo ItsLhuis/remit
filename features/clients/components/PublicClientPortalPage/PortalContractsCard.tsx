@@ -8,13 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { ContractStatusBadge } from "@/features/contracts"
 
-import { type ClientPortalContract } from "../../types"
+import { type ClientPortalList, type ClientPortalContract } from "../../types"
 
 import { PortalDocumentRow } from "./PortalDocumentRow"
+import { PortalPager } from "./PortalPager"
 import { PortalSectionEmpty } from "./PortalSectionEmpty"
 
 type PortalContractsCardProps = {
-  contracts: ClientPortalContract[]
+  contracts: ClientPortalList<ClientPortalContract>
   locale: string
 }
 
@@ -28,7 +29,7 @@ const PortalContractsCard = ({ contracts, locale }: PortalContractsCardProps) =>
         <CardDescription>{t("clients.public.contracts.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        {contracts.length === 0 ? (
+        {contracts.items.length === 0 ? (
           <PortalSectionEmpty
             icon="FileSignature"
             title={t("clients.public.contracts.emptyTitle")}
@@ -36,7 +37,7 @@ const PortalContractsCard = ({ contracts, locale }: PortalContractsCardProps) =>
           />
         ) : (
           <ul className="flex flex-col">
-            {contracts.map((contract) => (
+            {contracts.items.map((contract) => (
               <PortalDocumentRow
                 key={contract.number}
                 number={contract.number}
@@ -55,6 +56,12 @@ const PortalContractsCard = ({ contracts, locale }: PortalContractsCardProps) =>
             ))}
           </ul>
         )}
+        <PortalPager
+          section="contracts"
+          page={contracts.page}
+          pageCount={contracts.pageCount}
+          label={t("clients.public.pager.label", { section: t("clients.public.contracts.title") })}
+        />
       </CardContent>
     </Card>
   )

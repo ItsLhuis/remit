@@ -19,6 +19,8 @@ import { type ColumnDef } from "@/hooks"
 import { trashEntityLabelKeys } from "../../labels"
 import { type TrashItem } from "../../types"
 
+import { PurgeScheduleCell } from "./PurgeScheduleCell"
+
 type TrashColumnsOptions = {
   locale: string
   t: TFunction
@@ -37,6 +39,7 @@ export function getTrashColumns({
   return [
     {
       accessorKey: "title",
+      enableSorting: false,
       enableHiding: false,
       meta: {
         label: t("trash.columns.record"),
@@ -56,6 +59,7 @@ export function getTrashColumns({
     },
     {
       accessorKey: "kind",
+      enableSorting: false,
       meta: {
         label: t("trash.columns.type"),
         skeleton: <Skeleton className="h-3.5 w-24" />
@@ -69,6 +73,7 @@ export function getTrashColumns({
     },
     {
       accessorKey: "deletedAt",
+      enableSorting: false,
       meta: {
         label: t("trash.columns.deletedAt"),
         skeleton: <Skeleton className="h-3.5 w-28" />
@@ -83,7 +88,8 @@ export function getTrashColumns({
       )
     },
     {
-      accessorKey: "purgeDueAt",
+      id: "purge",
+      enableSorting: false,
       meta: {
         label: t("trash.columns.purgeDueAt"),
         skeleton: <Skeleton className="h-3.5 w-28" />
@@ -91,14 +97,9 @@ export function getTrashColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t("trash.columns.purgeDueAt")} />
       ),
-      cell: ({ row }) =>
-        row.original.purgeDueAt ? (
-          <Typography affects={["muted", "small"]}>
-            {formatDate(row.original.purgeDueAt, { locale, timeZone })}
-          </Typography>
-        ) : (
-          <Typography affects={["muted", "small"]}>{t("trash.purgeNever")}</Typography>
-        )
+      cell: ({ row }) => (
+        <PurgeScheduleCell schedule={row.original.purge} locale={locale} timeZone={timeZone} />
+      )
     },
     {
       id: "actions",

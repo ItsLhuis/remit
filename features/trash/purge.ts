@@ -1,14 +1,18 @@
-import { and, count, eq, exists, isNotNull, lt, not, type SQL } from "drizzle-orm"
+import { and, inArray, isNotNull, lte } from "drizzle-orm"
 import { type PgColumn, type PgTable } from "drizzle-orm/pg-core"
 
-import { writeAudit } from "@/lib/audit"
+import {
+  drainObjectDeletions,
+  readUploadReferences,
+  releaseObjects
+} from "@/lib/storage/objectDeletions"
 
 import { database } from "@/database"
 import {
+  auditLogs,
   clientContacts,
   clients,
   contracts,
-  contractSignatures,
   creditNotes,
   expenses,
   invoices,
@@ -25,7 +29,15 @@ import {
 
 import { DOMAIN_DATA_INVENTORY } from "@/scripts/core/domainData/inventory"
 
-import { getPurgeCutoff, type RetentionPolicy, type RetentionWindow } from "./services"
+import { readCountersignedContractIds, readNamingDocuments } from "./purgeFacts"
+import {
+  getPurgeCutoff,
+  isPurgeDue,
+  resolvePurgeSchedule,
+  type PurgeSubject,
+  type RetentionPolicy,
+  type RetentionWindow
+} from "./services"
 
 export type RetentionPurgeEntry = {
   table: string
@@ -36,78 +48,50 @@ export type RetentionPurgeEntry = {
 export type RetentionPurgeResult = {
   entries: RetentionPurgeEntry[]
   totalRows: number
+  storageObjects: number
 }
 
 type PurgeSource = {
   table: PgTable
+  id: PgColumn
   deletedAt: PgColumn
-  // Rows the purge must leave behind however old they are, because removing them would break
-  // something the window has no authority over: an insert-only record, or a check constraint on a
-  // row that survives. Both guards below are that, and both would fail the whole transaction rather
-  // than one row.
-  protect?: SQL
 }
 
-// Deleting a contract cascades to `contract_signatures`, whose BEFORE DELETE trigger from
-// `0001_insert_only_guards.sql` raises — correctly: a counterparty's signature is a record of
-// something they did, not a row Remit owns. A signed contract therefore stays in the trash for good
-// rather than being purged, and the reset command's trigger-lifting is deliberately not copied here:
-// a reset is an operator typing the instance name, and this sweep runs unattended at 02:30.
-const signedContractGuard = not(
-  exists(
-    database
-      .select({ one: contractSignatures.id })
-      .from(contractSignatures)
-      .where(eq(contractSignatures.contractId, contracts.id))
-  )
-)
+type PurgeExecutor = Pick<typeof database, "select" | "selectDistinct">
 
-// A client is the last parent standing, so purging one while any document still names it would set
-// that document's `client_id` to null and violate `chk_invoices_parent` and its two siblings — the
-// whole transaction, not one row. The window that governs those documents is the longer one, so this
-// is the ordinary case rather than an edge: a client is purged only once every document naming it has
-// been purged first.
-const parentlessDocumentGuard = and(
-  not(
-    exists(
-      database.select({ one: invoices.id }).from(invoices).where(eq(invoices.clientId, clients.id))
-    )
-  ),
-  not(
-    exists(
-      database
-        .select({ one: proposals.id })
-        .from(proposals)
-        .where(eq(proposals.clientId, clients.id))
-    )
-  ),
-  not(
-    exists(
-      database
-        .select({ one: contracts.id })
-        .from(contracts)
-        .where(eq(contracts.clientId, clients.id))
-    )
-  )
-)
+type DuePurge = {
+  table: string
+  window: RetentionWindow
+  ids: string[]
+}
 
 const PURGE_SOURCES: Record<string, PurgeSource> = {
-  payments: { table: payments, deletedAt: payments.deletedAt },
-  credit_notes: { table: creditNotes, deletedAt: creditNotes.deletedAt },
-  contracts: { table: contracts, deletedAt: contracts.deletedAt, protect: signedContractGuard },
-  invoices: { table: invoices, deletedAt: invoices.deletedAt },
-  proposals: { table: proposals, deletedAt: proposals.deletedAt },
-  recurring_invoices: { table: recurringInvoices, deletedAt: recurringInvoices.deletedAt },
-  expenses: { table: expenses, deletedAt: expenses.deletedAt },
-  time_entries: { table: timeEntries, deletedAt: timeEntries.deletedAt },
-  tasks: { table: tasks, deletedAt: tasks.deletedAt },
-  projects: { table: projects, deletedAt: projects.deletedAt },
-  leads: { table: leads, deletedAt: leads.deletedAt },
-  client_contacts: { table: clientContacts, deletedAt: clientContacts.deletedAt },
-  clients: { table: clients, deletedAt: clients.deletedAt, protect: parentlessDocumentGuard },
-  tax_rates: { table: taxRates, deletedAt: taxRates.deletedAt },
-  templates: { table: templates, deletedAt: templates.deletedAt }
+  payments: { table: payments, id: payments.id, deletedAt: payments.deletedAt },
+  credit_notes: { table: creditNotes, id: creditNotes.id, deletedAt: creditNotes.deletedAt },
+  contracts: { table: contracts, id: contracts.id, deletedAt: contracts.deletedAt },
+  invoices: { table: invoices, id: invoices.id, deletedAt: invoices.deletedAt },
+  proposals: { table: proposals, id: proposals.id, deletedAt: proposals.deletedAt },
+  recurring_invoices: {
+    table: recurringInvoices,
+    id: recurringInvoices.id,
+    deletedAt: recurringInvoices.deletedAt
+  },
+  expenses: { table: expenses, id: expenses.id, deletedAt: expenses.deletedAt },
+  time_entries: { table: timeEntries, id: timeEntries.id, deletedAt: timeEntries.deletedAt },
+  tasks: { table: tasks, id: tasks.id, deletedAt: tasks.deletedAt },
+  projects: { table: projects, id: projects.id, deletedAt: projects.deletedAt },
+  leads: { table: leads, id: leads.id, deletedAt: leads.deletedAt },
+  client_contacts: {
+    table: clientContacts,
+    id: clientContacts.id,
+    deletedAt: clientContacts.deletedAt
+  },
+  clients: { table: clients, id: clients.id, deletedAt: clients.deletedAt },
+  tax_rates: { table: taxRates, id: taxRates.id, deletedAt: taxRates.deletedAt },
+  templates: { table: templates, id: templates.id, deletedAt: templates.deletedAt }
 }
+
+const ID_CHUNK_SIZE = 1000
 
 // The inventory's array order is the FK-safe delete order (children before parents), and this walks
 // it directly rather than keeping a second list that could drift from the one both CLI commands
@@ -125,70 +109,165 @@ export async function planRetentionPurge(
   policy: RetentionPolicy,
   now: Date
 ): Promise<RetentionPurgeResult> {
-  const entries: RetentionPurgeEntry[] = []
+  const due = await selectDuePurges(database, policy, now)
 
-  for (const { table, window } of getPurgeOrder()) {
-    const where = buildPurgeCondition(table, policy, window, now)
-
-    if (!where) continue
-
-    const [row] = await database.select({ value: count() }).from(source(table).table).where(where)
-
-    entries.push({ table, window, rows: row?.value ?? 0 })
-  }
-
-  return { entries, totalRows: entries.reduce((total, entry) => total + entry.rows, 0) }
+  return { ...summarize(due), storageObjects: 0 }
 }
 
+// One transaction for the deletes, the release of the objects they owned and the audit entry, at
+// repeatable read: the uploads a purge releases are the difference between what was referenced
+// before its deletes and after them (`lib/storage/objectOwnership.ts`), and only a single snapshot
+// keeps another session's concurrent writes out of that difference. A conflicting write fails the
+// purge, and BullMQ's retry runs it again against the new state.
 export async function runRetentionPurge(
   policy: RetentionPolicy,
   now: Date
 ): Promise<RetentionPurgeResult> {
   if (policy.trashDays === null && policy.financialDays === null) {
-    return { entries: [], totalRows: 0 }
+    return { entries: [], totalRows: 0, storageObjects: 0 }
   }
 
-  return database.transaction(async (transaction) => {
-    const entries: RetentionPurgeEntry[] = []
+  const outcome = await database.transaction(
+    async (transaction) => {
+      const due = await selectDuePurges(transaction, policy, now)
+      const { entries, totalRows } = summarize(due)
 
-    for (const { table, window } of getPurgeOrder()) {
-      const where = buildPurgeCondition(table, policy, window, now)
+      if (totalRows === 0) return { entries, totalRows, storageObjects: 0, deletionIds: [] }
 
-      if (!where) continue
+      const referencedBefore = await readUploadReferences(transaction)
 
-      // Counted inside the transaction, before the delete that changes it, so the audit entry states
-      // what this purge actually removed rather than what a later reader would infer.
-      const [row] = await transaction
-        .select({ value: count() })
-        .from(source(table).table)
-        .where(where)
+      for (const { table, ids } of due) {
+        const purgeSource = source(table)
 
-      const rows = row?.value ?? 0
+        for (const chunk of chunked(ids)) {
+          await transaction.delete(purgeSource.table).where(inArray(purgeSource.id, chunk))
+        }
+      }
 
-      if (rows === 0) continue
+      const release = await releaseObjects(transaction, { referencedBefore })
 
-      await transaction.delete(source(table).table).where(where)
-
-      entries.push({ table, window, rows })
-    }
-
-    const totalRows = entries.reduce((total, entry) => total + entry.rows, 0)
-
-    if (totalRows > 0) {
-      // Inside the transaction with the deletes it records, exactly as `runResetData` does: a
-      // rollback takes the entry with it, so no entry can claim a purge that did not happen.
-      await writeAudit("retention.purge.completed", {
+      // Written through the transaction rather than `writeAudit`, which inserts on its own
+      // connection: a rollback must take the entry with the deletes it records, so no entry can
+      // claim a purge that did not happen. Counts only — never a key or a record's content.
+      await transaction.insert(auditLogs).values({
+        event: "retention.purge.completed",
         targetEntityType: "settings",
         metadata: {
           retentionTrashDays: policy.trashDays,
           retentionFinancialDays: policy.financialDays,
-          deletedCounts: Object.fromEntries(entries.map((entry) => [entry.table, entry.rows]))
+          deletedCounts: Object.fromEntries(entries.map((entry) => [entry.table, entry.rows])),
+          storageObjects: release.objects
         }
       })
-    }
 
-    return { entries, totalRows }
-  })
+      return {
+        entries,
+        totalRows,
+        storageObjects: release.objects,
+        deletionIds: release.deletionIds
+      }
+    },
+    { isolationLevel: "repeatable read" }
+  )
+
+  // After the commit, so nothing leaves the bucket unless the rows that owned it are gone for good.
+  await drainObjectDeletions({ ids: outcome.deletionIds })
+
+  return {
+    entries: outcome.entries,
+    totalRows: outcome.totalRows,
+    storageObjects: outcome.storageObjects
+  }
+}
+
+// Every due row, table by table in purge order, decided by the same `resolvePurgeSchedule` the trash
+// dates rows with. The window cutoff only narrows the read; the rule decides. Documents found due
+// are remembered so a client they name is judged as the purge will find it — after they are gone.
+async function selectDuePurges(
+  executor: PurgeExecutor,
+  policy: RetentionPolicy,
+  now: Date
+): Promise<DuePurge[]> {
+  const due: DuePurge[] = []
+  const dueDocumentIds = new Set<string>()
+
+  for (const { table, window } of getPurgeOrder()) {
+    const cutoff = getPurgeCutoff(policy, window, now)
+
+    if (!cutoff) continue
+
+    const purgeSource = source(table)
+
+    const rows = await executor
+      .select({ id: purgeSource.id, deletedAt: purgeSource.deletedAt })
+      .from(purgeSource.table)
+      .where(and(isNotNull(purgeSource.deletedAt), lte(purgeSource.deletedAt, cutoff)))
+
+    const candidates = rows.flatMap((row) =>
+      typeof row.id === "string" && row.deletedAt instanceof Date
+        ? [{ id: row.id, deletedAt: row.deletedAt }]
+        : []
+    )
+
+    const subjects = await toPurgeSubjects(executor, { table, window, candidates, dueDocumentIds })
+
+    const ids = subjects
+      .filter(({ subject }) => isPurgeDue(resolvePurgeSchedule(subject, policy), now))
+      .map(({ id }) => id)
+
+    if (ids.length === 0) continue
+
+    due.push({ table, window, ids })
+
+    if (table === "invoices" || table === "proposals" || table === "contracts") {
+      for (const id of ids) dueDocumentIds.add(id)
+    }
+  }
+
+  return due
+}
+
+type PurgeCandidates = {
+  table: string
+  window: RetentionWindow
+  candidates: Array<{ id: string; deletedAt: Date }>
+  dueDocumentIds: ReadonlySet<string>
+}
+
+async function toPurgeSubjects(
+  executor: PurgeExecutor,
+  { table, window, candidates, dueDocumentIds }: PurgeCandidates
+): Promise<Array<{ id: string; subject: PurgeSubject }>> {
+  const ids = candidates.map((candidate) => candidate.id)
+
+  if (table === "contracts") {
+    const countersigned = await readCountersignedContractIds(executor, ids)
+
+    return candidates.map(({ id, deletedAt }) => ({
+      id,
+      subject: { kind: "contract", deletedAt, countersigned: countersigned.has(id) }
+    }))
+  }
+
+  if (table === "clients") {
+    const namingDocuments = await readNamingDocuments(executor, ids, dueDocumentIds)
+
+    return candidates.map(({ id, deletedAt }) => ({
+      id,
+      subject: { kind: "client", deletedAt, namingDocuments: namingDocuments.get(id) ?? [] }
+    }))
+  }
+
+  return candidates.map(({ id, deletedAt }) => ({
+    id,
+    subject: { kind: "record", window, deletedAt }
+  }))
+}
+
+function summarize(due: DuePurge[]): Pick<RetentionPurgeResult, "entries" | "totalRows"> {
+  const entries = due.map(({ table, window, ids }) => ({ table, window, rows: ids.length }))
+
+  return { entries, totalRows: entries.reduce((total, entry) => total + entry.rows, 0) }
 }
 
 function source(table: string): PurgeSource {
@@ -199,21 +278,12 @@ function source(table: string): PurgeSource {
   return purgeSource
 }
 
-function buildPurgeCondition(
-  table: string,
-  policy: RetentionPolicy,
-  window: RetentionWindow,
-  now: Date
-): SQL | undefined {
-  const cutoff = getPurgeCutoff(policy, window, now)
+function chunked(values: string[]): string[][] {
+  const chunks: string[][] = []
 
-  if (!cutoff) return undefined
+  for (let index = 0; index < values.length; index += ID_CHUNK_SIZE) {
+    chunks.push(values.slice(index, index + ID_CHUNK_SIZE))
+  }
 
-  const purgeSource = source(table)
-
-  return and(
-    isNotNull(purgeSource.deletedAt),
-    lt(purgeSource.deletedAt, cutoff),
-    purgeSource.protect
-  )
+  return chunks
 }

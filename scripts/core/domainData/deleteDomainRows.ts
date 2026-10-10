@@ -1,11 +1,13 @@
-import { count, inArray, sql } from "drizzle-orm"
+import { count, sql } from "drizzle-orm"
 import { type PgTable } from "drizzle-orm/pg-core"
+
+import { selectReleasedUploadIds, type ReleasedObject } from "@/lib/storage/objectOwnership"
 
 import { DOMAIN_DATA_INVENTORY } from "./inventory"
 
 type Database = typeof import("@/database").database
 type Schema = typeof import("@/database/schema")
-type DeleteDatabase = Pick<Database, "delete" | "execute" | "select">
+type DeleteDatabase = Pick<Database, "delete" | "execute" | "insert" | "select">
 
 export type DomainDeleteScope = "reseed" | "reset"
 
@@ -13,21 +15,28 @@ export type DomainDeleteCounts = Record<string, number>
 
 export type DomainDeleteDatabase = DeleteDatabase
 
-type UploadReference = {
-  columnName: string
-  tableName: string
+export type DomainDeleteResult = {
+  counts: DomainDeleteCounts
+  storageObjects: number
+  // Queued in `object_deletions` by this delete; the caller drains them once its transaction commits.
+  deletionIds: string[]
 }
 
+// Must run inside the caller's transaction, at repeatable read: the uploads it removes are the ones
+// whose last reference went with the deleted rows, the difference between a read of every reference
+// before the deletes and one after (`lib/storage/objectOwnership.ts`). An upload a kept table still
+// names — the business logo, a template image — is in both reads and stays, and the objects behind
+// the removed ones are only queued here, never deleted before the commit (ADR-0049).
 export async function deleteDomainRows(
   database: DeleteDatabase,
   schema: Schema,
   scope: DomainDeleteScope
-): Promise<DomainDeleteCounts> {
+): Promise<DomainDeleteResult> {
+  const { readUploadReferences, releaseObjects } = await loadObjectDeletions()
+
   const entries = DOMAIN_DATA_INVENTORY.filter((entry) => entry[scope] === "delete")
-  const deletesUploads = entries.some((entry) => entry.key === "uploads")
-  // Collected before anything is deleted: every reference to `uploads` is `on delete set null`, so
-  // the pointers are gone by the time the rows they belonged to are.
-  const uploadIds = deletesUploads ? await collectDeletableUploadIds(database) : []
+  const releasesUploads = entries.some((entry) => entry.key === "uploads")
+  const referencedBefore = releasesUploads ? await readUploadReferences(database) : []
 
   // contract_signatures is insert-only at the database level: migration
   // `0001_insert_only_guards.sql` puts BEFORE DELETE/TRUNCATE triggers on it that raise. That guard also fires on the cascade from
@@ -39,14 +48,12 @@ export async function deleteDomainRows(
   await database.execute(sql`alter table ${schema.contractSignatures} disable trigger user`)
 
   const counts: DomainDeleteCounts = {}
+  const exportArtifacts: ReleasedObject[] = []
 
   for (const entry of entries) {
+    // Removed after every other table, by the release below, rather than at this position.
     if (entry.key === "uploads") {
-      counts[entry.table] = uploadIds.length
-
-      if (uploadIds.length > 0) {
-        await database.delete(schema.uploads).where(inArray(schema.uploads.id, uploadIds))
-      }
+      counts[entry.table] = 0
 
       continue
     }
@@ -57,12 +64,22 @@ export async function deleteDomainRows(
     // every table and is taken inside the caller's transaction, where it cannot drift.
     counts[entry.table] = await countTableRows(database, table)
 
+    if (entry.key === "dataExports" || entry.key === "reportExports") {
+      exportArtifacts.push(...(await deleteExportArtifacts(database, schema, entry.key)))
+
+      continue
+    }
+
     await database.delete(table)
   }
 
   await database.execute(sql`alter table ${schema.contractSignatures} enable trigger user`)
 
-  return counts
+  const release = await releaseObjects(database, { referencedBefore, objects: exportArtifacts })
+
+  if (releasesUploads) counts.uploads = release.uploadRows
+
+  return { counts, storageObjects: release.objects, deletionIds: release.deletionIds }
 }
 
 export async function countTableRows(database: DeleteDatabase, table: PgTable): Promise<number> {
@@ -71,47 +88,43 @@ export async function countTableRows(database: DeleteDatabase, table: PgTable): 
   return row?.value ?? 0
 }
 
-// Read from the FK catalogue rather than from a hand-written list of columns, so an upload
-// reference added to a future table is picked up without editing this file. Tables the inventory
-// keeps are excluded, which is what protects `settings.business_logo_upload_id`; template block
-// images are protected by carrying no foreign key at all.
-export async function collectDeletableUploadIds(database: DeleteDatabase): Promise<string[]> {
-  const keptTables = new Set<string>(
-    DOMAIN_DATA_INVENTORY.filter((entry) => entry.reset === "keep").map((entry) => entry.table)
+// The uploads a delete in `scope` would release, without deleting anything: every reference, less
+// the references held by the tables the scope empties. `resetData/plan.ts` previews with it.
+export async function countReleasableUploads(
+  database: DeleteDatabase,
+  scope: DomainDeleteScope
+): Promise<number> {
+  const deletedTables = new Set<string>(
+    DOMAIN_DATA_INVENTORY.filter((entry) => entry[scope] === "delete").map((entry) => entry.table)
   )
 
-  const referenceRows = await database.execute(sql`
-    SELECT tc.table_name AS "tableName", kcu.column_name AS "columnName"
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu
-      ON kcu.constraint_name = tc.constraint_name
-      AND kcu.constraint_schema = tc.constraint_schema
-    JOIN information_schema.constraint_column_usage ccu
-      ON ccu.constraint_name = tc.constraint_name
-      AND ccu.constraint_schema = tc.constraint_schema
-    WHERE tc.constraint_type = 'FOREIGN KEY'
-      AND tc.table_schema = 'public'
-      AND ccu.table_name = 'uploads'
-    ORDER BY tc.table_name, kcu.column_name
-  `)
+  const { readUploadReferences } = await loadObjectDeletions()
 
-  const references = Array.from(referenceRows as Iterable<UploadReference>).filter(
-    (reference) => !keptTables.has(reference.tableName)
+  const referencedNow = await readUploadReferences(database)
+  const referencedAfter = await readUploadReferences(database, { excludeTables: deletedTables })
+
+  return selectReleasedUploadIds(referencedNow, referencedAfter).length
+}
+
+async function deleteExportArtifacts(
+  database: DeleteDatabase,
+  schema: Schema,
+  key: "dataExports" | "reportExports"
+): Promise<ReleasedObject[]> {
+  const table = schema[key]
+  const rows = await database.delete(table).returning({ storageKey: table.storageKey })
+
+  return rows.flatMap(({ storageKey }) =>
+    storageKey ? [{ bucket: "exports" as const, key: storageKey }] : []
   )
+}
 
-  const uploadIds = new Set<string>()
-
-  for (const reference of references) {
-    const rows = await database.execute(sql`
-      SELECT DISTINCT ${sql.identifier(reference.columnName)} AS "uploadId"
-      FROM ${sql.identifier(reference.tableName)}
-      WHERE ${sql.identifier(reference.columnName)} IS NOT NULL
-    `)
-
-    for (const row of Array.from(rows as Iterable<{ uploadId: string }>)) {
-      uploadIds.add(row.uploadId)
-    }
-  }
-
-  return Array.from(uploadIds)
+// Loaded at call time rather than imported: the module reaches `@/database`, which validates the
+// environment as it loads, and the CLI commands that import this file load their environment
+// first (`scripts/core/cli/bootstrap.ts`) — the reason `runBackup` loads `@/lib/storage/s3` the same
+// way.
+export async function loadObjectDeletions(): Promise<
+  typeof import("@/lib/storage/objectDeletions")
+> {
+  return import("@/lib/storage/objectDeletions")
 }

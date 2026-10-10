@@ -15,13 +15,14 @@ import {
 } from "@/components/ui"
 
 import { type OutstandingByCurrency } from "../../services"
-import { type ClientPortalInvoice } from "../../types"
+import { type ClientPortalList, type ClientPortalInvoice } from "../../types"
 
 import { PortalInvoiceRow } from "./PortalInvoiceRow"
+import { PortalPager } from "./PortalPager"
 import { PortalSectionEmpty } from "./PortalSectionEmpty"
 
 type PortalInvoicesCardProps = {
-  invoices: ClientPortalInvoice[]
+  invoices: ClientPortalList<ClientPortalInvoice>
   outstanding: OutstandingByCurrency[]
   locale: string
 }
@@ -36,7 +37,7 @@ const PortalInvoicesCard = ({ invoices, outstanding, locale }: PortalInvoicesCar
         <CardDescription>{t("clients.public.invoices.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        {invoices.length === 0 ? (
+        {invoices.items.length === 0 ? (
           <PortalSectionEmpty
             icon="ReceiptText"
             title={t("clients.public.invoices.emptyTitle")}
@@ -44,11 +45,17 @@ const PortalInvoicesCard = ({ invoices, outstanding, locale }: PortalInvoicesCar
           />
         ) : (
           <ul className="flex flex-col">
-            {invoices.map((invoice) => (
+            {invoices.items.map((invoice) => (
               <PortalInvoiceRow key={invoice.number} invoice={invoice} locale={locale} />
             ))}
           </ul>
         )}
+        <PortalPager
+          section="invoices"
+          page={invoices.page}
+          pageCount={invoices.pageCount}
+          label={t("clients.public.pager.label", { section: t("clients.public.invoices.title") })}
+        />
       </CardContent>
       <CardFooter className="flex-col items-stretch gap-1">
         {outstanding.length === 0 ? (

@@ -33,4 +33,6 @@ export {
 
 export { summarizePortalOutstanding, type PortalOutstandingRow } from "./portalStatement"
 
+export { PORTAL_PAGE_SIZE, resolvePortalPage, type PortalPageWindow } from "./portalPaging"
+
 export { formatLocation } from "./formatLocation"

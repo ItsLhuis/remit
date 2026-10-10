@@ -79,6 +79,15 @@ export function getDataExportColumns({
                 {t(dataExportFailureReasonLabelKeys[dataExport.failureReason])}
               </Typography>
             ) : null}
+            {dataExport.status === "ready" ? (
+              <Typography affects={["muted", "tiny"]}>
+                {dataExport.isExpired || !dataExport.expiresAt
+                  ? t("settings.data.expired")
+                  : t("settings.data.availableUntil", {
+                      date: formatDate(dataExport.expiresAt, { locale, timeZone })
+                    })}
+              </Typography>
+            ) : null}
           </div>
         )
       }
@@ -127,9 +136,9 @@ export function getDataExportColumns({
       cell: ({ row }) => {
         const dataExport = row.original
 
-        // Only a `ready` export has an object behind it, and `getDataExportArchive` refuses every other
-        // status, so a button on a queued row could only ever produce a 404.
-        if (dataExport.status !== "ready") return null
+        // Only an unexpired `ready` export has an object behind it, and `getDataExportArchive` refuses
+        // everything else, so a button on any other row could only ever produce a 404.
+        if (dataExport.status !== "ready" || dataExport.isExpired) return null
 
         return (
           <Button asChild size="sm" variant="outline">

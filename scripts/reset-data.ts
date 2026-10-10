@@ -6,7 +6,9 @@ import { parseResetDataArgs } from "./core/resetData/args"
 import {
   formatDeletedSummary,
   formatKeptSummary,
+  formatNumberingRewind,
   formatQueueDrain,
+  formatStorageDrain,
   formatResetPreview,
   getResetDataHelpText,
   runResetData
@@ -50,7 +52,14 @@ async function main(): Promise<void> {
 
     p.note(formatDeletedSummary(result.deletedCounts), "Deleted")
     p.note(formatKeptSummary(), "Kept")
-    p.outro(`Instance data reset.\n${formatQueueDrain(result.queueDrain)}`)
+    p.outro(
+      [
+        "Instance data reset.",
+        formatStorageDrain(result.storage),
+        formatNumberingRewind(result.numberingRewound),
+        formatQueueDrain(result.queueDrain)
+      ].join("\n")
+    )
     process.exit(0)
   } finally {
     await client.end()

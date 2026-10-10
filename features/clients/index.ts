@@ -7,6 +7,7 @@ export {
   clientListQuerySchema,
   createClientSchema,
   parseClientListQuery,
+  parseClientPortalPages,
   updateClientSchema,
   CLIENT_HEALTH_VALUES,
   CLIENT_SORT_FIELDS,

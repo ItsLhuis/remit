@@ -4,13 +4,14 @@ import { useTranslation } from "@/lib/i18n"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 
-import { type ClientPortalProject } from "../../types"
+import { type ClientPortalList, type ClientPortalProject } from "../../types"
 
+import { PortalPager } from "./PortalPager"
 import { PortalProjectRow } from "./PortalProjectRow"
 import { PortalSectionEmpty } from "./PortalSectionEmpty"
 
 type PortalProjectsCardProps = {
-  projects: ClientPortalProject[]
+  projects: ClientPortalList<ClientPortalProject>
   locale: string
 }
 
@@ -24,7 +25,7 @@ const PortalProjectsCard = ({ projects, locale }: PortalProjectsCardProps) => {
         <CardDescription>{t("clients.public.projects.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        {projects.length === 0 ? (
+        {projects.items.length === 0 ? (
           <PortalSectionEmpty
             icon="FolderKanban"
             title={t("clients.public.projects.emptyTitle")}
@@ -32,7 +33,7 @@ const PortalProjectsCard = ({ projects, locale }: PortalProjectsCardProps) => {
           />
         ) : (
           <ul className="flex flex-col">
-            {projects.map((project) => (
+            {projects.items.map((project) => (
               <PortalProjectRow
                 key={`${project.name}:${project.startDate?.toISOString() ?? ""}`}
                 project={project}
@@ -41,6 +42,12 @@ const PortalProjectsCard = ({ projects, locale }: PortalProjectsCardProps) => {
             ))}
           </ul>
         )}
+        <PortalPager
+          section="projects"
+          page={projects.page}
+          pageCount={projects.pageCount}
+          label={t("clients.public.pager.label", { section: t("clients.public.projects.title") })}
+        />
       </CardContent>
     </Card>
   )

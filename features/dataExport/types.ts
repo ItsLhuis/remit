@@ -15,6 +15,10 @@ export type DataExportListItem = {
   failureReason: DataExportFailureReason | null
   requestedAt: Date
   completedAt: Date | null
+  // When a ready archive stops being downloadable; null for any other status. `isExpired` is decided
+  // on the server at read time, so the page never compares against the browser's clock.
+  expiresAt: Date | null
+  isExpired: boolean
 }
 
 export type DataExportClientOption = {

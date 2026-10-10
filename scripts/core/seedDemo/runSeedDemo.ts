@@ -5,8 +5,19 @@ import chalk from "chalk"
 import { count, eq } from "drizzle-orm"
 import { type PgTable } from "drizzle-orm/pg-core"
 
-import { deleteDomainRows } from "../domainData/deleteDomainRows"
+import { writeOperationalAudit } from "../audit/operationalAudit"
+import { deleteDomainRows, loadObjectDeletions } from "../domainData/deleteDomainRows"
 import { DOMAIN_DATA_INVENTORY } from "../domainData/inventory"
+import {
+  advanceCountersPastSeed,
+  DEMO_SEED_AUDIT_EVENT,
+  type NumberingCounters
+} from "../domainData/numbering"
+import {
+  readNumberingCounters,
+  rewindSeededNumbering,
+  writeNumberingCounters
+} from "../domainData/numberingCounters"
 
 import { parseSeedDemoArgs } from "./args"
 import {
@@ -42,6 +53,8 @@ export type RunSeedDemoResult = {
 }
 
 const INSERT_BATCH_SIZE = 500
+
+const CLI_USER_AGENT = "cli/seed-demo"
 
 export class SeedDemoError extends Error {}
 
@@ -109,13 +122,28 @@ export async function runSeedDemo(
   spinner.start(options.reseed ? "Replacing demo-seedable domain data..." : "Seeding demo data...")
 
   try {
-    const counts = await database.transaction(async (transaction) => {
-      if (options.reseed) {
-        await deleteDomainRows(transaction, schema, "reseed")
-      }
+    const { counts, deletionIds } = await database.transaction(
+      async (transaction) => {
+        // The reseed puts back what the previous seed advanced before seeding again, so the counters
+        // this seed records as "before" are the ones the instance had before any demo data.
+        const replaced = options.reseed
+          ? await deleteDomainRows(transaction, schema, "reseed")
+          : { deletionIds: [] }
 
-      return insertDemoRows(transaction, schema, plan)
-    })
+        if (options.reseed) await rewindSeededNumbering(transaction, schema)
+
+        return {
+          counts: await insertDemoRows(transaction, schema, plan),
+          deletionIds: replaced.deletionIds
+        }
+      },
+      { isolationLevel: "repeatable read" }
+    )
+
+    // After the commit: the objects of the replaced rows leave the bucket only once those rows are
+    // gone for good. Anything the store refuses stays queued for the worker's hourly sweep.
+    const { drainObjectDeletions } = await loadObjectDeletions()
+    await drainObjectDeletions({ ids: deletionIds })
 
     spinner.stop("Demo data seeded.")
 
@@ -202,6 +230,15 @@ async function insertDemoRows(
   // the seed is single-operator, so the narrow read-then-write window is not a practical race.
   const existingSettings = await database.query.settings.findFirst()
 
+  const countersBefore: NumberingCounters = existingSettings
+    ? {
+        invoice: existingSettings.nextInvoiceNumber,
+        proposal: existingSettings.nextProposalNumber,
+        contract: existingSettings.nextContractNumber,
+        creditNote: existingSettings.nextCreditNoteNumber
+      }
+    : { invoice: 1, proposal: 1, contract: 1, creditNote: 1 }
+
   if (existingSettings) {
     // --reseed clears domain data but preserves the operator's business profile, filling only the
     // fields that are still empty, so profile edits made after the first seed are never reverted.
@@ -281,7 +318,42 @@ async function insertDemoRows(
   counts.contracts = plan.contracts.length
   counts.recurring_invoices = plan.recurringInvoices.length
 
+  await advanceNumberingPastSeed(database, schema, countersBefore, plan, counts)
+
   return counts
+}
+
+// Every seeded number starts at 1, so the counters must move past them or the first real document
+// would collide with a demo one; the before/after pair goes into the seed's audit entry, which is
+// what lets `remit:reset-data` put back exactly this advance and nothing more
+// (`domainData/numbering.ts`).
+async function advanceNumberingPastSeed(
+  database: SeedDatabase,
+  schema: Schema,
+  before: NumberingCounters,
+  plan: DemoSeedPlan,
+  counts: SeedDemoRowCounts
+): Promise<void> {
+  const current = await readNumberingCounters(database, schema)
+
+  if (!current) return
+
+  const after = advanceCountersPastSeed(before, {
+    invoice: plan.invoices.length,
+    proposal: plan.proposals.length,
+    contract: plan.contracts.length,
+    creditNote: plan.creditNotes.length
+  })
+
+  await writeNumberingCounters(database, schema, current.settingsId, after)
+
+  await writeOperationalAudit({
+    database,
+    schema,
+    event: DEMO_SEED_AUDIT_EVENT,
+    metadata: { seededCounts: counts, numbering: { before, after } },
+    userAgent: CLI_USER_AGENT
+  })
 }
 
 function chunkRows<Row>(rows: Row[]): Row[][] {

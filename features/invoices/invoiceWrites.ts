@@ -94,24 +94,26 @@ export async function writeInvoiceLineItems(
     invoiceDiscount
   )
 
-  await transaction.insert(lineItems).values(
-    rows.map((row, index) => ({
-      invoiceId,
-      taxRateId: row.taxRateId,
-      position: index,
-      description: row.description,
-      unit: row.unit,
-      quantity: String(row.quantity),
-      unitPriceCents: row.unitPriceCents,
-      ...row.discount,
-      taxPercentageSnapshot: String(row.taxPercentage),
-      subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
-      taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,
-      totalCents: lineTotals[index]?.totalCents ?? 0,
-      sourceTimeEntryId: row.sourceTimeEntryId ?? null,
-      sourceExpenseId: row.sourceExpenseId ?? null
-    }))
-  )
+  const values = rows.map((row, index) => ({
+    invoiceId,
+    taxRateId: row.taxRateId,
+    position: index,
+    description: row.description,
+    unit: row.unit,
+    quantity: String(row.quantity),
+    unitPriceCents: row.unitPriceCents,
+    ...row.discount,
+    taxPercentageSnapshot: String(row.taxPercentage),
+    subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
+    taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,
+    totalCents: lineTotals[index]?.totalCents ?? 0,
+    sourceTimeEntryId: row.sourceTimeEntryId ?? null,
+    sourceExpenseId: row.sourceExpenseId ?? null
+  }))
+
+  for (const batch of chunkLines(values)) {
+    await transaction.insert(lineItems).values(batch)
+  }
 }
 
 // Appending to a draft is not "insert some more rows": a document-level discount is shared across
@@ -147,24 +149,30 @@ export async function appendInvoiceLineItems(
 
   const nextPosition = existing.reduce((highest, line) => Math.max(highest, line.position + 1), 0)
 
-  const inserted = await transaction
-    .insert(lineItems)
-    .values(
-      rows.map((row, index) => ({
-        invoiceId,
-        taxRateId: row.taxRateId,
-        position: nextPosition + index,
-        description: row.description,
-        unit: row.unit,
-        quantity: String(row.quantity),
-        unitPriceCents: row.unitPriceCents,
-        ...row.discount,
-        taxPercentageSnapshot: String(row.taxPercentage),
-        sourceTimeEntryId: row.sourceTimeEntryId ?? null,
-        sourceExpenseId: row.sourceExpenseId ?? null
-      }))
+  const inserted: Array<{ id: string; position: number }> = []
+
+  for (const batch of chunkLines(rows.map((row, index) => ({ row, index })))) {
+    inserted.push(
+      ...(await transaction
+        .insert(lineItems)
+        .values(
+          batch.map(({ row, index }) => ({
+            invoiceId,
+            taxRateId: row.taxRateId,
+            position: nextPosition + index,
+            description: row.description,
+            unit: row.unit,
+            quantity: String(row.quantity),
+            unitPriceCents: row.unitPriceCents,
+            ...row.discount,
+            taxPercentageSnapshot: String(row.taxPercentage),
+            sourceTimeEntryId: row.sourceTimeEntryId ?? null,
+            sourceExpenseId: row.sourceExpenseId ?? null
+          }))
+        )
+        .returning({ id: lineItems.id, position: lineItems.position }))
     )
-    .returning({ id: lineItems.id, position: lineItems.position })
+  }
 
   const allInputs = [
     ...existing.map((line) => ({
@@ -195,22 +203,41 @@ export async function appendInvoiceLineItems(
     ...[...inserted].sort((a, b) => a.position - b.position).map((line) => line.id)
   ]
 
-  // One UPDATE ... FROM (VALUES ...) rather than one statement per line: every line's totals move when
-  // a document discount is redistributed, and issuing n round trips inside the transaction would
-  // hold it open for the whole set.
-  const values = ids.map(
-    (id, index) =>
-      sql`(${id}::uuid, ${lineTotals[index]?.subtotalCents ?? 0}::bigint, ${lineTotals[index]?.taxAmountCents ?? 0}::bigint, ${lineTotals[index]?.totalCents ?? 0}::bigint)`
-  )
+  // One UPDATE rather than one statement per line: every line's totals move when a document discount
+  // is redistributed, and n round trips inside the transaction would hold it open for the whole set.
+  // The totals travel as four arrays unnested by Postgres rather than as a VALUES list, because a
+  // VALUES list binds four parameters per line and Postgres refuses a statement past 65,535 of them:
+  // an invoice of about 16,400 lines could not be appended to at all. Four parameters, any length.
+  const column = (read: (index: number) => number) =>
+    ids.map((_, index) => String(read(index))).join(",")
 
   await transaction.execute(sql`
     update ${lineItems} set
       subtotal_cents = totals.subtotal_cents,
       tax_amount_cents = totals.tax_amount_cents,
       total_cents = totals.total_cents
-    from (values ${sql.join(values, sql`, `)}) as totals(id, subtotal_cents, tax_amount_cents, total_cents)
+    from unnest(
+      string_to_array(${ids.join(",")}, ',')::uuid[],
+      string_to_array(${column((index) => lineTotals[index]?.subtotalCents ?? 0)}, ',')::bigint[],
+      string_to_array(${column((index) => lineTotals[index]?.taxAmountCents ?? 0)}, ',')::bigint[],
+      string_to_array(${column((index) => lineTotals[index]?.totalCents ?? 0)}, ',')::bigint[]
+    ) as totals(id, subtotal_cents, tax_amount_cents, total_cents)
     where ${lineItems.id} = totals.id
   `)
 
   return calculateInvoiceTotal(allInputs, invoiceDiscount)
+}
+
+// A line binds about sixteen parameters, so one insert of a very long selection would pass the
+// 65,535 Postgres allows a statement; a thousand lines a statement stays far inside it.
+const LINE_INSERT_BATCH_SIZE = 1000
+
+function chunkLines<Line>(lines: Line[]): Line[][] {
+  const batches: Line[][] = []
+
+  for (let index = 0; index < lines.length; index += LINE_INSERT_BATCH_SIZE) {
+    batches.push(lines.slice(index, index + LINE_INSERT_BATCH_SIZE))
+  }
+
+  return batches
 }

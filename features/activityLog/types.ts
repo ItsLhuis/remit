@@ -3,6 +3,7 @@ import { type Translations } from "@/lib/i18n"
 import { type activityLogs } from "@/database/schema"
 
 import { type ActivityListQuery, type ActivityMessageArgs } from "./schemas"
+import { type ActivityTarget } from "./services"
 
 type ActivityLogRow = typeof activityLogs.$inferSelect
 
@@ -35,8 +36,12 @@ export type EntityActivityPanelData = {
   timeZone: string
 }
 
+// A feed row with where it leads, resolved when the page is read: the record may since have been
+// deleted or purged, which the stored entry cannot know.
+export type ActivityFeedEntry = ActivityEntry & { target: ActivityTarget }
+
 export type ActivityFeedPageData = {
-  entries: ActivityEntry[]
+  entries: ActivityFeedEntry[]
   rowCount: number
   pageCount: number
   unreadCount: number

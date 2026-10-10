@@ -1,5 +1,7 @@
-import { desc, eq, isNotNull, sql, type SQL } from "drizzle-orm"
+import { and, eq, isNotNull, sql, type SQL } from "drizzle-orm"
 import { type PgColumn, type PgTable } from "drizzle-orm/pg-core"
+
+import { z } from "zod"
 
 import { database } from "@/database"
 import {
@@ -20,13 +22,22 @@ import {
   timeEntries
 } from "@/database/schema"
 
-import { type TrashEntityKind } from "./schemas"
-import { getPurgeDueAt, type RetentionPolicy, type RetentionWindow } from "./services"
-import { type TrashItem, type TrashSectionData } from "./types"
-
-// The trash lists whole records rather than paginating: an instance with more deleted records than
-// this has a retention window it should be setting, not a list it should be scrolling.
-const TRASH_ITEM_LIMIT = 200
+import { readCountersignedContractIds, readNamingDocuments } from "./purgeFacts"
+import {
+  parseTrashListQuery,
+  TRASH_ENTITY_KINDS,
+  type TrashEntityKind,
+  type TrashListQuery
+} from "./schemas"
+import {
+  resolvePurgeSchedule,
+  type NamingDocument,
+  type PurgeSchedule,
+  type PurgeSubject,
+  type RetentionPolicy,
+  type RetentionWindow
+} from "./services"
+import { type TrashSectionData } from "./types"
 
 const UNTITLED_RECORD = "—"
 
@@ -196,29 +207,31 @@ const TRASH_SOURCES: TrashSource[] = [
   }
 ]
 
-export async function getTrashSectionData(): Promise<TrashSectionData> {
-  const [instanceSettings, rows] = await Promise.all([
+export async function getTrashSectionData(input: unknown): Promise<TrashSectionData> {
+  const query = parseTrashListQuery(input)
+  const sources = query.record
+    ? TRASH_SOURCES.filter((source) => source.kind === query.record?.kind)
+    : TRASH_SOURCES
+
+  const [instanceSettings, rows, rowCount] = await Promise.all([
     readRetentionSettings(),
-    Promise.all(TRASH_SOURCES.map(readTrashSource))
+    readTrashPage(sources, query),
+    countTrashRows(sources, query)
   ])
 
-  const items = rows
-    .flat()
-    .toSorted((left, right) => right.deletedAt.getTime() - left.deletedAt.getTime())
-    .slice(0, TRASH_ITEM_LIMIT)
-    .map(
-      (row): TrashItem => ({
-        kind: row.kind,
-        id: row.id,
-        title: row.title,
-        context: row.context,
-        deletedAt: row.deletedAt,
-        purgeDueAt: getPurgeDueAt(row.deletedAt, instanceSettings.policy, row.window)
-      })
-    )
+  const schedules = await resolvePageSchedules(rows, instanceSettings.policy)
 
   return {
-    items,
+    items: rows.map((row, index) => ({
+      kind: row.kind,
+      id: row.id,
+      title: row.title,
+      context: row.context,
+      deletedAt: row.deletedAt,
+      purge: schedules[index] ?? { status: "windowUnset" }
+    })),
+    rowCount,
+    isNarrowedToRecord: query.record !== null,
     policy: instanceSettings.policy,
     locale: instanceSettings.locale,
     timeZone: instanceSettings.timeZone
@@ -238,39 +251,116 @@ type TrashRow = {
   deletedAt: Date
 }
 
-async function readTrashSource(source: TrashSource): Promise<TrashRow[]> {
-  const columns = {
-    id: source.id,
-    title: source.title,
-    context: source.context,
-    deletedAt: source.deletedAt
-  }
+const trashRowSchema = z.object({
+  kind: z.enum(TRASH_ENTITY_KINDS),
+  id: z.string(),
+  title: z.string().nullable(),
+  context: z.string().nullable(),
+  deletedAt: z.coerce.date()
+})
 
-  const query = database.select(columns).from(source.table)
-  const joined = source.parent ? query.leftJoin(source.parent.table, source.parent.on) : query
+const countRowSchema = z.object({ value: z.coerce.number() })
 
-  const rows = await joined
-    .where(isNotNull(source.deletedAt))
-    .orderBy(desc(source.deletedAt))
-    .limit(TRASH_ITEM_LIMIT)
+// One query across all fifteen sources, ordered and paged in SQL: the trash has no ceiling, so
+// reading each table whole and sorting in the process would grow with everything ever deleted.
+async function readTrashPage(sources: TrashSource[], query: TrashListQuery): Promise<TrashRow[]> {
+  if (sources.length === 0) return []
 
-  return rows.map((row) => ({
-    kind: source.kind,
-    window: source.window,
-    id: toText(row.id) ?? "",
-    // An untitled row still has to be identifiable, and every title column here is nullable on at
-    // least one table (a payment reference, a time entry description).
-    title: toText(row.title) ?? UNTITLED_RECORD,
-    context: toText(row.context),
-    deletedAt: row.deletedAt instanceof Date ? row.deletedAt : new Date()
-  }))
+  const union = sql.join(
+    sources.map((source) => selectTrashSource(source, query)),
+    sql` UNION ALL `
+  )
+
+  const result = await database.execute(sql`
+    SELECT * FROM (${union}) AS trash
+    ORDER BY "deletedAt" DESC, "id"
+    LIMIT ${query.perPage} OFFSET ${(query.page - 1) * query.perPage}
+  `)
+
+  const windows = new Map(sources.map((source) => [source.kind, source.window]))
+
+  return z
+    .array(trashRowSchema)
+    .parse([...result])
+    .map((row) => ({
+      kind: row.kind,
+      window: windows.get(row.kind) ?? "trash",
+      id: row.id,
+      // An untitled row still has to be identifiable, and every title column here is nullable on
+      // at least one table (a payment reference, a time entry description).
+      title: row.title ?? UNTITLED_RECORD,
+      context: row.context,
+      deletedAt: row.deletedAt
+    }))
 }
 
-// The select is built from `PgColumn`s and `SQL` fragments chosen per source, so Drizzle infers
-// `unknown` for every field it returns. Narrowing here rather than casting keeps the read model's
-// types honest about that.
-function toText(value: unknown): string | null {
-  return typeof value === "string" ? value : null
+async function countTrashRows(sources: TrashSource[], query: TrashListQuery): Promise<number> {
+  const counts = await Promise.all(
+    sources.map(async (source) => {
+      const result = await database.execute(
+        sql`SELECT count(*) AS "value" FROM ${source.table} WHERE ${trashSourceWhere(source, query)}`
+      )
+
+      return z.array(countRowSchema).parse([...result])[0]?.value ?? 0
+    })
+  )
+
+  return counts.reduce((total, value) => total + value, 0)
+}
+
+function selectTrashSource(source: TrashSource, query: TrashListQuery): SQL {
+  const join = source.parent ? sql`LEFT JOIN ${source.parent.table} ON ${source.parent.on}` : sql``
+
+  return sql`
+    SELECT ${source.kind}::text AS "kind", ${source.id}::text AS "id",
+      (${source.title})::text AS "title", (${source.context})::text AS "context",
+      ${source.deletedAt} AS "deletedAt"
+    FROM ${source.table} ${join}
+    WHERE ${trashSourceWhere(source, query)}
+  `
+}
+
+function trashSourceWhere(source: TrashSource, query: TrashListQuery): SQL | undefined {
+  return and(isNotNull(source.deletedAt), query.record ? eq(source.id, query.record.id) : undefined)
+}
+
+// The date each row on the page goes, by the rule the purge itself applies. Only contracts and
+// clients need more than their own deletion date, and only the ones on this page are read.
+async function resolvePageSchedules(
+  rows: TrashRow[],
+  policy: RetentionPolicy
+): Promise<PurgeSchedule[]> {
+  const idsOf = (kind: TrashEntityKind) =>
+    rows.filter((row) => row.kind === kind).map((row) => row.id)
+
+  const [countersigned, namingDocuments] = await Promise.all([
+    readCountersignedContractIds(database, idsOf("contract")),
+    readNamingDocuments(database, idsOf("client"))
+  ])
+
+  return rows.map((row) =>
+    resolvePurgeSchedule(toPurgeSubject(row, countersigned, namingDocuments), policy)
+  )
+}
+
+function toPurgeSubject(
+  row: TrashRow,
+  countersigned: ReadonlySet<string>,
+  namingDocuments: ReadonlyMap<string, NamingDocument[]>
+): PurgeSubject {
+  if (row.kind === "contract") {
+    return { kind: "contract", deletedAt: row.deletedAt, countersigned: countersigned.has(row.id) }
+  }
+
+  if (row.kind === "client") {
+    return {
+      kind: "client",
+      deletedAt: row.deletedAt,
+      namingDocuments: namingDocuments.get(row.id) ?? []
+    }
+  }
+
+  return { kind: "record", window: row.window, deletedAt: row.deletedAt }
 }
 
 async function readRetentionSettings(): Promise<{

@@ -83,6 +83,10 @@ export type JobMap = {
   // changed between the schedule firing and the handler running is honoured by the run that
   // destroys rows rather than by the one that queued it.
   "retention.purge.sweep": Record<string, never>
+  // Retries the stored objects a delete already released and could not remove at the time. Reads
+  // the queue itself, so it carries nothing; the immediate drain after each delete is the first
+  // attempt and this is every later one.
+  "storage.deletion.sweep": Record<string, never>
   "invoice.reminder.send": {
     invoiceId: string
     // Days relative to the due date, always positive; `phase` carries the direction. Splitting them
@@ -123,6 +127,7 @@ const JOB_NAME_KEYS: Record<JobName, true> = {
   "invoice.reminder.sweep": true,
   "invoice.reminder.send": true,
   "retention.purge.sweep": true,
+  "storage.deletion.sweep": true,
   "backup.run.sweep": true,
   "webhook.delivery.send": true
 }

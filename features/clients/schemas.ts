@@ -142,7 +142,35 @@ const clientPortalTokenValueSchema = z
   .min(1, i18n.t("clients.public.validation.tokenInvalid"))
   .max(CLIENT_PORTAL_TOKEN_MAX_LENGTH, i18n.t("clients.public.validation.tokenInvalid"))
 
-export const clientPortalTokenSchema = z.object({ token: clientPortalTokenValueSchema })
+const clientPortalTokenSchema = z.object({ token: clientPortalTokenValueSchema })
+
+// The four lists the portal pages independently, each under its own query parameter, so paging one
+// never moves the others.
+export type ClientPortalSection = "invoices" | "proposals" | "contracts" | "projects"
+
+const portalPageSchema = z.number().int().positive().catch(1)
+
+const clientPortalPagesSchema = z.object({
+  invoices: portalPageSchema,
+  proposals: portalPageSchema,
+  contracts: portalPageSchema,
+  projects: portalPageSchema
+})
+
+export type ClientPortalPages = z.infer<typeof clientPortalPagesSchema>
+
+export const clientPortalRequestSchema = clientPortalTokenSchema.extend({
+  pages: clientPortalPagesSchema.default({ invoices: 1, proposals: 1, contracts: 1, projects: 1 })
+})
+
+export function parseClientPortalPages(input: unknown): ClientPortalPages {
+  return clientPortalPagesSchema.parse({
+    invoices: readIntParam(input, "invoices", 1),
+    proposals: readIntParam(input, "proposals", 1),
+    contracts: readIntParam(input, "contracts", 1),
+    projects: readIntParam(input, "projects", 1)
+  })
+}
 
 const clientContactFieldsShape = {
   name: z

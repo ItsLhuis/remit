@@ -22,6 +22,7 @@ import { formatCentsForInput } from "@/lib/utils"
 import { database } from "@/database"
 import { clients, invoices, projects, recurringInvoices, uploads } from "@/database/schema"
 
+import { listErasureBlockingContracts } from "./forget"
 import { getClientInvoiceCountSubquery, getClientOutstandingSubquery } from "./queryFragments"
 import {
   clientIdSchema,
@@ -229,17 +230,20 @@ export async function getClientDetail(input: unknown): Promise<ClientDetail | nu
 
   const now = new Date()
 
-  const [outstandingBalanceCents, relatedResources, billingTrend] = await Promise.all([
-    getOutstandingBalanceCents(client.id),
-    getClientRelatedResourceCounts(client.id),
-    getClientBillingTrend(client.id, now)
-  ])
+  const [outstandingBalanceCents, relatedResources, billingTrend, erasureBlockingContracts] =
+    await Promise.all([
+      getOutstandingBalanceCents(client.id),
+      getClientRelatedResourceCounts(client.id),
+      getClientBillingTrend(client.id, now),
+      listErasureBlockingContracts(client.id)
+    ])
 
   return toClientDetail({
     row: client,
     outstandingBalanceCents,
     relatedResources,
     billingTrend,
+    erasureBlockingContracts,
     defaultCurrency: defaults.defaultCurrency
   })
 }
@@ -486,6 +490,7 @@ type ToClientDetailInput = {
   outstandingBalanceCents: number
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
+  erasureBlockingContracts: string[]
   defaultCurrency: string
 }
 
@@ -494,6 +499,7 @@ function toClientDetail({
   outstandingBalanceCents,
   relatedResources,
   billingTrend,
+  erasureBlockingContracts,
   defaultCurrency
 }: ToClientDetailInput): ClientDetail {
   return {
@@ -524,6 +530,7 @@ function toClientDetail({
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     relatedResources,
-    billingTrend
+    billingTrend,
+    erasureBlockingContracts
   }
 }

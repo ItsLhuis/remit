@@ -8,13 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { ProposalStatusBadge } from "@/features/proposals"
 
-import { type ClientPortalProposal } from "../../types"
+import { type ClientPortalList, type ClientPortalProposal } from "../../types"
 
 import { PortalDocumentRow } from "./PortalDocumentRow"
+import { PortalPager } from "./PortalPager"
 import { PortalSectionEmpty } from "./PortalSectionEmpty"
 
 type PortalProposalsCardProps = {
-  proposals: ClientPortalProposal[]
+  proposals: ClientPortalList<ClientPortalProposal>
   locale: string
 }
 
@@ -28,7 +29,7 @@ const PortalProposalsCard = ({ proposals, locale }: PortalProposalsCardProps) =>
         <CardDescription>{t("clients.public.proposals.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        {proposals.length === 0 ? (
+        {proposals.items.length === 0 ? (
           <PortalSectionEmpty
             icon="FileText"
             title={t("clients.public.proposals.emptyTitle")}
@@ -36,7 +37,7 @@ const PortalProposalsCard = ({ proposals, locale }: PortalProposalsCardProps) =>
           />
         ) : (
           <ul className="flex flex-col">
-            {proposals.map((proposal) => (
+            {proposals.items.map((proposal) => (
               <PortalDocumentRow
                 key={proposal.number}
                 number={proposal.number}
@@ -62,6 +63,12 @@ const PortalProposalsCard = ({ proposals, locale }: PortalProposalsCardProps) =>
             ))}
           </ul>
         )}
+        <PortalPager
+          section="proposals"
+          page={proposals.page}
+          pageCount={proposals.pageCount}
+          label={t("clients.public.pager.label", { section: t("clients.public.proposals.title") })}
+        />
       </CardContent>
     </Card>
   )

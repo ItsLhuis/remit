@@ -862,7 +862,7 @@ export const english: Language = {
       forget: {
         title: "Delete permanently",
         description:
-          "Permanently deletes {name} and everything attached to them: contacts, projects, tasks, proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments, and the activity and email records naming them. This cannot be undone and no retention window applies.",
+          "Permanently deletes {name} and everything attached to them: contacts, projects, tasks, proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments, their stored files, and the activity and email records naming them. This cannot be undone and no retention window applies.",
         warning: "Export this client's data first if you still need it.",
         exportPrompt: "Export this client",
         confirmationLabel: "Type {name} to confirm",
@@ -870,6 +870,9 @@ export const english: Language = {
         forgotten: "Client permanently deleted",
         survives:
           "The security audit trail keeps a record that the deletion happened. It holds the event, who performed it and the identifiers involved, never the client's personal details.",
+        blockedTitle: "This client cannot be permanently deleted",
+        blockedDescription:
+          "{count, plural, one {A signed contract names them} other {# signed contracts name them}}: {numbers}. A counterparty's signature cannot be destroyed, and a contract cannot exist without its client, so these keep the client in place.",
         errors: {
           confirmationMismatch: "The name does not match",
           failed: "Could not delete the client permanently",
@@ -1027,6 +1030,12 @@ export const english: Language = {
         intro:
           "Everything sent to you, in one place. Open a document to read it in full, or reply to the address below.",
         contactLabel: "Questions about any of this",
+        pager: {
+          label: "{section} pages",
+          page: "Page {page} of {pageCount}",
+          previous: "Previous",
+          next: "Next"
+        },
         unavailable: {
           title: "This link is not available",
           description:
@@ -3254,6 +3263,9 @@ export const english: Language = {
         markAllRead: "Mark all as read",
         markRead: "Mark as read",
         open: "Open",
+        deletedBadge: "Deleted",
+        openInTrash: "Show in trash",
+        purgedBadge: "Removed permanently",
         delete: "Delete",
         deleteTitle: "Delete this activity entry?",
         deleteDescription:
@@ -4925,7 +4937,8 @@ export const english: Language = {
         },
         history: {
           title: "Exports",
-          description: "Every export requested on this instance, newest first.",
+          description:
+            "Every export requested on this instance, newest first. A finished archive can be downloaded for seven days.",
           emptyTitle: "No exports yet",
           emptyDescription: "Start an export above and it will appear here when it is ready."
         },
@@ -4938,6 +4951,8 @@ export const english: Language = {
           actions: "Actions"
         },
         download: "Download",
+        availableUntil: "Available until {date}",
+        expired: "Expired, request a new export to download again",
         emptyValue: "—",
         contents: {
           title: "What the archive contains",
@@ -4993,6 +5008,16 @@ export const english: Language = {
         purgeDueAt: "Removed permanently"
       },
       purgeNever: "Kept until a retention window is set",
+      purge: {
+        never: "Never removed",
+        countersigned: "A signed contract stays as the record of what its signer agreed to",
+        countersignedContractNamesClient: "A signed contract names this client",
+        heldByLiveDocuments:
+          "Kept while {count, plural, one {# document still names} other {# documents still name}} this client",
+        heldByDocuments: "Held until the documents naming this client are removed"
+      },
+      narrowed: "Showing one deleted record from the activity feed.",
+      showAll: "Show all deleted records",
       actions: {
         restore: "Restore"
       },

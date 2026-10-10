@@ -33,6 +33,15 @@ vi.mock("@/lib/jobs/queue", () => ({
   getQueue: () => ({ obliterate: async () => undefined })
 }))
 
+// The released objects are removed after the commit; stubbed so the assertion is on which keys the
+// reset asked the store to delete, not on whether a test bucket happens to exist.
+const deleteObject = vi.hoisted(() => vi.fn(async () => undefined))
+
+vi.mock("@/lib/storage/s3", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/storage/s3")>()),
+  storage: { deleteObject }
+}))
+
 const ownerUserId = "11111111-1111-4111-8111-111111111111"
 const organizationId = "22222222-2222-4222-8222-222222222222"
 
@@ -86,7 +95,7 @@ test("empties domain data while leaving the account and configuration intact", a
   const settingsAfter = await getSettings()
 
   expect(settingsAfter.businessName).toBe(settingsBefore.businessName)
-  expect(settingsAfter.nextInvoiceNumber).toBe(settingsBefore.nextInvoiceNumber)
+  expect(settingsAfter.nextInvoiceNumber).toBe(1)
   expect(settingsAfter.businessLogoUploadId).toBe(logoUploadId)
 
   expect(await rowExists(uploads, logoUploadId)).toBe(true)
@@ -129,7 +138,58 @@ test("makes no database writes when dry-run is used", async () => {
   expect(result.wrote).toBe(false)
   expect(result.plan.deletableRowTotal).toBeGreaterThan(0)
   expect(await tableCount(clients)).toBe(clientsBefore)
-  expect(await tableCount(auditLogs)).toBe(0)
+  expect(await resetAuditCount()).toBe(0)
+})
+
+test("removes the stored files only the deleted rows owned", async () => {
+  await createOwner()
+  await seedDemoInstance()
+
+  await attachBusinessLogo()
+  await attachInvoicePdf()
+
+  const result = await runResetData(database, schema, { dryRun: false, help: false, yes: true })
+
+  expect(deleteObject).toHaveBeenCalledWith("public", "documents/invoice.pdf")
+  expect(deleteObject).not.toHaveBeenCalledWith("public", "uploads/logo.png")
+  expect(result.storage).toEqual({ queued: 1, deleted: 1 })
+})
+
+test("puts back the numbering counters the demo seed advanced", async () => {
+  await createOwner()
+  await createSettings()
+  await seedDemoInstance()
+
+  const seeded = await getSettings()
+
+  const result = await runResetData(database, schema, { dryRun: false, help: false, yes: true })
+
+  const settingsAfter = await getSettings()
+
+  expect(seeded.nextInvoiceNumber).toBeGreaterThan(1)
+  expect(settingsAfter.nextInvoiceNumber).toBe(1)
+  expect(settingsAfter.nextProposalNumber).toBe(1)
+  expect(result.numberingRewound).toMatchObject({ invoice: 1, proposal: 1 })
+})
+
+test("keeps a counter that has issued a real number since the seed", async () => {
+  await createOwner()
+  await createSettings()
+  await seedDemoInstance()
+
+  const seeded = await getSettings()
+
+  await database
+    .update(settings)
+    .set({ nextInvoiceNumber: seeded.nextInvoiceNumber + 1 })
+    .where(eq(settings.id, seeded.id))
+
+  await runResetData(database, schema, { dryRun: false, help: false, yes: true })
+
+  const settingsAfter = await getSettings()
+
+  expect(settingsAfter.nextInvoiceNumber).toBe(seeded.nextInvoiceNumber + 1)
+  expect(settingsAfter.nextProposalNumber).toBe(1)
 })
 
 test("reports the business name as the phrase the operator has to type", async () => {
@@ -142,6 +202,21 @@ test("reports the business name as the phrase the operator has to type", async (
 
   expect(result.plan.confirmationPhrase).toBe(settingsRow.businessName)
 })
+
+// A settings row that exists before the seed, as one does on any instance that finished `/setup`:
+// the seed has to move its counters past the numbers it issues rather than rely on creating the row.
+async function createSettings(): Promise<void> {
+  await database.insert(settings).values({ businessName: "Configured Studio" })
+}
+
+async function resetAuditCount(): Promise<number> {
+  const [row] = await database
+    .select({ value: count() })
+    .from(auditLogs)
+    .where(eq(auditLogs.event, "instance.reset_data.completed"))
+
+  return row?.value ?? 0
+}
 
 async function createOwner(): Promise<void> {
   await database.insert(users).values({

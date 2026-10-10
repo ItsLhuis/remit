@@ -3,8 +3,14 @@ import * as p from "@clack/prompts"
 import chalk from "chalk"
 
 import { writeOperationalAudit } from "../audit/operationalAudit"
-import { deleteDomainRows, type DomainDeleteCounts } from "../domainData/deleteDomainRows"
+import {
+  deleteDomainRows,
+  loadObjectDeletions,
+  type DomainDeleteCounts
+} from "../domainData/deleteDomainRows"
 import { DOMAIN_DATA_INVENTORY } from "../domainData/inventory"
+import { type NumberingCounters } from "../domainData/numbering"
+import { rewindSeededNumbering } from "../domainData/numberingCounters"
 
 import { parseResetDataArgs } from "./args"
 import { confirmDestructiveReset } from "./confirm"
@@ -15,7 +21,8 @@ import {
   type ResetDataCliOptions,
   type ResetDataPlan,
   type ResetDataTablePreview,
-  type RunResetDataResult
+  type RunResetDataResult,
+  type StorageDrainOutcome
 } from "./types"
 
 export { parseResetDataArgs }
@@ -35,8 +42,10 @@ export async function runResetData(
   if (options.dryRun) {
     return {
       deletedCounts: {},
+      numberingRewound: {},
       plan,
       queueDrain: { status: "skipped" },
+      storage: { queued: 0, deleted: 0 },
       wrote: false
     }
   }
@@ -51,33 +60,46 @@ export async function runResetData(
   spinner.start("Deleting domain data...")
 
   try {
-    const deletedCounts = await database.transaction(async (transaction) => {
-      const counts = await deleteDomainRows(transaction, schema, "reset")
+    // Repeatable read because the uploads a reset releases are the difference between two reads of
+    // every reference (`deleteDomainRows`), and only one snapshot keeps them consistent.
+    const outcome = await database.transaction(
+      async (transaction) => {
+        const deleted = await deleteDomainRows(transaction, schema, "reset")
+        const numberingRewound = await rewindSeededNumbering(transaction, schema)
 
-      // Inside the transaction with the deletes it records, so a rollback takes the entry with it
-      // and no entry can ever claim a reset that did not happen. The queue drain below is
-      // deliberately absent from the metadata: it runs after the commit, and `audit_logs` is
-      // insert-only, so there is nothing to amend it with afterwards.
-      await writeOperationalAudit({
-        database: transaction,
-        schema,
-        event: "instance.reset_data.completed",
-        metadata: {
-          deletedCounts: counts,
-          keptTables: keptTableNames()
-        },
-        userAgent: CLI_USER_AGENT
-      })
+        // Inside the transaction with the deletes it records, so a rollback takes the entry with it
+        // and no entry can ever claim a reset that did not happen. The queue and object drains
+        // below are deliberately absent from the metadata: they run after the commit, and
+        // `audit_logs` is insert-only, so there is nothing to amend it with afterwards.
+        await writeOperationalAudit({
+          database: transaction,
+          schema,
+          event: "instance.reset_data.completed",
+          metadata: {
+            deletedCounts: deleted.counts,
+            storageObjects: deleted.storageObjects,
+            numberingRewound,
+            keptTables: keptTableNames()
+          },
+          userAgent: CLI_USER_AGENT
+        })
 
-      return counts
-    })
+        return { ...deleted, numberingRewound }
+      },
+      { isolationLevel: "repeatable read" }
+    )
 
     spinner.stop("Domain data deleted.")
 
+    const { drainObjectDeletions } = await loadObjectDeletions()
+    const storageDrain = await drainObjectDeletions({ ids: outcome.deletionIds })
+
     return {
-      deletedCounts,
+      deletedCounts: outcome.counts,
+      numberingRewound: outcome.numberingRewound,
       plan,
       queueDrain: await drainQueuedJobs(),
+      storage: { queued: outcome.storageObjects, deleted: storageDrain.deleted },
       wrote: true
     }
   } catch (error) {
@@ -125,6 +147,24 @@ export function formatKeptSummary(): string {
   return keptTableNames()
     .map((table) => `  ${table}`)
     .join("\n")
+}
+
+// The objects the deleted rows owned, removed after the commit. What the store refused stays queued
+// and the worker's hourly `storage.deletion.sweep` finishes it, so a partial count is not a failure.
+export function formatStorageDrain(outcome: StorageDrainOutcome): string {
+  if (outcome.queued === 0) return "Stored files: none to remove."
+
+  if (outcome.deleted === outcome.queued) return `Stored files: ${outcome.deleted} removed.`
+
+  return `Stored files: ${outcome.deleted} of ${outcome.queued} removed; the worker removes the rest.`
+}
+
+export function formatNumberingRewind(rewound: Partial<NumberingCounters>): string {
+  const entries = Object.entries(rewound)
+
+  if (entries.length === 0) return "Document numbering: unchanged."
+
+  return `Document numbering: ${entries.map(([name, value]) => `${name} back to ${value}`).join(", ")}.`
 }
 
 export function formatQueueDrain(outcome: QueueDrainOutcome): string {

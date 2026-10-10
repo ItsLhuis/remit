@@ -1,17 +1,16 @@
 "use client"
 
-import Link from "next/link"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { ActivityTimeline, Badge, Button, Icon, IconButton } from "@/components/ui"
+import { ActivityTimeline, Badge, Icon, IconButton } from "@/components/ui"
 
 import { useActivityTimelineItems } from "../../hooks"
-import { getActivityEntityHref } from "../../labels"
-import { type ActivityEntry } from "../../types"
+import { type ActivityFeedEntry } from "../../types"
+
+import { ActivityTargetLink } from "./ActivityTargetLink"
 
 type ActivityFeedListProps = {
-  entries: ActivityEntry[]
+  entries: ActivityFeedEntry[]
   locale: string
   timeZone: string
   hasActiveFilters: boolean
@@ -50,14 +49,7 @@ const ActivityFeedList = ({
             <Icon name="Check" aria-hidden="true" />
           </IconButton>
         ) : null}
-        <Button asChild variant="ghost" size="icon-sm">
-          <Link
-            href={getActivityEntityHref(entry.entityType, entry.entityId)}
-            aria-label={t("activity.feed.open")}
-          >
-            <Icon name="ArrowUpRight" aria-hidden="true" />
-          </Link>
-        </Button>
+        <ActivityTargetLink target={entry.target} />
         <IconButton
           size="icon-sm"
           label={t("activity.feed.delete")}

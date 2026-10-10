@@ -1,17 +1,34 @@
-import { and, count, desc, eq, isNull, type SQL } from "drizzle-orm"
+import { and, count, desc, eq, inArray, isNull, type SQL } from "drizzle-orm"
+import { type PgColumn, type PgTable } from "drizzle-orm/pg-core"
 
 import { database } from "@/database"
-import { activityLogs } from "@/database/schema"
+import {
+  activityLogs,
+  clients,
+  contracts,
+  creditNotes,
+  expenses,
+  invoices,
+  leads,
+  payments,
+  projects,
+  proposals,
+  recurringInvoices,
+  timeEntries
+} from "@/database/schema"
 
 import { isActivityMessageKey } from "./labels"
 import {
   activityEntityFilterSchema,
   activityMessageArgsSchema,
   parseActivityListQuery,
+  type ActivityEntityType,
   type ActivityListQuery
 } from "./schemas"
+import { resolveActivityTarget, type ActivityRecordState, type ActivityTarget } from "./services"
 import {
   type ActivityEntry,
+  type ActivityFeedEntry,
   type ActivityFeedPageData,
   type EntityActivityPanelData
 } from "./types"
@@ -27,7 +44,36 @@ type ActivityDefaults = {
 // lives; a timeline in a card is a glance, not a log.
 const ENTITY_TIMELINE_LIMIT = 20
 
-export async function getActivityFeedPageData(input: unknown): Promise<ActivityFeedPageData> {
+type RecordSource = {
+  table: PgTable
+  id: PgColumn
+  deletedAt: PgColumn
+}
+
+const PLAIN_SOURCES: Record<
+  Exclude<ActivityEntityType, "invoice" | "payment" | "credit_note">,
+  RecordSource
+> = {
+  client: { table: clients, id: clients.id, deletedAt: clients.deletedAt },
+  lead: { table: leads, id: leads.id, deletedAt: leads.deletedAt },
+  project: { table: projects, id: projects.id, deletedAt: projects.deletedAt },
+  proposal: { table: proposals, id: proposals.id, deletedAt: proposals.deletedAt },
+  contract: { table: contracts, id: contracts.id, deletedAt: contracts.deletedAt },
+  recurring_invoice: {
+    table: recurringInvoices,
+    id: recurringInvoices.id,
+    deletedAt: recurringInvoices.deletedAt
+  },
+  time_entry: { table: timeEntries, id: timeEntries.id, deletedAt: timeEntries.deletedAt },
+  expense: { table: expenses, id: expenses.id, deletedAt: expenses.deletedAt }
+}
+
+type StateRow = ActivityRecordState & { id: string }
+
+export async function getActivityFeedPageData(
+  input: unknown,
+  options: { canOpenTrash: boolean }
+): Promise<ActivityFeedPageData> {
   const query = parseActivityListQuery(input)
 
   const [list, unreadCount, defaults] = await Promise.all([
@@ -37,7 +83,7 @@ export async function getActivityFeedPageData(input: unknown): Promise<ActivityF
   ])
 
   return {
-    entries: list.rows,
+    entries: await withActivityTargets(list.rows, options),
     rowCount: list.rowCount,
     pageCount: Math.max(1, Math.ceil(list.rowCount / query.perPage)),
     unreadCount,
@@ -158,4 +204,122 @@ function toActivityEntry(row: ActivityLogRow): ActivityEntry | null {
     unread: row.readAt === null,
     createdAt: row.createdAt
   }
+}
+
+// One read per entity type on the page, never one per row: the feed shows a page at a time, so this
+// is bounded by the page size however long the history grows.
+async function withActivityTargets(
+  entries: ActivityEntry[],
+  options: { canOpenTrash: boolean }
+): Promise<ActivityFeedEntry[]> {
+  const records = await readRecordStates(entries)
+
+  return entries.map((entry) => ({
+    ...entry,
+    target: toTarget(entry, records, options)
+  }))
+}
+
+function toTarget(
+  entry: ActivityEntry,
+  records: Map<string, ActivityRecordState>,
+  options: { canOpenTrash: boolean }
+): ActivityTarget {
+  return resolveActivityTarget(
+    entry.entityType,
+    entry.entityId,
+    records.get(recordKey(entry.entityType, entry.entityId)),
+    options
+  )
+}
+
+async function readRecordStates(
+  entries: ActivityEntry[]
+): Promise<Map<string, ActivityRecordState>> {
+  const idsByType = new Map<ActivityEntityType, string[]>()
+
+  for (const entry of entries) {
+    idsByType.set(entry.entityType, [...(idsByType.get(entry.entityType) ?? []), entry.entityId])
+  }
+
+  const reads = [...idsByType].map(async ([entityType, ids]) =>
+    (await readStates(entityType, ids)).map(
+      ({ id, ...state }) => [recordKey(entityType, id), state] as const
+    )
+  )
+
+  return new Map((await Promise.all(reads)).flat())
+}
+
+async function readStates(entityType: ActivityEntityType, ids: string[]): Promise<StateRow[]> {
+  switch (entityType) {
+    case "invoice":
+      return (
+        await database
+          .select({ id: invoices.id, deletedAt: invoices.deletedAt, projectId: invoices.projectId })
+          .from(invoices)
+          .where(inArray(invoices.id, ids))
+      ).map((row) => ({ ...row, invoiceId: row.id, invoiceProjectId: row.projectId }))
+    case "payment":
+      return (
+        await database
+          .select({
+            id: payments.id,
+            deletedAt: payments.deletedAt,
+            invoiceId: payments.invoiceId,
+            invoiceProjectId: invoices.projectId
+          })
+          .from(payments)
+          .leftJoin(invoices, eq(invoices.id, payments.invoiceId))
+          .where(inArray(payments.id, ids))
+      ).map((row) => ({ ...row, projectId: null }))
+    case "credit_note":
+      return (
+        await database
+          .select({
+            id: creditNotes.id,
+            deletedAt: creditNotes.deletedAt,
+            invoiceId: creditNotes.invoiceId,
+            invoiceProjectId: invoices.projectId
+          })
+          .from(creditNotes)
+          .leftJoin(invoices, eq(invoices.id, creditNotes.invoiceId))
+          .where(inArray(creditNotes.id, ids))
+      ).map((row) => ({ ...row, projectId: null }))
+    case "client":
+    case "lead":
+    case "project":
+    case "proposal":
+    case "contract":
+    case "recurring_invoice":
+    case "time_entry":
+    case "expense":
+      return readPlainStates(PLAIN_SOURCES[entityType], ids)
+  }
+}
+
+async function readPlainStates(source: RecordSource, ids: string[]): Promise<StateRow[]> {
+  const rows = await database
+    .select({ id: source.id, deletedAt: source.deletedAt })
+    .from(source.table)
+    .where(inArray(source.id, ids))
+
+  // Built from generic columns, so Drizzle types the fields `unknown`; narrowed rather than cast.
+  return rows.flatMap((row) =>
+    typeof row.id === "string"
+      ? [
+          {
+            id: row.id,
+            deletedAt: row.deletedAt instanceof Date ? row.deletedAt : null,
+            projectId: null,
+            invoiceId: null,
+            invoiceProjectId: null
+          }
+        ]
+      : []
+  )
+}
+
+function recordKey(entityType: ActivityEntityType, id: string): string {
+  return `${entityType}:${id}`
 }

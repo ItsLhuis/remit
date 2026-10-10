@@ -11,23 +11,23 @@ import { type ActivityTimelineItem } from "@/components/ui"
 import { activityMessagePresentation } from "../labels"
 import { type ActivityEntry } from "../types"
 
-type ActivityTimelineItemsOptions = {
-  entries: ActivityEntry[]
+type ActivityTimelineItemsOptions<Entry extends ActivityEntry> = {
+  entries: Entry[]
   locale: string
   timeZone: string
-  renderActions?: (entry: ActivityEntry) => ReactNode
+  renderActions?: (entry: Entry) => ReactNode
 }
 
 // The one place a stored `message_key` becomes readable text. It runs on the client, through
 // `useTranslation`, so switching the interface language re-renders the whole history in the new
 // language — which is the reason rows store a key and ICU arguments instead of a rendered string
 // (ARCHITECTURE.md, internationalization).
-export function useActivityTimelineItems({
+export function useActivityTimelineItems<Entry extends ActivityEntry>({
   entries,
   locale,
   timeZone,
   renderActions
-}: ActivityTimelineItemsOptions): ActivityTimelineItem[] {
+}: ActivityTimelineItemsOptions<Entry>): ActivityTimelineItem[] {
   const { t } = useTranslation()
 
   return entries.map((entry) => ({

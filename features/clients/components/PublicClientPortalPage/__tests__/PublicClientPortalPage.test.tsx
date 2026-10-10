@@ -7,6 +7,11 @@ import { axe } from "vitest-axe"
 import { type ClientPortal } from "../../../types"
 import { PublicClientPortalPage } from "../PublicClientPortalPage"
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/s/token",
+  useSearchParams: () => new URLSearchParams("proposals=2")
+}))
+
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({
     t: (key: string, values?: Record<string, string>) =>
@@ -36,22 +41,38 @@ vi.mock("@/features/proposals", () => ({
   ProposalStatusBadge: ({ status }: { status: string }) => <span>{status}</span>
 }))
 
-function makePortal(overrides: Partial<ClientPortal> = {}): ClientPortal {
+type PortalSection = "invoices" | "proposals" | "contracts" | "projects"
+
+type PortalOverrides = Omit<Partial<ClientPortal>, PortalSection> & {
+  [Section in PortalSection]?: ClientPortal[Section]["items"]
+}
+
+function onePage<Item>(items: Item[]) {
+  return { items, page: 1, pageCount: 1 }
+}
+
+function makePortal({
+  invoices = [],
+  proposals = [],
+  contracts = [],
+  projects = [],
+  ...overrides
+}: PortalOverrides = {}): ClientPortal {
   return {
     clientName: "Northwind Ltd",
     issuer: { name: "Studio Remit", email: "billing@studio.test" },
     locale: "en",
     timeZone: "UTC",
     outstanding: [],
-    invoices: [],
-    proposals: [],
-    contracts: [],
-    projects: [],
+    invoices: onePage(invoices),
+    proposals: onePage(proposals),
+    contracts: onePage(contracts),
+    projects: onePage(projects),
     ...overrides
   }
 }
 
-function makeInvoice(overrides: Partial<ClientPortal["invoices"][number]> = {}) {
+function makeInvoice(overrides: Partial<ClientPortal["invoices"]["items"][number]> = {}) {
   return {
     number: "INV-0001",
     viewStatus: "sent" as const,
@@ -223,4 +244,32 @@ describe("PublicClientPortalPage", () => {
 
     expect((await axe(container)).violations).toEqual([])
   })
+})
+
+test("pages a long list without losing the other lists' place", () => {
+  render(
+    <PublicClientPortalPage
+      portal={{
+        ...makePortal(),
+        invoices: { items: [makeInvoice()], page: 2, pageCount: 3 }
+      }}
+    />
+  )
+
+  const pager = screen.getByRole("navigation", { name: /clients\.public\.pager\.label/ })
+
+  expect(within(pager).getByText("clients.public.pager.page:2,3")).toBeInTheDocument()
+  expect(
+    within(pager).getByRole("link", { name: "clients.public.pager.previous" })
+  ).toHaveAttribute("href", "/s/token?proposals=2&invoices=1")
+  expect(within(pager).getByRole("link", { name: "clients.public.pager.next" })).toHaveAttribute(
+    "href",
+    "/s/token?proposals=2&invoices=3"
+  )
+})
+
+test("shows no pager on a list that fits one page", () => {
+  render(<PublicClientPortalPage portal={makePortal({ invoices: [makeInvoice()] })} />)
+
+  expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
 })

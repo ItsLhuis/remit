@@ -5,7 +5,7 @@ import { EXPORT_SUBGRAPH_TABLES } from "./exportSubgraphTables"
 
 export type ColumnExclusionReason = "secret" | "configuration" | "bearerToken" | "internal"
 
-export type TableExclusionReason = "authOwned" | "bearerToken" | "configuration"
+export type TableExclusionReason = "authOwned" | "bearerToken" | "configuration" | "internal"
 
 export type ExcludedExportColumn = {
   column: string
@@ -91,7 +91,10 @@ const EXPORT_EXCLUDED_TABLES: readonly ExcludedExportTable[] = [
   // endpoint carries its signing secret, and its delivery log is a record of traffic to it rather
   // than a business record the owner takes elsewhere.
   { table: "webhook_endpoints", reason: "configuration" },
-  { table: "webhook_deliveries", reason: "configuration" }
+  { table: "webhook_deliveries", reason: "configuration" },
+  // Bucket keys of objects already released for deletion: plumbing between a delete and the store,
+  // with nothing in it the owner could read or take elsewhere.
+  { table: "object_deletions", reason: "internal" }
 ]
 
 export function getExportTables(scope: DataExportScope): readonly ExportTableManifest[] {

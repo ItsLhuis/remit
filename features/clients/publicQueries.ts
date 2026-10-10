@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm"
+import { and, count, desc, eq, inArray, isNotNull, isNull, ne, type SQL } from "drizzle-orm"
+import { type PgTable } from "drizzle-orm/pg-core"
 
 import { matchesPublicToken } from "@/lib/publicToken"
 
@@ -16,13 +17,19 @@ import { deriveInvoiceStatusView, getInvoiceOutstandingCents } from "@/features/
 
 import { isProposalExpired } from "@/features/proposals"
 
-import { clientPortalTokenSchema } from "./schemas"
-import { summarizePortalOutstanding } from "./services"
+import { clientPortalRequestSchema } from "./schemas"
+import {
+  PORTAL_PAGE_SIZE,
+  resolvePortalPage,
+  summarizePortalOutstanding,
+  type PortalPageWindow
+} from "./services"
 import {
   type ClientPortal,
   type ClientPortalContract,
   type ClientPortalCreditNote,
   type ClientPortalInvoice,
+  type ClientPortalList,
   type ClientPortalProject,
   type ClientPortalProposal
 } from "./types"
@@ -76,7 +83,7 @@ const PORTAL_CLIENT_COLUMNS = {
 // Revocation and "never enabled" are already one state in the column (ADR-0029), so only the
 // soft-delete case needs collapsing here.
 export async function getClientPortal(input: unknown): Promise<ClientPortal | null> {
-  const parsed = clientPortalTokenSchema.safeParse(input)
+  const parsed = clientPortalRequestSchema.safeParse(input)
 
   if (!parsed.success) return null
 
@@ -84,25 +91,38 @@ export async function getClientPortal(input: unknown): Promise<ClientPortal | nu
 
   if (!client) return null
 
+  const { pages } = parsed.data
   const now = new Date()
 
-  const [invoiceRows, proposalRows, contractRows, projectRows, issuer] = await Promise.all([
-    listPortalInvoiceRows(client.id),
-    listPortalProposalRows(client.id),
-    listPortalContractRows(client.id),
-    listPortalProjectRows(client.id),
-    getPortalIssuerContext()
+  const [invoicePage, owedInvoiceRows, proposalPage, contractPage, projectPage, issuer] =
+    await Promise.all([
+      readPortalList(pages.invoices, invoices, portalInvoiceWhere(client.id), (offset) =>
+        listPortalInvoiceRows(portalInvoiceWhere(client.id), offset)
+      ),
+      listPortalInvoiceRows(owedInvoiceWhere(client.id), null),
+      readPortalList(pages.proposals, proposals, portalProposalWhere(client.id), (offset) =>
+        listPortalProposalRows(client.id, offset)
+      ),
+      readPortalList(pages.contracts, contracts, portalContractWhere(client.id), (offset) =>
+        listPortalContractRows(client.id, offset)
+      ),
+      readPortalList(pages.projects, projects, portalProjectWhere(client.id), (offset) =>
+        listPortalProjectRows(client.id, offset)
+      ),
+      getPortalIssuerContext()
+    ])
+
+  const invoiceIds = [...new Set([...invoicePage.rows, ...owedInvoiceRows].map((row) => row.id))]
+
+  const [creditNoteRows, liveProjectIds] = await Promise.all([
+    listPortalCreditNoteRows(invoiceIds),
+    listLiveProjectIds(proposalPage.rows.flatMap((row) => (row.projectId ? [row.projectId] : [])))
   ])
 
-  const creditNotesByInvoice = groupCreditNotesByInvoice(
-    await listPortalCreditNoteRows(invoiceRows.map((row) => row.id))
-  )
+  const creditNotesByInvoice = groupCreditNotesByInvoice(creditNoteRows)
 
-  const liveProjectIds = new Set(projectRows.map((row) => row.id))
-
-  const portalInvoices = invoiceRows.map((row) =>
+  const toInvoice = (row: PortalInvoiceRow) =>
     toPortalInvoice(row, creditNotesByInvoice.get(row.id) ?? [], now)
-  )
 
   return {
     clientName: client.name,
@@ -113,12 +133,34 @@ export async function getClientPortal(input: unknown): Promise<ClientPortal | nu
     // because the reader is travelling would be a different due date.
     locale: client.locale ?? issuer.locale,
     timeZone: issuer.timeZone,
-    outstanding: summarizePortalOutstanding(portalInvoices),
-    invoices: portalInvoices,
-    proposals: proposalRows.map((row) => toPortalProposal(row, liveProjectIds, now)),
-    contracts: contractRows.map((row) => toPortalContract(row, now)),
-    projects: projectRows.map(toPortalProject)
+    outstanding: summarizePortalOutstanding(owedInvoiceRows.map(toInvoice)),
+    invoices: toPortalList(invoicePage, toInvoice),
+    proposals: toPortalList(proposalPage, (row) => toPortalProposal(row, liveProjectIds, now)),
+    contracts: toPortalList(contractPage, (row) => toPortalContract(row, now)),
+    projects: toPortalList(projectPage, toPortalProject)
   }
+}
+
+type PortalListPage<Row> = PortalPageWindow & { rows: Row[] }
+
+// Counted first so a page past the end is clamped to the last one before the rows are read.
+async function readPortalList<Row>(
+  requestedPage: number,
+  table: PgTable,
+  where: SQL | undefined,
+  readRows: (offset: number) => Promise<Row[]>
+): Promise<PortalListPage<Row>> {
+  const [total] = await database.select({ value: count() }).from(table).where(where)
+  const window = resolvePortalPage(requestedPage, total?.value ?? 0)
+
+  return { ...window, rows: await readRows(window.offset) }
+}
+
+function toPortalList<Row, Item>(
+  list: PortalListPage<Row>,
+  toItem: (row: Row) => Item
+): ClientPortalList<Item> {
+  return { items: list.rows.map(toItem), page: list.page, pageCount: list.pageCount }
 }
 
 // The partial unique index on `clients.portal_token` finds the candidate row; `matchesPublicToken` is
@@ -147,13 +189,28 @@ async function findClientByPortalToken(token: string) {
 // client, so filtering on `client_id` alone reaches every invoice raised for this client and cannot
 // reach another's. A draft is withheld for the same reason `/i/[token]` withholds it: it has never
 // been sent and its number may still change.
-async function listPortalInvoiceRows(clientId: string) {
+function portalInvoiceWhere(clientId: string): SQL | undefined {
+  return and(
+    eq(invoices.clientId, clientId),
+    isNull(invoices.deletedAt),
+    ne(invoices.status, "draft")
+  )
+}
+
+// Every invoice the client can still owe on (sent and not settled), which is what the outstanding
+// total adds up. Bounded by what is unpaid, not by the client's whole history.
+function owedInvoiceWhere(clientId: string): SQL | undefined {
+  return and(
+    eq(invoices.clientId, clientId),
+    isNull(invoices.deletedAt),
+    eq(invoices.status, "sent")
+  )
+}
+
+// `offset` null reads every matching row: the owed invoices behind the outstanding total.
+async function listPortalInvoiceRows(where: SQL | undefined, offset: number | null) {
   return database.query.invoices.findMany({
-    where: and(
-      eq(invoices.clientId, clientId),
-      isNull(invoices.deletedAt),
-      ne(invoices.status, "draft")
-    ),
+    where,
     columns: {
       id: true,
       number: true,
@@ -166,20 +223,25 @@ async function listPortalInvoiceRows(clientId: string) {
       paidAt: true,
       publicToken: true
     },
-    orderBy: desc(invoices.createdAt)
+    orderBy: [desc(invoices.createdAt), desc(invoices.id)],
+    ...(offset === null ? {} : { limit: PORTAL_PAGE_SIZE, offset })
   })
 }
 
 // `issued_at` is the boundary SCHEMA.md records for a proposal token: it is minted at draft creation
 // and does not exist as far as any reader is concerned until the proposal is issued. The portal
 // honours the same line.
-async function listPortalProposalRows(clientId: string) {
+function portalProposalWhere(clientId: string): SQL | undefined {
+  return and(
+    eq(proposals.clientId, clientId),
+    isNull(proposals.deletedAt),
+    isNotNull(proposals.issuedAt)
+  )
+}
+
+async function listPortalProposalRows(clientId: string, offset: number) {
   return database.query.proposals.findMany({
-    where: and(
-      eq(proposals.clientId, clientId),
-      isNull(proposals.deletedAt),
-      isNotNull(proposals.issuedAt)
-    ),
+    where: portalProposalWhere(clientId),
     columns: {
       number: true,
       status: true,
@@ -190,17 +252,23 @@ async function listPortalProposalRows(clientId: string) {
       projectId: true,
       publicToken: true
     },
-    orderBy: desc(proposals.createdAt)
+    orderBy: [desc(proposals.createdAt), desc(proposals.id)],
+    limit: PORTAL_PAGE_SIZE,
+    offset
   })
 }
 
-async function listPortalContractRows(clientId: string) {
+function portalContractWhere(clientId: string): SQL | undefined {
+  return and(
+    eq(contracts.clientId, clientId),
+    isNull(contracts.deletedAt),
+    isNotNull(contracts.issuedAt)
+  )
+}
+
+async function listPortalContractRows(clientId: string, offset: number) {
   return database.query.contracts.findMany({
-    where: and(
-      eq(contracts.clientId, clientId),
-      isNull(contracts.deletedAt),
-      isNotNull(contracts.issuedAt)
-    ),
+    where: portalContractWhere(clientId),
     columns: {
       number: true,
       title: true,
@@ -209,7 +277,9 @@ async function listPortalContractRows(clientId: string) {
       effectiveFrom: true,
       effectiveUntil: true
     },
-    orderBy: desc(contracts.createdAt)
+    orderBy: [desc(contracts.createdAt), desc(contracts.id)],
+    limit: PORTAL_PAGE_SIZE,
+    offset
   })
 }
 
@@ -217,9 +287,13 @@ async function listPortalContractRows(clientId: string) {
 // freelancer chose and may never have quoted, and the description is working notes written in a tool
 // the client was not expected to read; what a client asks of a project list is what is running and
 // when it runs until.
-async function listPortalProjectRows(clientId: string) {
+function portalProjectWhere(clientId: string): SQL | undefined {
+  return and(eq(projects.clientId, clientId), isNull(projects.deletedAt))
+}
+
+async function listPortalProjectRows(clientId: string, offset: number) {
   return database.query.projects.findMany({
-    where: and(eq(projects.clientId, clientId), isNull(projects.deletedAt)),
+    where: portalProjectWhere(clientId),
     columns: {
       id: true,
       name: true,
@@ -227,8 +301,24 @@ async function listPortalProjectRows(clientId: string) {
       startDate: true,
       endDate: true
     },
-    orderBy: desc(projects.createdAt)
+    orderBy: [desc(projects.createdAt), desc(projects.id)],
+    limit: PORTAL_PAGE_SIZE,
+    offset
   })
+}
+
+// Which of the projects the page's proposals hang off are still live, which `/p/[token]` requires
+// before it opens one. Read for those proposals rather than taken from the projects list, which is
+// now a page of its own.
+async function listLiveProjectIds(projectIds: string[]): Promise<Set<string>> {
+  if (projectIds.length === 0) return new Set()
+
+  const rows = await database
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(inArray(projects.id, projectIds), isNull(projects.deletedAt)))
+
+  return new Set(rows.map((row) => row.id))
 }
 
 // Keyed on the invoice ids already narrowed to this client, so a credit note cannot arrive from

@@ -4,13 +4,17 @@ import { type Metadata } from "next"
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { getIpAddress } from "@/lib/utils"
 
 import { rateLimitInstance } from "@/lib/rateLimit"
 
-import { PublicClientPortalPage, PublicClientPortalUnavailable } from "@/features/clients"
+import {
+  parseClientPortalPages,
+  PublicClientPortalPage,
+  PublicClientPortalUnavailable
+} from "@/features/clients"
 import { getClientPortal } from "@/features/clients/server"
 
 // Rate limit for `/s/[token]`, declared at the top of the module per `.agents/rules/security.md`, and
@@ -42,26 +46,31 @@ export const dynamic = "force-dynamic"
 
 type PublicClientPortalRouteProps = {
   params: Promise<{ token: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-const PublicClientPortalRoute = async ({ params }: PublicClientPortalRouteProps) => {
+const PublicClientPortalRoute = async ({ params, searchParams }: PublicClientPortalRouteProps) => {
   const { token } = await params
 
   const requestHeaders = await headers()
 
   const ipAddress = getIpAddress(requestHeaders)
 
+  const rateLimitTrip = {
+    key: `${CLIENT_PORTAL_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    windowMs: CLIENT_PORTAL_RATE_LIMIT_WINDOW_MS
+  }
   const rateLimit = await rateLimitInstance.consume(
-    `${CLIENT_PORTAL_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    rateLimitTrip.key,
     CLIENT_PORTAL_RATE_LIMIT_MAX,
-    CLIENT_PORTAL_RATE_LIMIT_WINDOW_MS
+    rateLimitTrip.windowMs
   )
 
   // A tripped limit renders the same panel a bad token does. Telling the caller they were throttled
   // would confirm that their previous requests were being processed, which is the one thing a
   // token-walker learns nothing else from here.
   if (!rateLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(rateLimitTrip, {
       ipAddress,
       userAgent: requestHeaders.get("user-agent"),
       metadata: { route: "/s/[token]" }
@@ -70,7 +79,10 @@ const PublicClientPortalRoute = async ({ params }: PublicClientPortalRouteProps)
     return <PublicClientPortalUnavailable />
   }
 
-  const portal = await getClientPortal({ token })
+  const portal = await getClientPortal({
+    token,
+    pages: parseClientPortalPages(await searchParams)
+  })
 
   if (!portal) return <PublicClientPortalUnavailable />
 

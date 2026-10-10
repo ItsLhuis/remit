@@ -33,7 +33,9 @@ import {
 import { dataExportIdSchema, type DataExportScope } from "./schemas"
 import {
   ACTIVE_DATA_EXPORT_STATUSES,
+  getExportArtifactExpiresAt,
   getExportTables,
+  isExportArtifactExpired,
   toDataExportFailureReason,
   type ExportTableManifest
 } from "./services"
@@ -82,6 +84,8 @@ const EXPORT_TABLE_SOURCES: Record<string, PgTable> = {
 export type ExportRowsByTable = Record<string, Record<string, unknown>[]>
 
 export async function getDataExportPageData(): Promise<DataExportPageData> {
+  const now = new Date()
+
   const [rows, clientOptions, instanceSettings] = await Promise.all([
     database.query.dataExports.findMany({
       with: { client: { columns: { name: true } } },
@@ -96,7 +100,7 @@ export async function getDataExportPageData(): Promise<DataExportPageData> {
 
   return {
     clients: clientOptions,
-    exports: rows.map(toDataExportListItem),
+    exports: rows.map((row) => toDataExportListItem(row, now)),
     hasActiveExport: rows.some((row) =>
       ACTIVE_DATA_EXPORT_STATUSES.some((status) => status === row.status)
     ),
@@ -105,19 +109,29 @@ export async function getDataExportPageData(): Promise<DataExportPageData> {
   }
 }
 
-// The download route's only read. It returns nothing for an export that is still assembling or that
-// failed, so a guessed id cannot be used to probe for an archive that is not there yet.
+// The download route's only read. It returns nothing for an export that is still assembling, that
+// failed or that has expired, so a guessed id cannot be used to probe for an archive that is not
+// there, and an expired one answers exactly as a missing one does until the sweep removes it.
 export async function getDataExportArchive(input: unknown): Promise<DataExportArchive | null> {
   const parsed = dataExportIdSchema.safeParse(input)
 
   if (!parsed.success) return null
 
   const row = await database.query.dataExports.findFirst({
-    columns: { filename: true, sizeBytes: true, status: true, storageKey: true },
+    columns: {
+      filename: true,
+      sizeBytes: true,
+      status: true,
+      storageKey: true,
+      completedAt: true,
+      createdAt: true
+    },
     where: eq(dataExports.id, parsed.data.exportId)
   })
 
   if (row?.status !== "ready" || !row.storageKey || !row.filename) return null
+
+  if (isExportArtifactExpired(row.completedAt ?? row.createdAt, new Date())) return null
 
   return { filename: row.filename, sizeBytes: row.sizeBytes, storageKey: row.storageKey }
 }
@@ -166,7 +180,9 @@ type DataExportRow = {
   client: { name: string } | null
 }
 
-function toDataExportListItem(row: DataExportRow): DataExportListItem {
+function toDataExportListItem(row: DataExportRow, now: Date): DataExportListItem {
+  const producedAt = row.completedAt ?? row.createdAt
+
   return {
     id: row.id,
     scope: row.scope,
@@ -177,7 +193,9 @@ function toDataExportListItem(row: DataExportRow): DataExportListItem {
     entryCount: row.entryCount,
     failureReason: toDataExportFailureReason(row.failureReason),
     requestedAt: row.createdAt,
-    completedAt: row.completedAt
+    completedAt: row.completedAt,
+    expiresAt: row.status === "ready" ? getExportArtifactExpiresAt(producedAt) : null,
+    isExpired: isExportArtifactExpired(producedAt, now)
   }
 }
 

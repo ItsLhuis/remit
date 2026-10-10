@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest"
 
-import { makeActivityLog, makeSettings } from "@/tests/factories"
+import {
+  makeActivityLog,
+  makeClient,
+  makeCreditNote,
+  makeInvoice,
+  makeProject,
+  makeSettings
+} from "@/tests/factories"
 
 import {
   getActivityFeedPageData,
@@ -95,11 +102,43 @@ describe("getActivityFeedPageData", () => {
     await makeSettings({ defaultLocale: "pt", defaultTimezone: "Europe/Lisbon" })
     await Promise.all(Array.from({ length: 3 }, () => makeActivityLog()))
 
-    const data = await getActivityFeedPageData({ perPage: "2" })
+    const data = await getActivityFeedPageData({ perPage: "2" }, { canOpenTrash: true })
 
     expect(data.pageCount).toBe(2)
     expect(data.unreadCount).toBe(3)
     expect(data.locale).toBe("pt")
     expect(data.timeZone).toBe("Europe/Lisbon")
+  })
+})
+
+describe("feed links", () => {
+  test("resolve a live record, say a deleted one is in the trash, and a purged one is gone", async () => {
+    const { getActivityFeedPageData: readFeed } = await import("../queries")
+
+    const project = await makeProject()
+    const invoice = await makeInvoice({ projectId: project.id })
+    const creditNote = await makeCreditNote({ invoiceId: invoice.id })
+    const deleted = await makeClient({ deletedAt: new Date("2026-05-01T00:00:00.000Z") })
+
+    await makeActivityLog({ entityType: "credit_note", entityId: creditNote.id })
+    await makeActivityLog({ entityType: "client", entityId: deleted.id })
+    await makeActivityLog({
+      entityType: "client",
+      entityId: "8f14e45f-ea5c-4f3a-9e2b-1d0c7a6b5e40"
+    })
+
+    const { entries } = await readFeed({}, { canOpenTrash: true })
+    const targetOf = (entityId: string) =>
+      entries.find((entry) => entry.entityId === entityId)?.target
+
+    expect(targetOf(creditNote.id)).toEqual({
+      state: "live",
+      href: `/projects/${project.id}/invoices/${invoice.id}/credit-notes/${creditNote.id}`
+    })
+    expect(targetOf(deleted.id)).toEqual({
+      state: "trashed",
+      href: `/settings/data?trash_kind=client&trash_record=${deleted.id}#trash`
+    })
+    expect(targetOf("8f14e45f-ea5c-4f3a-9e2b-1d0c7a6b5e40")).toEqual({ state: "gone" })
   })
 })

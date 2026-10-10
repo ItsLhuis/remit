@@ -18,6 +18,8 @@ import {
   timeEntries
 } from "@/database/schema"
 
+import { isExportArtifactExpired } from "@/features/dataExport/services"
+
 import { calculateRebillableCents } from "@/features/expenses"
 
 import { calculateEntryAmountCents } from "@/features/timeTracking"
@@ -136,11 +138,14 @@ export async function getReportExportState(id: string): Promise<ReportExportStat
 // there, and a third copy of the name could disagree with them.
 export async function getReportExportArtifact(id: string): Promise<ReportExportArtifact | null> {
   const row = await database.query.reportExports.findFirst({
-    columns: { report: true, status: true, storageKey: true, createdAt: true },
+    columns: { report: true, status: true, storageKey: true, createdAt: true, completedAt: true },
     where: eq(reportExports.id, id)
   })
 
   if (row?.status !== "ready" || !row.storageKey) return null
+
+  // An expired artifact answers as a missing one until the nightly sweep removes it.
+  if (isExportArtifactExpired(row.completedAt ?? row.createdAt, new Date())) return null
 
   const report = reportQuerySchema.shape.report.parse(row.report)
 

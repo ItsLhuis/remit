@@ -67,6 +67,37 @@ afterEach(() => {
 })
 
 describe("getClientPortal", () => {
+  test("pages its documents newest first and still totals everything the client owes", async () => {
+    const { client, token } = await makePortalClient()
+
+    for (let index = 0; index < 12; index += 1) {
+      await makeInvoice({
+        clientId: client.id,
+        number: `INV-${String(index + 1).padStart(4, "0")}`,
+        status: "sent",
+        currency: "EUR",
+        totalCents: 1000,
+        createdAt: new Date(Date.UTC(2026, 5, 1 + index))
+      })
+    }
+
+    const firstPage = await getClientPortal({ token })
+    const lastPage = await getClientPortal({
+      token,
+      pages: { invoices: 2, proposals: 1, contracts: 1, projects: 1 }
+    })
+
+    expect(firstPage?.invoices.items[0]?.number).toBe("INV-0012")
+    expect(firstPage?.invoices.items).toHaveLength(10)
+    expect(lastPage?.invoices).toMatchObject({ page: 2, pageCount: 2 })
+    expect(lastPage?.invoices.items.map((invoice) => invoice.number)).toEqual([
+      "INV-0002",
+      "INV-0001"
+    ])
+    expect(firstPage?.outstanding).toEqual([{ currency: "EUR", totalCents: 12000 }])
+    expect(lastPage?.outstanding).toEqual(firstPage?.outstanding)
+  })
+
   test("reports every kind of record the client holds", async () => {
     const { client, token } = await makePortalClient()
     const project = await makeProject({ clientId: client.id, name: "Website rebuild" })
@@ -97,10 +128,10 @@ describe("getClientPortal", () => {
 
     expect(portal?.clientName).toBe("Northwind Ltd")
     expect(portal?.issuer).toEqual({ name: "Studio Remit", email: "billing@studio.test" })
-    expect(portal?.invoices).toHaveLength(1)
-    expect(portal?.proposals).toHaveLength(1)
-    expect(portal?.contracts).toHaveLength(1)
-    expect(portal?.projects).toEqual([
+    expect(portal?.invoices.items).toHaveLength(1)
+    expect(portal?.proposals.items).toHaveLength(1)
+    expect(portal?.contracts.items).toHaveLength(1)
+    expect(portal?.projects.items).toEqual([
       expect.objectContaining({ name: "Website rebuild", status: "active" })
     ])
   })
@@ -113,10 +144,10 @@ describe("getClientPortal", () => {
     expect(portal).toEqual(
       expect.objectContaining({
         outstanding: [],
-        invoices: [],
-        proposals: [],
-        contracts: [],
-        projects: []
+        invoices: { items: [], page: 1, pageCount: 1 },
+        proposals: { items: [], page: 1, pageCount: 1 },
+        contracts: { items: [], page: 1, pageCount: 1 },
+        projects: { items: [], page: 1, pageCount: 1 }
       })
     )
   })
@@ -151,7 +182,7 @@ describe("getClientPortal", () => {
     })
 
     const portal = await getClientPortal({ token })
-    const [portalProject] = portal?.projects ?? []
+    const [portalProject] = portal?.projects.items ?? []
 
     expect(Object.keys(portal ?? {})).toEqual([
       "clientName",
@@ -179,7 +210,7 @@ describe("getClientPortal", () => {
     })
 
     const portal = await getClientPortal({ token })
-    const [contract] = portal?.contracts ?? []
+    const [contract] = portal?.contracts.items ?? []
 
     expect(contract).not.toHaveProperty("documentPath")
     expect(JSON.stringify(portal)).not.toContain(contractToken)
@@ -218,10 +249,10 @@ describe("getClientPortal isolation", () => {
 
     expect(JSON.stringify(portal)).not.toContain("CONTOSO")
     expect(JSON.stringify(portal)).not.toContain("Contoso")
-    expect(portal?.invoices).toEqual([])
-    expect(portal?.proposals).toEqual([])
-    expect(portal?.contracts).toEqual([])
-    expect(portal?.projects).toEqual([
+    expect(portal?.invoices.items).toEqual([])
+    expect(portal?.proposals.items).toEqual([])
+    expect(portal?.contracts.items).toEqual([])
+    expect(portal?.projects.items).toEqual([
       expect.objectContaining({ name: "Website rebuild", status: "active" })
     ])
   })
@@ -248,8 +279,8 @@ describe("getClientPortal isolation", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices).toHaveLength(1)
-    expect(portal?.invoices[0]?.creditNotes).toEqual([
+    expect(portal?.invoices.items).toHaveLength(1)
+    expect(portal?.invoices.items[0]?.creditNotes).toEqual([
       expect.objectContaining({ number: "CN-OWN-1", totalCents: 5000 })
     ])
   })
@@ -307,9 +338,9 @@ describe("getClientPortal population", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices).toEqual([])
-    expect(portal?.proposals).toEqual([])
-    expect(portal?.contracts).toEqual([])
+    expect(portal?.invoices.items).toEqual([])
+    expect(portal?.proposals.items).toEqual([])
+    expect(portal?.contracts.items).toEqual([])
   })
 
   test("withholds an archived invoice, proposal, contract and project", async () => {
@@ -340,10 +371,10 @@ describe("getClientPortal population", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices).toEqual([])
-    expect(portal?.proposals).toEqual([])
-    expect(portal?.contracts).toEqual([])
-    expect(portal?.projects).toEqual([])
+    expect(portal?.invoices.items).toEqual([])
+    expect(portal?.proposals.items).toEqual([])
+    expect(portal?.contracts.items).toEqual([])
+    expect(portal?.projects.items).toEqual([])
   })
 
   test("reads the statement in the client's own locale when they have one", async () => {
@@ -387,8 +418,8 @@ describe("getClientPortal links", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices[0]?.documentPath).toBe(`/i/${invoiceToken}`)
-    expect(portal?.proposals[0]?.documentPath).toBe(`/p/${proposalToken}`)
+    expect(portal?.invoices.items[0]?.documentPath).toBe(`/i/${invoiceToken}`)
+    expect(portal?.proposals.items[0]?.documentPath).toBe(`/p/${proposalToken}`)
   })
 
   test("shows an invoice whose link was withdrawn without offering one", async () => {
@@ -404,7 +435,7 @@ describe("getClientPortal links", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices[0]).toEqual(
+    expect(portal?.invoices.items[0]).toEqual(
       expect.objectContaining({ number: "INV-REVOKED-1", documentPath: null })
     )
   })
@@ -422,8 +453,8 @@ describe("getClientPortal links", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.proposals).toHaveLength(1)
-    expect(portal?.proposals[0]?.documentPath).toBeNull()
+    expect(portal?.proposals.items).toHaveLength(1)
+    expect(portal?.proposals.items[0]?.documentPath).toBeNull()
   })
 
   test("withholds the link to a proposal whose project has been archived", async () => {
@@ -444,7 +475,7 @@ describe("getClientPortal links", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.proposals[0]?.documentPath).toBeNull()
+    expect(portal?.proposals.items[0]?.documentPath).toBeNull()
   })
 })
 
@@ -507,7 +538,7 @@ describe("getClientPortal figures", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices[0]?.outstandingCents).toBe(60000)
+    expect(portal?.invoices.items[0]?.outstandingCents).toBe(60000)
     expect(portal?.outstanding).toEqual([{ currency: "EUR", totalCents: 60000 }])
   })
 
@@ -527,7 +558,7 @@ describe("getClientPortal figures", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices[0]?.outstandingCents).toBe(0)
+    expect(portal?.invoices.items[0]?.outstandingCents).toBe(0)
     expect(portal?.outstanding).toEqual([])
   })
 
@@ -546,7 +577,7 @@ describe("getClientPortal figures", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.invoices[0]?.viewStatus).toBe("overdue")
+    expect(portal?.invoices.items[0]?.viewStatus).toBe("overdue")
   })
 
   test("reads a lapsed contract as expired rather than as still sent", async () => {
@@ -561,6 +592,6 @@ describe("getClientPortal figures", () => {
 
     const portal = await getClientPortal({ token })
 
-    expect(portal?.contracts[0]?.status).toBe("expired")
+    expect(portal?.contracts.items[0]?.status).toBe("expired")
   })
 })

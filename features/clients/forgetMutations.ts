@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm"
 
 import { t } from "@/lib/i18n/server"
 
+import { drainObjectDeletions } from "@/lib/storage/objectDeletions"
+
 import { database } from "@/database"
 import { clients } from "@/database/schema"
 
@@ -60,8 +62,12 @@ export async function forgetClient(input: unknown): Promise<ForgetClientResultSh
     // or any other personal detail: the trail records that an erasure happened and who performed it,
     // which is the one thing that must survive it.
     await writeClientAudit(context, "client.forgotten", existing.id, {
-      deletedCounts: result.counts
+      deletedCounts: result.counts,
+      storageObjects: result.storageObjects
     })
+
+    // After the commit, so no file leaves the bucket while a row could still name it.
+    await drainObjectDeletions({ ids: result.deletionIds })
 
     revalidatePath(clientsPath)
     revalidatePath(`${clientsPath}/${existing.id}`)

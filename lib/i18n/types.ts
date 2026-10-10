@@ -834,6 +834,8 @@ export type Translations = {
       confirm: string
       forgotten: string
       survives: string
+      blockedTitle: string
+      blockedDescription: string
       errors: {
         confirmationMismatch: string
         failed: string
@@ -980,6 +982,12 @@ export type Translations = {
       fromLabel: string
       intro: string
       contactLabel: string
+      pager: {
+        label: string
+        page: string
+        previous: string
+        next: string
+      }
       unavailable: {
         title: string
         description: string
@@ -3143,6 +3151,9 @@ export type Translations = {
       markAllRead: string
       markRead: string
       open: string
+      deletedBadge: string
+      openInTrash: string
+      purgedBadge: string
       delete: string
       deleteTitle: string
       deleteDescription: string
@@ -4740,6 +4751,8 @@ export type Translations = {
         actions: string
       }
       download: string
+      availableUntil: string
+      expired: string
       emptyValue: string
       contents: {
         title: string
@@ -4790,6 +4803,15 @@ export type Translations = {
       purgeDueAt: string
     }
     purgeNever: string
+    purge: {
+      never: string
+      countersigned: string
+      countersignedContractNamesClient: string
+      heldByLiveDocuments: string
+      heldByDocuments: string
+    }
+    narrowed: string
+    showAll: string
     actions: {
       restore: string
     }

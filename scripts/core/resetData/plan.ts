@@ -1,5 +1,5 @@
 import {
-  collectDeletableUploadIds,
+  countReleasableUploads,
   countTableRows,
   type DomainDeleteDatabase
 } from "../domainData/deleteDomainRows"
@@ -17,18 +17,18 @@ export async function buildResetDataPlan(
   database: PlanDatabase,
   schema: Schema
 ): Promise<ResetDataPlan> {
-  const deletableUploadIds = await collectDeletableUploadIds(database)
+  const releasableUploads = await countReleasableUploads(database, "reset")
   const previews: ResetDataTablePreview[] = []
 
   for (const entry of DOMAIN_DATA_INVENTORY) {
     previews.push({
       decision: entry.reset,
       reason: entry.reason,
-      // `uploads` is the one table a reset empties partially, so its preview counts the rows the
-      // deleted documents pointed at rather than every row in the table.
+      // `uploads` is the one table a reset empties partially, so its preview counts the uploads
+      // only the deleted rows point at rather than every row in the table.
       rows:
         entry.key === "uploads"
-          ? deletableUploadIds.length
+          ? releasableUploads
           : await countTableRows(database, schema[entry.key]),
       table: entry.table
     })

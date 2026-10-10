@@ -1,4 +1,5 @@
 import { type DomainDeleteCounts } from "../domainData/deleteDomainRows"
+import { type NumberingCounters } from "../domainData/numbering"
 
 export type ResetDataCliOptions = {
   dryRun: boolean
@@ -26,9 +27,16 @@ export type QueueDrainOutcome =
   | { status: "failed"; reason: string }
   | { status: "skipped" }
 
+export type StorageDrainOutcome = {
+  queued: number
+  deleted: number
+}
+
 export type RunResetDataResult = {
   deletedCounts: DomainDeleteCounts
+  numberingRewound: Partial<NumberingCounters>
   plan: ResetDataPlan
   queueDrain: QueueDrainOutcome
+  storage: StorageDrainOutcome
   wrote: boolean
 }
