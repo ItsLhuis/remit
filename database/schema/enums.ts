@@ -111,6 +111,11 @@ export const emailProvider = pgEnum("email_provider", ["smtp", "resend"])
 // acceptable default for one (ADR-0022, ADR-0019).
 export const storageBucket = pgEnum("storage_bucket", ["public", "documents"])
 
+// Every bucket an object can be deleted from, which is one more than an `uploads` row can name: an
+// export artifact lives in `exports` under a key its own row carries, with no `uploads` row at all.
+// A separate enum rather than a wider `storage_bucket`, so `uploads.bucket` still cannot name it.
+export const storageBucketRole = pgEnum("storage_bucket_role", ["public", "documents", "exports"])
+
 export const backupDestination = pgEnum("backup_destination", ["local", "s3", "r2", "b2"])
 
 export const backupCadence = pgEnum("backup_cadence", ["daily", "weekly"])
