@@ -159,7 +159,10 @@ implemented command.
 - **Effects:** seeds demo/domain data only, the same for the same seed apart from the public tokens
   described under Limitations: settings, tax rates, leads, clients, projects, tasks, time entries,
   expenses, proposals, invoices, line items, payments, credit notes, contracts, and recurring
-  invoice schedules.
+  invoice schedules. Moves each document numbering counter past the numbers the seeded documents use
+  and records the counters before and after in an `instance.seed_demo.completed` audit entry;
+  `--reseed` first puts back what the previous seed advanced and removes the stored files of the
+  rows it replaces after its transaction commits.
 - **Limitations:** refuses to proceed when seedable rows already exist unless `--reseed` is
   supplied; does not seed or mutate Better Auth-owned auth tables, organization tables, uploads,
   email logs, audit logs, or activity logs. Public tokens are the one field a seed does not
@@ -179,13 +182,18 @@ implemented command.
 - **Effects:** deletes leads, clients, projects, tasks, time entries, expenses, proposals, invoices,
   line items, payments, credit notes, contracts, recurring invoice schedules, the runtime artifacts
   of those rows (activity logs, email logs, data exports, proposal OTPs, contract signatures), and
-  the `uploads` rows those documents referenced — all in one transaction. Writes
-  `instance.reset_data.completed` with per-table deleted counts and `userAgent: "cli/reset-data"`,
-  then drains the BullMQ queue on a best-effort basis.
+  the `uploads` rows nothing kept still references — all in one transaction, which also puts back
+  each numbering counter the last demo seed advanced if nothing has been numbered since. Writes
+  `instance.reset_data.completed` with per-table deleted counts, the number of stored files released
+  and the counters rewound, and `userAgent: "cli/reset-data"`. After the commit it removes the
+  released files from the store and drains the BullMQ queue, both best-effort: files the store
+  refuses stay queued for the worker's hourly `storage.deletion.sweep`.
 - **Limitations:** never touches Better Auth-owned tables, the `settings` row, `tax_rates`,
-  `templates`, or `audit_logs`. Document numbering counters are not rewound. Objects in the
-  configured store are not deleted, only the database rows that pointed at them. The scope
-  classification is [ADR-0025](../adr/0025-instance-data-reset-scope.md).
+  `templates`, or `audit_logs`. A counter that has issued a number since the seed is never rewound,
+  because that number may already be with a client. A file a kept row still references — the
+  business logo, a template image — is never deleted. The scope classification is
+  [ADR-0025](../adr/0025-instance-data-reset-scope.md), refined by
+  [ADR-0049](../adr/0049-objects-leave-with-their-rows.md).
 
 ### `pnpm remit:backup`
 

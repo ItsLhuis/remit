@@ -1048,11 +1048,14 @@ Coverage, and where each limit lives:
 | `/api/v1/*`                                       | 300 per IP, then 120 per token, per minute | `features/api/handleApiRequest.ts`, the IP limit ahead of the token |
 | `/api/mcp`                                        | 300 per IP, then 60 per token, per minute  | `features/mcp/handleMcpRequest.ts`, the IP limit ahead of the token |
 
-A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label.
-`/api/health` carries no limit, deliberately: it exists for uptime monitors that poll it on a fixed
-interval, and it reads nothing that a rate limit would protect. `/api/storage/*` carries none
-either: it serves the objects the public bucket already served anonymously, under keys nobody can
-enumerate, and marks every response immutable so a browser asks for each file once.
+A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label,
+once per key per window: the first refusal writes it and later ones are only counted, and the key's
+next entry carries how many the previous window suppressed (`lib/audit/index.ts`'s
+`writeRateLimitTripAudit`), so a flood is a handful of rows rather than one per request in a table
+nothing may prune. `/api/health` carries no limit, deliberately: it exists for uptime monitors that
+poll it on a fixed interval, and it reads nothing that a rate limit would protect. `/api/storage/*`
+carries none either: it serves the objects the public bucket already served anonymously, under keys
+nobody can enumerate, and marks every response immutable so a browser asks for each file once.
 
 ### What an assistant can read
 
@@ -1185,12 +1188,15 @@ instance. [ADR-0010](adr/0010-soft-delete.md) records the decision and
 [ADR-0034](adr/0034-retention-and-erasure.md) refines it with the three parts below.
 
 **Trash and restore.** `/settings/data` lists every deleted record the owner can bring back — what
-it is, what it hung off, when it was deleted and the day it will be removed permanently — and
-restores it in place. Soft delete stamps one row and never cascades, so a restore clears one row and
-never cascades either. A restore that would leave a live record under a deleted parent is refused by
-`features/trash/services/restoreEligibility.ts` before any write, naming the parent to restore
-first; Postgres would not object, because both rows exist. Restore is owner-only, the same gate as
-delete, and writes an audit entry on the same footing as the deletion it reverses.
+it is, what it hung off, when it was deleted and the day it will be removed permanently — paged in
+SQL with no ceiling, and restores it in place. The date comes from
+`features/trash/services/purgeSchedule.ts`'s `resolvePurgeSchedule`, the same rule the purge
+applies, so a record the purge never removes says so and why, and a client held by the documents
+naming it shows their later date. Soft delete stamps one row and never cascades, so a restore clears
+one row and never cascades either. A restore that would leave a live record under a deleted parent
+is refused by `features/trash/services/restoreEligibility.ts` before any write, naming the parent to
+restore first; Postgres would not object, because both rows exist. Restore is owner-only, the same
+gate as delete, and writes an audit entry on the same footing as the deletion it reverses.
 
 **Retention.** `settings.retention_trash_days` and `settings.retention_financial_days` are the two
 windows, both null by default, which is "never purge" — so an upgrade destroys nothing and a window
@@ -1198,23 +1204,27 @@ is something an owner turns on after reading the dates it implies. The financial
 invoices, credit notes, payments, contracts and expenses and can never be shorter than the general
 one. `retention.purge.sweep` enforces them nightly on BullMQ, walking the same FK-safe delete order
 in `scripts/core/domainData/inventory.ts` that the seed and reset commands walk, with its delete and
-its audit entry in one transaction. It never touches `audit_logs` or `contract_signatures`, never
+its audit entry in one transaction. Which rows are due is decided by `resolvePurgeSchedule`, the
+rule the trash dates rows with. It never touches `audit_logs` or `contract_signatures`, never
 rewinds document numbering, and never purges a countersigned contract, because deleting one would
 cascade into a signature no code path may delete. Nor does it purge a client while an invoice,
 proposal or contract still names it: removing the client would null that document's `client_id`, and
-`chk_contracts_parent` and its siblings would reject the statement. It deletes rows only; storage
-objects are left, for the reason ADR-0025 gives for the reset command.
+`chk_contracts_parent` and its siblings would reject the statement. The objects the purged rows
+owned leave with them ([ADR-0049](adr/0049-objects-leave-with-their-rows.md)): they are released
+into `object_deletions` in the purge's transaction and removed from the bucket after it commits,
+with `storage.deletion.sweep` retrying hourly whatever the store refused. The same sweep run expires
+data exports and report PDFs a week after they finish, with their objects.
 
 **The right to be forgotten.** Hard-deleting a client is a separate owner-only operation, confirmed
 by typing the client's name, preceded by a prompt to export that client's data first, and applied
 regardless of any retention window. It destroys the client, its contacts, projects, tasks,
 proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments,
-data-export records, and the activity and email log rows naming them. The `audit_logs` trail
-survives, and its entry names the event, the actor, the client id and per-table counts but no
-personal detail. The operation is refused outright while the client has a countersigned contract:
-that contract cannot be deleted, because the delete cascades into an insert-only signature, and it
-cannot be left behind either, because the erasure removes both parents `chk_contracts_parent`
-accepts.
+data-export records, and the activity and email log rows naming them, and every stored file those
+rows were the last to reference (ADR-0049). The `audit_logs` trail survives, and its entry names the
+event, the actor, the client id and per-table counts but no personal detail. The operation is
+refused outright while the client has a countersigned contract: that contract cannot be deleted,
+because the delete cascades into an insert-only signature, and it cannot be left behind either,
+because the erasure removes both parents `chk_contracts_parent` accepts.
 
 ---
 
@@ -1719,9 +1729,11 @@ organization, TOTP enrolment, `settings`, tax rates, templates, and audit trail 
 The operation rests on one classification of every table in the schema as either domain data or
 instance state, held once in `scripts/core/domainData/inventory.ts` and shared with the seed command
 so a table can never be deleted by one and missed by the other. A table with no explicit decision
-fails a test. The full scope — including why document numbering is not rewound, why `audit_logs` is
-deletable by no flag, why object storage is left untouched, and why the queue drain is best-effort —
-is recorded in [ADR-0025](adr/0025-instance-data-reset-scope.md).
+fails a test. The full scope — including why `audit_logs` is deletable by no flag and why the queue
+drain is best-effort — is recorded in [ADR-0025](adr/0025-instance-data-reset-scope.md). Two of its
+points were later refined by [ADR-0049](adr/0049-objects-leave-with-their-rows.md): the objects the
+deleted rows owned are released and removed after the commit, and a numbering counter the demo seed
+advanced is put back when nothing has been numbered since.
 
 The delete and its audit entry share one transaction, and confirmation is a typed phrase rather than
 a yes/no, because unlike a reseed the operation leaves nothing in place of what it removed.
@@ -2259,6 +2271,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0046](adr/0046-backups-carry-stored-files.md)                | Backups carry the stored files                                                            | Accepted |
 | [0047](adr/0047-one-backup-lock.md)                           | One backup lock for every backup, restore and key rotation                                | Accepted |
 | [0048](adr/0048-worker-crash-and-request-error-log.md)        | A worker crash is reported, and a request error is logged once                            | Accepted |
+| [0049](adr/0049-objects-leave-with-their-rows.md)             | Stored objects leave with the rows that owned them                                        | Accepted |
 
 ---
 

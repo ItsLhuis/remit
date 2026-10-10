@@ -48,7 +48,8 @@
 30. [API tokens](#30-api-tokens)
 31. [Webhook endpoints](#31-webhook-endpoints)
 32. [Webhook deliveries](#32-webhook-deliveries)
-33. [Enum reference](#33-enum-reference)
+33. [Object deletions](#33-object-deletions)
+34. [Enum reference](#34-enum-reference)
 
 ---
 
@@ -575,6 +576,11 @@ attachments.
 Every reference to `uploads` is `on delete set null` **except `attachments.upload_id`**, which is
 `NOT NULL` and cascades: an invoice or an expense outlives its file, an attachment does not. See
 [section 28](#28-attachments) and [ADR-0028](adr/0028-attachments-and-visual-identity.md).
+
+A purge, an erasure or a reset removes the `uploads` rows its deletes left unreferenced, and queues
+their objects in [`object_deletions`](#33-object-deletions). "Referenced" covers every foreign key
+to this table, image blocks in `templates.blocks` and `contracts.blocks`, and avatars stored as keys
+on `users.image` (`lib/storage/objectDeletions.ts`'s `readUploadReferences`).
 
 ---
 
@@ -1380,6 +1386,10 @@ No `filename` column: the name is rebuilt from `report` and `created_at` at down
 `features/reports/schemas.ts`, which validates every value written here, and a Postgres enum would
 put a migration in front of adding a report — the rigidity `entity_type` already demonstrates.
 
+Data exports and report exports both expire seven days after they finish (or are asked for, when
+they never finished): the nightly retention sweep deletes the row and queues its object
+(`features/dataExport/services/artifactExpiry.ts`).
+
 ---
 
 ## 29. Attachments
@@ -1523,7 +1533,35 @@ sweep of its own.
 
 ---
 
-## 33. Enum reference
+## 33. Object deletions
+
+### `object_deletions`
+
+Stored objects whose rows are already gone, waiting to be removed from the bucket
+([ADR-0049](adr/0049-objects-leave-with-their-rows.md)). A purge, an erasure, an instance reset or
+an export expiry writes a row here in the same transaction as its row deletes and removes the object
+only after the commit, so a failure leaves a row here with its object still present and never an
+object gone while a row names it. `storage.deletion.sweep` retries hourly.
+
+| Column          | Type                | Null | Default             | Notes                                                 |
+| --------------- | ------------------- | ---- | ------------------- | ----------------------------------------------------- |
+| id              | uuid                | no   | `gen_random_uuid()` | PK                                                    |
+| bucket          | storage_bucket_role | no   |                     | `public`, `documents` or `exports`                    |
+| key             | text                | no   |                     | The object key; unique with `bucket`                  |
+| attempts        | integer             | no   | `0`                 | Failed delete attempts, `>= 0`; orders the queue only |
+| last_attempt_at | timestamptz         | yes  |                     | Null until a delete fails; untried rows drain first   |
+| created_at      | timestamptz         | no   | `now()`             | When the object was released                          |
+
+Indexes: `uq_object_deletions_bucket_key` (unique, `bucket, key`),
+`idx_object_deletions_created_at`. Check: `chk_object_deletions_attempts`.
+
+A key is only ever written by an operation that released it, never inferred from the absence of a
+reference: this is not the orphan sweep ADR-0028 rejected. The table is kept by a reset and excluded
+from data exports.
+
+---
+
+## 34. Enum reference
 
 All enum types declared in `database/schema/enums.ts`.
 
@@ -1549,6 +1587,7 @@ All enum types declared in `database/schema/enums.ts`.
 | `entity_type`              | `client`, `lead`, `project`, `proposal`, `invoice`, `contract`, `credit_note`, `recurring_invoice`, `time_entry`, `expense`, `payment`                                                               |
 | `document_type`            | `proposal`, `invoice`, `contract`                                                                                                                                                                    |
 | `template_type`            | `invoice`, `proposal`, `contract`, `credit_note`, `email_invoice_send`, `email_proposal_send`, `email_contract_send`, `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated` |
+| `storage_bucket_role`      | `public`, `documents`, `exports` (`object_deletions.bucket`)                                                                                                                                         |
 | `storage_bucket`           | `public`, `documents`                                                                                                                                                                                |
 | `backup_destination`       | `local`, `s3`, `r2`, `b2`                                                                                                                                                                            |
 | `backup_cadence`           | `daily`, `weekly`                                                                                                                                                                                    |
