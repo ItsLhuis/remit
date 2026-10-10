@@ -2,7 +2,7 @@ import { createMcpHandler, originValidationResponse } from "@modelcontextprotoco
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
@@ -63,14 +63,18 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   const ipAddress = getIpAddress(request.headers)
   const userAgent = request.headers.get("user-agent")
 
+  const addressTrip = {
+    key: `mcp.ip:${ipAddress ?? "unknown"}`,
+    windowMs: MCP_RATE_LIMIT_WINDOW_MS
+  }
   const addressLimit = await rateLimitInstance.consume(
-    `mcp.ip:${ipAddress ?? "unknown"}`,
+    addressTrip.key,
     MCP_IP_RATE_LIMIT_MAX,
-    MCP_RATE_LIMIT_WINDOW_MS
+    addressTrip.windowMs
   )
 
   if (!addressLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(addressTrip, {
       ipAddress,
       userAgent,
       metadata: { route: MCP_ENDPOINT_PATH }
@@ -108,14 +112,15 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
 
   const { context } = authentication
 
+  const tokenTrip = { key: `mcp.token:${context.tokenId}`, windowMs: MCP_RATE_LIMIT_WINDOW_MS }
   const tokenLimit = await rateLimitInstance.consume(
-    `mcp.token:${context.tokenId}`,
+    tokenTrip.key,
     MCP_TOKEN_RATE_LIMIT_MAX,
-    MCP_RATE_LIMIT_WINDOW_MS
+    tokenTrip.windowMs
   )
 
   if (!tokenLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(tokenTrip, {
       actorUserId: context.userId,
       actorRole: context.role,
       ipAddress,

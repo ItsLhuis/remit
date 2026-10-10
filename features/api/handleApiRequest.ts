@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
@@ -111,14 +111,18 @@ async function admitApiRequest(request: Request, operation: ApiOperation): Promi
   const ipAddress = getIpAddress(request.headers)
   const userAgent = request.headers.get("user-agent")
 
+  const addressTrip = {
+    key: `api.v1.ip:${ipAddress ?? "unknown"}`,
+    windowMs: API_RATE_LIMIT_WINDOW_MS
+  }
   const addressLimit = await rateLimitInstance.consume(
-    `api.v1.ip:${ipAddress ?? "unknown"}`,
+    addressTrip.key,
     API_IP_RATE_LIMIT_MAX,
-    API_RATE_LIMIT_WINDOW_MS
+    addressTrip.windowMs
   )
 
   if (!addressLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(addressTrip, {
       ipAddress,
       userAgent,
       metadata: { route: operation.path }
@@ -139,14 +143,15 @@ async function admitApiRequest(request: Request, operation: ApiOperation): Promi
 
   const { context } = authentication
 
+  const tokenTrip = { key: `api.v1.token:${context.tokenId}`, windowMs: API_RATE_LIMIT_WINDOW_MS }
   const tokenLimit = await rateLimitInstance.consume(
-    `api.v1.token:${context.tokenId}`,
+    tokenTrip.key,
     API_TOKEN_RATE_LIMIT_MAX,
-    API_RATE_LIMIT_WINDOW_MS
+    tokenTrip.windowMs
   )
 
   if (!tokenLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(tokenTrip, {
       actorUserId: context.userId,
       actorRole: context.role,
       ipAddress,

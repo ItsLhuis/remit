@@ -46,7 +46,11 @@ vi.mock("@/lib/auth", () => ({
 }))
 
 vi.mock("@/lib/audit", () => ({
-  writeAudit: mocks.writeAudit
+  writeAudit: mocks.writeAudit,
+  // Forwards to the mocked `writeAudit`, so these assertions read the entry a refusal produces; the
+  // one-entry-per-window counting itself is covered by `lib/rateLimit/__tests__/tripWindow.test.ts`.
+  writeRateLimitTripAudit: (_trip: unknown, options: unknown) =>
+    mocks.writeAudit("auth.rate_limit.tripped", options)
 }))
 
 vi.mock("drizzle-orm", () => ({

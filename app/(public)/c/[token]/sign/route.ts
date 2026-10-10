@@ -4,7 +4,7 @@ import { type NextRequest } from "next/server"
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { getIpAddress, noindexJson } from "@/lib/utils"
 
@@ -35,14 +35,18 @@ export async function POST(
   const ipAddress = getIpAddress(requestHeaders)
   const userAgent = requestHeaders.get("user-agent")
 
+  const rateLimitTrip = {
+    key: `${CONTRACT_SIGN_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    windowMs: CONTRACT_SIGN_RATE_LIMIT_WINDOW_MS
+  }
   const rateLimit = await rateLimitInstance.consume(
-    `${CONTRACT_SIGN_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    rateLimitTrip.key,
     CONTRACT_SIGN_RATE_LIMIT_MAX,
-    CONTRACT_SIGN_RATE_LIMIT_WINDOW_MS
+    rateLimitTrip.windowMs
   )
 
   if (!rateLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(rateLimitTrip, {
       ipAddress,
       userAgent,
       metadata: { route: "/c/[token]/sign" }

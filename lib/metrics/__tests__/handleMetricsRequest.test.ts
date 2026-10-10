@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   env: { REMIT_METRICS_TOKEN: undefined as string | undefined },
   readQueueJobCounts: vi.fn(),
   readScheduledJobStats: vi.fn(),
-  writeAudit: vi.fn(async () => undefined),
+  writeAudit: vi.fn(async (..._args: unknown[]) => undefined),
   matchesPublicToken: vi.fn(),
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() }
 }))
@@ -18,7 +18,13 @@ vi.mock("@/lib/config/env", () => ({ env: mocks.env }))
 
 vi.mock("@/lib/logger", () => ({ logger: mocks.logger }))
 
-vi.mock("@/lib/audit", () => ({ writeAudit: mocks.writeAudit }))
+vi.mock("@/lib/audit", () => ({
+  writeAudit: mocks.writeAudit,
+  // Forwards to the mocked `writeAudit`, so these assertions read the entry a refusal produces; the
+  // one-entry-per-window counting itself is covered by `lib/rateLimit/__tests__/tripWindow.test.ts`.
+  writeRateLimitTripAudit: (_trip: unknown, options: unknown) =>
+    mocks.writeAudit("auth.rate_limit.tripped", options)
+}))
 
 vi.mock("@/lib/i18n/server", () => ({ t: (key: string) => key }))
 

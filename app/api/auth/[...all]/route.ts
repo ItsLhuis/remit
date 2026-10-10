@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm"
 
 import { auth } from "@/lib/auth"
 
-import { writeAudit } from "@/lib/audit"
+import { writeAudit, writeRateLimitTripAudit } from "@/lib/audit"
 
 import { getIpAddress } from "@/lib/utils"
 
@@ -14,6 +14,11 @@ import { database } from "@/database"
 import { users } from "@/database/schema"
 
 const handler = toNextJsHandler(auth)
+
+// Better Auth counts these limits itself and tells this route only that it refused, so the audit
+// windows on the shortest of its windows (`lib/auth/index.ts`, sign-in's 15 minutes): one entry per
+// address and path per window, never one per refused attempt.
+const AUTH_TRIP_WINDOW_MS = 15 * 60 * 1000
 
 type AuditContext = {
   ipAddress: string | null
@@ -175,10 +180,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   const response = await handler.POST(request)
 
   if (response.status === 429) {
-    await writeAudit("auth.rate_limit.tripped", {
-      ...context,
-      metadata: { path: pathname }
-    })
+    await writeRateLimitTripAudit(
+      { key: `auth:${pathname}:${context.ipAddress ?? "unknown"}`, windowMs: AUTH_TRIP_WINDOW_MS },
+      { ...context, metadata: { path: pathname } }
+    )
 
     return response
   }

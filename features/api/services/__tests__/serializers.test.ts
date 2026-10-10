@@ -69,7 +69,8 @@ const clientDetail: ClientDetail = {
   createdAt,
   updatedAt: createdAt,
   relatedResources: { projects: 1, invoices: 2, recurringInvoices: 0 },
-  billingTrend: []
+  billingTrend: [],
+  erasureBlockingContracts: []
 }
 
 const invoiceOverviewItem: InvoiceOverviewItem = {

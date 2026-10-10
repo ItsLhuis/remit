@@ -4,6 +4,7 @@ import { createRedisAdapter } from "./redisAdapter"
 import { type RateLimitAdapter } from "./types"
 
 export { createInMemoryAdapter } from "./inMemoryAdapter"
+export { countRateLimitTrip } from "./tripCounter"
 export { type RateLimitAdapter, type RateLimitResult } from "./types"
 
 const LIMITER_KEY: unique symbol = Symbol.for("remit.rateLimit.instance")

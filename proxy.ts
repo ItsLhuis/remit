@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 
 import { auth } from "@/lib/auth"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { getIpAddress } from "@/lib/utils"
 
@@ -37,10 +37,15 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicToken) {
     const ipAddress = getIpAddress(request.headers) || "unknown"
-    const rateLimitResult = await rateLimitInstance.consume(ipAddress, 60, 60000)
+    const rateLimitTrip = { key: ipAddress, windowMs: 60000 }
+    const rateLimitResult = await rateLimitInstance.consume(
+      rateLimitTrip.key,
+      60,
+      rateLimitTrip.windowMs
+    )
 
     if (!rateLimitResult.allowed) {
-      await writeAudit("auth.rate_limit.tripped", {
+      await writeRateLimitTripAudit(rateLimitTrip, {
         ipAddress,
         metadata: { route: getPublicTokenRouteLabel(pathname) }
       })
@@ -61,10 +66,15 @@ export async function proxy(request: NextRequest) {
   // the invitee straight back into the machine, which routes them to `/setup` for TOTP.
   if (isInvitationRoute(pathname)) {
     const ipAddress = getIpAddress(request.headers) || "unknown"
-    const rateLimitResult = await rateLimitInstance.consume(`invite:${ipAddress}`, 30, 60000)
+    const rateLimitTrip = { key: `invite:${ipAddress}`, windowMs: 60000 }
+    const rateLimitResult = await rateLimitInstance.consume(
+      rateLimitTrip.key,
+      30,
+      rateLimitTrip.windowMs
+    )
 
     if (!rateLimitResult.allowed) {
-      await writeAudit("auth.rate_limit.tripped", {
+      await writeRateLimitTripAudit(rateLimitTrip, {
         ipAddress,
         metadata: { route: "/invite/[invitationId]" }
       })

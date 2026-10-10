@@ -4,7 +4,7 @@ import { z } from "zod"
 
 import { t } from "@/lib/i18n/server"
 
-import { writeAudit } from "@/lib/audit"
+import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
@@ -42,14 +42,18 @@ export async function handleMetricsRequest(request: Request): Promise<Response> 
 
   // Ahead of the configuration check, so a caller probing the endpoint meets the same limit whether
   // metrics are enabled or not and cannot learn which from the moment a 429 starts.
+  const rateLimitTrip = {
+    key: `${METRICS_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    windowMs: METRICS_RATE_LIMIT_WINDOW_MS
+  }
   const rateLimit = await rateLimitInstance.consume(
-    `${METRICS_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    rateLimitTrip.key,
     METRICS_RATE_LIMIT_MAX,
-    METRICS_RATE_LIMIT_WINDOW_MS
+    rateLimitTrip.windowMs
   )
 
   if (!rateLimit.allowed) {
-    await writeAudit("auth.rate_limit.tripped", {
+    await writeRateLimitTripAudit(rateLimitTrip, {
       ipAddress,
       userAgent: request.headers.get("user-agent"),
       metadata: { route: "/api/metrics" }

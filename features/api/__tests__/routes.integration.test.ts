@@ -22,7 +22,9 @@ const mocks = vi.hoisted(() => ({
   consume: vi.fn()
 }))
 
-vi.mock("@/lib/rateLimit", () => ({
+// Only the limiter is stubbed; the trip counter behind the audit entry runs against the test Redis.
+vi.mock("@/lib/rateLimit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rateLimit")>()),
   rateLimitInstance: { consume: mocks.consume }
 }))
 
