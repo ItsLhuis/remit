@@ -246,14 +246,145 @@ ask_yes_no() {
   esac
 }
 
+# Prints the WHATWG serialisation of an IPv6 address, which is what `new URL()` writes between the
+# brackets, or nothing when the text is not one: lowercase hex with no leading zeros, the first
+# longest run of two or more zero groups written `::`, and a trailing dotted IPv4 part rewritten as
+# two hex groups. A zone id (`%eth0`) is not an address a URL can carry and prints nothing.
+canonical_ipv6() {
+  local address=$1
+  local head tail part ipv4 run_start run_length best_start best_length index serialised
+  local -a head_parts=() tail_parts=() groups=() octets=()
+
+  case "$address" in
+    '' | *[!0-9a-f:.]* | *:::* | *::*::*) return 0 ;;
+  esac
+
+  case "$address" in
+    ::*) ;;
+    :*) return 0 ;;
+  esac
+
+  case "$address" in
+    *::) ;;
+    *:) return 0 ;;
+  esac
+
+  if [[ $address == *.* ]]; then
+    ipv4=${address##*:}
+    IFS=. read -r -a octets <<<"$ipv4"
+
+    if [ "${#octets[@]}" -ne 4 ] || [[ $ipv4 == *. ]]; then return 0; fi
+
+    for part in "${octets[@]}"; do
+      if ! [[ $part =~ ^(0|[1-9][0-9]{0,2})$ ]] || [ "$part" -gt 255 ]; then return 0; fi
+    done
+
+    address="${address%:*}:$(printf '%x:%x' $((octets[0] * 256 + octets[1])) $((octets[2] * 256 + octets[3])))"
+  fi
+
+  if [[ $address == *::* ]]; then
+    head=${address%%::*}
+    tail=${address#*::}
+  else
+    head=$address
+    tail=""
+  fi
+
+  if [ -n "$head" ]; then IFS=: read -r -a head_parts <<<"$head"; fi
+  if [ -n "$tail" ]; then IFS=: read -r -a tail_parts <<<"$tail"; fi
+
+  for part in "${head_parts[@]}" "${tail_parts[@]}"; do
+    if ! [[ $part =~ ^[0-9a-f]{1,4}$ ]]; then return 0; fi
+  done
+
+  for part in "${head_parts[@]}"; do groups+=($((16#$part))); done
+
+  if [[ $address == *::* ]]; then
+    if [ $((${#head_parts[@]} + ${#tail_parts[@]})) -gt 7 ]; then return 0; fi
+
+    for ((index = ${#head_parts[@]} + ${#tail_parts[@]}; index < 8; index++)); do groups+=(0); done
+  fi
+
+  for part in "${tail_parts[@]}"; do groups+=($((16#$part))); done
+
+  if [ "${#groups[@]}" -ne 8 ]; then return 0; fi
+
+  best_start=-1
+  best_length=1
+  run_length=0
+
+  for index in 0 1 2 3 4 5 6 7; do
+    if [ "${groups[$index]}" -eq 0 ]; then
+      if [ "$run_length" -eq 0 ]; then run_start=$index; fi
+
+      run_length=$((run_length + 1))
+
+      if [ "$run_length" -gt "$best_length" ]; then
+        best_start=$run_start
+        best_length=$run_length
+      fi
+    else
+      run_length=0
+    fi
+  done
+
+  serialised=""
+  index=0
+
+  while [ "$index" -lt 8 ]; do
+    if [ "$index" -eq "$best_start" ]; then
+      serialised="$serialised::"
+      index=$((index + best_length))
+      continue
+    fi
+
+    case "$serialised" in
+      '' | *::) ;;
+      *) serialised="$serialised:" ;;
+    esac
+
+    serialised="$serialised$(printf '%x' "${groups[$index]}")"
+    index=$((index + 1))
+  done
+
+  printf '%s' "$serialised"
+}
+
+# Rewrites a public URL to the spelling `new URL()` gives its origin, where the two differ only in
+# how the same address is written: the scheme and host in lowercase, and an IPv6 literal in its
+# canonical form. Anything else is returned untouched for `url_problem` to judge, because a default
+# port, a leading zero or a path changes what the URL means rather than how it is spelled.
+normalise_public_url() {
+  local url rest address after
+
+  url=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  rest=${url#*://}
+
+  case "$rest" in
+    \[*\]*)
+      address=${rest#\[}
+      address=${address%%\]*}
+      after=${rest#*\]}
+      address=$(canonical_ipv6 "$address")
+
+      if [ -n "$address" ]; then url="${url%%://*}://[$address]$after"; fi
+      ;;
+  esac
+
+  printf '%s' "$url"
+}
+
 # The same rule `lib/config/envSchema.ts` applies to REMIT_PUBLIC_URL, restated because this runs on
-# a host with no Node: an origin whose `URL#origin` is the string itself. That is why an uppercase
-# host, a default port and a leading zero are refused rather than normalised — Node would normalise
-# them and the container would then refuse to boot. The installer's test parses what this accepts
-# through that schema, so the two cannot drift silently. IPv6 literals are not accepted.
+# a host with no Node: an origin whose `URL#origin` is the string itself, checked after
+# `normalise_public_url` has spelled the host as Node would. A default port and a leading zero are
+# still refused rather than normalised, because dropping them changes what the operator typed rather
+# than how it is written. A host whose last label is a number is an IPv4 address to a URL parser,
+# which rewrites `127.1` to `127.0.0.1` and refuses `a.1` outright, so it must already be written as
+# four numbers. The installer's test parses everything this accepts through that schema and compares
+# it with Node's own origin, so the two cannot drift silently.
 url_problem() {
   local url=$1
-  local rest port
+  local rest host port address last_label
 
   case "$url" in
     http://* | https://*) ;;
@@ -272,52 +403,82 @@ url_problem() {
       ;;
   esac
 
-  if ! printf '%s' "$rest" | grep -Eq '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$'; then
-    echo "It must be a lowercase host name or IPv4 address, optionally followed by :port."
-    return 0
-  fi
-
   case "$rest" in
-    *:*)
-      port=${rest##*:}
+    \[*)
+      address=${rest#\[}
+      address=${address%%\]*}
 
-      case "$port" in
-        0*)
-          echo "The port must not start with 0."
-          return 0
-          ;;
-      esac
-
-      if [ "$port" -gt 65535 ]; then
-        echo "The port must be between 1 and 65535."
+      if ! printf '%s' "$rest" | grep -Eq '^\[[0-9a-f:]+\](:[0-9]{1,5})?$' ||
+        [ "$(canonical_ipv6 "$address")" != "$address" ]; then
+        echo "It must be a host name, an IPv4 address or a bracketed IPv6 address such as [2001:db8::1], optionally followed by :port."
         return 0
       fi
 
-      if { [ "${url%%://*}" = "https" ] && [ "$port" = "443" ]; } ||
-        { [ "${url%%://*}" = "http" ] && [ "$port" = "80" ]; }; then
-        echo "Leave out the default port."
+      host="[$address]"
+      ;;
+    *)
+      if ! printf '%s' "$rest" | grep -Eq '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$'; then
+        echo "It must be a host name, an IPv4 address or a bracketed IPv6 address such as [2001:db8::1], optionally followed by :port."
+        return 0
+      fi
+
+      host=${rest%%:*}
+      last_label=${host##*.}
+
+      if [[ $last_label =~ ^[0-9]+$ || $last_label =~ ^0x[0-9a-f]*$ ]] &&
+        ! printf '%s' "$host" | grep -Eq '^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'; then
+        echo "An IPv4 address must be four numbers from 0 to 255 with no leading zeros, such as 192.168.1.20."
         return 0
       fi
       ;;
   esac
+
+  port=${rest#"$host"}
+  port=${port#:}
+
+  if [ -n "$port" ]; then
+    case "$port" in
+      0*)
+        echo "The port must not start with 0."
+        return 0
+        ;;
+    esac
+
+    if [ "$port" -gt 65535 ]; then
+      echo "The port must be between 1 and 65535."
+      return 0
+    fi
+
+    if { [ "${url%%://*}" = "https" ] && [ "$port" = "443" ]; } ||
+      { [ "${url%%://*}" = "http" ] && [ "$port" = "80" ]; }; then
+      echo "Leave out the default port."
+      return 0
+    fi
+  fi
 }
 
+# The host as the URL writes it, brackets included for an IPv6 address.
 url_host() {
   local rest=${1#*://}
 
-  printf '%s' "${rest%%:*}"
+  case "$rest" in
+    \[*) printf '%s]' "${rest%%\]*}" ;;
+    *) printf '%s' "${rest%%:*}" ;;
+  esac
 }
 
 url_has_port() {
-  case "${1#*://}" in
-    *:*) return 0 ;;
+  local rest=${1#*://}
+
+  case "${rest#"$(url_host "$1")"}" in
+    :*) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 is_loopback_host() {
   case "$1" in
-    localhost | *.localhost | 127.*) return 0 ;;
+    localhost | *.localhost | 127.* | "[::1]") return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -481,6 +642,7 @@ fi
 if [ -z "$public_url" ] && [ "$interactive" = "1" ]; then
   while :; do
     public_url=$(ask "Public URL Remit will be opened at, such as https://remit.example.com" "")
+    public_url=$(normalise_public_url "$public_url")
     problem=$(url_problem "$public_url")
 
     if [ -z "$problem" ]; then break; fi
@@ -498,10 +660,16 @@ if [ -z "$public_url" ]; then
   fi
 fi
 
+typed_url=$public_url
+public_url=$(normalise_public_url "$public_url")
 problem=$(url_problem "$public_url")
 
 if [ -n "$problem" ]; then
-  usage_error "--url $public_url is not usable. $problem"
+  usage_error "--url $typed_url is not usable. $problem"
+fi
+
+if [ "$public_url" != "$typed_url" ]; then
+  say "using $public_url, the spelling the application stores for $typed_url."
 fi
 
 if [ -z "$proxy_choice" ]; then

@@ -325,20 +325,45 @@ describe("install.sh encryption key custody", () => {
 })
 
 describe("install.sh public URL", () => {
+  // Every URL here is one the application boots with once it is spelled as Node spells its origin,
+  // so the installer must write that spelling: the schema accepts nothing else.
+  test.each([
+    ["an uppercase scheme and host", "HTTPS://Remit.Example.com"],
+    ["an IPv6 loopback address and a port", "http://[::1]:3000"],
+    ["an IPv6 address in uppercase with leading zeros", "https://[2001:0DB8:0:0:0:0:0:1]"],
+    ["an IPv6 address whose longest zero run is not the first", "https://[1:0:0:2:0:0:0:3]:8443"],
+    ["an IPv6 address carrying a dotted IPv4 part", "https://[::ffff:192.0.2.10]"],
+    ["an IPv4 address", "https://192.0.2.10:8443"]
+  ])("accepts a URL with %s, written as the application stores it", (_shape, url) => {
+    const checkout = makeCheckout()
+
+    const result = runInstaller(checkout, unattended(url))
+    const written = readEnvFile(checkout).REMIT_PUBLIC_URL
+
+    expect(result.status).toBe(0)
+    expect(written).toBe(new URL(url).origin)
+    expect(envSchema.shape.REMIT_PUBLIC_URL.safeParse(written).success).toBe(true)
+  })
+
   test.each([
     ["a trailing slash", "https://remit.example.com/"],
     ["a path", "https://remit.example.com/remit"],
-    ["an uppercase host", "https://Remit.example.com"],
     ["the default port", "https://remit.example.com:443"],
     ["a scheme other than http or https", "ftp://remit.example.com"],
-    ["no scheme", "remit.example.com"]
-  ])("refuses a URL with %s before writing anything", (_shape, url) => {
+    ["no scheme", "remit.example.com"],
+    ["a shortened IPv4 address", "https://127.1"],
+    ["a last label that is a number but not an IPv4 address", "https://remit.1"],
+    ["an IPv6 address with too few groups", "https://[1:2:3]"],
+    ["an IPv6 zone id", "https://[fe80::1%25eth0]"],
+    ["an unbracketed IPv6 address", "https://2001:db8::1"]
+  ])("refuses a URL with %s before writing anything, as the application would", (_shape, url) => {
     const checkout = makeCheckout()
 
     const result = runInstaller(checkout, unattended(url))
 
     expect(result.status).toBe(2)
     expect(existsSync(join(checkout, ".env"))).toBe(false)
+    expect(envSchema.shape.REMIT_PUBLIC_URL.safeParse(url).success).toBe(false)
   })
 
   test("refuses the proxy for a URL Caddy cannot obtain a certificate for", () => {
