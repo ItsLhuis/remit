@@ -8,6 +8,11 @@ import { writeRateLimitTripAudit } from "@/lib/audit"
 
 import { getIpAddress } from "@/lib/utils"
 
+import {
+  admitMetricsScrape,
+  METRICS_ROUTE_PATH,
+  METRICS_SCRAPE_ROUTE_PATH
+} from "@/lib/metrics/admission"
 import { rateLimitInstance } from "@/lib/rateLimit"
 import { applySecurityHeaders } from "@/lib/securityHeaders"
 
@@ -30,6 +35,10 @@ export async function proxy(request: NextRequest) {
   if (isStaticAsset(pathname)) {
     return NextResponse.next()
   }
+
+  const metricsResponse = await routeMetricsScrape(request)
+
+  if (metricsResponse) return metricsResponse
 
   if (isPublicApiRoute(pathname)) {
     return applySecurityHeaders(NextResponse.next(), false)
@@ -178,6 +187,31 @@ export async function proxy(request: NextRequest) {
   return applySecurityHeaders(NextResponse.next(), false)
 }
 
+// No route serves `/api/metrics`: an admitted scrape is rewritten to the one that does, and any other
+// request to it returns null and falls through to the state machine as a request for a path with no route,
+// because that is what it is. Its answer — a redirect to sign in, or the framework's not-found page —
+// is therefore the one every unknown path gets, byte for byte, and tells a caller neither that
+// metrics exist nor whether they are switched on (ADR-0036). Refusing here instead, or rewriting a
+// refusal to a not-found path, was rejected: Next.js marks every rewritten response with an
+// `x-middleware-rewrite` header that no ordinary not-found carries.
+async function routeMetricsScrape(request: NextRequest): Promise<NextResponse | null> {
+  if (request.nextUrl.pathname !== METRICS_ROUTE_PATH) return null
+
+  const scrape = await admitMetricsScrape(request)
+
+  switch (scrape.outcome) {
+    case "limited":
+      return applySecurityHeaders(scrape.response, false)
+    case "admitted":
+      return applySecurityHeaders(
+        NextResponse.rewrite(new URL(METRICS_SCRAPE_ROUTE_PATH, request.url)),
+        false
+      )
+    case "refused":
+      return null
+  }
+}
+
 async function hasMembership(userId: string): Promise<boolean> {
   const member = await database
     .select({ id: members.id })
@@ -234,17 +268,14 @@ function isStaticAsset(pathname: string): boolean {
 // Without this the session check below rewrites the delivery to the login page and answers 200, which
 // Stripe reads as a successful delivery and never retries — the event would be lost silently. Each
 // receiver authenticates its own caller instead, by signature (`features/payments/stripeWebhook.ts`).
-// `/api/metrics` is here for the same reason: its caller is a Prometheus scraper holding a bearer
-// token, never a session, and `lib/metrics/handleMetricsRequest.ts` owns its rate limit, its token
-// check and its `noindex` header. `/api/v1/` likewise: its caller is an integration holding an API
-// token, and `features/api/handleApiRequest.ts` owns its limits and its authentication — without
-// this line every token request would be redirected to the login page. `/api/mcp` is the same
+// `/api/v1/` likewise: its caller is an integration holding an API token, and
+// `features/api/handleApiRequest.ts` owns its limits and its authentication — without this line
+// every token request would be redirected to the login page. `/api/mcp` is the same
 // caller through a second protocol, and `features/mcp/handleMcpRequest.ts` owns its Origin check,
 // its switch, its limits and the same token authentication.
 function isPublicApiRoute(pathname: string): boolean {
   return (
     pathname === "/api/health" ||
-    pathname === "/api/metrics" ||
     pathname === "/api/mcp" ||
     pathname.startsWith("/api/v1/") ||
     pathname.startsWith("/api/auth/") ||

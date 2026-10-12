@@ -94,7 +94,7 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_BUCKET: ${S3_BUCKET:-remit}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
-      # Empty leaves GET /api/metrics unavailable (404). When set, point a Prometheus scrape job at
+      # Empty leaves GET /api/metrics answering as an unknown path. When set, point a Prometheus job at
       # /api/metrics with this value as its bearer token; docs/operations/METRICS.md has the config.
       REMIT_METRICS_TOKEN: ${REMIT_METRICS_TOKEN:-}
       # Empty sends nothing anywhere. Set, unhandled request errors are reported to this Sentry or

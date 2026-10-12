@@ -25,9 +25,12 @@ Restart the app so it reads the new value:
 docker compose up -d app
 ```
 
-With the variable empty, `GET /api/metrics` answers `404` to everyone. That is also the answer to a
-missing or wrong token, so a `404` after this step means the token did not reach the container or
-the scraper is not sending it — the endpoint gives no more specific answer on purpose.
+With the variable empty, `GET /api/metrics` answers as a path with no route: a redirect to the
+sign-in page, or the not-found page for a browser that is signed in. That is also the answer to a
+missing or wrong token, so a redirect or a `404` after this step means the token did not reach the
+container or the scraper is not sending it — the endpoint gives no more specific answer on purpose.
+Prometheus follows the redirect by default and then reports the target down, because the sign-in
+page is not in the exposition format.
 
 ## 2. Check it by hand
 

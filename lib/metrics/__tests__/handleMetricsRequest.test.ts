@@ -28,15 +28,6 @@ vi.mock("@/lib/audit", () => ({
 
 vi.mock("@/lib/i18n/server", () => ({ t: (key: string) => key }))
 
-// The in-memory adapter in place of the Redis-backed `rateLimitInstance`: the rate-limit test below
-// needs a real counter, and a unit test must never count in a shared Redis, where one run's requests
-// would still be in the window when the next run starts.
-vi.mock("@/lib/rateLimit", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/lib/rateLimit")>()
-
-  return { ...original, rateLimitInstance: original.createInMemoryAdapter() }
-})
-
 vi.mock("@/lib/jobs", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/jobs")>()),
   readQueueJobCounts: mocks.readQueueJobCounts,
@@ -128,8 +119,6 @@ function readSample(parsed: ParsedExposition, line: string): ParsedSeries {
 
 let requestCounter = 0
 
-// A distinct client address per request, so the module-level rate-limit bucket one test fills is
-// never the bucket another test reads.
 function makeRequest(
   options: { authorization?: string; ip?: string; path?: string } = {}
 ): Request {
@@ -321,23 +310,6 @@ describe("handleMetricsRequest", () => {
       value: "0"
     })
     expect(parsed.types.has("remit_queue_jobs")).toBe(true)
-  })
-
-  test("rate-limits a caller and audits the trip whether or not metrics are enabled", async () => {
-    mocks.env.REMIT_METRICS_TOKEN = undefined
-
-    const statuses: number[] = []
-
-    for (let attempt = 0; attempt < 31; attempt++) {
-      statuses.push((await handleMetricsRequest(makeRequest({ ip: "203.0.113.77" }))).status)
-    }
-
-    expect(statuses.slice(0, 30).every((status) => status === 404)).toBe(true)
-    expect(statuses[30]).toBe(429)
-    expect(mocks.writeAudit).toHaveBeenCalledWith(
-      "auth.rate_limit.tripped",
-      expect.objectContaining({ ipAddress: "203.0.113.77", metadata: { route: "/api/metrics" } })
-    )
   })
 
   test("never echoes or logs the token", async () => {

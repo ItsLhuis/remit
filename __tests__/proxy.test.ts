@@ -2,6 +2,8 @@ import { NextRequest } from "next/server"
 
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
+const METRICS_TOKEN = vi.hoisted(() => "metrics-token-for-proxy-tests-0123456789abcd")
+
 const mocks = vi.hoisted(() => ({
   consume: vi.fn(),
   getSession: vi.fn(),
@@ -46,6 +48,12 @@ vi.mock("@/database", () => {
 
   return { database: { select: () => chain } }
 })
+
+// Read lazily by `lib/metrics/admission.ts` only for `/api/metrics`, as `proxy.ts` is meant to be
+// importable without a validated deployment environment.
+vi.mock("@/lib/config/env", () => ({ env: { REMIT_METRICS_TOKEN: METRICS_TOKEN } }))
+
+vi.mock("@/lib/i18n/server", () => ({ t: (key: string) => key }))
 
 vi.mock("@/database/schema", () => ({
   members: {},
@@ -232,5 +240,52 @@ describe("proxy on a session whose membership is gone", () => {
     const response = await proxy(createRequest("/setup"))
 
     expect(response.headers.get("location")).toBeNull()
+  })
+})
+
+describe("proxy on the metrics path", () => {
+  function metricsRequest(authorization?: string): NextRequest {
+    return new NextRequest("https://remit.test/api/metrics", {
+      headers: {
+        "x-forwarded-for": "203.0.113.7",
+        ...(authorization ? { authorization } : {})
+      }
+    })
+  }
+
+  test("rewrites an admitted scrape to the route that serves metrics, without reading a session", async () => {
+    const { proxy } = await import("../proxy")
+
+    const response = await proxy(metricsRequest(`Bearer ${METRICS_TOKEN}`))
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://remit.test/api/metrics/scrape"
+    )
+    expect(mocks.getSession).not.toHaveBeenCalled()
+  })
+
+  test("answers a scrape without the token exactly as it answers a path with no route", async () => {
+    const { proxy } = await import("../proxy")
+
+    mocks.selectResults = [[{ id: "user-1" }]]
+    const refused = await proxy(metricsRequest("Bearer wrong-token"))
+
+    mocks.selectResults = [[{ id: "user-1" }]]
+    const unknown = await proxy(createRequest("/api/no-such-route"))
+
+    expect(refused.status).toBe(unknown.status)
+    expect(refused.headers.get("location")).toBe(unknown.headers.get("location"))
+    expect(refused.headers.get("x-middleware-rewrite")).toBeNull()
+  })
+
+  test("refuses a caller over the limit before looking at its credential", async () => {
+    mocks.consume.mockResolvedValue({ allowed: false, remaining: 0, resetAt: new Date() })
+
+    const { proxy } = await import("../proxy")
+
+    const response = await proxy(metricsRequest(`Bearer ${METRICS_TOKEN}`))
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull()
   })
 })
