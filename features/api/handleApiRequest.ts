@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger"
 
 import { getIpAddress } from "@/lib/utils"
 
-import { rateLimitInstance } from "@/lib/rateLimit"
+import { rateLimitInstance, toRateLimitHeaders } from "@/lib/rateLimit"
 
 import { authenticateApiRequest, type ApiRequestContext } from "./authenticate"
 import { type ApiOperation } from "./operations"
@@ -26,12 +26,23 @@ const API_IP_RATE_LIMIT_MAX = 300
 const API_TOKEN_RATE_LIMIT_MAX = 120
 const API_RATE_LIMIT_WINDOW_MS = 60 * 1000
 
+// Only the per-token limit is published in response headers: its counter belongs to the caller
+// alone. The per-address backstop is shared by every integration behind one egress address, and
+// describing it would tell each of them how much the others had spent.
+const API_TOKEN_RATE_LIMIT_POLICY = {
+  name: "token",
+  max: API_TOKEN_RATE_LIMIT_MAX,
+  windowMs: API_RATE_LIMIT_WINDOW_MS
+}
+
 const RESPONSE_HEADERS = {
   "Cache-Control": "no-store",
   "X-Robots-Tag": "noindex, nofollow"
 }
 
-type ApiAdmission = { context: ApiRequestContext } | { response: NextResponse }
+type ApiAdmission =
+  | { context: ApiRequestContext; limitHeaders: Record<string, string> }
+  | { response: NextResponse }
 
 export async function handleApiListRequest<TItem>(
   request: Request,
@@ -46,7 +57,9 @@ export async function handleApiListRequest<TItem>(
     Object.fromEntries(new URL(request.url).searchParams)
   )
 
-  if (!parsed.success) return apiError("invalid_request", parsed.error.issues[0].message, 400)
+  if (!parsed.success) {
+    return apiError("invalid_request", parsed.error.issues[0].message, 400, admission.limitHeaders)
+  }
 
   const { page, perPage } = parsed.data
 
@@ -57,10 +70,11 @@ export async function handleApiListRequest<TItem>(
       operation.response.parse({
         data: result.rows,
         pagination: { page, perPage, total: result.total }
-      })
+      }),
+      admission.limitHeaders
     )
   } catch (error) {
-    return apiFailure(error, operation, admission.context)
+    return apiFailure(error, operation, admission)
   }
 }
 
@@ -78,16 +92,18 @@ export async function handleApiItemRequest<TItem>(
 
   // A malformed id is answered as a missing record rather than a bad request, the same way every
   // detail read in the application treats one: there is nothing at that address either way.
-  if (!parsed.success) return apiError("not_found", t("errors.notFound"), 404)
+  if (!parsed.success) {
+    return apiError("not_found", t("errors.notFound"), 404, admission.limitHeaders)
+  }
 
   try {
     const item = await read(parsed.data.id)
 
-    if (!item) return apiError("not_found", t("errors.notFound"), 404)
+    if (!item) return apiError("not_found", t("errors.notFound"), 404, admission.limitHeaders)
 
-    return apiJson(operation.response.parse({ data: item }))
+    return apiJson(operation.response.parse({ data: item }), admission.limitHeaders)
   } catch (error) {
-    return apiFailure(error, operation, admission.context)
+    return apiFailure(error, operation, admission)
   }
 }
 
@@ -101,9 +117,9 @@ export async function handleApiDocumentRequest(
   if ("response" in admission) return admission.response
 
   try {
-    return apiJson(operation.response.parse(build()))
+    return apiJson(operation.response.parse(build()), admission.limitHeaders)
   } catch (error) {
-    return apiFailure(error, operation, admission.context)
+    return apiFailure(error, operation, admission)
   }
 }
 
@@ -159,29 +175,48 @@ async function admitApiRequest(request: Request, operation: ApiOperation): Promi
       metadata: { route: operation.path, apiTokenId: context.tokenId }
     })
 
-    return { response: apiError("rate_limited", t("errors.tooManyRequests"), 429) }
+    return {
+      response: apiError(
+        "rate_limited",
+        t("errors.tooManyRequests"),
+        429,
+        toRateLimitHeaders(tokenLimit, API_TOKEN_RATE_LIMIT_POLICY, Date.now())
+      )
+    }
   }
 
-  return { context }
+  return {
+    context,
+    limitHeaders: toRateLimitHeaders(tokenLimit, API_TOKEN_RATE_LIMIT_POLICY, Date.now())
+  }
 }
 
 // The raw error is logged and never returned: it may be a driver error naming a table, or a Zod
 // issue list describing a field a serialiser tried to publish.
-function apiFailure(error: unknown, operation: ApiOperation, context: ApiRequestContext): Response {
+function apiFailure(
+  error: unknown,
+  operation: ApiOperation,
+  { context, limitHeaders }: { context: ApiRequestContext; limitHeaders: Record<string, string> }
+): Response {
   logger.error(
     { action: `api.${operation.operationId}`, apiTokenId: context.tokenId, err: error },
     "API request failed"
   )
 
-  return apiError("internal_error", t("errors.somethingWentWrong"), 500)
+  return apiError("internal_error", t("errors.somethingWentWrong"), 500, limitHeaders)
 }
 
-function apiJson(body: unknown): NextResponse {
-  return NextResponse.json(body, { status: 200, headers: RESPONSE_HEADERS })
+function apiJson(body: unknown, limitHeaders: Record<string, string>): NextResponse {
+  return NextResponse.json(body, { status: 200, headers: { ...RESPONSE_HEADERS, ...limitHeaders } })
 }
 
-function apiError(code: ApiErrorCode, message: string, status: number): NextResponse {
+function apiError(
+  code: ApiErrorCode,
+  message: string,
+  status: number,
+  limitHeaders: Record<string, string> = {}
+): NextResponse {
   const body: ApiErrorBody = { error: { code, message } }
 
-  return NextResponse.json(body, { status, headers: RESPONSE_HEADERS })
+  return NextResponse.json(body, { status, headers: { ...RESPONSE_HEADERS, ...limitHeaders } })
 }

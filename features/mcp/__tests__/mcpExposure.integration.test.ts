@@ -21,7 +21,8 @@ const mocks = vi.hoisted(() => ({
   consume: vi.fn()
 }))
 
-vi.mock("@/lib/rateLimit", () => ({
+vi.mock("@/lib/rateLimit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rateLimit")>()),
   rateLimitInstance: { consume: mocks.consume }
 }))
 

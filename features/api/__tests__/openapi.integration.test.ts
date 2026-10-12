@@ -44,6 +44,26 @@ test("describes a success and a refusal for every documented operation", () => {
   }
 })
 
+// The header names a documented response declares, or none for a reference or an absent response.
+function headerNames(response: unknown): string[] {
+  if (typeof response !== "object" || response === null || !("headers" in response)) return []
+
+  return Object.keys(response.headers ?? {})
+}
+
+test("documents the rate-limit headers a success and a token's refusal carry", () => {
+  for (const [path, item] of Object.entries(getOpenApiDocument().paths ?? {})) {
+    const responses = item?.get?.responses ?? {}
+
+    expect(headerNames(responses["200"]), path).toEqual(["RateLimit-Policy", "RateLimit"])
+    expect(headerNames(responses["429"]), path).toEqual([
+      "RateLimit-Policy",
+      "RateLimit",
+      "Retry-After"
+    ])
+  }
+})
+
 test("restates the database's token scope enum exactly", () => {
   expect([...API_TOKEN_SCOPES]).toEqual(apiTokenScope.enumValues)
 })

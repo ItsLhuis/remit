@@ -15,7 +15,8 @@ import { users } from "@/database/schema"
 
 const handler = toNextJsHandler(auth)
 
-// Better Auth counts these limits itself and tells this route only that it refused, so the audit
+// Better Auth applies these limits itself, counting them in Redis through `lib/rateLimit`'s
+// `toBetterAuthRateLimitStorage`, and tells this route only that it refused, so the audit
 // windows on the shortest of its windows (`lib/auth/index.ts`, sign-in's 15 minutes): one entry per
 // address and path per window, never one per refused attempt.
 const AUTH_TRIP_WINDOW_MS = 15 * 60 * 1000

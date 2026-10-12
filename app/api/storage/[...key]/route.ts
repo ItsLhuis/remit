@@ -2,11 +2,27 @@ import { NextResponse } from "next/server"
 
 import { t } from "@/lib/i18n/server"
 
+import { writeRateLimitTripAudit } from "@/lib/audit"
+
 import { logger } from "@/lib/logger"
 
+import { getIpAddress } from "@/lib/utils"
+
+import { rateLimitInstance } from "@/lib/rateLimit"
 import { getPublicObjectStream } from "@/lib/storage/s3"
 
 export const dynamic = "force-dynamic"
+
+// Rate limit for GET /api/storage/*, declared at the top of the module per
+// `.agents/rules/security.md`. The heaviest page that loads from this route is the clients list at
+// its largest page size, `MAX_PAGE_SIZE` in `lib/utils/dataTable.ts`: a hundred client images, plus
+// the sidebar avatar. The anonymous document and portal pages load nothing from here. Responses are
+// immutable, so a browser fetches each object once; the limit still allows a dozen of those pages a
+// minute from one address with the cache disabled, enough for a small office behind one NAT paging
+// quickly. A caller looping over keys meets it within seconds.
+const STORAGE_RATE_LIMIT_MAX = 1200
+const STORAGE_RATE_LIMIT_WINDOW_MS = 60 * 1000
+const STORAGE_RATE_LIMIT_KEY = "api.storage"
 
 // Segments of letters, digits, dots, underscores and hyphens, none of them starting with a dot: every
 // key the upload route mints has this shape, and it cannot spell `..` or an empty segment.
@@ -36,9 +52,32 @@ const INLINE_MIME_TYPES = new Set([
 // Content-Security-Policy: a receipt PDF opens in the browser's viewer, which a `default-src 'self'`
 // policy on the PDF response itself would refuse to embed.
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ key: string[] }> }
 ): Promise<Response> {
+  const ipAddress = getIpAddress(request.headers)
+
+  // Ahead of the key check, so probing for keys spends the same allowance as reading them.
+  const rateLimitTrip = {
+    key: `${STORAGE_RATE_LIMIT_KEY}:${ipAddress ?? "unknown"}`,
+    windowMs: STORAGE_RATE_LIMIT_WINDOW_MS
+  }
+  const rateLimit = await rateLimitInstance.consume(
+    rateLimitTrip.key,
+    STORAGE_RATE_LIMIT_MAX,
+    rateLimitTrip.windowMs
+  )
+
+  if (!rateLimit.allowed) {
+    await writeRateLimitTripAudit(rateLimitTrip, {
+      ipAddress,
+      userAgent: request.headers.get("user-agent"),
+      metadata: { route: "/api/storage/[...key]" }
+    })
+
+    return withNoSniff(NextResponse.json({ error: t("errors.tooManyRequests") }, { status: 429 }))
+  }
+
   const { key } = await params
 
   const objectKey = key.join("/")

@@ -1,4 +1,4 @@
-import { createMcpHandler, originValidationResponse } from "@modelcontextprotocol/server"
+import { createMcpHandler, validateOriginHeader } from "@modelcontextprotocol/server"
 
 import { t } from "@/lib/i18n/server"
 
@@ -56,9 +56,16 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
   // on a home or office network: a browser always names the page it runs on, so a page on any other
   // host is refused with the 403 the specification requires. MCP clients are not browsers and send
   // no Origin, which is why an absent header passes.
-  const originRefusal = originValidationResponse(request, [new URL(env.REMIT_PUBLIC_URL).hostname])
+  //
+  // The decision is still the SDK's `validateOriginHeader`, so the check is exactly as strict as the
+  // SDK's own refusal was: an unparsable Origin, the literal `null` and any other host all fail. Only
+  // the answer is Remit's, shaped like every other refusal below rather than carrying the SDK's
+  // legacy -32000 code and an echo of the caller's Origin.
+  const origin = validateOriginHeader(request.headers.get("origin"), [
+    new URL(env.REMIT_PUBLIC_URL).hostname
+  ])
 
-  if (originRefusal) return originRefusal
+  if (!origin.ok) return jsonRpcError(t("errors.forbidden"), 403)
 
   const ipAddress = getIpAddress(request.headers)
   const userAgent = request.headers.get("user-agent")

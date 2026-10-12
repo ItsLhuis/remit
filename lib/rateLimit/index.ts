@@ -3,6 +3,8 @@ import { createInMemoryAdapter } from "./inMemoryAdapter"
 import { createRedisAdapter } from "./redisAdapter"
 import { type RateLimitAdapter } from "./types"
 
+export { toBetterAuthRateLimitStorage } from "./betterAuthStorage"
+export { toRateLimitHeaders, type RateLimitPolicy } from "./headers"
 export { createInMemoryAdapter } from "./inMemoryAdapter"
 export { countRateLimitTrip } from "./tripCounter"
 export { type RateLimitAdapter, type RateLimitResult } from "./types"

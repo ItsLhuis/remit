@@ -8,6 +8,28 @@ import { apiListParamsSchema, apiResourceIdSchema } from "./schemas"
 
 type OpenApiDocument = ReturnType<typeof createDocument>
 
+// What `handleApiRequest.ts` sends once a token is admitted: every answer after admission describes
+// the token's own limit, and a refusal adds when to retry. A `401` and the per-address backstop's
+// `429` come before any token is known and carry none of these.
+const RATE_LIMIT_HEADERS = {
+  "RateLimit-Policy": {
+    description: 'The quota per window of the token used, as `"token";q=<requests>;w=<seconds>`',
+    schema: { type: "string" as const }
+  },
+  RateLimit: {
+    description:
+      'What remains of the quota and the seconds until it resets, as `"token";r=<requests>;t=<seconds>`',
+    schema: { type: "string" as const }
+  }
+}
+
+const RETRY_AFTER_HEADER = {
+  "Retry-After": {
+    description: "Seconds until the token's window resets, sent with a token's 429",
+    schema: { type: "integer" as const }
+  }
+}
+
 let cachedDocument: OpenApiDocument | null = null
 
 // Generated from `operations.ts` and the very schemas the routes parse with — the request params in
@@ -50,8 +72,9 @@ function buildOpenApiDocument(): OpenApiDocument {
 }
 
 function toOperationObject(operation: ApiOperation) {
-  const errorResponse = (description: string) => ({
+  const errorResponse = (description: string, headers = {}) => ({
     description,
+    headers,
     content: { "application/json": { schema: apiErrorSchema } }
   })
 
@@ -63,17 +86,28 @@ function toOperationObject(operation: ApiOperation) {
     responses: {
       "200": {
         description: "OK",
+        headers: RATE_LIMIT_HEADERS,
         content: { "application/json": { schema: operation.response } }
       },
       ...(operation.kind === "list"
-        ? { "400": errorResponse("A query parameter is invalid or not supported") }
+        ? {
+            "400": errorResponse(
+              "A query parameter is invalid or not supported",
+              RATE_LIMIT_HEADERS
+            )
+          }
         : {}),
       "401": errorResponse(
         "The token is missing, unknown, revoked, expired, or lacks the scope for this resource"
       ),
-      ...(operation.kind === "item" ? { "404": errorResponse("No such record") } : {}),
-      "429": errorResponse("Rate limit exceeded"),
-      "500": errorResponse("Unexpected failure")
+      ...(operation.kind === "item"
+        ? { "404": errorResponse("No such record", RATE_LIMIT_HEADERS) }
+        : {}),
+      "429": errorResponse(
+        "Rate limit exceeded. The token's limit carries the rate-limit headers and Retry-After; the per-address limit, reached before the token is read, carries none",
+        { ...RATE_LIMIT_HEADERS, ...RETRY_AFTER_HEADER }
+      ),
+      "500": errorResponse("Unexpected failure", RATE_LIMIT_HEADERS)
     }
   }
 }

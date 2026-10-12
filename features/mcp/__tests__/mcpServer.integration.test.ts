@@ -208,6 +208,62 @@ describe("MCP admission", () => {
     expect(own.status).not.toBe(403)
   })
 
+  test("refuses a foreign Origin in the shape of every other refusal, without echoing it", async () => {
+    await makeSettings({ mcpEnabled: true })
+    const { token } = await makeCaller("owner", ALL_SCOPES)
+    const listTools = { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }
+
+    const foreign = await postMcpMessage(listTools, {
+      authorization: `Bearer ${token.token}`,
+      origin: "http://rebinding.example"
+    })
+    const unauthorized = await postMcpMessage(listTools, {
+      authorization: `Bearer remit_${"A".repeat(43)}`
+    })
+
+    const foreignBody = await foreign.json()
+    const unauthorizedBody = await unauthorized.json()
+
+    expect(foreignBody).toEqual({
+      jsonrpc: "2.0",
+      error: { code: 403, message: expect.any(String) },
+      id: null
+    })
+    expect(Object.keys(foreignBody.error)).toEqual(Object.keys(unauthorizedBody.error))
+    expect(JSON.stringify(foreignBody)).not.toContain("rebinding.example")
+    expect(foreign.headers.get("Cache-Control")).toBe("no-store")
+  })
+
+  test.each([
+    ["the opaque null Origin", "null"],
+    ["an Origin that is not a URL", "not a url"]
+  ])("refuses %s as the SDK's own check did", async (_shape, origin) => {
+    await makeSettings({ mcpEnabled: true })
+    const { token } = await makeCaller("owner", ALL_SCOPES)
+
+    const response = await postMcpMessage(
+      { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} },
+      { authorization: `Bearer ${token.token}`, origin }
+    )
+
+    expect(response.status).toBe(403)
+  })
+
+  test.each([["legacy" as const], ["modern" as const]])(
+    "advertises no tool-list change notifications to a %s-era client",
+    async (era) => {
+      await makeSettings({ mcpEnabled: true })
+      const { token } = await makeCaller("owner", ALL_SCOPES)
+
+      const client = await connectMcpClient(token.token, { era })
+      const capabilities = client.getServerCapabilities()
+
+      await client.close()
+
+      expect(capabilities?.tools).toEqual({ listChanged: false })
+    }
+  )
+
   test("answers a missing token, an unknown token and a token outside its scope identically", async () => {
     await makeSettings({ mcpEnabled: true })
     const { token } = await makeCaller("owner", ["clients:read"])

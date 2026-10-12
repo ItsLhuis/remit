@@ -11,6 +11,7 @@ import { defaultAc, ownerAc } from "better-auth/plugins/organization/access"
 import { escapeHtml } from "@/lib/utils"
 
 import { env } from "@/lib/config/env"
+import { rateLimitInstance, toBetterAuthRateLimitStorage } from "@/lib/rateLimit"
 
 import { database } from "@/database"
 import {
@@ -130,6 +131,7 @@ export const auth = betterAuth({
     enabled: true,
     window: 900,
     max: 100,
+    customStorage: toBetterAuthRateLimitStorage(rateLimitInstance),
     customRules: {
       "/sign-in/email": { window: 900, max: 10 },
       "/sign-up/email": { window: 3600, max: 3 },

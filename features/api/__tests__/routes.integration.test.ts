@@ -244,6 +244,56 @@ describe("public API token enforcement", () => {
     expect((await response.json()).error.code).toBe("rate_limited")
   })
 
+  test("publishes the token's own limit, what remains and when it resets", async () => {
+    const { token } = await makeCaller("owner", ["clients:read"])
+
+    mocks.consume
+      .mockResolvedValueOnce({ allowed: true, remaining: 250, resetAt: new Date() })
+      .mockResolvedValueOnce({
+        allowed: true,
+        remaining: 87,
+        resetAt: new Date(Date.now() + 30_000)
+      })
+
+    const response = await getClients("/api/v1/clients", token.token)
+
+    expect(response.headers.get("RateLimit-Policy")).toBe('"token";q=120;w=60')
+    expect(response.headers.get("RateLimit")).toMatch(/^"token";r=87;t=(29|30)$/)
+    expect(response.headers.get("Retry-After")).toBeNull()
+  })
+
+  test("tells a token over its limit when to retry", async () => {
+    const { token } = await makeCaller("owner", ["clients:read"])
+
+    mocks.consume
+      .mockResolvedValueOnce({ allowed: true, remaining: 250, resetAt: new Date() })
+      .mockResolvedValueOnce({
+        allowed: false,
+        remaining: 0,
+        resetAt: new Date(Date.now() + 12_000)
+      })
+
+    const response = await getClients("/api/v1/clients", token.token)
+
+    expect(response.headers.get("RateLimit")).toMatch(/^"token";r=0;t=(11|12)$/)
+    expect(response.headers.get("Retry-After")).toMatch(/^(11|12)$/)
+  })
+
+  // The address backstop's counter is shared by every caller behind one egress address, so its
+  // numbers would describe other integrations' traffic.
+  test("publishes nothing about the shared per-address limit", async () => {
+    const { token } = await makeCaller("owner", ["clients:read"])
+
+    mocks.consume.mockResolvedValueOnce({ allowed: false, remaining: 0, resetAt: new Date() })
+
+    const response = await getClients("/api/v1/clients", token.token)
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get("RateLimit")).toBeNull()
+    expect(response.headers.get("RateLimit-Policy")).toBeNull()
+    expect(response.headers.get("Retry-After")).toBeNull()
+  })
+
   test("records when a token was last used", async () => {
     const { token } = await makeCaller("owner", ["clients:read"])
 

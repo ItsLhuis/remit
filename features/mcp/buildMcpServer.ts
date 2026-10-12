@@ -27,9 +27,17 @@ export function buildMcpServer(session: McpSession): McpServer {
     { instructions: MCP_SERVER_INSTRUCTIONS }
   )
 
-  for (const tool of MCP_TOOLS) {
-    if (session.resources.includes(tool.resource)) tool.register(server, session)
-  }
+  const tools = MCP_TOOLS.filter((tool) => session.resources.includes(tool.resource))
+
+  for (const tool of tools) tool.register(server, session)
+
+  // The SDK advertises `tools.listChanged: true` as soon as a tool registers, in `initialize` and
+  // `server/discover` alike, and it is overridden here because nothing would keep that promise: the
+  // notification travels only on a `subscriptions/listen` stream, which `handleMcpRequest` refuses,
+  // since a stateless endpoint holds no stream open and the tool list changes only when a token's
+  // scopes do, which its next request already sees (ADR-0042). Set after registration rather than
+  // in the constructor, so a token whose scopes reach no tool still advertises no `tools` at all.
+  if (tools.length > 0) server.server.registerCapabilities({ tools: { listChanged: false } })
 
   return server
 }
