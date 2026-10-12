@@ -42,11 +42,11 @@ Run it as your own user, not with `sudo`. That user needs access to Docker.
 
 It asks at most three questions:
 
-| Question                  | What it decides                                                                                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Public URL                | The address every link Remit sends is built from. An origin only — `https://remit.example.com`, with no path and no trailing slash, and a port only if it is not 80/443. |
-| Run Caddy for HTTPS?      | Whether this host terminates TLS. Yes needs an `https://` URL with no port, and binds ports 80 and 443.                                                                  |
-| Email for the certificate | The ACME account Caddy obtains the certificate with, asked only when the answer above is yes.                                                                            |
+| Question                  | What it decides                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public URL                | The address every link Remit sends is built from. An origin only — `https://remit.example.com`, with no path and no trailing slash, and a port only if it is not 80/443. A host name in capitals is written in lowercase, and an IPv6 address goes in brackets, such as `http://[2001:db8::1]:3000`, written the way the application stores it. An IPv4 address is four numbers from 0 to 255. |
+| Run Caddy for HTTPS?      | Whether this host terminates TLS. Yes needs an `https://` URL with no port, and binds ports 80 and 443.                                                                                                                                                                                                                                                                                        |
+| Email for the certificate | The ACME account Caddy obtains the certificate with, asked only when the answer above is yes.                                                                                                                                                                                                                                                                                                  |
 
 Nothing else is asked. Business details, email, payments and the backup destination are set in the
 browser once the instance runs, where they can also be changed later.
@@ -59,7 +59,10 @@ nobody can recover them.** Store it in a password manager, or anywhere else off 
 confirm. Nothing is written until you do.
 
 The installer then writes `.env` with mode `0600`, pulls the images, starts the stack and waits up
-to five minutes for the app to report healthy. The app applies database migrations as it starts.
+to ten minutes for the app to report healthy. The app applies database migrations as it starts, and
+a first start on a small server can take several minutes; set `REMIT_HEALTH_TIMEOUT_SECONDS` before
+running the installer to wait longer. If the wait runs out, the stack keeps starting in the
+background, and running the installer again is safe: it keeps `.env` and only starts the stack.
 
 With Caddy, the certificate is requested on first start, so the DNS record must already point at the
 host.

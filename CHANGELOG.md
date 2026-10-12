@@ -53,6 +53,14 @@ section, and refuse to run while it has no entries.
 
 ### Added
 
+- API responses carry `RateLimit-Policy` and `RateLimit` headers describing the token's own limit,
+  and `Retry-After` when that limit is reached; the OpenAPI document lists them.
+- The anonymous file route that serves avatars, logos and client images is rate-limited per address,
+  well above what the busiest page loads.
+- Error events name the source file, line and function of each server frame, and an error class the
+  build renamed under the name its source gave it, rather than minified chunk positions.
+- `REMIT_HEALTH_TIMEOUT_SECONDS` gives the installer and the upgrade script longer to wait for the
+  app on a slow first start.
 - Invoices, proposals and credit notes render from a built-in layout when no template of their type
   exists, so a new instance can send them without designing a template first.
 - The public invoice page lists the credit notes applied to the invoice.
@@ -80,6 +88,16 @@ section, and refuse to run while it has no entries.
 
 ### Changed
 
+- Sign-in, sign-up and password-reset limits count in Redis like every other limit, so a restart no
+  longer resets them and a second replica no longer doubles them.
+- `/api/metrics` answers a request without the token exactly as it answers a path that does not
+  exist — a redirect to sign in, or the not-found page — instead of a JSON `404`. A scrape with the
+  token is unchanged.
+- The installer and upgrade script wait up to ten minutes for the app instead of five, and no longer
+  give up when Docker reports the app unhealthy while its first start is still migrating; they fail
+  at once only if the app container stops or restarts.
+- The MCP server refuses a browser page on another host with a `403` shaped like its other refusals,
+  and no longer advertises tool-list change notifications it never sends.
 - Stored files live in RustFS, bundled in the Compose file and pinned to an exact release and image
   digest, reached through one S3 adapter configured by `S3_ENDPOINT`, `S3_REGION`,
   `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and `S3_FORCE_PATH_STYLE`. Pointed at
@@ -100,6 +118,8 @@ section, and refuse to run while it has no entries.
 
 ### Fixed
 
+- The installer refused a public URL with a capital letter in its host or an IPv6 address, and
+  accepted some numeric hosts, such as `127.1`, that the application then refused at start.
 - Backups carried the database but none of the stored files — logos, avatars, receipts, attachments
   and the PDFs of issued invoices, proposals and contracts — so no restore could bring them back.
   Every backup now archives them, and a restore puts them back byte for byte, writing and verifying

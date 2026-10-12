@@ -112,9 +112,12 @@ was changed.
 
 ### Health Timeout
 
-`_wait-for-health.sh` polls Docker Compose health for five minutes. On timeout or `unhealthy`, it
-prints `docker compose logs --tail 50 app`. Use those logs to decide whether to wait, fix
-configuration, or roll back.
+`_wait-for-health.sh` polls Docker Compose health for ten minutes by default; set
+`REMIT_HEALTH_TIMEOUT_SECONDS` to give it longer. It waits through an `unhealthy` report, which
+Docker gives about 80 seconds into any start while migrations are still running, and fails at once
+only when the app container stops or restarts. On a failure or a timeout it prints
+`docker compose logs --tail 50 app`. Use those logs to decide whether to wait, fix configuration, or
+roll back; after a timeout the app may still be starting, and running the upgrade again is safe.
 
 ## Safety Boundaries
 

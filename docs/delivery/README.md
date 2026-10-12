@@ -156,6 +156,7 @@ Oldest first, matching the ADR index, so the numbers read as the order the produ
 | [0058](0058-background-work-integrity.md)         | Background work integrity                      | 2026-10-07 | Complete                 | ADR-0020, ADR-0021, ADR-0023, ADR-0041, ADR-0046, ADR-0047, ADR-0048 |
 | [0059](0059-structural-debt.md)                   | Structural debt                                | 2026-10-08 | Complete                 | ADR-0023, ADR-0037                                                   |
 | [0060](0060-data-lifecycle-and-growth.md)         | Data lifecycle and growth                      | 2026-10-10 | Complete                 | ADR-0010, ADR-0025, ADR-0028, ADR-0034, ADR-0049                     |
+| [0061](0061-platform-hardening.md)                | Platform hardening                             | 2026-10-12 | Complete                 | ADR-0036, ADR-0037, ADR-0038, ADR-0040, ADR-0041, ADR-0042, ADR-0050 |
 
 Every record above carries `Reconstructed: yes` except `DR-0031`, `DR-0032`, `DR-0033`, `DR-0034`,
-`DR-0035` through `DR-0060`, which were written at delivery time.
+`DR-0035` through `DR-0061`, which were written at delivery time.

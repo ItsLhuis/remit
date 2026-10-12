@@ -299,11 +299,14 @@ implemented command.
 - **Effects:** checks host prerequisites through `_check-prereqs.sh --for install`, generates the
   database, object-store (`S3_SECRET_ACCESS_KEY`) and auth secrets and the encryption key, writes
   `.env` with mode `0600`, pulls the images, makes the bind-mounted data directory writable by the
-  app's user, runs `docker compose up -d --no-build`, and waits through `_wait-for-health.sh`. With
-  an existing `.env` holding a key, it only starts the stack, pulling nothing already present.
-- **Limitations:** no IPv6 literal as the public URL, no reconfiguration of an existing install, and
-  no installation of Docker itself. Exit codes are `0`, `1` for a failure and `2` for a usage error.
-  Detailed steps are in the [Installation runbook](../../operations/INSTALL.md).
+  app's user, runs `docker compose up -d --no-build`, and waits through `_wait-for-health.sh`, whose
+  budget `REMIT_HEALTH_TIMEOUT_SECONDS` sets (600 seconds by default). With an existing `.env`
+  holding a key, it only starts the stack, pulling nothing already present. The public URL is
+  written as the application stores it: the host in lowercase, an IPv6 address in its canonical
+  bracketed form.
+- **Limitations:** no reconfiguration of an existing install, and no installation of Docker itself.
+  Exit codes are `0`, `1` for a failure and `2` for a usage error. Detailed steps are in the
+  [Installation runbook](../../operations/INSTALL.md).
 
 ### `bash scripts/host/upgrade.sh`
 
@@ -318,7 +321,8 @@ implemented command.
 - **Flags:** `--dry-run`, `--yes`, `--skip-backup`, and `--help`. `--skip-backup` is refused unless
   `REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP=1` is also set.
 - **Effects:** checks host prerequisites, runs `docker compose exec -T app pnpm remit:backup --yes`
-  unless backup is skipped, pulls images, restarts the compose project, and waits for app health.
+  unless backup is skipped, pulls images, restarts the compose project, and waits for app health
+  through `_wait-for-health.sh`, whose budget `REMIT_HEALTH_TIMEOUT_SECONDS` sets.
 - **Limitations:** there is no `pnpm remit:upgrade`. Rollback guidance distinguishes a detected
   local `.remitbak` snapshot from remote backup destinations; when no new local `.remitbak` is
   detected, restore from the configured remote URI or another verified backup. Detailed steps are in

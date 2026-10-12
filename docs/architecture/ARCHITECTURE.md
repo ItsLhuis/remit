@@ -1025,10 +1025,11 @@ result's reset time is the key's remaining TTL. `proxy.ts` uses the same limiter
 16 proxy always runs on the Node.js runtime. While Redis is unreachable every call site falls back
 to a per-process in-memory counter, the behaviour the limiter had before a shared store existed, and
 the outage is logged when it starts and when it ends rather than on every request: no limit is
-switched off and no request is refused because the store is down. Better Auth's own limits in the
-table below keep their counters inside the app process.
-[ADR-0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) records the algorithm, the failure
-mode at each call site, and why no application cache exists.
+switched off and no request is refused because the store is down. Better Auth still decides its own
+limits in the table below, path by path, but counts them through the same limiter: its rate-limit
+storage is `lib/rateLimit`'s `toBetterAuthRateLimitStorage`, so they too hold across processes and
+restarts. [ADR-0037](adr/0037-shared-rate-limiting-and-cache-deferral.md) records the algorithm, the
+failure mode at each call site, and why no application cache exists.
 
 Coverage, and where each limit lives:
 
@@ -1039,12 +1040,13 @@ Coverage, and where each limit lives:
 | `/invite/[invitationId]`                          | 30 per IP per minute                       | `proxy.ts`                                                          |
 | Proposal OTP request and verify, contract signing | Per route, per IP                          | each `route.ts`, in addition to the proxy limit                     |
 | `POST /i/[token]/pay`                             | 5 per IP per 15 min                        | the route handler, in addition to the proxy limit                   |
-| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes                          | Better Auth's own limiter, configured in `lib/auth/index.ts`        |
-| `POST /api/auth/sign-up/email`                    | 3 per hour                                 | Better Auth's own limiter                                           |
-| Password reset requests                           | 5 per hour                                 | Better Auth's own limiter                                           |
-| Every other Better Auth endpoint                  | 100 per 15 minutes                         | Better Auth's own limiter                                           |
+| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes                          | Better Auth, configured in `lib/auth/index.ts`, counted in Redis    |
+| `POST /api/auth/sign-up/email`                    | 3 per hour                                 | Better Auth, counted in Redis                                       |
+| Password reset requests                           | 5 per hour                                 | Better Auth, counted in Redis                                       |
+| Every other Better Auth endpoint                  | 100 per 15 minutes                         | Better Auth, counted in Redis                                       |
 | `/api/webhooks/stripe`                            | Per IP                                     | the route handler                                                   |
-| `/api/metrics`                                    | 30 per IP per minute                       | `lib/metrics/handleMetricsRequest.ts`, ahead of the token           |
+| `/api/storage/*`                                  | 1,200 per IP per minute                    | the route handler, ahead of the key check                           |
+| `/api/metrics`                                    | 30 per IP per minute                       | `proxy.ts` through `lib/metrics/admission.ts`, ahead of the token   |
 | `/api/v1/*`                                       | 300 per IP, then 120 per token, per minute | `features/api/handleApiRequest.ts`, the IP limit ahead of the token |
 | `/api/mcp`                                        | 300 per IP, then 60 per token, per minute  | `features/mcp/handleMcpRequest.ts`, the IP limit ahead of the token |
 
@@ -1054,8 +1056,15 @@ next entry carries how many the previous window suppressed (`lib/audit/index.ts`
 `writeRateLimitTripAudit`), so a flood is a handful of rows rather than one per request in a table
 nothing may prune. `/api/health` carries no limit, deliberately: it exists for uptime monitors that
 poll it on a fixed interval, and it reads nothing that a rate limit would protect. `/api/storage/*`
-carries none either: it serves the objects the public bucket already served anonymously, under keys
-nobody can enumerate, and marks every response immutable so a browser asks for each file once.
+serves the objects the public bucket already served anonymously, under keys nobody can enumerate,
+and marks every response immutable so a browser asks for each file once; its limit is sized from the
+heaviest page that loads from it, the clients list at its largest page of a hundred client images,
+so a person paging quickly never meets it and a loop over keys does within seconds.
+
+`/api/v1/*` publishes the token's own limit on every answer after the token is admitted, as the
+`RateLimit-Policy` and `RateLimit` fields of the IETF HTTPAPI draft, with `Retry-After` on that
+limit's `429`. The per-address limit before it publishes nothing: its counter is shared by every
+caller behind one address, and describing it would describe the others' traffic.
 
 ### What an assistant can read
 
@@ -1457,30 +1466,30 @@ visible; modals trap focus. Full conventions in `accessibility.md`.
 Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
 application-level interactions. API routes exist only for specific, justified cases:
 
-| Route                                       | Purpose                                                         |
-| ------------------------------------------- | --------------------------------------------------------------- |
-| `/i/[token]`                                | Public invoice view (anonymous)                                 |
-| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                       |
-| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                              |
-| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)                    |
-| `/c/[token]`                                | Public contract signing (anonymous)                             |
-| `/s/[token]`                                | Public client portal (anonymous)                                |
-| `/api/auth/[...all]`                        | Better Auth's own handler                                       |
-| `/api/webhooks/stripe`                      | Stripe webhook event receiver                                   |
-| `/api/health`                               | Uptime monitor health check (public)                            |
-| `/api/metrics`                              | Prometheus scrape, bearer-token protected; 404 when unset       |
-| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage              |
-| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                             |
-| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket       |
-| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                        |
-| `/api/exports/[id]`                         | Owner-gated data export archive download                        |
-| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                           |
-| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                          |
-| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                          |
-| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                          |
-| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                          |
-| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated                     |
-| `/api/mcp`                                  | MCP server for an AI assistant, API-token gated, off by default |
+| Route                                       | Purpose                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------- |
+| `/i/[token]`                                | Public invoice view (anonymous)                                  |
+| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                        |
+| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                               |
+| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)                     |
+| `/c/[token]`                                | Public contract signing (anonymous)                              |
+| `/s/[token]`                                | Public client portal (anonymous)                                 |
+| `/api/auth/[...all]`                        | Better Auth's own handler                                        |
+| `/api/webhooks/stripe`                      | Stripe webhook event receiver                                    |
+| `/api/health`                               | Uptime monitor health check (public)                             |
+| `/api/metrics`                              | Prometheus scrape, bearer-token protected; unknown path when not |
+| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage               |
+| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                              |
+| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket        |
+| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                         |
+| `/api/exports/[id]`                         | Owner-gated data export archive download                         |
+| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                            |
+| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                           |
+| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                           |
+| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                           |
+| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                           |
+| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated                      |
+| `/api/mcp`                                  | MCP server for an AI assistant, API-token gated, off by default  |
 
 `POST /i/[token]/pay` is the narrowest of these to justify and the reason the list is a list rather
 than a rule. It is a write from an unauthenticated context: the caller is a client with no account,
@@ -1505,11 +1514,12 @@ and instants are ISO 8601 in UTC. Each read delegates to the query the applicati
 uses, and every response is parsed through a schema in `features/api/responseSchemas.ts` that names
 each published field, so no client note, bearer token, storage key or encrypted value reaches a
 caller. The OpenAPI 3.1 document is generated from those same schemas and served at
-`/api/v1/openapi.json` to any valid token. The API writes nothing. An invoice, in a list row and in
-its detail, carries `outstandingCents` — the one outstanding definition, credit notes netted — and
-`displayStatus`, the status the application's badges show (overdue and partially paid included),
-beside the stored `status`; the MCP tools publish the same fields through the same schemas.
-[ADR-0038](adr/0038-public-api-scope-and-tokens.md) records the scope, versioning and token model.
+`/api/v1/openapi.json` to any valid token, rate-limit headers included. The API writes nothing. An
+invoice, in a list row and in its detail, carries `outstandingCents` — the one outstanding
+definition, credit notes netted — and `displayStatus`, the status the application's badges show
+(overdue and partially paid included), beside the stored `status`; the MCP tools publish the same
+fields through the same schemas. [ADR-0038](adr/0038-public-api-scope-and-tokens.md) records the
+scope, versioning and token model.
 
 ### Outbound webhooks
 
@@ -1530,11 +1540,14 @@ records the delivery and SSRF decisions.
 
 `/api/mcp` serves the Model Context Protocol's Streamable HTTP transport, revision 2026-07-28, and
 answers clients of the 2025 revisions, which open with `initialize`, statelessly from the same
-tools. It keeps no session and opens no stream. Its ADR-0016 justification is the public API's: the
-caller is an assistant holding an API token, with no browser and no session, and the surface writes
-nothing. It authenticates with those same tokens rather than the specification's optional OAuth
-flow, which the specification permits, so an assistant that can only sign in through OAuth cannot
-connect.
+tools. It keeps no session and opens no stream, so it refuses `subscriptions/listen` and advertises
+`tools.listChanged` as false in both eras. A browser page on another host is refused with `403`
+before anything else, by the SDK's Origin check and in the same JSON-RPC shape as every other
+refusal the endpoint writes, whose code is the HTTP status. Its ADR-0016 justification is the public
+API's: the caller is an assistant holding an API token, with no browser and no session, and the
+surface writes nothing. It authenticates with those same tokens rather than the specification's
+optional OAuth flow, which the specification permits, so an assistant that can only sign in through
+OAuth cannot connect.
 
 Eight read-only tools cover clients, projects, invoices, time entries and expenses, each a list with
 the screens' own filters — a search, states, a client or project, a range of calendar days, billed
@@ -2030,24 +2043,33 @@ bounded at five seconds, and stops at five unanswered sends, dropping further ev
 are in the log regardless. A receiver that stops answering is logged when delivery starts failing
 and when it recovers, never per event, and never with its address.
 
-Server frames point into the minified chunks of the production build, because the published image
-carries no deployment and so cannot have uploaded source maps to anybody's receiver; the worker's
-bundle is not minified. [ADR-0041](adr/0041-error-tracking-boundary.md) records the choice of a
-minimal sender over the Sentry SDK, and the boundaries.
+**Frames name source files.** The image ships each server chunk's source map beside the chunk,
+without its source text and with the names the minifier dropped written back in by the build
+(`scripts/ship-server-source-maps.ts`). When an event is built, `lib/errorTracking/sourceMaps.ts`
+turns a chunk position into the source file, line and column it came from, a minified function name
+into its source name, and an error class the bundle renamed into the name its source gave it.
+Nothing is uploaded and nothing new is sent: the recovered file and function names pass the same
+allowlist patterns as any frame. The worker's bundle is not minified and needs none of this.
+[ADR-0041](adr/0041-error-tracking-boundary.md) records the choice of a minimal sender over the
+Sentry SDK, and the boundaries; [ADR-0050](adr/0050-error-frames-resolved-in-process.md) records
+where frames are resolved.
 
 ### Metrics
 
 `GET /api/metrics` answers in the Prometheus text exposition format, version 0.0.4, and is pull
 only: nothing is pushed anywhere ([ADR-0018](adr/0018-no-telemetry.md)).
 
-**The token is the whole contract.** With `REMIT_METRICS_TOKEN` unset the endpoint answers `404` to
-every request. With it set, a request must carry `Authorization: Bearer <token>`, compared in
-constant time through `lib/publicToken.ts`'s `matchesPublicToken`. A missing credential, a wrong one
-and a disabled endpoint all receive the same `404`, so a caller cannot learn whether metrics are
-enabled on an instance. Every response carries `Cache-Control: no-store` and
-`X-Robots-Tag: noindex, nofollow`, and the endpoint has its own limit of 30 requests per IP per
-minute, which a 15-second scrape uses four of. Hosted mode changes none of this: whoever operates
-the instance sets the token.
+**The token is the whole contract.** A request must carry `Authorization: Bearer <token>` matching
+`REMIT_METRICS_TOKEN`, compared in constant time through `lib/publicToken.ts`'s
+`matchesPublicToken`. No route serves `/api/metrics` itself: `proxy.ts` rewrites an admitted scrape
+to `/api/metrics/scrape`, and every other request — no credential, a wrong one, or the token unset —
+continues as a request for a path with no route, so it receives exactly what any unknown path does:
+a redirect to sign in, or the framework's not-found page for a signed-in caller. A caller cannot
+learn whether metrics are enabled on an instance, nor that the path is anything but unknown
+(`lib/metrics/admission.ts`). Scrapes carry `Cache-Control: no-store` and
+`X-Robots-Tag: noindex, nofollow`, and the path has its own limit of 30 requests per IP per minute,
+counted for every request to it whether metrics are enabled or not, which a 15-second scrape uses
+four of. Hosted mode changes none of this: whoever operates the instance sets the token.
 
 **It exposes exactly this, and `lib/metrics/__tests__/handleMetricsRequest.test.ts` fails on
 anything else:**
@@ -2272,6 +2294,7 @@ sealed record per capability, in [`docs/delivery/`](../delivery/README.md).
 | [0047](adr/0047-one-backup-lock.md)                           | One backup lock for every backup, restore and key rotation                                | Accepted |
 | [0048](adr/0048-worker-crash-and-request-error-log.md)        | A worker crash is reported, and a request error is logged once                            | Accepted |
 | [0049](adr/0049-objects-leave-with-their-rows.md)             | Stored objects leave with the rows that owned them                                        | Accepted |
+| [0050](adr/0050-error-frames-resolved-in-process.md)          | Error frames are resolved in the process, against maps the image ships                    | Accepted |
 
 ---
 
