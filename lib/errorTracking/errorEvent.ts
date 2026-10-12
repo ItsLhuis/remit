@@ -1,6 +1,7 @@
 import { z } from "zod"
 
-import { parseStackFrames, type StackFrame } from "./stackFrames"
+import { type SourceMapResolver } from "./sourceMaps"
+import { parseStackFrames, readFrameLocations, type StackFrame } from "./stackFrames"
 
 export type ErrorTrackingRuntime = "server" | "worker"
 
@@ -144,7 +145,8 @@ type ValidContext = z.infer<typeof contextSchema>
 // over-strict until the day it is loosened and a requested path, with its token, becomes a tag.
 export function buildErrorEvent(
   candidate: ErrorEventCandidate,
-  facts: ErrorEventFacts
+  facts: ErrorEventFacts,
+  sourceMaps?: SourceMapResolver
 ): ErrorEvent | null {
   const context = contextSchema.safeParse(candidate.context)
   const validFacts = factsSchema.safeParse(facts)
@@ -152,7 +154,9 @@ export function buildErrorEvent(
   if (!context.success || !validFacts.success) return null
 
   const chain = collectErrorChain(candidate.error)
-  const exceptions = chain.map((error) => toExceptionValue(error, validFacts.data.cwd)).reverse()
+  const exceptions = chain
+    .map((error) => toExceptionValue(error, validFacts.data.cwd, sourceMaps))
+    .reverse()
   const outermost = exceptions.at(-1)
 
   if (outermost) {
@@ -205,22 +209,44 @@ function collectErrorChain(error: unknown): unknown[] {
   return chain
 }
 
-function toExceptionValue(error: unknown, cwd: string): ExceptionValue {
+function toExceptionValue(
+  error: unknown,
+  cwd: string,
+  sourceMaps: SourceMapResolver | undefined
+): ExceptionValue {
   if (!(error instanceof Error)) return { type: "NonError", value: WITHHELD_MESSAGE }
 
-  const frames = parseStackFrames(error, cwd)
+  const frames = parseStackFrames(error, cwd, sourceMaps)
 
   return {
-    type: readErrorType(error),
+    type: readErrorType(error, sourceMaps),
     value: WITHHELD_MESSAGE,
     ...(frames.length > 0 ? { stacktrace: { frames } } : {})
   }
 }
 
-function readErrorType(error: Error): string {
+// A subclass that never sets `name` inherits "Error" from the prototype — the Drizzle query error
+// does — so its class is the only thing that says what it is. The class name comes from the source
+// map when the bundle minified it, and is left unknown, never sent minified, when the map cannot
+// give it back (`sourceMaps.ts`'s `resolveClassName`).
+function readErrorType(error: Error, sourceMaps: SourceMapResolver | undefined): string {
   const name = readProperty(error, "name")
 
-  return typeof name === "string" && ERROR_TYPE_PATTERN.test(name) ? name : "Error"
+  if (typeof name !== "string" || !ERROR_TYPE_PATTERN.test(name)) return "Error"
+
+  if (name !== "Error" || !sourceMaps) return name
+
+  const className = readClassName(error, sourceMaps)
+
+  return className && ERROR_TYPE_PATTERN.test(className) ? className : name
+}
+
+function readClassName(error: Error, sourceMaps: SourceMapResolver): string | null {
+  try {
+    return sourceMaps.resolveClassName(error, readFrameLocations(error))
+  } catch {
+    return null
+  }
 }
 
 function readErrorCode(error: unknown): string | null {

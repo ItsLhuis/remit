@@ -32,6 +32,7 @@
     "dev": "next dev --turbopack",
     "build": "next build && pnpm build:scripts",
     "build:scripts": "tsup --config tsup.scripts.config.ts",
+    "build:source-maps": "tsx ./scripts/ship-server-source-maps.ts",
     "start": "next start",
     "dev:worker": "tsx ./scripts/worker.ts",
     "start:worker": "node ./scripts/dist/worker.js",

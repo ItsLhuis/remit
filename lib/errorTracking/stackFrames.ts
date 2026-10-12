@@ -1,9 +1,18 @@
+import { type SourceMapResolver } from "./sourceMaps"
+
 export type StackFrame = {
   filename: string
   function?: string
   lineno: number
   colno: number
   in_app: boolean
+}
+
+type RawFrame = {
+  functionName: string | undefined
+  location: string
+  lineno: number
+  colno: number
 }
 
 const MAX_FRAMES = 50
@@ -16,10 +25,14 @@ const FRAME_PATTERN = /^\s+at (?:(.+?) \((.+):(\d+):(\d+)\)|(?:async )?(.+):(\d+
 
 // What a function name or a location may contain once parsed. Both come from code rather than from
 // data, but the check is what keeps that true: anything outside it — an `eval` origin, a name built
-// at runtime — is dropped rather than trusted.
+// at runtime — is dropped rather than trusted. A name or a path recovered from a source map is held
+// to the same patterns as one read from the stack.
 const FUNCTION_NAME_PATTERN = /^[\w$.<>[\] ]{1,160}$/
 const FILENAME_PATTERN = /^[\w@~+.\-/[\]()]{1,300}$/
 const NODE_BUILTIN_PATTERN = /^node:[\w/.-]{1,200}$/
+
+// The keywords V8 prefixes to a function name, kept around the name a source map recovers.
+const FUNCTION_PREFIX_PATTERN = /^((?:async |new )*)(.*)$/
 
 // Frames are read only from below the stack's header, never from the whole string. V8 renders the
 // header as `String(error)` — the name and the whole message — when `stack` is first read, so a
@@ -27,25 +40,54 @@ const NODE_BUILTIN_PATTERN = /^node:[\w/.-]{1,200}$/
 // as a frame and sent. When the header no longer matches the error, because its message or name
 // changed after the stack was rendered, the boundary between header and frames is unknowable and
 // no frame is returned.
-export function parseStackFrames(error: Error, cwd: string): StackFrame[] {
+export function parseStackFrames(
+  error: Error,
+  cwd: string,
+  sourceMaps?: SourceMapResolver
+): StackFrame[] {
+  const normalizedCwd = normalizePath(cwd)
+  const frames = readRawFrames(error)
+
+  return frames
+    .flatMap((frame, index) => {
+      const mapped = sourceMaps
+        ? toMappedFrame(frame, frames[index + 1] ?? null, sourceMaps)
+        : frame
+      const stackFrame = toStackFrame(mapped, normalizedCwd)
+
+      return stackFrame ? [stackFrame] : []
+    })
+    .reverse()
+}
+
+// The locations an error's frames run in, for `SourceMapResolver.resolveClassName` to search.
+export function readFrameLocations(error: Error): string[] {
+  return readRawFrames(error).map((frame) => frame.location)
+}
+
+function readRawFrames(error: Error): RawFrame[] {
   const rendered = renderStack(error)
 
   if (!rendered?.stack.startsWith(`${rendered.header}\n`)) return []
 
-  const { stack, header } = rendered
-
-  const normalizedCwd = normalizePath(cwd)
-
-  return stack
-    .slice(header.length + 1)
+  return rendered.stack
+    .slice(rendered.header.length + 1)
     .split("\n")
     .slice(0, MAX_FRAMES)
     .flatMap((line) => {
-      const frame = toStackFrame(line, normalizedCwd)
+      const match = FRAME_PATTERN.exec(line)
 
-      return frame ? [frame] : []
+      if (!match) return []
+
+      return [
+        {
+          functionName: match[1],
+          location: match[2] ?? match[5],
+          lineno: Number(match[3] ?? match[6]),
+          colno: Number(match[4] ?? match[7])
+        }
+      ]
     })
-    .reverse()
 }
 
 // `stack`, `name` and `message` may all be getters on a thrown object, and any of them can throw.
@@ -61,25 +103,65 @@ function renderStack(error: Error): { stack: string; header: string } | null {
   }
 }
 
-function toStackFrame(line: string, cwd: string): StackFrame | null {
-  const match = FRAME_PATTERN.exec(line)
+// A frame inside a mapped bundle is reported at its source position, under the name its source
+// gave the function. A minified name that cannot be recovered is dropped rather than sent: `a` or
+// `ce` would read as a real name. V8 prefixes a function called as a property with its receiver
+// (`Object.a` for a bundle's export, `ce.execute` for a method); the receiver is dropped, and the
+// property is resolved like any other name, or kept as written when no minified definition
+// matches it, because the minifier renames bindings and never property names.
+function toMappedFrame(
+  frame: RawFrame,
+  caller: RawFrame | null,
+  sourceMaps: SourceMapResolver
+): RawFrame {
+  if (!sourceMaps.isMapped(frame.location)) return frame
 
-  if (!match) return null
+  const position = sourceMaps.resolvePosition(frame.location, frame.lineno, frame.colno)
 
-  const functionName = match[1]
-  const location = match[2] ?? match[5]
-  const lineno = Number(match[3] ?? match[6])
-  const colno = Number(match[4] ?? match[7])
+  if (!position) return { ...frame, functionName: undefined }
 
-  const filename = toSafeFilename(location, cwd)
+  return {
+    functionName: resolveFunctionName(frame, caller, sourceMaps),
+    location: position.file,
+    lineno: position.line,
+    colno: position.column
+  }
+}
+
+function resolveFunctionName(
+  frame: RawFrame,
+  caller: RawFrame | null,
+  sourceMaps: SourceMapResolver
+): string | undefined {
+  if (!frame.functionName) return undefined
+
+  const [, prefix = "", qualifiedName = ""] = FUNCTION_PREFIX_PATTERN.exec(frame.functionName) ?? []
+
+  const isProperty = qualifiedName.includes(".")
+  const name = qualifiedName.slice(qualifiedName.lastIndexOf(".") + 1)
+
+  const original = sourceMaps.resolveFunctionName(
+    { file: frame.location, line: frame.lineno, column: frame.colno, minifiedName: name },
+    caller ? { file: caller.location, line: caller.lineno, column: caller.colno } : null
+  )
+
+  if (original) return `${prefix}${original}`
+
+  return isProperty ? `${prefix}${name}` : undefined
+}
+
+function toStackFrame(frame: RawFrame, cwd: string): StackFrame | null {
+  const filename = toSafeFilename(frame.location, cwd)
 
   if (!filename) return null
 
   return {
     filename,
-    ...(functionName && FUNCTION_NAME_PATTERN.test(functionName) ? { function: functionName } : {}),
-    lineno,
-    colno,
+    ...(frame.functionName && FUNCTION_NAME_PATTERN.test(frame.functionName)
+      ? { function: frame.functionName }
+      : {}),
+    lineno: frame.lineno,
+    colno: frame.colno,
     in_app: !filename.startsWith("node:") && !filename.includes("node_modules")
   }
 }

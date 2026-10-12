@@ -63,3 +63,4 @@ capability, in [`docs/delivery/`](../../delivery/README.md).
 | [0047](0047-one-backup-lock.md)                           | One backup lock for every backup, restore and key rotation                                | Accepted |
 | [0048](0048-worker-crash-and-request-error-log.md)        | A worker crash is reported, and a request error is logged once                            | Accepted |
 | [0049](0049-objects-leave-with-their-rows.md)             | Stored objects leave with the rows that owned them                                        | Accepted |
+| [0050](0050-error-frames-resolved-in-process.md)          | Error frames are resolved in the process, against maps the image ships                    | Accepted |

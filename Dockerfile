@@ -28,6 +28,11 @@ ENV NODE_ENV=production
 
 RUN corepack enable pnpm && REMIT_BUILD_ENV_VALIDATION=skip pnpm build
 
+# The standalone output keeps the server chunks but not their source maps, which is what lets a
+# reported error's frames name source files instead of minified chunks (lib/errorTracking/
+# sourceMaps.ts). The maps go in without their source text, and nothing uploads them anywhere.
+RUN corepack enable pnpm && pnpm build:source-maps
+
 # ─── Stage 4: runner ─────────────────────────────────────────────────────────
 FROM node:24.11.1-alpine AS runner
 RUN apk add --no-cache libc6-compat

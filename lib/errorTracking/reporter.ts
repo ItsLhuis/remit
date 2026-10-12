@@ -10,6 +10,7 @@ import {
   type ErrorReportContext,
   type ErrorTrackingRuntime
 } from "./errorEvent"
+import { createSourceMapResolver, type SourceMapResolver } from "./sourceMaps"
 
 export type ErrorTrackingOptions = {
   dsn: string
@@ -24,6 +25,7 @@ type Reporter = {
   release: string
   environment: string
   cwd: string
+  sourceMaps: SourceMapResolver
 }
 
 const SEND_TIMEOUT_MS = 5_000
@@ -55,7 +57,8 @@ export function startErrorTracking(options: ErrorTrackingOptions): boolean {
     runtime: options.runtime,
     release: options.release,
     environment: options.environment,
-    cwd: process.cwd()
+    cwd: process.cwd(),
+    sourceMaps: createSourceMapResolver(process.cwd())
   }
 
   logger.info({ action: "errorTracking.start", runtime: options.runtime }, "Error tracking enabled")
@@ -122,7 +125,8 @@ function buildEventSafely(
         environment: activeReporter.environment,
         runtime: activeReporter.runtime,
         cwd: activeReporter.cwd
-      }
+      },
+      activeReporter.sourceMaps
     )
   } catch {
     return null
