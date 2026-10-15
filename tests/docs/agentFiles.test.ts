@@ -243,14 +243,18 @@ describe("agent guidance stays within budget and consistent", () => {
 
   test("Claude and Codex both refuse the git operations reserved for the owner", () => {
     const claudeDeny = read(".claude/settings.json")
-    const codexRules = read(".codex/rules/default.rules")
+    // Judged one prefix_rule at a time, so a forbidden decision on a later rule can never vouch for
+    // an earlier rule that only prompts.
+    const forbiddenCodexRules = read(".codex/rules/default.rules")
+      .split("prefix_rule(")
+      .filter((rule) => rule.includes('decision = "forbidden"'))
 
     const unguarded = ["push", "reset", "checkout", "rebase", "merge", "tag", "worktree"].filter(
       (subcommand) =>
         !claudeDeny.includes(`"Bash(git ${subcommand} *)"`) ||
-        !new RegExp(
-          `pattern = \\["git", (\\[[^\\]]*)?"${subcommand}"[\\s\\S]*?decision = "forbidden"`
-        ).test(codexRules)
+        !forbiddenCodexRules.some((rule) =>
+          new RegExp(`pattern = \\["git", (\\[[^\\]]*)?"${subcommand}"`).test(rule)
+        )
     )
 
     expect(unguarded).toEqual([])
