@@ -78,9 +78,14 @@
       "PowerShell(git config core.hooksPath*)",
       "PowerShell(HUSKY=0 *)",
       "Read(.env)",
-      "Read(.env.local)",
-      "Read(.env.production)",
-      "Read(.env.development)"
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(!.env.test.example)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.claude/hooks/**)",
+      "Edit(/tools/git-guard/**)",
+      "Edit(/.husky/**)",
+      "Edit(/.codex/**)"
     ]
   },
   "hooks": {
