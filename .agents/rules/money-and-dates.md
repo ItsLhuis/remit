@@ -1,9 +1,3 @@
----
-paths:
-  - "**/*.ts"
-  - "**/*.tsx"
----
-
 # Money and Date Rules
 
 Money and dates are parsed and formatted through shared helpers in `lib/utils`, never with ad-hoc

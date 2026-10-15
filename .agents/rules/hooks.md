@@ -1,11 +1,3 @@
----
-paths:
-  - "hooks/**/*.ts"
-  - "hooks/**/*.tsx"
-  - "features/**/*.ts"
-  - "features/**/*.tsx"
----
-
 # Hook Rules
 
 - Hook filenames are camelCase: `useMyHook.ts`, not `UseMyHook.ts`. Use `.tsx` only when the hook

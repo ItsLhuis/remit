@@ -1,11 +1,3 @@
----
-paths:
-  - "features/**/events.ts"
-  - "features/**/events/**"
-  - "features/**/mutations.ts"
-  - "lib/events/**"
----
-
 # Event Bus Rules
 
 ## When to emit

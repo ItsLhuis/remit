@@ -1,8 +1,3 @@
----
-paths:
-  - "features/**/queries.ts"
----
-
 # Query Rules
 
 Read operations live in `features/<feature>/queries.ts`. Queries are the read-path counterpart to

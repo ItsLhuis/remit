@@ -1,8 +1,3 @@
----
-paths:
-  - "app/**/route.ts"
----
-
 # API Route Rules
 
 API route handlers under `app/**/route.ts` are the narrow exception to the server-action write path.

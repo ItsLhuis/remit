@@ -1,13 +1,3 @@
----
-paths:
-  - "features/auth/**"
-  - "features/settings/**"
-  - "lib/auth*.ts"
-  - "app/api/**"
-  - "app/(public)/**"
-  - "proxy.ts"
----
-
 # Security Rules
 
 ## Secrets and credentials

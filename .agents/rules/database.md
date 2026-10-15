@@ -1,9 +1,3 @@
----
-paths:
-  - "database/**/*.ts"
-  - "drizzle/**"
----
-
 # Database Rules
 
 ## Schema file organization

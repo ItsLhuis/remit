@@ -1,10 +1,3 @@
----
-paths:
-  - "app/**/*.tsx"
-  - "components/**/*.tsx"
-  - "features/**/*.tsx"
----
-
 # Form Rules
 
 ## Form setup

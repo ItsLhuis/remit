@@ -1,9 +1,3 @@
----
-paths:
-  - "**/*.ts"
-  - "**/*.tsx"
----
-
 # Error Handling Rules
 
 ## Server actions never throw

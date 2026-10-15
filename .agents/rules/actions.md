@@ -1,11 +1,3 @@
----
-paths:
-  - "features/**/mutations.ts"
-  - "features/**/*Mutations.ts"
-  - "features/**/actions.ts"
-  - "app/**/actions.ts"
----
-
 # Server Action Rules
 
 ## File header and imports

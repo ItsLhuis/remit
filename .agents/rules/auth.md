@@ -1,12 +1,3 @@
----
-paths:
-  - "lib/auth/**"
-  - "app/api/auth/**"
-  - "app/(auth)/**"
-  - "features/**"
-  - "scripts/reset-password.ts"
----
-
 # Auth Rules
 
 Better Auth owns authentication state: users, accounts, sessions, password hashing and password

@@ -1,9 +1,3 @@
----
-paths:
-  - "**/*.ts"
-  - "**/*.tsx"
----
-
 # Type Rules
 
 - Use `type` aliases rather than `interface`.

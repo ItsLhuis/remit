@@ -1,10 +1,3 @@
----
-paths:
-  - "components/**/*.tsx"
-  - "features/**/*.tsx"
-  - "app/**/*.tsx"
----
-
 # Accessibility Rules
 
 Accessibility is a non-negotiable surface. Every interactive element must be operable without a
