@@ -46,8 +46,8 @@ Run and read the output of:
 1. `pnpm lint` (this also warms the ESLint cache the pre-commit hook reuses);
 2. `pnpm typecheck`;
 3. the tests covering the touched area: `pnpm exec vitest run <test files>` or
-   `pnpm exec vitest related --run <changed source files>`; `pnpm test` before declaring a change
-   finished.
+   `pnpm exec vitest related --run <changed source files>`. The full `pnpm test` belongs to
+   `finish-change`, not to every commit.
 
 A failing or skipped check is not a pass. Fix the cause before committing.
 
