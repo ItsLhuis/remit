@@ -1,9 +1,7 @@
 # Project-local Codex configuration for this repository.
-# Codex primarily discovers project guidance through AGENTS.md.
-# CLAUDE.md is listed only as a fallback for cases where AGENTS.md is absent
-# or for compatibility with tools that use fallback project docs.
-project_doc_fallback_filenames = ["CLAUDE.md"]
+# Codex reads AGENTS.md at the root; it has no import syntax, so AGENTS.md links the rules in
+# .agents/rules/ and Codex opens the ones a change touches. Skills are read from .agents/skills/.
 
-# Raise the project instruction size limit so the root AGENTS.md is not
-# truncated too aggressively as guidance evolves.
+# Codex's default instruction budget is 32 KiB across all files; tests/docs/agentFiles.test.ts keeps
+# AGENTS.md under that, and this higher ceiling leaves room without silent truncation.
 project_doc_max_bytes = 65536

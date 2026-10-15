@@ -222,6 +222,40 @@ describe("agent guidance stays within budget and consistent", () => {
     expect(missing).toEqual([])
   })
 
+  // Claude Code matches the PowerShell tool only against PowerShell(...) rules, so a git deny that
+  // exists for Bash alone leaves the same command open through the other shell.
+  test("every Claude command deny exists for both Bash and PowerShell", () => {
+    const settings = JSON.parse(read(".claude/settings.json")) as {
+      permissions: { deny: string[] }
+    }
+    const deny = new Set(settings.permissions.deny)
+
+    const unpaired = settings.permissions.deny
+      .map((rule) => rule.match(/^(Bash|PowerShell)\((.*)\)$/))
+      .filter((match) => match !== null)
+      .filter(
+        ([, tool, pattern]) => !deny.has(`${tool === "Bash" ? "PowerShell" : "Bash"}(${pattern})`)
+      )
+      .map(([rule]) => rule)
+
+    expect(unpaired).toEqual([])
+  })
+
+  test("Claude and Codex both refuse the git operations reserved for the owner", () => {
+    const claudeDeny = read(".claude/settings.json")
+    const codexRules = read(".codex/rules/default.rules")
+
+    const unguarded = ["push", "reset", "checkout", "rebase", "merge", "tag", "worktree"].filter(
+      (subcommand) =>
+        !claudeDeny.includes(`"Bash(git ${subcommand} *)"`) ||
+        !new RegExp(
+          `pattern = \\["git", (\\[[^\\]]*)?"${subcommand}"[\\s\\S]*?decision = "forbidden"`
+        ).test(codexRules)
+    )
+
+    expect(unguarded).toEqual([])
+  })
+
   test("no versioned file cites the gitignored prompt packs", () => {
     const citing = execFileSync("git", ["grep", "-l", "--fixed-strings", GITIGNORED_PROMPTS_PATH], {
       cwd: repoRoot,

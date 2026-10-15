@@ -50,60 +50,6 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["git", "push", "--force"],
-    decision = "forbidden",
-    justification = "Force-push is destructive and must be handled manually.",
-)
-
-prefix_rule(
-    pattern = ["git", "push", "--force-with-lease"],
-    decision = "forbidden",
-    justification = "Force-push is destructive and must be handled manually.",
-)
-
-prefix_rule(
-    pattern = ["git", "push"],
-    decision = "prompt",
-    justification = "Pushing changes affects the remote repository.",
-)
-
-prefix_rule(
-    pattern = ["git", "reset"],
-    decision = "prompt",
-    justification = "Reset can discard or rewrite local work.",
-)
-
-prefix_rule(
-    pattern = ["git", "checkout"],
-    decision = "prompt",
-    justification = "Checkout can overwrite local changes.",
-)
-
-prefix_rule(
-    pattern = ["git", "switch"],
-    decision = "prompt",
-    justification = "Switching branches can affect local work.",
-)
-
-prefix_rule(
-    pattern = ["git", "restore"],
-    decision = "prompt",
-    justification = "Restore can discard local changes.",
-)
-
-prefix_rule(
-    pattern = ["git", "clean"],
-    decision = "prompt",
-    justification = "Clean can delete untracked files.",
-)
-
-prefix_rule(
-    pattern = ["git", "branch", "-D"],
-    decision = "prompt",
-    justification = "Deleting branches requires explicit approval.",
-)
-
-prefix_rule(
     pattern = ["rm", "-rf", "/"],
     decision = "forbidden",
     justification = "Filesystem-wide deletion is destructive.",
@@ -131,4 +77,40 @@ prefix_rule(
     pattern = ["Get-ChildItem", "Env:"],
     decision = "prompt",
     justification = "Environment variables may contain secrets.",
+)
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "forbidden",
+    justification = "The owner reviews local commits and performs every push (AGENTS.md, Owner decisions).",
+)
+
+prefix_rule(
+    pattern = ["git", ["reset", "checkout", "switch", "restore", "clean", "stash"]],
+    decision = "forbidden",
+    justification = "Can discard or move local work; agents never run it (AGENTS.md, Owner decisions).",
+)
+
+prefix_rule(
+    pattern = ["git", ["merge", "rebase", "cherry-pick", "tag", "worktree"]],
+    decision = "forbidden",
+    justification = "History, branch and worktree operations belong to the owner (AGENTS.md, Owner decisions).",
+)
+
+prefix_rule(
+    pattern = ["git", "branch", ["-D", "-d", "-m", "-M", "-c"]],
+    decision = "forbidden",
+    justification = "Branch changes belong to the owner (AGENTS.md, Owner decisions).",
+)
+
+prefix_rule(
+    pattern = ["git", "add", ["-A", "--all", "-u", "--update", ".", ":/"]],
+    decision = "forbidden",
+    justification = "Agents stage explicit paths only (.agents/skills/git-commit/SKILL.md).",
+)
+
+prefix_rule(
+    pattern = ["git", "commit", ["--amend", "--no-verify", "-n"]],
+    decision = "forbidden",
+    justification = "Agents never amend or bypass hooks (.agents/skills/git-commit/SKILL.md).",
 )
