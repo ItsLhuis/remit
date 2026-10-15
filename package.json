@@ -43,9 +43,9 @@
     "services:down": "docker compose -f docker-compose.dev.yml down",
     "services:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "services:restart": "docker compose -f docker-compose.dev.yml restart",
-    "lint": "pnpm lint:cycles && eslint . --cache --cache-location node_modules/.cache/eslint/",
+    "lint": "pnpm lint:cycles && eslint . --cache --cache-location node_modules/.cache/eslint/ --cache-strategy content",
     "lint:cycles": "oxlint",
-    "lint:fix": "pnpm lint:cycles && eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
+    "lint:fix": "pnpm lint:cycles && eslint . --fix --cache --cache-location node_modules/.cache/eslint/ --cache-strategy content",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -197,7 +197,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs}": [
-      "eslint --fix",
+      "eslint --fix --cache --cache-location node_modules/.cache/eslint/ --cache-strategy content",
       "prettier --write"
     ],
     "*.{json,css,md,yaml,yml}": [
