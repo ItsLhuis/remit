@@ -3,13 +3,13 @@
 `.agents/` holds the one canonical copy of everything that instructs AI agents in this repository.
 Tool-specific folders only register or scope it, so content never exists twice.
 
-| Canonical                | Claude Code                                  | Codex                                |
-| ------------------------ | -------------------------------------------- | ------------------------------------ |
-| `AGENTS.md` (repo root)  | `CLAUDE.md` imports it                       | read natively                        |
-| `rules/<name>.md`        | `.claude/rules/<name>.md` pointer + `paths:` | `AGENTS.md` table of files → rules   |
-| `skills/<name>/SKILL.md` | `.claude/skills/<name>/SKILL.md` wrapper     | read natively from `.agents/skills/` |
-| `agents/<name>.md`       | `.claude/agents/<name>.md` wrapper           | `.codex/agents/<name>.toml` wrapper  |
-| permissions              | `.claude/settings.json`                      | `.codex/rules/default.rules`         |
+| Canonical                  | Claude Code                                  | Codex                                |
+| -------------------------- | -------------------------------------------- | ------------------------------------ |
+| `AGENTS.md` (repo root)    | `CLAUDE.md` imports it                       | read natively                        |
+| `rules/<name>.md`          | `.claude/rules/<name>.md` pointer + `paths:` | `AGENTS.md` table of files → rules   |
+| `skills/<name>/SKILL.md`   | `.claude/skills/<name>/SKILL.md` wrapper     | read natively from `.agents/skills/` |
+| `agents/<name>.md`         | `.claude/agents/<name>.md` wrapper           | `.codex/agents/<name>.toml` wrapper  |
+| permissions and guard hook | `.claude/settings.json`, `.claude/hooks/`    | `.codex/rules/default.rules`         |
 
 Why wrappers and pointers instead of imports or symlinks: Claude Code loads every `@`-import at
 launch, even from a path-scoped rule, and reads nothing under `.agents/`; symlinks are unreliable on
