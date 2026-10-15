@@ -49,19 +49,42 @@ describe("rule docs stay in sync with the codebase", () => {
     expect(missing).toEqual([])
   })
 
-  test("every rule file is registered in AGENTS.md and CLAUDE.md", () => {
+  test("every rule file is linked from AGENTS.md and has a path-scoped Claude pointer", () => {
     const ruleFiles = readdirSync(join(repoRoot, ".agents", "rules")).filter((name) =>
       name.endsWith(".md")
     )
     const agentsDoc = readFileSync(join(repoRoot, "AGENTS.md"), "utf8")
-    const claudeDoc = readFileSync(join(repoRoot, "CLAUDE.md"), "utf8")
 
-    const unregistered = ruleFiles.filter(
-      (name) =>
-        !agentsDoc.includes(`.agents/rules/${name}`) ||
-        !claudeDoc.includes(`@.agents/rules/${name}`)
-    )
+    const unregistered = ruleFiles.filter((name) => {
+      const pointerPath = join(repoRoot, ".claude", "rules", name)
+
+      if (!agentsDoc.includes(`.agents/rules/${name}`) || !existsSync(pointerPath)) return true
+
+      const pointer = readFileSync(pointerPath, "utf8")
+
+      return !/^---\r?\npaths:\r?\n/.test(pointer) || !pointer.includes(`\`.agents/rules/${name}\``)
+    })
 
     expect(unregistered).toEqual([])
+  })
+
+  test("every Claude rule pointer names an existing canonical rule", () => {
+    const orphans = readdirSync(join(repoRoot, ".claude", "rules")).filter(
+      (name) => !existsSync(join(repoRoot, ".agents", "rules", name))
+    )
+
+    expect(orphans).toEqual([])
+  })
+
+  // An @-import loads at launch even from inside a path-scoped rule, so importing a rule from
+  // CLAUDE.md or from a pointer would put it back into every session's context.
+  test("no instruction file @-imports a rule", () => {
+    const importers = [
+      "CLAUDE.md",
+      "AGENTS.md",
+      ...readdirSync(join(repoRoot, ".claude", "rules")).map((name) => `.claude/rules/${name}`)
+    ].filter((path) => /^@\S*\.agents\/rules\//m.test(readFileSync(join(repoRoot, path), "utf8")))
+
+    expect(importers).toEqual([])
   })
 })
