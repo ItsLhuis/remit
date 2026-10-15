@@ -1,251 +1,95 @@
 ---
 name: git-commit
 description:
-  Use when the user explicitly asks Codex to act as a git commit executor, create and apply atomic
-  commits, or execute repository commits following commitlint rules.
+  Use when committing changes in this repository - grouping work into atomic commits, staging
+  explicit paths, running the commit gate, and writing commitlint-conformant English messages.
 ---
 
-# Git Commit Skill
+# Git commit
 
-You are an expert Git commit executor. Your role is to analyze code changes and execute logical,
-atomic commits that group related functionality while respecting code dependencies.
+Commit local work as one or more atomic, individually verified commits on the current branch. Never
+push, merge, amend, rebase, reset, check out, switch, restore, clean, stash, tag, create branches or
+worktrees, or bypass hooks (`--no-verify`, `-n`, `HUSKY=0`, `core.hooksPath`). The owner reviews the
+commits and pushes.
 
-## Core Responsibilities
+Run every command from the repository root without a `cd` prefix (a `cd` defeats the path-based
+permission rules).
 
-1. Read and parse commitlint configuration if it exists.
-2. Analyze all staged and unstaged changes in the repository.
-3. Identify dependencies between new or modified code.
-4. Group changes logically by functionality or entity.
-5. Execute atomic commits that will not break the codebase.
-6. Generate commit messages following the project's commitlint rules.
+## 1. Know what is yours
 
-## Commitlint Configuration - Mandatory First Step
+1. `git status --porcelain`. If it lists changes you did not make in this session, stop and report
+   them: you must never commit the owner's unrelated work.
+2. List the exact paths you intend to commit. Never stage with `git add -A`, `git add .`,
+   `git add -u`, a directory or a glob.
 
-Before making any commits, you must:
+## 2. Read the message rules
 
-1. Check for commitlint config files in this order:
-   - `commitlint.config.mjs`
-   - `commitlint.config.js`
-   - `commitlint.config.cjs`
-   - `commitlint.config.ts`
-   - `.commitlintrc.js`
-   - `.commitlintrc.json`
-   - `.commitlintrc.yml`
-   - `commitlint` field in `package.json`
-2. Read and parse the config file.
-3. Extract the rules that apply to commits:
-   - allowed types from `type-enum`
-   - allowed scopes from `scope-enum`, if defined
-   - subject length limits from `subject-max-length`
-   - subject case rules from `subject-case`
-   - header length limits from `header-max-length`
-   - body or footer requirements
-   - any custom project-specific rules
-4. Apply these rules to all commit messages you generate.
+Read `commitlint.config.mjs` (extends `@commitlint/config-conventional`): allowed types
+`feat fix docs style refactor perf test build ci chore revert`, lower-case type, no empty subject,
+no trailing period, header and body lines at most 100 characters. If the config changes, the file
+wins over this summary.
 
-### Handling `extends` in Commitlint Config
+## 3. Group into commits
 
-If the config extends presets like `@commitlint/config-conventional`, use the conventional defaults
-unless overridden by project rules:
+- One logical change per commit; each commit leaves the codebase working.
+- Commit foundations before dependents: if B imports A, A goes first (types and utilities → services
+  → queries/mutations/routes → components → configuration → tests → docs). Tests and the spec edit
+  usually belong in the same commit as the code they cover.
+- Lockfiles, generated files and formatting-only edits never get their own commit; they ride with
+  the code that caused them.
+- A task from `openspec/changes/<name>/tasks.md` is exactly one commit, including its checkbox tick.
 
-- types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`,
-  `revert`
-- subject: lower-case, max 100 chars
-- no period at end of subject
+## 4. Commit gate (before each commit)
 
-Project custom rules override the defaults.
+Run and read the output of:
 
-## Working Directory
+1. `pnpm lint` (this also warms the ESLint cache the pre-commit hook reuses);
+2. `pnpm typecheck`;
+3. the tests covering the touched area: `pnpm exec vitest run <test files>` or
+   `pnpm exec vitest related --run <changed source files>`; `pnpm test` before declaring a change
+   finished.
 
-Never use `cd` before any git or shell command. The agent is already running from the project root.
-All commands must be run directly without any directory prefix.
+A failing or skipped check is not a pass. Fix the cause before committing.
+
+## 5. Stage and prove it
 
 ```bash
-# Correct
-git status
-git add src/foo.ts
-git commit -m "feat: add foo"
-
-# Wrong
-cd my-project && git status
-cd /path/to/project && git add .
+git add -- <path> <path> ...
+git diff --cached --name-only
 ```
 
-## Analysis Commands
+The second command's output must equal your list from step 1. If it does not, do not commit and do
+not try to unstage with `reset` or `restore`: report the difference and stop.
 
-Use these commands for analysis:
-
-```bash
-git status
-git diff
-git diff --staged
-git diff --stat
-cat <file>
-```
-
-## Commit Strategy
-
-### Grouping Rules
-
-- Group by feature, entity, or logical unit.
-- Keep related changes together, such as model, service, and UI for the same entity.
-- Separate independent changes into different commits.
-- Do not over-split into micro-commits.
-
-### Auto-Generated and Formatting Files
-
-These files should not get separate commits:
-
-- lock files such as `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `Cargo.lock`,
-  `Gemfile.lock`, `composer.lock`, `poetry.lock`
-- auto-generated files such as `routeTree.gen.ts`, `*.gen.ts`, `*.generated.*`, build artifacts
-- pure formatting changes such as quote style, whitespace, or lint-only edits
-
-These files should be included in the last commit with the actual feature code they support.
-
-### Dependency Analysis
-
-- Never commit code that depends on uncommitted changes.
-- Analyze imports, function calls, and other dependencies.
-- Commit foundational code before dependent code.
-- If file B imports or uses code from file A, commit A first.
-
-### Commit Order Priority
-
-1. Base models, interfaces, types, and utilities
-2. Services and business logic that use the base code
-3. Controllers or routes that use services
-4. Views or components that use controllers
-5. Configuration files manually edited for the feature
-6. Tests related to the above
-7. Documentation updates
-8. Last commit: main feature files plus auto-generated files and formatting changes
-
-## Conventional Commits Format
-
-Follow the project's commitlint configuration.
-
-### Structure
+## 6. Write the message
 
 ```text
-<type>[optional scope]: <description>
+<type>(<scope>): <imperative subject, lower-case start, no period>
+
+<optional body: why, when the subject cannot say it>
+Change: <change-name>, task <n>
 ```
 
-### When to Use Body
+- Scope is the capability or area (`invoicing`, `rules`, `openspec`).
+- The `Change:` body line is required for commits that complete a task of an `openspec` change;
+  `next-step` finds tasks by it. It is body text, not a trailer.
+- English only. No co-author lines, AI credits, `Co-Authored-By` or other trailers, and no mention
+  that the commit was generated.
 
-Only add a body when:
+Commit with `git commit -F -` and a heredoc, or `-m` for a one-line message.
 
-- the feature is exceptionally complex and needs explanation
-- the change is breaking and needs migration instructions
-- multiple related changes need enumeration
+## 7. When a hook fails
+
+The pre-commit hook runs lint-staged (ESLint `--fix` + Prettier on staged files) and the oxlint
+cycle check; commit-msg runs commitlint. On failure the commit does not exist, so there is nothing
+to amend: read the output, fix the cause, re-stage the same paths, re-run step 5, commit again. If
+it fails a second time on something outside your paths, stop and report it.
+
+## 8. Report
 
 ```text
-<type>[optional scope]: <description>
-
-[body explaining the complex change]
-
-[optional footer for breaking changes or issue refs]
+Committed 2:
+1. <hash> feat(invoicing): add credit balance to the client summary
+2. <hash> test(invoicing): cover credit balance rounding
+Staged exactly: <paths>
 ```
-
-### Apply Project Rules
-
-- Use only the types allowed by commitlint config.
-- Use only the scopes allowed by commitlint config when `scope-enum` exists.
-- Respect `subject-max-length`.
-- Respect `header-max-length`.
-- Respect `subject-case`.
-- Default to lower-case when no case rule is specified.
-
-### Description Rules
-
-- Use imperative mood.
-- Do not end the subject with a period unless config requires it.
-- Keep the subject concise and descriptive.
-
-## Execution Process
-
-1. Read commitlint config.
-2. Parse and extract rules.
-3. Execute analysis commands.
-4. Identify file purposes and dependencies.
-5. Group changes logically by feature or entity.
-6. Separate auto-generated and formatting files for the last commit.
-7. Execute commits in dependency order, applying commitlint rules.
-8. Execute the final commit with `git add .` to catch remaining changes.
-
-## Commit Execution Pattern
-
-For each commit group:
-
-```bash
-git add <specific files>
-git commit -m "type(scope): description"
-```
-
-Ensure each commit message follows the parsed commitlint rules:
-
-- type is in the allowed list
-- scope is in the allowed list when `scope-enum` exists
-- subject length is within the limit
-- subject case matches the rule
-- header length is within the limit
-
-Do not use a body unless absolutely necessary.
-
-Never add co-author attributions, AI credits, or trailers like `Co-Authored-By`.
-
-The last commit always uses:
-
-```bash
-git add .
-git commit -m "feat(feature-name): description of the main feature"
-```
-
-This captures:
-
-- main feature files
-- auto-generated files
-- formatting-only changes
-- ancillary updates
-
-## Critical Rules
-
-- Read commitlint config before any commits.
-- Apply parsed rules for types, scopes, lengths, and case.
-- Execute commits instead of only proposing them.
-- Use no body by default.
-- Never mention commits are auto-generated.
-- Never add co-author credits or AI attribution.
-- Always end with `git add .` on the main feature commit.
-- Do not create separate commits for lock files, generated files, or pure formatting changes.
-- Ensure each commit leaves the codebase in a working state.
-- Respect dependencies.
-- Group by logical functionality, not by file type.
-
-## Workflow
-
-1. User asks Codex to execute commits.
-2. Read and parse commitlint config.
-3. Analyze repository state.
-4. Identify logical commit groups.
-5. Keep auto-generated and formatting files for the last commit.
-6. Execute commits in the correct order following commitlint rules.
-7. Confirm completion.
-
-## Output Style
-
-After executing commits, provide a brief summary:
-
-```text
-Commitlint config: using types [feat, fix, chore] and scopes [auth, api, ui]
-
-Executed 3 commits:
-
-1. feat(auth): add user and session models
-2. feat(auth): implement authentication service
-3. feat(auth): add authentication endpoints
-
-All changes committed successfully.
-```
-
-Do not add extra explanations, commit plans, auto-generated mentions, or co-author credits.

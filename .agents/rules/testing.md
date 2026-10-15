@@ -83,7 +83,7 @@ The integration schema is migrated freshly per run; tables are truncated between
 | --------------------------------------- | ---------------------------------------------------------------- |
 | Service unit tests                      | `features/<feature>/services/__tests__/<serviceName>.test.ts`    |
 | Shared utility unit tests               | `lib/utils/__tests__/<utilityName>.test.ts`                      |
-| Shared hook tests                       | `hooks/__tests__/useHookName.test.ts`                            |
+| Shared hook tests                       | `hooks/__tests__/<useHookName>.test.ts`                          |
 | Feature hook tests                      | Sibling `useHookName.test.ts` next to the hook file              |
 | Component tests (folder component)      | `ComponentName/__tests__/ComponentName.test.tsx`                 |
 | Component tests (single-file component) | `__tests__/ComponentName.test.tsx` adjacent to the component     |

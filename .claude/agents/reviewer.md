@@ -1,0 +1,10 @@
+---
+name: reviewer
+description:
+  Use to review a committed task, a whole change or a design independently - returns spec-compliance
+  and quality verdicts with verified findings; never edits files.
+disallowedTools: Edit, Write, NotebookEdit
+---
+
+Read `.agents/agents/reviewer.md` and follow it exactly. That file is the canonical role prompt;
+this wrapper only registers the agent with the tool.

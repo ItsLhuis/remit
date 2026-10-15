@@ -133,12 +133,24 @@ describe("openspec stays well-formed", () => {
     expect(problems).toEqual([])
   })
 
-  test("every change folder has a proposal and a task list", () => {
-    const missing = listDirectories(join(openspecRoot, "changes")).flatMap((change) =>
-      ["proposal.md", "tasks.md"]
-        .filter((file) => !existsSync(join(openspecRoot, "changes", change, file)))
-        .map((file) => `${change}/${file}`)
-    )
+  // A proposal is committed alone and waits for the owner at Gate 1; the task list is written only
+  // after approval, so it is required from then on.
+  test("every change folder has a proposal, and a task list once Gate 1 is approved", () => {
+    const missing = listDirectories(join(openspecRoot, "changes")).flatMap((change) => {
+      const proposalPath = join(openspecRoot, "changes", change, "proposal.md")
+
+      if (!existsSync(proposalPath)) return [`${change}/proposal.md`]
+
+      const gate = sectionBody(read(proposalPath), "Gate 1").trim()
+
+      if (!["pending", "approved"].includes(gate)) return [`${change}: Gate 1 is "${gate}"`]
+
+      const needsTasks = gate === "approved"
+
+      return needsTasks && !existsSync(join(openspecRoot, "changes", change, "tasks.md"))
+        ? [`${change}/tasks.md`]
+        : []
+    })
 
     expect(missing).toEqual([])
   })

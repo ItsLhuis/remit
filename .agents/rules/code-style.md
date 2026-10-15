@@ -20,7 +20,7 @@ boundaries: a generic helper still belongs in `lib/utils/`.
 | `services/*.ts`                  | `features/clients/services/clientHealth.ts`                                              |
 | `services/__tests__/*`           | `features/clients/services/__tests__/clientHealth.test.ts`                               |
 | feature `index.ts` / `server.ts` | `features/clients/index.ts` / `features/clients/server.ts`                               |
-| component barrel                 | any settings `components/index.ts` (`export * from "./X"`)                               |
+| component barrel                 | `features/settings/business/components/index.ts` (`export * from "./X"`)                 |
 
 Match the exemplar for: whether a component is an expression body or a block with `return`, whether
 helpers sit before or after the component, and how many blank lines separate hooks and derived
