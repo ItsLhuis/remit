@@ -24,6 +24,8 @@ describe("git guard", () => {
     "git -C S:/Code/remit log -1",
     "git branch",
     "git branch --show-current",
+    "git config core.hooksPath",
+    "git config --get core.hooksPath",
     "pnpm lint && pnpm typecheck && git add -- AGENTS.md && git commit -m 'docs: x'",
     "echo pushing is for the owner"
   ])("allows %s", (command) => {
@@ -69,7 +71,9 @@ describe("git guard", () => {
     "HUSKY=0 git commit -m x",
     "$env:HUSKY=0; git commit -m x",
     "git -c core.hooksPath=/dev/null commit -m x",
-    "git config core.hooksPath .nohooks"
+    "git config core.hooksPath .nohooks",
+    "git config --global core.hooksPath /tmp/hooks",
+    "git config --unset core.hooksPath"
   ])("blocks %s", (command) => {
     expect(isAllowed(command)).toBe(false)
   })

@@ -61,12 +61,7 @@ const COMMIT_FORBIDDEN_SHORT_FLAGS = ["n", "a"]
 
 const COMMIT_SHORT_FLAGS_WITH_VALUE = new Set(["m", "F", "C", "c", "t", "S"])
 
-const HOOK_BYPASS_PATTERNS = [
-  /\bHUSKY\s*=\s*0\b/,
-  /\$env:HUSKY\b/i,
-  /core\.hooksPath/i,
-  /--no-verify\b/
-]
+const HOOK_BYPASS_PATTERNS = [/\bHUSKY\s*=\s*0\b/, /\$env:HUSKY\b/i, /--no-verify\b/]
 
 const NESTED_SHELLS = new Set(["sh", "bash", "zsh", "pwsh", "powershell", "cmd", "cmd.exe"])
 
@@ -194,6 +189,22 @@ function classifyCommit(args) {
   return ALLOWED
 }
 
+// Reading core.hooksPath is harmless (`git config core.hooksPath`, `--get`); setting, unsetting or
+// replacing it moves or disables the hooks.
+function classifyConfig(args) {
+  const keyIndex = args.findIndex((arg) => /^core\.hooksPath$/i.test(arg))
+
+  if (keyIndex === -1) return ALLOWED
+
+  const flags = args.filter((arg) => arg.startsWith("-"))
+  const writes = flags.some((flag) =>
+    /^--(unset|unset-all|replace-all|add|rename-section|remove-section|edit)$/.test(flag)
+  )
+  const hasValue = args.slice(keyIndex + 1).some((arg) => !arg.startsWith("-"))
+
+  return writes || hasValue ? deny("changing core.hooksPath bypasses the hooks") : ALLOWED
+}
+
 function classifyBranch(args) {
   const changes = args.filter((arg) => !BRANCH_LISTING_FLAGS.has(arg))
 
@@ -205,6 +216,10 @@ function classifyGit(args, isDirectory) {
 
   while (index < args.length && args[index].startsWith("-")) {
     const option = args[index]
+
+    if (option === "-c" && /^core\.hooksPath=/i.test(args[index + 1] ?? "")) {
+      return deny("overriding core.hooksPath bypasses the hooks")
+    }
 
     if (GLOBAL_OPTIONS_WITH_VALUE.has(option)) index += 2
     else index++
@@ -219,9 +234,7 @@ function classifyGit(args, isDirectory) {
   if (subcommand === "add") return classifyAdd(rest, isDirectory)
   if (subcommand === "commit") return classifyCommit(rest)
   if (subcommand === "branch") return classifyBranch(rest)
-  if (subcommand === "config" && rest.some((arg) => /core\.hooksPath/i.test(arg))) {
-    return deny("changing core.hooksPath bypasses the hooks")
-  }
+  if (subcommand === "config") return classifyConfig(rest)
 
   return ALLOWED
 }
