@@ -1,1 +1,11 @@
 pnpm typecheck
+pnpm lint:cycles
+
+# Backstop for commits that reached history without the commit-msg hook: every commit about to
+# leave the machine is checked again. The range starts at the upstream, or origin/main when the
+# branch has none; with neither (a fresh clone with no remote) there is nothing to compare against.
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo origin/main)
+
+if git rev-parse --verify --quiet "$upstream" >/dev/null; then
+  pnpm exec commitlint --from "$upstream" --to HEAD
+fi
