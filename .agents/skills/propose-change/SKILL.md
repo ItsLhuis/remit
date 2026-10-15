@@ -29,6 +29,8 @@ Ask only what the code and docs cannot answer: intent, product position, scope e
 - At most five questions per round, each with your recommended answer and why.
 - Offer real options neutrally; never phrase a question so that only your preferred answer fits.
 - Stop interviewing when every open question has an answer or an explicit "owner decides later".
+- When the owner cannot answer now (an unattended run), do not guess: write each question with its
+  recommended answer under Open questions, commit, and stop at Gate 1.
 - The owner's language of conversation may differ; everything written to the repository is English.
 
 ## 4. Write the proposal

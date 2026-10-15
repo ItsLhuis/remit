@@ -7,7 +7,7 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
-1. `docs-to-specs-pilot` — migrate two capabilities from `docs/` into `openspec/specs/` with
+1. `migrate-pilot-capabilities` — migrate two capabilities from `docs/` into `openspec/specs/` with
    `write-spec`, verified against the code
 
 ## Gaps

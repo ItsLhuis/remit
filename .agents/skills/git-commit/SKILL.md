@@ -49,6 +49,9 @@ Run and read the output of:
    `pnpm exec vitest related --run <changed source files>`. The full `pnpm test` belongs to
    `finish-change`, not to every commit.
 
+When only Markdown files are staged, steps 1-3 reduce to `pnpm exec prettier --check <paths>` and
+`pnpm exec vitest run tests/docs`.
+
 A failing or skipped check is not a pass. Fix the cause before committing.
 
 ## 5. Stage and prove it
