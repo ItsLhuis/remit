@@ -20,7 +20,8 @@ Produce `openspec/changes/<change-name>/proposal.md` and stop at Gate 1. No code
 ## 2. Name the change
 
 A kebab-case verb phrase describing the outcome (`add-credit-balance`, `fix-overdue-reminders`). No
-dates, no ticket numbers. It must not collide with a folder in `openspec/changes/`.
+dates, no ticket numbers. It must not collide with a folder in `openspec/changes/`. When the work
+comes from an `openspec/backlog.md` entry, reuse that entry's name.
 
 ## 3. Interview the owner, in rounds
 

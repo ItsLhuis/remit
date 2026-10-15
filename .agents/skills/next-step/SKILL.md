@@ -22,7 +22,7 @@ session, stop and report it. Never commit or discard work you cannot attribute.
 
 ## 3. Verify active changes against git and code
 
-For each change folder:
+For each change folder (none means nothing to verify; go to step 4):
 
 1. Every ticked task must have a commit: `git log --oneline --grep "Change: <name>, task <n>"`.
    Missing → report "task <n> ticked without a commit" and stop.

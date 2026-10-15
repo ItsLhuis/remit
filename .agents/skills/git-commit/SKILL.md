@@ -50,7 +50,8 @@ Run and read the output of:
    `finish-change`, not to every commit.
 
 When only Markdown files are staged, steps 1-3 reduce to `pnpm exec prettier --check <paths>` and
-`pnpm exec vitest run tests/docs`.
+`pnpm exec vitest run tests/docs`. Format new or edited files first with
+`pnpm exec prettier --write <paths>`.
 
 A failing or skipped check is not a pass. Fix the cause before committing.
 
