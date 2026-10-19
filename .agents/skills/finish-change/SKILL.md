@@ -2,7 +2,7 @@
 name: finish-change
 description:
   Use when every task of an openspec change is ticked - verifies the whole change against its
-  proposal and the code, lands spec status, evolution and gaps, closes the change for owner review.
+  proposal and the code, lands spec status and gaps, closes the change for owner review.
 ---
 
 # Finish a change
@@ -35,7 +35,6 @@ In `openspec/specs/<capability>/spec.md` for each capability touched:
 - requirements match the code and every anchor path exists;
 - decisions taken during the change are in Decisions (`Dn`, with rejected alternatives); read them
   back from the proposal, design and review findings;
-- append one Evolution line: `` `<name>` — <what changed> ``;
 - set Status to `verified` when every requirement was checked against the code in this change;
 - Known limits: every limit has a `GAP-<n>` id registered in `openspec/backlog.md` with one owner.
 

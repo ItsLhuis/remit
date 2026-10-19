@@ -34,7 +34,7 @@ Shared definitions for every task:
   - Verify:
     `! git grep -nP "$CITE|until migrated|migrating|back-fill" -- openspec/README.md .agents/skills/write-spec .claude/skills/write-spec docs/README.md AGENTS.md && pnpm exec vitest run tests/docs`
 
-- [ ] 2. The spec format describes the present only
+- [x] 2. The spec format describes the present only
   - Do: remove the Evolution section from `openspec/templates/spec.md` and from `SPEC_SECTIONS` in
     `tests/docs/openspec.test.ts`; remove the Evolution and `Superseded by` wording from
     `openspec/README.md` ("History without dates" becomes: a decision that no longer holds is edited

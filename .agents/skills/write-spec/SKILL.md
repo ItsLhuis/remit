@@ -2,7 +2,7 @@
 name: write-spec
 description:
   Use when writing or rewriting a capability spec under openspec/specs - turns verified behaviour
-  into requirements with scenarios and anchors, decisions, evolution and known limits.
+  into requirements with scenarios and anchors, decisions and known limits.
 ---
 
 # Write a capability spec
@@ -34,9 +34,9 @@ trace it end to end — route → query/mutation → service → schema → test
   paths, or `review`.
 - **How it works**: short, with entry-point paths. Never restate lists the code declares (routes,
   events, env vars, columns, export lists); point at the source file instead.
-- **Decisions**: `### Dn: <decision>` — what, why, rejected alternatives. A reversed decision stays
-  and gets `Superseded by Dm`. Cross-cutting principles stay in `docs/architecture/ARCHITECTURE.md`.
-- **Evolution**: one line per completed change, oldest first; no dates.
+- **Decisions**: `### Dn: <decision>` — what, why, rejected alternatives. A decision that no longer
+  holds is edited or deleted in place. Cross-cutting principles stay in
+  `docs/architecture/ARCHITECTURE.md`.
 - **Known limits**: `- GAP-<n>: <limit>`, each registered in `openspec/backlog.md` with one owner.
 - **Status**: `verified` only when every requirement was checked against the code; otherwise
   `draft`.

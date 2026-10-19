@@ -26,9 +26,10 @@ openspec/
   exports are generated or tested, never hand-maintained in a spec.
 - **No delta files, no merge step.** A change edits `spec.md` in the same commit as the code that
   makes the edit true. Its `proposal.md` lists the intended spec impact for review only.
-- **History without dates.** The spec's Evolution section lists completed changes in order; a
-  reversed decision is marked `Superseded by Dn`, never deleted. `git log -- <spec>` gives the when.
-- **Closing a change** removes its folder in the last task's commit and adds the Evolution line;
+- **History without dates.** A spec states only what holds now: a decision that no longer holds is
+  edited or deleted in place. History is `git log -- <spec>` and the `Change: <name>` lines of the
+  commits that closed each change.
+- **Closing a change** removes its folder in the last task's commit;
   `git log --diff-filter=D -- openspec/changes/<name>` recovers it.
 - **Specs grow with real changes.** Writing a spec for existing behaviour is a change of its own,
   verified against the code.

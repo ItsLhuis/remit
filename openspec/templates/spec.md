@@ -30,10 +30,6 @@ Do not restate lists the code declares (routes, events, env vars, columns).>
 
 <What was decided and why.> Rejected: <alternatives and the reason each lost.>
 
-## Evolution
-
-1. `<change-name>` — <what changed in one line>
-
 ## Known limits
 
 - <GAP-id>: <what is missing or wrong> (owner: see `openspec/backlog.md`)

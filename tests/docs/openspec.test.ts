@@ -11,14 +11,7 @@ const openspecRoot = join(repoRoot, "openspec")
 
 // Hardcoded rather than read from the template, because this list is the guard: deriving it from
 // the file being checked would let a template that drops a section pass.
-const SPEC_SECTIONS = [
-  "Status",
-  "Requirements",
-  "How it works",
-  "Decisions",
-  "Evolution",
-  "Known limits"
-]
+const SPEC_SECTIONS = ["Status", "Requirements", "How it works", "Decisions", "Known limits"]
 
 const SPEC_STATUSES = ["draft", "verified"]
 

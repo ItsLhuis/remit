@@ -2,7 +2,7 @@
 name: write-spec
 description:
   Use when writing or rewriting a capability spec under openspec/specs - turns verified behaviour
-  into requirements with scenarios and anchors, decisions, evolution and known limits.
+  into requirements with scenarios and anchors, decisions and known limits.
 ---
 
 Read `.agents/skills/write-spec/SKILL.md` and follow it exactly. That file is the canonical skill;
