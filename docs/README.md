@@ -7,8 +7,6 @@ another, so start from the question you actually have.
 | ----------------------------------------------- | ------------------------------------------------------------------------------------ |
 | How is the system built, and why that way?      | [`architecture/ARCHITECTURE.md`](architecture/ARCHITECTURE.md)                       |
 | What is every table, column, constraint, index? | [`architecture/SCHEMA.md`](architecture/SCHEMA.md)                                   |
-| Why was a specific decision taken?              | [`architecture/adr/`](architecture/adr/README.md)                                    |
-| What was built, when, and how was it verified?  | [`delivery/`](delivery)                                                              |
 | How do I install and start an instance?         | [`operations/INSTALL.md`](operations/INSTALL.md)                                     |
 | How do I deploy it on a specific platform?      | [`deploy/`](deploy)                                                                  |
 | How do I restore from a backup?                 | [`operations/RESTORE.md`](operations/RESTORE.md)                                     |
@@ -20,8 +18,4 @@ another, so start from the question you actually have.
 | What behaviour is expected of participants?     | [`../.github/CODE_OF_CONDUCT.md`](../.github/CODE_OF_CONDUCT.md)                     |
 | How do I contribute?                            | [`../.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md)                           |
 
-The four kinds of document here do not overlap. An ADR records a decision and never changes.
-`ARCHITECTURE.md` and `SCHEMA.md` describe the system as it is today and are rewritten in place. A
-delivery record describes one capability as it was delivered and is sealed. The runbooks describe a
-procedure an operator follows under pressure, and a deployment guide is a runbook for one platform
-that states whether anyone has executed it.
+A deployment guide is a runbook for one platform and states whether anyone has executed it.

@@ -1,8 +1,8 @@
 ---
 name: write-spec
 description:
-  Use when writing, migrating or rewriting a capability spec under openspec/specs - turns verified
-  behaviour into requirements with scenarios and anchors, decisions, evolution and known limits.
+  Use when writing or rewriting a capability spec under openspec/specs - turns verified behaviour
+  into requirements with scenarios and anchors, decisions, evolution and known limits.
 ---
 
 # Write a capability spec
@@ -18,13 +18,12 @@ A spec states what the system does now, verified against the code. Format and ru
 
 ## 2. Collect claims, then verify each against the code
 
-Sources (`docs/architecture/**`, ADRs, delivery records, existing specs, the code itself) give
-claims. Treat every claim as a hypothesis: trace it end to end — route → query/mutation → service →
-schema → test — before writing it down.
+Sources (the code, its tests and existing specs) give claims. Treat every claim as a hypothesis:
+trace it end to end — route → query/mutation → service → schema → test — before writing it down.
 
 - Built and tested → a requirement anchored to that test.
 - Built, no test → a requirement with `Enforced by: review`, plus a gap if it deserves a test.
-- Documented but not built → not a requirement. Register a gap (`openspec/backlog.md`) or drop the
+- Claimed but not built → not a requirement. Register a gap (`openspec/backlog.md`) or drop the
   claim if it was never decided.
 - A claim that drifted once has usually drifted in sibling documents too; re-check those.
 
@@ -37,8 +36,7 @@ schema → test — before writing it down.
   events, env vars, columns, export lists); point at the source file instead.
 - **Decisions**: `### Dn: <decision>` — what, why, rejected alternatives. A reversed decision stays
   and gets `Superseded by Dm`. Cross-cutting principles stay in `docs/architecture/ARCHITECTURE.md`.
-- **Evolution**: one line per completed change, oldest first; no dates. For a migration, the first
-  line names the migrating change.
+- **Evolution**: one line per completed change, oldest first; no dates.
 - **Known limits**: `- GAP-<n>: <limit>`, each registered in `openspec/backlog.md` with one owner.
 - **Status**: `verified` only when every requirement was checked against the code; otherwise
   `draft`.
@@ -47,6 +45,4 @@ Present tense, English, no dates, no citations of gitignored paths.
 
 ## 4. Check and commit
 
-`pnpm exec vitest run tests/docs/openspec.test.ts`, then commit with `git-commit`. When the spec
-replaces prose in `docs/`, the replaced prose is removed or reduced to a pointer in the same commit
-so two sources never disagree.
+`pnpm exec vitest run tests/docs/openspec.test.ts`, then commit with `git-commit`.

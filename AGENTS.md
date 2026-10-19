@@ -40,7 +40,7 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 - `lib/` - server and client utilities; `lib/auth/session.ts` has `requireSession`/`requireRole`.
 - `hooks/`, `providers/`, `scripts/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
-- `docs/architecture/` - `ARCHITECTURE.md`, `SCHEMA.md`, ADRs; `docs/delivery/` - sealed records.
+- `docs/architecture/` - `ARCHITECTURE.md`, `SCHEMA.md`.
 
 ## Hard rules
 
@@ -66,11 +66,9 @@ Standing decisions of the owner. Only the owner changes them.
 2. Everything is pre-v1 until the owner declares v1. No migration paths or back-compat notes for
    unreleased changes.
 3. The database migration history will be squashed before schema freeze; the owner schedules it.
-4. Living, dateless capability specs in `openspec/` replace dated ADRs and sealed delivery records:
-   add no new ADR or delivery record; existing ones stay until migrated.
-5. Skills, agents and rules are general, never tied to one feature.
-6. The owner keeps UI/UX, Figma mockups and the design system: UI changes stop at the design gate.
-7. Everything in the repository is English.
+4. Skills, agents and rules are general, never tied to one feature.
+5. The owner keeps UI/UX, Figma mockups and the design system: UI changes stop at the design gate.
+6. Everything in the repository is English.
 
 ## How work is done
 
@@ -86,7 +84,8 @@ Done means `pnpm lint`, `pnpm typecheck` and the tests covering the touched area
 what the code now does, and every touched file was checked against `.agents/rules/comments.md`
 ("Where comments belong"). Working principles: state assumptions; write the minimum that solves the
 stated problem; touch only what the task requires and match the surrounding style; remove only what
-your own change made unused; verify against the goal before claiming success.
+your own change made unused; verify against the goal before claiming success. Repository files
+describe the present state; history lives in git.
 
 ## Rules
 

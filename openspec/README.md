@@ -30,8 +30,8 @@ openspec/
   reversed decision is marked `Superseded by Dn`, never deleted. `git log -- <spec>` gives the when.
 - **Closing a change** removes its folder in the last task's commit and adds the Evolution line;
   `git log --diff-filter=D -- openspec/changes/<name>` recovers it.
-- **Do not back-fill.** Specs grow with real changes. Writing a spec for existing behaviour is a
-  change of its own, verified against the code.
+- **Specs grow with real changes.** Writing a spec for existing behaviour is a change of its own,
+  verified against the code.
 - A spec stays under 300 lines; split the capability when it grows past that.
 
 The procedures that create and use these files are the skills in `.agents/skills/`

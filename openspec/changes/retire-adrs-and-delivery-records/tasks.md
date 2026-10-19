@@ -20,7 +20,7 @@ Shared definitions for every task:
   `pnpm exec prettier --check <staged files>`; for a Markdown-only commit the `git-commit` reduced
   gate applies.
 
-- [ ] 1. Guidance describes the present
+- [x] 1. Guidance describes the present
   - Do: remove every mention of migrating from, back-filling from, or the existence of decision or
     delivery records in `openspec/README.md`, `.agents/skills/write-spec/SKILL.md` (sources of
     claims are the code and its tests; the description loses "migrating") and its wrapper
