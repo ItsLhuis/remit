@@ -71,13 +71,13 @@ const optionalEnvString = <TSchema extends z.ZodType>(schema: TSchema) =>
 // makes the instance unable to serve or to decrypt its own data, and failing at boot is far cheaper
 // than failing per request. `REDIS_URL` is boot-fatal for the same reason even though only the
 // worker consumes it: server actions enqueue jobs, and an instance that cannot reach its queue
-// silently stops generating recurring invoices and sending reminders (ADR-0023). `SENTRY_DSN`,
+// silently stops generating recurring invoices and sending reminders. `SENTRY_DSN`,
 // `REMIT_METRICS_TOKEN` and `REMIT_CHROMIUM_PATH` are the optional ones, since their features simply
 // stay off when unset.
 //
 // No variable here is `NEXT_PUBLIC_*`, and none may become one. Next.js freezes such a value into the
 // bundle at build time, so a published image would carry the address it was built with rather than
-// the one it is deployed at (ADR-0040).
+// the one it is deployed at.
 export const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: redisUrlSchema,
@@ -92,7 +92,7 @@ export const envSchema = z.object({
   REMIT_DATA_DIR: z.string().min(1).default("data"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   // Required even though the SDK could derive an AWS endpoint from the region: an unset endpoint
-  // must stop the boot, never send the store's credentials to AWS (ADR-0045). The names are the
+  // must stop the boot, never send the store's credentials to AWS. The names are the
   // vendor-neutral ones on purpose, and never `AWS_*`, which the SDK's default credential chain would
   // read on its own.
   S3_ENDPOINT: z.url(),
@@ -124,7 +124,7 @@ export const envSchema = z.object({
       )
   ),
   REMIT_METRICS_TOKEN: optionalEnvString(z.string().min(1)),
-  // Optional rather than boot-fatal because only the worker image ships Chromium (ADR-0022): the web
+  // Optional rather than boot-fatal because only the worker image ships Chromium: the web
   // application never launches a browser, and making this mandatory would stop it starting over a
   // binary it does not use. `lib/pdf/renderPdf.ts` fails on the render path when it is missing.
   REMIT_CHROMIUM_PATH: optionalEnvString(z.string().min(1)),

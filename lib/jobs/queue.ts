@@ -4,7 +4,7 @@ import { createRedisConnection } from "./connection"
 
 export const QUEUE_NAME = "remit"
 
-// Retries are what makes a job durable rather than merely asynchronous (ADR-0023). Five attempts
+// Retries are what makes a job durable rather than merely asynchronous. Five attempts
 // with exponential backoff covers a Redis blip, a database failover and a mail provider outage; a
 // money-affecting job that survives none of those is a genuine failure worth a dead job to inspect.
 // Every such job is idempotent at the database level, so a retry after a partial run is safe.

@@ -4,7 +4,7 @@ import { getJobHandler, getRegisteredJobNames, JOB_NAMES } from "@/lib/jobs"
 
 import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatureModules"
 
-// The drift guard for the producer/consumer split in ADR-0023. A producer only has to satisfy the
+// The drift guard between producers and the job worker. A producer only has to satisfy the
 // compiler, which checks the name against `JobMap` and never against the registry, so a job name can
 // be declared, fired from a mutation, and reach a worker that has no handler for it — where
 // `processJob` throws, burns five attempts, and dies in a process nobody is watching. Five PDF job

@@ -16,7 +16,7 @@ export type JobMap = {
   }
   // Distinct from `contract.pdf.render`: this one renders the executed document with the signature
   // record embedded, and carries the signature row the worker writes `signed_pdf_upload_id` back to
-  // once the PDF is stored (ADR-0022).
+  // once the PDF is stored.
   "contract.signed_pdf.render": {
     contractId: string
     signatureId: string
@@ -29,7 +29,7 @@ export type JobMap = {
     creditNoteId: string
   }
   // The document mails, chained *behind* the render above rather than sent alongside it. A sent
-  // proposal or invoice promises its PDF is attached (ADR-0022, `email_logs.pdf_attached`), so the
+  // proposal or invoice promises its PDF is attached (`email_logs.pdf_attached`), so the
   // mail cannot go before the artifact exists.
   //
   // Two alternatives were rejected. Rendering inside the send job couples two failure domains: a

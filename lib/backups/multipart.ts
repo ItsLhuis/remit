@@ -1,7 +1,7 @@
 const MiB = 1024 * 1024
 
-// Above this an archive goes up in parts. S3 caps a single request at 5 GiB, and an archive now
-// carries every stored file (ADR-0046); well below the cap so the multipart path is the one a growing
+// Above this an archive goes up in parts. S3 caps a single request at 5 GiB, and an archive
+// carries every stored file; well below the cap so the multipart path is the one a growing
 // instance exercises long before it would be the only one that works.
 export const MULTIPART_THRESHOLD_BYTES = 256 * MiB
 

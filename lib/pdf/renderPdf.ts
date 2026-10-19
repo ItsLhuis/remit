@@ -2,11 +2,11 @@ import { launch, type Browser, type Page } from "puppeteer-core"
 
 import { env } from "@/lib/config/env"
 
-// The IO half of ADR-0022, and the only place in the repository that touches a browser. Blocks and
+// PDF rendering's IO half, and the only place in the repository that touches a browser. Blocks and
 // merge data become HTML in a pure service (`features/templates/services/renderTemplate.ts`); this
-// file only prints that HTML. It runs in the worker process (ADR-0023) and never in a request.
+// file only prints that HTML. It runs in the worker process and never in a request.
 //
-// The trust boundary is here rather than in the caller. ADR-0022 records a misconfigured renderer as
+// The trust boundary is here rather than in the caller. A misconfigured renderer is
 // an SSRF surface, so this function is written to be incapable of reaching the network at all: every
 // request is aborted, offline mode is set, JavaScript is disabled, and the document arrives as a
 // string through `setContent` rather than as a URL the browser would fetch. A caller cannot opt out
@@ -38,7 +38,7 @@ export async function renderHtmlToPdf({
     // One page sized to the whole canvas rather than paginated A4. `getPageHeight` already returns
     // the document's full height, and the editor preview is a single continuous canvas, so slicing
     // it into paper pages here is the one thing that would make the PDF stop matching the preview —
-    // which is the fidelity criterion ADR-0022 chose a browser for in the first place.
+    // which is the fidelity a browser renderer is there to provide.
     const pdf = await page.pdf({
       width: `${widthPx}px`,
       height: `${heightPx}px`,
@@ -55,7 +55,7 @@ export async function renderHtmlToPdf({
 // Launched per render and closed in a `finally`, rather than kept alive between jobs. A pooled
 // browser would save roughly a second of startup on an operation that already runs in the
 // background, and would cost a process that can wedge or leak across an instance that renders a
-// handful of documents a day (ADR-0002). Worker concurrency is 1, so there is never a second render
+// handful of documents a day. Worker concurrency is 1, so there is never a second render
 // waiting on this one.
 async function launchBrowser(): Promise<Browser> {
   const executablePath = env.REMIT_CHROMIUM_PATH

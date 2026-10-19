@@ -67,7 +67,7 @@ beforeEach(() => {
 })
 
 // Canonical flow 5 from .agents/rules/testing.md. It lives here rather than under `tests/e2e/`
-// because Remit has exactly one user by construction (ADR-0002): a Playwright reset would change
+// because Remit has exactly one user by construction: a Playwright reset would change
 // the credential of the sole owner that every other spec authenticates as, and on a developer's own
 // instance that owner is a real account whose password cannot be put back. This suite creates the
 // account it resets, against a database truncated before every test.
@@ -95,7 +95,7 @@ test("replaces the password through the emailed link and still demands the secon
     body: { email: ACCOUNT_EMAIL, password: REPLACEMENT_PASSWORD }
   })
 
-  // ADR-0003: no reset path is a way past the second factor. A successful credential check hands
+  // No reset path is a way past the second factor. A successful credential check hands
   // back the two-factor redirect rather than a session, which is the whole assertion here.
   expect(signIn).toMatchObject({ twoFactorRedirect: true })
 
@@ -104,7 +104,7 @@ test("replaces the password through the emailed link and still demands the secon
   ).rejects.toThrow()
 
   // The self-service path leaves the flag alone; only the operator CLI sets it, because only there
-  // does somebody other than the account holder choose the password (ADR-0012).
+  // does somebody other than the account holder choose the password.
   const [account] = await database
     .select({ mustChangePassword: users.mustChangePassword })
     .from(users)

@@ -15,7 +15,7 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   ])
 
   // A presentation preference, not routing state, so it does not fall under the no-cookie rule in
-  // `security.md` and ADR-0001 — that rule governs which route a user is sent to, and `proxy.ts`
+  // `security.md` — that rule governs which route a user is sent to, and `proxy.ts`
   // still derives every such decision from the database and the session alone. The value is written
   // client-side by `components/ui/Sidebar.tsx` and read back here so the first server render opens
   // the sidebar the user left open instead of flashing to the default.

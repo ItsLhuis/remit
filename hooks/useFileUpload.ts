@@ -196,7 +196,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
 
           // Awaited inside the loop so the caller's persistence for one file finishes before the next
           // upload starts. A caller that throws here leaves the object stored with nothing pointing at
-          // it, which is the orphan case ADR-0028 accepts rather than sweeps.
+          // it, an orphan that is accepted rather than swept.
           await options.onUploaded?.(result)
         }
       } finally {

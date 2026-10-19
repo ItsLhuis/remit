@@ -21,8 +21,8 @@ import { members, settings, users } from "@/database/schema"
 
 // The onboarding and authentication state machine below derives every routing decision from the
 // database and the active session, and from nothing else. Storing routing state in a cookie is a
-// violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Routing state rule"
-// (ADR-0001), however tempting it is as a way to avoid the per-request reads here. The guard order
+// violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Routing state rule",
+// however tempting it is as a way to avoid the per-request reads here. The guard order
 // is the state machine itself: user existence, then session, then setup completion, then an
 // organization membership, then a forced password change; each stage may only be reached once the
 // earlier ones are satisfied.
@@ -191,7 +191,7 @@ export async function proxy(request: NextRequest) {
 // request to it returns null and falls through to the state machine as a request for a path with no route,
 // because that is what it is. Its answer — a redirect to sign in, or the framework's not-found page —
 // is therefore the one every unknown path gets, byte for byte, and tells a caller neither that
-// metrics exist nor whether they are switched on (ADR-0036). Refusing here instead, or rewriting a
+// metrics exist nor whether they are switched on. Refusing here instead, or rewriting a
 // refusal to a not-found path, was rejected: Next.js marks every rewritten response with an
 // `x-middleware-rewrite` header that no ordinary not-found carries.
 async function routeMetricsScrape(request: NextRequest): Promise<NextResponse | null> {

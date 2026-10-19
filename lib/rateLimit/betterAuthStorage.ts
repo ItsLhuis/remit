@@ -7,7 +7,7 @@ import { type RateLimitAdapter } from "./types"
 const BETTER_AUTH_KEY_PREFIX = "auth:"
 
 // Better Auth's sign-in, sign-up and password-reset limits, counted by the same adapter every other
-// limit in Remit uses (ADR-0037): one fixed window in Redis, shared by every process and surviving a
+// limit in Remit uses: one fixed window in Redis, shared by every process and surviving a
 // restart, falling back per process while Redis is unreachable. Better Auth keeps choosing the rule
 // for each path, `lib/auth/index.ts`'s `customRules` included; only where the count lives changes.
 //

@@ -34,7 +34,7 @@ return { count, redis.call("PTTL", KEYS[1]) }
 // restart, which is exactly what the limiter was before a shared store existed. Neither alternative
 // survives a look at the call sites: failing open would switch off the OTP and signing limits at the
 // moment the instance is already degraded, and failing closed would turn a Redis blip into refused
-// Stripe webhooks and unreachable public documents. ADR-0037 records the per-site reasoning.
+// Stripe webhooks and unreachable public documents.
 //
 // The outage is logged when it starts and when it ends, not per request: a flood of identical error
 // lines is how a real one gets missed.

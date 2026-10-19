@@ -14,7 +14,7 @@ import { type JobName } from "./types"
 
 // One at a time. The money-affecting handlers take row locks on the same schedules and invoices, and
 // a higher concurrency would buy nothing but lock contention on an instance that serves one
-// freelancer (ADR-0002). Raise this only alongside a measured need.
+// freelancer. Raise this only alongside a measured need.
 const WORKER_CONCURRENCY = 1
 
 let worker: Worker | null = null

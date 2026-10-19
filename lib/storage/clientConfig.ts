@@ -15,7 +15,7 @@ export function buildStorageClientConfig(connection: StorageConnection): S3Clien
     endpoint: connection.endpoint,
     region: connection.region,
     // Explicit, always: left out, the SDK would fall back to its default credential chain and read
-    // `AWS_*` variables or an instance profile from the environment on its own (ADR-0045).
+    // `AWS_*` variables or an instance profile from the environment on its own.
     credentials: {
       accessKeyId: connection.accessKeyId,
       secretAccessKey: connection.secretAccessKey

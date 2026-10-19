@@ -15,7 +15,7 @@ export type EnqueueJobOptions = {
   backoffDelayMs?: number
 }
 
-// The producer half of ADR-0022 (PDF rendering) and ADR-0023 (BullMQ + Redis). A producer that
+// The producer half of the BullMQ + Redis job queue that PDF rendering runs on. A producer that
 // cannot reach its queue must never fail the action that requested the job — hence a log rather
 // than a throw. The cost of that trade is explicit: an enqueue lost to a Redis outage is not
 // retried, and the work is picked up by the next repeatable sweep rather than by this call.

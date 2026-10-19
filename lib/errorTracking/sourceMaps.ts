@@ -64,13 +64,13 @@ const MAX_CACHED_CHUNKS = 32
 // `buildErrorEvent` builds the event. It reads only maps, and only beside a `.js` file under the
 // working directory: the path comes from a V8 stack frame, so it names code, never data. A map's
 // `sourcesContent` is never read, and nothing it yields leaves except through `stackFrames.ts`,
-// which still holds every filename and name to its allowlist patterns (ADR-0041).
+// which still holds every filename and name to its allowlist patterns.
 //
 // Resolving here, at the one moment an error is reported, was chosen over enabling Node's own
 // source-map support for the process (`--enable-source-maps`): that keeps every loaded chunk's map
 // in memory for the life of the process and maps every stack any code renders, to serve the rare
-// error that is reported. Uploading the maps to the receiver instead would need a credential the
-// operator has not configured at build time, which ADR-0040 and ADR-0041 rule out.
+// error that is reported. Uploading the maps to the receiver instead would need the operator's
+// credential at build time, and a published image is built before any operator configures one.
 export function createSourceMapResolver(cwd: string): SourceMapResolver {
   const root = resolve(cwd)
   const chunks = new Map<string, LoadedChunk | null>()

@@ -193,7 +193,7 @@ async function fetchListingPage(
 }
 
 // No bucket policy is ever set, and none may be: nothing reads the store anonymously, and the public
-// bucket's openness is enforced by `app/api/storage/[...key]/route.ts` instead (ADR-0040).
+// bucket's openness is enforced by `app/api/storage/[...key]/route.ts` instead.
 async function ensureBucketExists(client: StorageClient, bucket: string): Promise<void> {
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }))
@@ -201,7 +201,7 @@ async function ensureBucketExists(client: StorageClient, bucket: string): Promis
     return
   } catch (error) {
     // 403 means the bucket exists and this key may not inspect it — an operator's pre-created bucket
-    // under a key scoped to its objects (ADR-0045). Creating it is not Remit's to do, and the object
+    // under a key scoped to its objects. Creating it is not Remit's to do, and the object
     // calls that follow succeed or fail on their own permissions.
     if (readStatusCode(error) === 403) return
 

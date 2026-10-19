@@ -42,7 +42,7 @@ const INLINE_MIME_TYPES = new Set([
 ])
 
 // The anonymous read path for the public bucket — avatars, logos, client images, template images and
-// expense receipts — and the reason object storage needs no public address (ADR-0040). Anonymous on
+// expense receipts — and the reason object storage needs no public address. Anonymous on
 // purpose: this is the same exposure the bucket had when browsers read it directly, and a random key
 // minted by the upload route is still the whole access control. `lib/storage/s3.ts`'s
 // `getPublicObjectStream` cannot read any other bucket, so documents and exports stay unreachable

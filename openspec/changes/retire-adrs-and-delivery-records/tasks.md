@@ -82,7 +82,7 @@ Shared definitions for every task:
   - Done when: `features/` has no citation; the diff is comment-only.
   - Verify: `! git grep -nP "$CITE" -- features && pnpm lint && pnpm typecheck`
 
-- [ ] 6. Comment citations removed in `lib/`, `hooks/`, `app/` and `proxy.ts`
+- [x] 6. Comment citations removed in `lib/`, `hooks/`, `app/` and `proxy.ts`
   - Do: comment-only edits.
   - Done when: these paths have no citation; the diff is comment-only.
   - Verify: `! git grep -nP "$CITE" -- lib hooks app proxy.ts && pnpm lint && pnpm typecheck`

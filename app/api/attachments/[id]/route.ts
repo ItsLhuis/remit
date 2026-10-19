@@ -20,7 +20,7 @@ const INLINE_RENDERABLE_MIME_TYPES = ["image/gif", "image/jpeg", "image/png", "i
 
 // The only way an attachment leaves the instance, and the reason attachments are stored in the
 // private `documents` bucket rather than the public one: a client's signed NDA or a project brief
-// must not be reachable by URL alone (ADR-0028).
+// must not be reachable by URL alone.
 //
 // Any authenticated session may read one, matching `app/api/documents/[type]/[id]/route.ts`. The
 // refusal that matters is not the role — it is `getAttachmentForDownload` requiring the record the

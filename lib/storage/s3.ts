@@ -11,8 +11,7 @@ import { createObjectStore } from "./objectStore"
 
 // The only runtime client, on the internal endpoint. Object storage is never reached by a browser:
 // uploads arrive through `app/api/upload/[type]/route.ts` and public reads leave through
-// `app/api/storage/[...key]/route.ts`, so the store needs no public address and publishes no port
-// (ADR-0040).
+// `app/api/storage/[...key]/route.ts`, so the store needs no public address and publishes no port.
 export const storage = createObjectStore({
   client: new S3Client(
     buildStorageClientConfig({

@@ -87,7 +87,7 @@ export async function admitMetricsScrape(request: Request): Promise<MetricsAdmis
     : { outcome: "refused" }
 }
 
-// Unset means unavailable, never public (ADR-0018), and every refusal — no token configured, no
+// Unset means unavailable, never public, and every refusal — no token configured, no
 // credential, a wrong one — is the same refusal: whether metrics are enabled on an instance is not
 // something a caller without the token may learn.
 //

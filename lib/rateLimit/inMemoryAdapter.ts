@@ -7,9 +7,9 @@ type Entry = {
 
 // Process-local and never swept: counters live only in this process's heap and expired entries are
 // overwritten on next use rather than evicted on a timer. That is acceptable only because this is
-// no longer the limiter anyone relies on — it is `redisAdapter.ts`'s fallback while Redis is
+// not the limiter anyone relies on — it is `redisAdapter.ts`'s fallback while Redis is
 // unreachable, and the test double. During that fallback each app process has its own allowance
-// and a restart resets it, which is the degradation ADR-0037 accepts.
+// and a restart resets it, which is an accepted degradation.
 export function createInMemoryAdapter(): RateLimitAdapter {
   const store = new Map<string, Entry>()
 
