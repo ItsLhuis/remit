@@ -77,7 +77,7 @@ export async function claimInvoiceNumber(transaction: InvoiceTransaction): Promi
 // the driver differently if it did.
 //
 // The percentage is copied onto the line, never joined at read time: editing the `tax_rates` row
-// later must not move the totals of an invoice the client has already seen (ADR-0017).
+// later must not move the totals of an invoice the client has already seen.
 export async function writeInvoiceLineItems(
   transaction: InvoiceTransaction,
   invoiceId: string,
@@ -121,7 +121,7 @@ export async function writeInvoiceLineItems(
 // share — and therefore the taxable base and the tax — of every line already there. The existing
 // lines are re-derived from their own stored quantity, unit price, discount and tax snapshot, never
 // re-read from a tax rate or a source row, so this recomputation redistributes the discount without
-// re-pricing anything (ADR-0017).
+// re-pricing anything.
 //
 // Positions continue after the highest one present rather than being renumbered from zero:
 // `uq_line_items_invoice_position` is a unique partial index on `(invoice_id, position)`, and

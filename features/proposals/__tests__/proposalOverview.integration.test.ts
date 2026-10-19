@@ -36,8 +36,8 @@ async function makeOverviewFixture() {
 }
 
 describe("getProposalOverviewPageData", () => {
-  // Only the proposal's own soft delete hides it. A soft-deleted project or client no longer does,
-  // because a proposal outlives both parents (ADR-0026) and `/proposals/[proposalId]` resolves
+  // Only the proposal's own soft delete hides it. A soft-deleted project or client does not,
+  // because a proposal outlives both parents and `/proposals/[proposalId]` resolves
   // it on its own id — the same rule the contract list already follows.
   test("lists every live proposal regardless of what happened to its parents", async () => {
     await makeOverviewFixture()

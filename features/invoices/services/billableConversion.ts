@@ -70,8 +70,8 @@ const SECONDS_PER_HOUR = 3600
 const HOURS_SCALE = 100
 
 // Not imported from features/timeTracking: a pure service reaching a feature's client-safe barrel
-// would drag that feature's component graph in and cost this file the millisecond test property
-// ADR-0007 exists for. 3600 is a fact rather than a shared contract.
+// would drag that feature's component graph in and cost this file the millisecond tests a pure
+// service exists for. 3600 is a fact rather than a shared contract.
 function toBilledHours(totalSeconds: number): number {
   return Math.round((totalSeconds / SECONDS_PER_HOUR) * HOURS_SCALE) / HOURS_SCALE
 }
@@ -134,10 +134,10 @@ type SelectionScope =
   | { outcome: "resolved"; currency: string; clientId: string; projectId: string | null }
 
 // Whether the selection can become one invoice at all, and whose it is. One invoice hangs off one
-// client, and `fk_invoices_project_client` refuses a project that is not that client's (ADR-0026),
+// client, and `fk_invoices_project_client` refuses a project that is not that client's,
 // so a selection spanning two clients has no representable parent and is refused rather than split
 // into two invoices the freelancer did not ask for. A selection spanning two projects of one client
-// is fine and produces the client-level invoice the same ADR allows: the project is named only when
+// is fine and produces the client-level invoice the schema allows: the project is named only when
 // every row agrees on it.
 function resolveSelectionScope(
   rows: Array<{

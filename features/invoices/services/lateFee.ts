@@ -132,7 +132,7 @@ export function assessLateFee(
 
 // The one rounding step in the whole fee, at the point the percentage becomes money. Rounding the
 // base first, or the capped result again, would let the same policy price the same invoice two ways
-// depending on which caller did the arithmetic (ADR-0009).
+// depending on which caller did the arithmetic.
 function rawFeeCents(
   policy: Extract<LateFeePolicy, { enabled: true }>,
   outstandingCents: number

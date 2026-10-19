@@ -51,7 +51,7 @@ export type ExportTableManifest = {
 //    live, unauthenticated route into the instance.
 //
 // Generated document PDFs travel, and travel by default rather than by a rule added here. Each one
-// is an ordinary `uploads` row (in the private `documents` bucket, per ADR-0022), so the file itself
+// is an ordinary `uploads` row (in the private `documents` bucket), so the file itself
 // is carried by the same loop that carries avatars and template images, and `uploads.bucket` is
 // exported alongside `path` so a restorer knows which store the key belongs to. The `pdfUploadId`
 // pointer on `invoices`, `proposals`, `contracts` and `credit_notes` is included for the same

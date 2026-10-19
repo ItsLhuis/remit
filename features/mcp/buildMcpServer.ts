@@ -35,7 +35,7 @@ export function buildMcpServer(session: McpSession): McpServer {
   // `server/discover` alike, and it is overridden here because nothing would keep that promise: the
   // notification travels only on a `subscriptions/listen` stream, which `handleMcpRequest` refuses,
   // since a stateless endpoint holds no stream open and the tool list changes only when a token's
-  // scopes do, which its next request already sees (ADR-0042). Set after registration rather than
+  // scopes do, which its next request already sees. Set after registration rather than
   // in the constructor, so a token whose scopes reach no tool still advertises no `tools` at all.
   if (tools.length > 0) server.server.registerCapabilities({ tools: { listChanged: false } })
 

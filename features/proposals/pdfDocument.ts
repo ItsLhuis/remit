@@ -24,7 +24,7 @@ import {
 
 // Turns a stored proposal into the HTML the PDF worker prints, mirroring
 // `features/invoices/pdfDocument.ts`. Server-only: it reads the database and object storage, and
-// hands a pure renderer everything it needs as arguments (ADR-0007).
+// hands a pure renderer everything it needs as arguments.
 //
 // Like an invoice and unlike a contract, a proposal snapshots no blocks of its own, so the document
 // is composed from the template it points at, or the built-in layout when there is none

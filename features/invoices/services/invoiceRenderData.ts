@@ -2,7 +2,7 @@ import { formatCurrency } from "@/lib/utils"
 
 // The pure services entry rather than the feature barrel: that barrel re-exports components, which
 // reach `lib/auth` and validate the environment at import time — a runtime dependency a pure service
-// must not acquire (ADR-0007).
+// must not acquire.
 import {
   buildBusinessMergeValues,
   buildClientMergeValues,
@@ -23,7 +23,7 @@ import { getInvoiceOutstandingCents } from "./invoiceStatusView"
 // a key here, because a token whose key is missing renders as the raw `{{...}}` source instead of
 // blank. The two lists have to be edited together.
 //
-// Pure by ADR-0007, and deliberately so: money formatting is the part of a document a reader checks
+// Pure, and deliberately so: money formatting is the part of a document a reader checks
 // first and the part a test can pin cheaply. Amounts arrive as integer minor units and are formatted
 // once, here, so no caller can round a second time.
 

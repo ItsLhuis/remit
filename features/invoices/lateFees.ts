@@ -87,11 +87,11 @@ export async function applyLateFees(now: Date): Promise<void> {
 // The fee is added into `total_cents` in the same statement rather than sitting beside it, so every
 // surface that already asks what an invoice is worth or what is outstanding stays correct without
 // knowing late fees exist, and `chk_invoices_amount_paid` still admits a payment for the full
-// amount now due (ADR-0033).
+// amount now due.
 //
 // The same statement clears `pdf_upload_id`, and the sweep then enqueues a render. The stored PDF is
 // what every later reminder and receipt attaches, and one priced before the fee would state a total
-// the invoice no longer has beside a mail asking for the new one (ADR-0044). The superseded object
+// the invoice no longer has beside a mail asking for the new one. The stale object
 // is left where it is; the client already holds it as the copy they were sent.
 async function chargeLateFee(invoiceId: string, feeCents: number): Promise<boolean> {
   const [charged] = await database

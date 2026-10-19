@@ -19,7 +19,7 @@ const SECONDS_PER_HOUR = 3600
 //
 // Rounding happens exactly once, at the end, on the money: hours stay fractional through the
 // subtraction so a pool consumed in quarter-hours does not accumulate a rounding error per entry,
-// and only the resulting amount is forced back to integer cents (ADR-0009, money-and-dates.md).
+// and only the resulting amount is forced back to integer cents (money-and-dates.md).
 //
 // `exhausted` is deliberately `>=` rather than `>`: a pool consumed to exactly zero has none left,
 // and the freelancer wants to hear that before the next hour is worked rather than after.

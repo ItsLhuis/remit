@@ -23,7 +23,7 @@ const SCHEDULED_USER_AGENT = "worker/backup"
 
 registerJobHandler("backup.run.sweep", runScheduledBackup)
 
-// The consumer `settings.backup_cadence` never had (ADR-0023). The scheduler fires this every night
+// The consumer of `settings.backup_cadence`. The scheduler fires this every night
 // and the cadence decides here rather than in the cron pattern, so changing daily to weekly on
 // `/settings/backup` needs no scheduler write and can never leave a second scheduler in Redis —
 // see `lib/jobs/schedules.ts`.
@@ -118,7 +118,7 @@ async function runScheduledBackup(): Promise<void> {
 }
 
 // A rotation rewrites the encrypted columns *and* re-encrypts the `.remitbak` envelopes at the
-// configured destination (ADR-0021). An archive uploaded after that pass has listed the bucket is
+// configured destination. An archive uploaded after that pass has listed the bucket is
 // one the rotation never re-encrypts, so it stays readable only by the retired key while everything
 // around it moved on. Skipping the occurrence is the cheap side of that trade: the next night's run
 // takes the archive instead.

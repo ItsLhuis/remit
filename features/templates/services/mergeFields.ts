@@ -44,7 +44,7 @@ export type MergeBusiness = {
 }
 
 // `iban` is decrypted by the server-side caller before it reaches here, which is why this takes a
-// plain string: a pure service never touches the encryption helpers (ADR-0005, ADR-0007).
+// plain string: a pure service never touches the encryption helpers.
 export type MergePayment = {
   iban: string | null
   bankName: string | null

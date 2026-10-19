@@ -98,7 +98,7 @@ export type ProposalDetailLineItem = {
 }
 
 // The three states a document's public link can be in. `unissued` and `revoked` both mean "no URL
-// resolves", and the token cannot tell them apart — it is absent in both cases (ADR-0029). The
+// resolves", and the token cannot tell them apart — it is absent in both cases. The
 // document's own lifecycle is what distinguishes them: a draft has never been handed out, a revoked
 // document was and had its link withdrawn. Duplicated per feature rather than shared, like the
 // decoy token in each `publicQueries.ts`, because no feature may reach into another's read models.

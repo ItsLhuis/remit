@@ -17,7 +17,7 @@ export type RecipientContact = {
 // Where a document is sent. `clients.email` stays the billing default and the fallback; a live
 // primary contact displaces it as the envelope address, and nothing about that choice is persisted
 // on the document — it is re-resolved at every send, and `email_logs.recipient_email` is the record
-// of where each one actually went (ADR-0027).
+// of where each one actually went.
 export function resolveDocumentRecipient(
   client: RecipientClient,
   contacts: RecipientContact[]

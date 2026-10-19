@@ -55,7 +55,7 @@ export function matchesProposalRecipient(candidate: string, recipient: string): 
   return candidate.trim().toLowerCase() === recipient.trim().toLowerCase()
 }
 
-// Who may answer a proposal (ADR-0027): the client's own address, or any of that client's live
+// Who may answer a proposal: the client's own address, or any of that client's live
 // contacts. The caller supplies the list, and it is built from one client's rows only
 // (`features/clients/contactQueries.ts`), so a contact of a different client is not in it and
 // cannot match. The matched identity is returned rather than a boolean because the OTP is then

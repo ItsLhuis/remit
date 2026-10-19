@@ -77,7 +77,7 @@ Shared definitions for every task:
   - Verify:
     `! git grep -nP "$CITE" -- .agents README.md CHANGELOG.md .github/CONTRIBUTING.md .github/ISSUE_TEMPLATE .github/PULL_REQUEST_TEMPLATE.md && pnpm exec vitest run tests/docs`
 
-- [ ] 5. Comment citations removed in `features/`
+- [x] 5. Comment citations removed in `features/`
   - Do: comment-only edits in every `features/**` file that cites a record.
   - Done when: `features/` has no citation; the diff is comment-only.
   - Verify: `! git grep -nP "$CITE" -- features && pnpm lint && pnpm typecheck`

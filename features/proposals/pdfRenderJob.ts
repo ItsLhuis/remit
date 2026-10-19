@@ -12,7 +12,7 @@ import { proposals } from "@/database/schema"
 
 import { buildProposalPdfDocument } from "./pdfDocument"
 
-// The consumer half of ADR-0022 for proposals. Same shape as
+// The PDF render job for proposals. Same shape as
 // `features/invoices/pdfRenderJob.ts`, and deliberately a sibling rather than a shared generic: the
 // three differ in which table they update, which audit event they write and what names their file,
 // and a helper taking all of that as parameters would be longer than the duplication it removes
@@ -111,7 +111,7 @@ async function writeProposalPdfFailureAudit(id: string, reason: string): Promise
   })
 }
 
-// The chain from ADR-0022's artifact to the mail that carries it. Enqueued only after the pointer is
+// The chain from the stored PDF to the mail that carries it. Enqueued only after the pointer is
 // linked, so the send job always finds a PDF to attach.
 async function enqueueDocumentEmail(payload: {
   proposalId: string

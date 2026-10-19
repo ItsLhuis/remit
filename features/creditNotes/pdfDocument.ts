@@ -20,7 +20,7 @@ import {
 } from "./services"
 
 // Turns a stored credit note into the HTML the PDF worker prints, mirroring
-// `features/invoices/pdfDocument.ts`. Server-only (ADR-0007).
+// `features/invoices/pdfDocument.ts`. Server-only.
 //
 // A credit note carries no `template_id` of its own, so the instance default for the type is its
 // layout, and the built-in one when there is none (`resolveDocumentLayout`) — there is no

@@ -94,7 +94,7 @@ const DOCUMENT_OPTIONS: sanitize.IOptions = {
       "line-height": [/^\d+(?:\.\d+)?$/],
       "object-fit": [/^contain$/],
       // Exactly rotationToCss's emitted form, quantized to a tenth by rotateMath.ts. Never
-      // matrix() - see ADR-0024.
+      // matrix(): stored geometry is a rect plus a rotation, never a matrix.
       transform: [/^rotate\((?:[0-9]|[1-9][0-9]|[12][0-9]{2}|3[0-5][0-9])(?:\.[0-9])?deg\)$/]
     }
   },

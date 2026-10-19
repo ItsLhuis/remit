@@ -39,7 +39,7 @@ export type ClientAuditEvent =
   | "client.portal_link.revoked"
 
 // A contact write is audited on the same footing as a client write, and for a stronger reason than
-// symmetry: since ADR-0027 a contact address both receives this client's documents and may accept
+// symmetry: a contact address both receives this client's documents and may accept
 // its proposals, so adding one grants an acting identity and removing one revokes it.
 export type ClientContactAuditEvent =
   | "client_contact.created"

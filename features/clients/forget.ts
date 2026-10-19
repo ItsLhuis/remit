@@ -43,7 +43,7 @@ type DeletableTable = Parameters<ForgetTransaction["delete"]>[0]
 // purge this ignores every window: the owner is answering an erasure request rather than tidying a
 // trash, and no window can hold data the subject has asked to have removed.
 //
-// The files go too, without ever being gone while a row still names them (ADR-0049). Every object the
+// The files go too, without ever being gone while a row still names them. Every object the
 // erased rows were the last to reference — the client's image, attachments, document PDFs, receipts
 // and data export archives — is released into `object_deletions` in this transaction and removed from
 // the bucket only after it commits (`forgetMutations.ts`). The transaction runs at repeatable read

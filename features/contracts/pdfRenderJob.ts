@@ -12,7 +12,7 @@ import { contracts, contractSignatures } from "@/database/schema"
 
 import { buildContractPdfDocument, buildSignedContractPdfDocument } from "./pdfDocument"
 
-// The consumer half of ADR-0022 for contracts, and the only feature with two PDF jobs: the contract
+// The PDF render job for contracts, and the only feature with two PDF jobs: the contract
 // as sent, and the executed copy carrying the signature record. They are separate job names because
 // they are produced at different moments by different actors — one when the owner sends, one when a
 // counterparty signs — and because only the second may touch `contract_signatures`.
@@ -207,7 +207,7 @@ async function writeContractPdfFailureAudit(contractId: string, reason: string):
   })
 }
 
-// The chain from ADR-0022's artifact to the mail that carries it. Enqueued only after the pointer is
+// The chain from the stored PDF to the mail that carries it. Enqueued only after the pointer is
 // linked, so the send job always finds a PDF to attach.
 async function enqueueDocumentEmail(payload: {
   contractId: string

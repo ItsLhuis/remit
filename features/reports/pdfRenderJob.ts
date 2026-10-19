@@ -21,7 +21,7 @@ import {
   type ReportExportFailureReason
 } from "./services"
 
-// The consumer half of ADR-0022 for reports. A report is the only PDF in this repository that is not
+// The PDF render job for reports. A report is the only PDF in this repository that is not
 // a document: it has no `pdf_upload_id` to point back at and is never re-read as the record of what
 // was sent, so it lands in the credentialed exports bucket beside data-export archives rather than
 // in the documents bucket through `storeDocumentPdf`.

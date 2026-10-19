@@ -109,7 +109,7 @@ export async function signPublicContract(
     userAgent: context.userAgent
   })
   await emitContractSigned({ contractId: target.id, signatureId })
-  // The executed document is rendered out of band per ADR-0022, which is why the signature id
+  // The executed document is rendered out of band by the PDF worker, which is why the signature id
   // travels with the job: the worker needs it to attach the stored PDF to this exact signature.
   //
   // `contract_signatures` is otherwise insert-only: the `contract_signatures_set_signed_pdf` guard

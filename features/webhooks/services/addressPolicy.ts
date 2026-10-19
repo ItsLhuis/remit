@@ -1,6 +1,6 @@
 import { BlockList, isIP } from "node:net"
 
-// The address half of the SSRF defence (ADR-0039). A webhook URL is typed by a user and fetched by
+// The address half of the SSRF defence. A webhook URL is typed by a user and fetched by
 // the server, and a self-hosted server sits inside a private network: a naive fetcher pointed at
 // `http://database:5432`, `http://redis:6379`, the object store at `http://storage:9000`,
 // `/api/metrics` on localhost, or a cloud metadata service at 169.254.169.254 would make Remit

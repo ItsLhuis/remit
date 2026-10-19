@@ -448,7 +448,7 @@ export const EXPORT_SUBGRAPH_TABLES: readonly ExportTableManifest[] = [
   },
   {
     // The index of the archive's `files/` directory: every row here has its bytes beside it under
-    // `files/<path>`, which is also how generated PDFs travel once ADR-0022 stores them as uploads.
+    // `files/<path>`, which is also how generated PDFs travel, since they are stored as uploads.
     table: "uploads",
     file: "data/uploads.json",
     scopes: EVERY_SCOPE,

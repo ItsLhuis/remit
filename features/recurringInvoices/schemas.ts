@@ -172,7 +172,7 @@ export type RecurringInvoiceLineItemValues = z.infer<typeof recurringInvoiceLine
 //
 // `taxPercentage` is snapshotted here rather than joined from `tax_rates` at generation time, for
 // the same reason `conversion.ts` copies the proposal's snapshot: a rate edited between authoring
-// the schedule and the run must not silently move an amount the client has been quoted (ADR-0017).
+// the schedule and the run must not silently move an amount the client has been quoted.
 export const recurringInvoiceBlueprintLineSchema = z.object({
   description: z.string().min(1).max(RECURRING_INVOICE_DESCRIPTION_MAX_LENGTH),
   unit: z.string().max(RECURRING_INVOICE_UNIT_MAX_LENGTH).nullable(),

@@ -107,7 +107,7 @@ export type InvoiceDetailLineItem = {
 }
 
 // The three states a document's public link can be in. `unissued` and `revoked` both mean "no URL
-// resolves", and the token cannot tell them apart — it is absent in both cases (ADR-0029). The
+// resolves", and the token cannot tell them apart — it is absent in both cases. The
 // document's own lifecycle is what distinguishes them: a draft has never been handed out, a revoked
 // document was and had its link withdrawn. Duplicated per feature rather than shared, like the
 // decoy token in each `publicQueries.ts`, because no feature may reach into another's read models.
@@ -255,8 +255,8 @@ export type ConvertibleProposalOption = {
 // Feature-internal: the conversion path's authoritative copy of an accepted proposal, read straight
 // from the tables rather than through a form, so the invoice cannot be seeded with numbers the
 // client never accepted. `taxPercentage` is the proposal line's stored snapshot and is carried over
-// verbatim — re-reading `tax_rates` here would let a rate edited after acceptance move the invoice
-// (ADR-0017). Not exported from index.ts or server.ts: only mutations.ts consumes it.
+// verbatim — re-reading `tax_rates` here would let a rate edited after acceptance move the invoice.
+// Not exported from index.ts or server.ts: only mutations.ts consumes it.
 export type ProposalInvoiceSnapshotLine = {
   description: string
   unit: string | null

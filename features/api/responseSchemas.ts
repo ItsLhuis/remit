@@ -112,7 +112,7 @@ export type ApiProjectDetail = z.infer<typeof apiProjectDetailSchema>
 // lifecycle and changes only when the invoice is sent or settled; `displayStatus` is what every
 // badge in the application shows, derived when the response is built by
 // `features/invoices/services/invoiceStatusView.ts`'s `deriveInvoiceStatusView` and never by a
-// second rule here. Both are additive under ADR-0038: `status` keeps its meaning.
+// second rule here. Both are additive, so neither breaks `/api/v1/`: `status` keeps its meaning.
 const storedInvoiceStatus = z.enum(invoiceStatus.enumValues).meta({
   description:
     "Stored lifecycle status. Overdue and partially paid are never stored; see `displayStatus`."

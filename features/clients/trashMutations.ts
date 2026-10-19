@@ -40,7 +40,7 @@ export async function softDeleteClient(input: unknown): Promise<DeleteClientResu
   try {
     // Clearing `portalToken` is part of the delete, not a separate decision: the portal is a standing
     // bearer door into everything Remit holds about this client, and leaving it open on a record the
-    // owner believes is gone is the failure ADR-0029 exists to prevent. A restore
+    // owner believes is gone is the exposure a delete must end. A restore
     // therefore comes back without a portal, and re-enabling one is an explicit act.
     const [deletedClient] = await database
       .update(clients)
@@ -81,7 +81,7 @@ export async function restoreClient(input: unknown): Promise<DeleteClientResult>
   try {
     // The portal token stays null. `softDeleteClient` revoked it deliberately, and a restore that
     // silently re-opened a standing bearer door into everything Remit holds about this client would
-    // undo that decision without anybody asking for it (ADR-0029). Minting a fresh link here was
+    // undo that decision without anybody asking for it. Minting a fresh link here was
     // rejected for the same reason: the owner restores a record, not its exposure. What they are
     // told instead is the audit entry below and the trash's restore message, and the client page
     // shows the portal as off with the one action that issues a new link.

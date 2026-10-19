@@ -457,7 +457,7 @@ type SettlementDecision = {
 
 // The one settlement decision every write makes, under the invoice lock: the recorded payments,
 // without the row an edit replaces and with the amount a write adds, against the total less the live
-// credit notes (ADR-0044).
+// credit notes.
 async function decideSettlement(
   transaction: PaymentTransaction,
   invoice: LockedInvoice,

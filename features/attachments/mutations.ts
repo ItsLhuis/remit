@@ -168,7 +168,7 @@ export async function removeAttachment(input: unknown): Promise<RemoveAttachment
     await database.delete(uploads).where(eq(uploads.id, row.uploadId))
 
     // Best-effort, and deliberately after the rows are gone rather than before. A stored object with
-    // no row pointing at it is unreachable and swept by nothing (ADR-0028); a row pointing at a
+    // no row pointing at it is unreachable and swept by nothing; a row pointing at a
     // deleted object renders as a download that 404s, which is the worse of the two.
     try {
       await deleteDocumentObject(row.storageKey)

@@ -22,8 +22,8 @@ type SystemInfoStripProps = {
 }
 
 // The links are the whole update surface, on purpose. Remit makes no request to learn whether a
-// newer release exists (ADR-0018), and there is no upgrade button because upgrade runs on the host
-// and the app container never touches Docker (ADR-0020): a button that appeared to upgrade and could
+// newer release exists, and there is no upgrade button because upgrade runs on the host
+// and the app container never touches Docker: a button that appeared to upgrade and could
 // not would be worse than none.
 const SystemInfoStrip = ({ systemInfo }: SystemInfoStripProps) => {
   const { t } = useTranslation()

@@ -25,7 +25,7 @@ import { sanitizeTemplateHtml, toPlainText, type SanitizedHtml } from "./sanitiz
 import { blockStyleToCss, pageStyleToCss, rotationToCss } from "./styleCss"
 
 // Pure block -> HTML/text renderer. The same function powers the in-app live preview and the
-// headless-browser PDF job (ADR-0022), so preview and PDF share one HTML/CSS path, and the page
+// headless-browser PDF job, so preview and PDF share one HTML/CSS path, and the page
 // height comes from getPageHeight - the exact formula the canvas uses.
 //
 // Trust model: authored markup was already reduced to the "authored" whitelist at save time, but

@@ -57,7 +57,7 @@ export async function listAttachments(input: unknown): Promise<AttachmentListIte
   }))
 }
 
-// The read half of attachment authorization (ADR-0028). Two gates, and the second is the one that
+// The read half of attachment authorization. Two gates, and the second is the one that
 // matters: holding an attachment id is not enough — the record it hangs off has to still be live, so
 // an attachment of a soft-deleted client, project, invoice, or expense is refused here rather than
 // merely hidden from the list that would have shown it.

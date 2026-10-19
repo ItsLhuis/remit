@@ -36,7 +36,7 @@ import {
 
 const MILLISECONDS_PER_DAY = 86_400_000
 
-// The invoice module's half of the scheduled work (ADR-0023). Handlers register at module load, the
+// The invoice module's half of the scheduled work. Handlers register at module load, the
 // way `features/*/events.ts` register bus subscribers, and `scripts/worker.ts` is what imports this
 // file — nothing under `lib/` reaches into a feature.
 registerJobHandler("invoice.pdf.render", renderInvoicePdf)
@@ -333,7 +333,7 @@ async function getReminderSchedule(): Promise<ReminderSchedule | null> {
 
 // The client is reached either directly or through the invoice's project, in the same either-or
 // shape `chk_invoices_parent` allows, and the address is then resolved the way every other send
-// path resolves it (ADR-0027): the primary contact when there is one, `clients.email` otherwise. An
+// path resolves it: the primary contact when there is one, `clients.email` otherwise. An
 // invoice whose client is gone yields nothing, and the caller skips it rather than failing.
 async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | null> {
   const [row] = await database
@@ -357,7 +357,7 @@ async function getReminderTarget(invoiceId: string): Promise<ReminderTarget | nu
   if (row?.dueDate == null) return null
 
   // A reminder with no link to the invoice is not worth sending, and minting a replacement token in
-  // a background job would silently undo a withdrawal the owner asked for (ADR-0029).
+  // a background job would silently undo a withdrawal the owner asked for.
   if (row.publicToken == null) return null
 
   const recipient = await getClientDocumentRecipient(row.directClientId ?? row.projectClientId)

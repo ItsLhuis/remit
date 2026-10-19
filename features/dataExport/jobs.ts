@@ -61,7 +61,7 @@ class DataExportFailure extends Error {
   }
 }
 
-// The consumer half of ADR-0023 for `/settings/data`. A full-instance export reads every business
+// The job-queue consumer for `/settings/data`. A full-instance export reads every business
 // table and every stored object, which is exactly the work that must not happen inside a request.
 //
 // Retries are deliberately no-ops rather than a second attempt. `DEFAULT_JOB_OPTIONS` gives every job
@@ -260,7 +260,7 @@ type WriteUploadEntriesInput = {
 }
 
 // Every stored object referenced by the exported rows, fetched one at a time and written straight into
-// the archive. This is also how generated PDFs travel: ADR-0022 stores them as `uploads` rows, so a
+// the archive. This is also how generated PDFs travel: they are stored as `uploads` rows, so a
 // signed contract PDF appears here without this loop knowing anything about documents.
 async function writeUploadEntries({
   reportProgress,

@@ -96,7 +96,7 @@ export async function buildProposalDocumentData(
     templateId: proposal.templateId,
     // The envelope address only. `renderData` still names the client, because the document is issued
     // to the company; where it is delivered is a separate question, answered by the client's primary
-    // contact when it has one and by `clients.email` otherwise (ADR-0027).
+    // contact when it has one and by `clients.email` otherwise.
     recipientEmail: recipient?.email ?? null,
     recipientName: recipient?.name ?? ""
   }

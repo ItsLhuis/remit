@@ -385,7 +385,7 @@ async function writeProposalLineItems(
       unitPriceCents: item.unitPrice,
       ...toDiscountColumns(item),
       // The percentage is copied onto the line, never joined at read time: editing the `tax_rates`
-      // row later must not move the totals of a proposal the client has already seen (ADR-0017).
+      // row later must not move the totals of a proposal the client has already seen.
       taxPercentageSnapshot: String(getTaxPercentage(item.taxRateId, taxPercentages)),
       subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
       taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,

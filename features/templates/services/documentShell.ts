@@ -7,9 +7,9 @@ import { getPageWidth } from "./canvasLayout"
 // this builds the shell around it — the one piece of markup in the pipeline that is authored here
 // rather than derived from blocks.
 //
-// It is pure and lives beside the renderer for the reason ADR-0007 gives: the shell decides the
-// document's physical size, and a wrong value here is a silently mis-sized PDF that only a human
-// looking at the output would catch. Keeping it a pure function makes that assertable.
+// It is pure and lives beside the renderer because the shell decides the document's physical size,
+// and a wrong value here is a silently mis-sized PDF that only a human looking at the output would
+// catch. Keeping it a pure function makes that assertable.
 
 export type DocumentShellInput = {
   body: string

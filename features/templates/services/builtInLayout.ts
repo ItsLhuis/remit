@@ -35,8 +35,8 @@ export {
 
 // The layout a document renders with when the instance has no template of its type: a block tree
 // built in code and handed to `renderTemplate` like any template's, so there is one renderer and the
-// preview-to-PDF path of ADR-0022 is untouched. Why it lives in code rather than in the `templates`
-// table is ADR-0043.
+// preview-to-PDF path is shared. It lives in code rather than in the `templates` table so that an
+// improved layout reaches every instance without a template of its own, with no rows to reconcile.
 //
 // It is shaped by the document it renders rather than fixed. A stored template is a static canvas,
 // so its line-items table is as tall as the owner drew it; a built-in knows the line items, so it

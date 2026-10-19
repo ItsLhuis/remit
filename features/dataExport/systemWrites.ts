@@ -47,7 +47,7 @@ export async function expireDataExports(now: Date): Promise<ExpiredExportArtifac
 // The half every export artifact shares, data export or report PDF
 // (`features/reports/systemWrites.ts`): the rows go, their objects are released in the same
 // transaction with an audit entry that counts them, and the objects leave the bucket after the
-// commit (ADR-0049).
+// commit.
 export async function expireArtifacts({
   deleteExpired,
   audit

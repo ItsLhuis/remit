@@ -79,8 +79,7 @@ export type ClientDetail = {
   imageStorageKey: string | null
   // The portal URL, or null when this client has no portal. The token itself never reaches the read
   // model — the path is the only form of it the workspace needs, and it is what the copy control
-  // hands out. Null covers both "never enabled" and "revoked": for a client those are one state
-  // (ADR-0029).
+  // hands out. Null covers both "never enabled" and "revoked": for a client those are one state.
   portalPath: string | null
   outstandingBalanceCents: number
   health: ClientHealth
@@ -89,7 +88,7 @@ export type ClientDetail = {
   updatedAt: Date
   relatedResources: ClientRelatedResourceCounts
   billingTrend: ClientBillingPoint[]
-  // Numbers of the countersigned contracts that make an erasure impossible (ADR-0034), so the
+  // Numbers of the countersigned contracts that make an erasure impossible, so the
   // erasure dialog warns before the owner confirms rather than after the action refuses.
   erasureBlockingContracts: string[]
 }
@@ -126,8 +125,7 @@ export type ClientPortalCreditNote = {
 // `documentPath` on the invoice and proposal below is the one place a bearer token leaves this read
 // model, and it is a path rather than a token so no caller can put one anywhere else. It is present
 // only when the document's own public route would resolve, which is what keeps the portal from
-// offering a link that answers "unavailable" — see `publicQueries.ts` and
-// [ADR-0030](../../docs/architecture/adr/0030-client-portal-exposure.md).
+// offering a link that answers "unavailable" — see `publicQueries.ts`.
 export type ClientPortalInvoice = {
   number: string
   viewStatus: InvoiceViewStatus

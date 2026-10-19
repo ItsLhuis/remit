@@ -10,7 +10,7 @@ import { expireReportExports } from "@/features/reports/systemWrites"
 import { runRetentionPurge } from "./purge"
 import { getRetentionPolicy } from "./queries"
 
-// The trash module's half of the scheduled work (ADR-0023). Handlers register at module load, the
+// The trash module's half of the scheduled work. Handlers register at module load, the
 // way `features/*/events.ts` register bus subscribers, and `scripts/worker.ts` is what imports this
 // file — nothing under `lib/` reaches into a feature.
 registerJobHandler("retention.purge.sweep", runRetentionPurgeSweep)

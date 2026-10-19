@@ -26,7 +26,7 @@ import { type ReportCell, type ReportResult } from "./reportTable"
 // by a person, on paper, so a figure carries its currency symbol and its thousands separator where
 // `buildReportCsvRows` deliberately strips both.
 //
-// Pure, and handed every string it prints (ADR-0007). Translation, id resolution, and the instance's
+// Pure, and handed every string it prints. Translation, id resolution, and the instance's
 // locale and time zone all happen in the caller, so the whole paged layout is assertable from
 // arguments alone — without a browser.
 

@@ -43,8 +43,6 @@ import {
 // The portal is an index, not a document viewer: every row carries what identifies a document and
 // what it is worth, and nothing else. Line items, notes, terms and signatures stay behind the
 // document's own public route, where their exposure was already decided.
-// [ADR-0030](../../docs/architecture/adr/0030-client-portal-exposure.md) records the rule and the
-// field-by-field list it produced.
 
 type PortalInvoiceRow = Awaited<ReturnType<typeof listPortalInvoiceRows>>[number]
 
@@ -65,7 +63,7 @@ type PortalIssuerContext = {
 
 const PUBLIC_TOKEN_MISS_DECOY = "0".repeat(43)
 
-// The portal's exclusion list (ADR-0030), expressed where Postgres enforces it rather than where a
+// The portal's exclusion list, expressed where Postgres enforces it rather than where a
 // mapper could forget it. `clients.notes` is encrypted because it may carry NDA-protected content and
 // never leaves the server on this path; the address, tax id, phone and negotiated hourly rate answer
 // no question the recipient of the link is asking. `name` is the one identity field kept, so the
@@ -80,7 +78,7 @@ const PORTAL_CLIENT_COLUMNS = {
 // Every unavailable case — malformed token, unknown token, a portal that was never enabled, one that
 // was revoked, and a soft-deleted client — returns the same `null`, so the page renders one
 // indivisible "unavailable" surface and a caller learns nothing about which of those it hit.
-// Revocation and "never enabled" are already one state in the column (ADR-0029), so only the
+// Revocation and "never enabled" are already one state in the column, so only the
 // soft-delete case needs collapsing here.
 export async function getClientPortal(input: unknown): Promise<ClientPortal | null> {
   const parsed = clientPortalRequestSchema.safeParse(input)
@@ -169,9 +167,9 @@ function toPortalList<Row, Item>(
 // length of a real token and cannot collide with one — `randomBytes(32)` would have to return 32
 // zero bytes to encode as 43 zeros.
 //
-// `softDeleteClient` clears the token, so a client archived since ADR-0029 shipped is already
-// unreachable by the lookup. The `deleted_at` guard covers the rows archived before it did, and is
-// what stops a restored portal from reappearing on a record the owner believes is gone.
+// `softDeleteClient` clears the token, so an archived client is already unreachable by the lookup.
+// The `deleted_at` guard holds even for a row that kept its token, and is what stops a restored
+// portal from reappearing on a record the owner believes is gone.
 async function findClientByPortalToken(token: string) {
   const client = await database.query.clients.findFirst({
     where: and(eq(clients.portalToken, token), isNull(clients.deletedAt)),

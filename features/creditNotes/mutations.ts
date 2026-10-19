@@ -110,7 +110,7 @@ export async function createCreditNote(input: unknown): Promise<CreditNoteMutati
       userId: context.userId
     })
     // Enqueued, never rendered here: the document is drawn by the headless-browser worker from the
-    // block renderer (ADR-0022), and a server action that waited on a browser would hold the
+    // block renderer, and a server action that waited on a browser would hold the
     // request open for the length of a render.
     await enqueueJob("credit_note.pdf.render", { creditNoteId })
 
@@ -273,7 +273,7 @@ async function writeCreditNoteLineItems(
   await transaction.insert(lineItems).values(
     values.lineItems.map((item, index) => ({
       // `credit_note_id` is the only parent set: `chk_line_items_parent` requires exactly one of
-      // proposal / invoice / credit note, and the omitted columns default to null (ADR-0017).
+      // proposal / invoice / credit note, and the omitted columns default to null.
       creditNoteId,
       taxRateId: item.taxRateId,
       position: index,
@@ -283,7 +283,7 @@ async function writeCreditNoteLineItems(
       unitPriceCents: item.unitPrice,
       ...toCreditNoteDiscountColumns(item),
       // The percentage is copied onto the line, never joined at read time: editing the `tax_rates`
-      // row later must not move the totals of a credit note already issued (ADR-0017).
+      // row later must not move the totals of a credit note already issued.
       taxPercentageSnapshot: String(getTaxPercentage(item.taxRateId, taxPercentages)),
       subtotalCents: lineTotals[index]?.subtotalCents ?? 0,
       taxAmountCents: lineTotals[index]?.taxAmountCents ?? 0,

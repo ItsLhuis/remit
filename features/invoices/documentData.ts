@@ -126,12 +126,12 @@ export async function buildInvoiceDocumentData(
     zeroFigures: [
       ...(Number(invoice.discountAmountTotalCents) === 0 ? (["invoice.discount"] as const) : []),
       ...(amountPaidCents === 0 ? (["invoice.amountPaid"] as const) : []),
-      // A waived fee is `0` and a never-charged one null (ADR-0033); neither is a line to print.
+      // A waived fee is `0` and a never-charged one null; neither is a line to print.
       ...(!lateFeeCents ? (["invoice.lateFee"] as const) : [])
     ],
     // The envelope address only. `renderData` still names the client, because the document is issued
     // to the company; where it is delivered is a separate question, answered by the client's primary
-    // contact when it has one and by `clients.email` otherwise (ADR-0027).
+    // contact when it has one and by `clients.email` otherwise.
     recipientEmail: recipient?.email ?? null,
     recipientName: recipient?.name ?? ""
   }

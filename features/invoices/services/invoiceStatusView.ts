@@ -65,7 +65,7 @@ export type InvoiceOutstandingInput = {
 //
 // A credit note nets here rather than in `total_cents`: the total is what the issued document said
 // and is never rewritten by a correction (`features/creditNotes/services/effectiveReceivable.ts`),
-// while a late fee is already inside the total (ADR-0033) and must not be added a second time.
+// while a late fee is already inside the total and must not be added a second time.
 // `features/payments/services/paymentSettlement.ts` settles an invoice exactly when this reaches
 // zero, which is what keeps a settled invoice from reading as owing money.
 //

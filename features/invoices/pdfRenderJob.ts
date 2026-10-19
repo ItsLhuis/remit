@@ -12,7 +12,7 @@ import { invoices } from "@/database/schema"
 
 import { buildInvoicePdfDocument } from "./pdfDocument"
 
-// The consumer half of ADR-0022 for invoices, split out of `jobs.ts` because it answers a different
+// The PDF render job for invoices, split out of `jobs.ts` because it answers a different
 // question: that file decides which invoices are late or owed a reminder, this one turns one invoice
 // into a stored document. `jobs.ts` still owns the registration, so there remains a single place
 // listing what this feature handles.
@@ -101,7 +101,7 @@ export async function renderInvoicePdf(payload: {
   await enqueueInvoiceEmail(payload)
 }
 
-// The chain from ADR-0022's artifact to the mail that carries it. Enqueued only after the pointer is
+// The chain from the stored PDF to the mail that carries it. Enqueued only after the pointer is
 // linked, so the send job always finds a PDF to attach.
 async function enqueueInvoiceEmail(payload: {
   invoiceId: string

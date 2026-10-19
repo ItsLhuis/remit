@@ -12,8 +12,7 @@ import { buildInvoiceDocumentData } from "./documentData"
 
 // Turns a stored invoice into the HTML the PDF worker prints, mirroring
 // `features/contracts/publicDocument.ts` — the builder that already existed. Server-only: it reads
-// the database and object storage, and hands a pure renderer everything it needs as arguments
-// (ADR-0007).
+// the database and object storage, and hands a pure renderer everything it needs as arguments.
 //
 // The merge data comes from `documentData.ts`, shared with the email job, so the message and the PDF
 // it attaches cannot disagree about the same invoice.

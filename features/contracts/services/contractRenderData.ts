@@ -1,6 +1,6 @@
 // The pure services entry rather than the feature barrel: that barrel re-exports components, which
 // reach `lib/auth` and validate the environment at import time — a runtime dependency a pure service
-// must not acquire (ADR-0007).
+// must not acquire.
 import {
   buildBusinessMergeValues,
   buildClientMergeValues,

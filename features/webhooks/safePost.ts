@@ -37,8 +37,8 @@ class BlockedAddressError extends Error {}
 const resolveWithSystemDns: WebhookResolver = (hostname) =>
   lookup(hostname, { all: true, verbatim: true })
 
-// The one way Remit sends a request to a user-supplied URL, and the dynamic half of the SSRF defence
-// (ADR-0039). Each property below closes a specific hole; none is redundant.
+// The one way Remit sends a request to a user-supplied URL, and the dynamic half of the SSRF
+// defence. Each property below closes a specific hole; none is redundant.
 //
 // - The address is checked *where the socket connects*, through the request's own `lookup` hook,
 //   and the socket is opened to exactly the address that passed. Checking a name and then letting

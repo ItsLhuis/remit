@@ -17,7 +17,7 @@ import {
 } from "./services"
 
 // The one place a document's layout is chosen: the document's own template, else the instance
-// default for its type, else the built-in layout (ADR-0043). Every PDF builder asks here, so no
+// default for its type, else the built-in layout. Every PDF builder asks here, so no
 // document type can grow its own idea of what "no template" means, and a sent document always has a
 // layout to render before its mail is chained.
 //

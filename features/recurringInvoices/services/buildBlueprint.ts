@@ -5,7 +5,7 @@ import { type RecurringInvoiceBlueprintLine, type RecurringInvoiceLineItemValues
 // The tax percentage is resolved once, here, and frozen into the blueprint rather than re-read at
 // generation time. That is the whole point of a blueprint: a schedule authored at 23% must keep
 // billing 23% if the rate is later edited, exactly as `conversion.ts` copies a proposal's snapshot
-// instead of re-joining `tax_rates` (ADR-0017). Editing the schedule is how the freelancer opts into
+// instead of re-joining `tax_rates`. Editing the schedule is how the freelancer opts into
 // a new rate.
 //
 // A line with no tax rate is 0%, matching `getTaxPercentage` on the invoice write path.

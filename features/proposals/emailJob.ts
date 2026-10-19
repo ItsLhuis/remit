@@ -34,7 +34,7 @@ export async function sendProposalEmail(payload: { proposalId: string }): Promis
 
   // A revoked public link leaves the mail with nowhere to point, and minting a replacement here
   // would silently undo the withdrawal the owner asked for. Skipping is the only honest outcome, and
-  // it is not a failure to retry either (ADR-0029).
+  // it is not a failure to retry either.
   if (!document.publicToken) {
     logger.warn(
       { action: "sendProposalEmail", proposalId: payload.proposalId },

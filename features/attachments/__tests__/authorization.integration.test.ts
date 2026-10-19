@@ -105,7 +105,7 @@ describe("attachment authorization", () => {
     expect(result).toEqual({ data: { id: expect.any(String) } })
   })
 
-  // The write half of attachment authorization (ADR-0028). A caller who names an id this instance
+  // The write half of attachment authorization. A caller who names an id this instance
   // does not have is refused before any row is written, so a fabricated parent id cannot mint an
   // attachment.
   test("refuses to attach to a parent id the instance does not have", async () => {

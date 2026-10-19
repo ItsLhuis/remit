@@ -25,7 +25,7 @@ export type PurgeSchedule =
 // decides what to delete with it and `features/trash/queries.ts` dates the trash with it, so the date
 // on the surface and the day the row goes cannot disagree.
 //
-// Two schema facts make this more than "deleted at plus the window" (ADR-0034). A countersigned
+// Two schema facts make this more than "deleted at plus the window". A countersigned
 // contract is never purged, because deleting it would cascade into an insert-only signature. And a
 // client is never removed while a document names it, because that nulls the document's `client_id`
 // and the parent checks reject the statement; the purge walks documents before clients, so a client

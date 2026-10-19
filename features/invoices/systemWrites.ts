@@ -23,7 +23,7 @@ export { type InvoiceLineItemRow } from "./invoiceWrites"
 export type SystemInvoiceInput = {
   // The caller's transaction, not one opened here. A generated invoice and the counters on the
   // schedule that produced it must commit together, or a crash between them double-generates on the
-  // next run — which is the whole idempotency guarantee ADR-0023 asks for.
+  // next run — which is the whole idempotency guarantee a scheduled run needs.
   transaction: InvoiceTransaction
   clientId: string
   projectId: string | null

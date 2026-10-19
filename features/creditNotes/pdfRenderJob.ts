@@ -11,7 +11,7 @@ import { creditNotes } from "@/database/schema"
 
 import { buildCreditNotePdfDocument } from "./pdfDocument"
 
-// The consumer half of ADR-0022 for credit notes. Same shape as
+// The PDF render job for credit notes. Same shape as
 // `features/invoices/pdfRenderJob.ts`, and deliberately a sibling rather than a shared generic: the
 // three differ in which table they update, which audit event they write and what names their file,
 // and a helper taking all of that as parameters would be longer than the duplication it removes

@@ -15,7 +15,7 @@ export type UpcomingSchedule = UpcomingScheduleRow & {
 }
 
 // A schedule whose run date has already passed is kept and reported with a negative day count: the
-// sweep that generates it runs on a cron (ADR-0023), so a date in the past means the run is pending
+// sweep that generates it runs on a cron, so a date in the past means the run is pending
 // rather than missed, and hiding it would hide the one case worth looking at.
 export function selectUpcomingSchedules(
   rows: readonly UpcomingScheduleRow[],

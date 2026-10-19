@@ -42,7 +42,7 @@ export type ExportIndex = {
   tables: readonly ExportTableSummary[]
   files: readonly ExportFileSummary[]
   // The exclusion list travels inside the archive so a recipient can tell an omission from a gap: an
-  // export with no `settings.smtpPass` is a policy decision recorded here, not a lost column.
+  // export with no `settings.smtpPass` is a deliberate exclusion listed here, not a lost column.
   excluded: {
     tables: readonly { table: string; reason: string }[]
     columns: readonly { table: string; column: string; reason: string }[]

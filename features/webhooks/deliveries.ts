@@ -17,7 +17,7 @@ import {
 
 // The producer half of outbound delivery. It writes one `webhook_deliveries` row per subscribed
 // endpoint and queues a job per row; it never makes the HTTP request itself. Delivery is a job
-// (ADR-0023) because the emitting action must not wait on somebody else's server: a slow receiver
+// because the emitting action must not wait on somebody else's server: a slow receiver
 // would become the user's latency, and a failing one their error.
 export async function enqueueWebhookEvent<E extends WebhookEvent>(
   event: E,

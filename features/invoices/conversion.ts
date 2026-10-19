@@ -137,8 +137,7 @@ export async function createInvoiceFromProposal(input: unknown): Promise<Invoice
 }
 
 // The proposal line's own snapshot, copied across untouched. Re-reading `tax_rates` here would let a
-// rate edited between acceptance and invoicing move a number the client has already agreed to
-// (ADR-0017).
+// rate edited between acceptance and invoicing move a number the client has already agreed to.
 function toSnapshotLineItemRow(
   item: ProposalInvoiceSnapshot["lineItems"][number]
 ): InvoiceLineItemRow {

@@ -20,8 +20,8 @@ import { contractIdSchema } from "./schemas"
 import { type ContractPublicLinkResult } from "./types"
 
 // The lifecycle of `/c/[token]`, kept out of mutations.ts because it answers to a different
-// question: those actions change what the contract *says*, these change who can still read it
-// (ADR-0029). Rotation and revocation are one pair of operations shared by all four token holders;
+// question: those actions change what the contract *says*, these change who can still read it.
+// Rotation and revocation are one pair of operations shared by all four token holders;
 // the client portal's pair lives in `features/clients/mutations.ts`, whose file length left no
 // reason to split it out.
 

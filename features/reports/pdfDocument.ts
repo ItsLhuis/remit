@@ -24,8 +24,7 @@ import {
 
 // The worker's entry into the report document: everything `buildReportDocument` needs and cannot
 // reach itself. Translation, the instance's locale and time zone, and the names behind the filter
-// ids all require IO, so they are resolved here and the paged layout stays a pure function
-// (ADR-0007).
+// ids all require IO, so they are resolved here and the paged layout stays a pure function.
 
 export type BuiltReportDocument = {
   document: ReportDocument

@@ -25,7 +25,7 @@ export type RequestReportPdfResult = { data: ReportExportState } | { error: stri
 
 export type ReportPdfStateResult = { data: ReportExportState } | { error: string }
 
-// The producer half of ADR-0022 for reports, kept out of `mutations.ts` because these two are one
+// The request side of report PDFs, kept out of `mutations.ts` because these two are one
 // flow rather than one write: a request that returns before the artifact exists is only useful
 // beside the read that says whether it does yet.
 export async function requestReportPdf(input: unknown): Promise<RequestReportPdfResult> {
