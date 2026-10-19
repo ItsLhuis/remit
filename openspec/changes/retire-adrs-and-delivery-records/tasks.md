@@ -49,7 +49,7 @@ Shared definitions for every task:
     then the scratch-copy check: for each section, remove it from a copy of the template, point the
     template test at the copy, and see it fail (do not commit the copy).
 
-- [ ] 3. Citations removed from the reference documents
+- [x] 3. Citations removed from the reference documents
   - Do: in `docs/architecture/ARCHITECTURE.md`, `docs/architecture/SCHEMA.md`,
     `docs/architecture/operations/CLI-CONTRACT.md`, `docs/architecture/specs/BACKUP-ARCHIVE.md`,
     `docs/operations/*.md` and `docs/deploy/*.md`, remove citations mechanically with a script you

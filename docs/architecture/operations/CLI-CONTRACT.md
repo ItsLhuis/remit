@@ -4,8 +4,8 @@ This document is the implementation-facing contract for Remit's operational comm
 architecture overview explains why self-hosting operations are product surface area; this document
 defines how command names, execution contexts, packaging, validation, and status are governed.
 
-ADR-0020 owns the accepted architectural decision. This document owns the detailed contract that
-contributors use when adding or changing operational commands.
+This document owns the detailed contract that contributors use when adding or changing operational
+commands.
 
 ## Scope
 
@@ -83,8 +83,8 @@ not ship placeholder package scripts.
   `format: ["esm"]`, `clean: true`, `splitting: false`).
 - Shared CLI helpers belong in `scripts/core/` for prompts, logging, exit handling, and similar
   concerns. They must not depend on `next/*`, `react`, or any client-only module.
-- Pure business logic invoked by a script lives in `features/<feature>/services/` per ADR-0007 and
-  is imported through the feature server barrel.
+- Pure business logic invoked by a script lives in `features/<feature>/services/` and is imported
+  through the feature server barrel.
 - Scripts must call `process.exit(0)` on success and `process.exit(1)` on uncaught failure. They
   must close the database client explicitly or rely on `pg`'s implicit close.
 - Sensitive output such as passwords, encryption keys, and tokens is printed to stdout only when the
@@ -119,15 +119,15 @@ implemented command.
 
 | Command                       | Status  | Context      | Notes                                                                                    |
 | ----------------------------- | ------- | ------------ | ---------------------------------------------------------------------------------------- |
-| `remit:reset-password`        | Shipped | In-container | ADR-0012. Operational recovery exception for Better Auth-owned tables.                   |
+| `remit:reset-password`        | Shipped | In-container | Operational recovery exception for Better Auth-owned tables.                             |
 | `remit:backup`                | Shipped | In-container | Local plus S3/R2/B2 encrypted `.remitbak` destinations.                                  |
 | `remit:restore`               | Shipped | In-container | Local path or `remit://<destination>/<key>` restore with mandatory pre-restore snapshot. |
 | Remote backup destinations    | Shipped | In-container | `s3`, `r2`, and `b2` implemented through the S3-compatible adapter.                      |
 | Install flow                  | Shipped | Host-side    | `scripts/host/install.sh`; runbook in `docs/operations/INSTALL.md`. No `remit:install`.  |
 | Upgrade flow                  | Shipped | Host-side    | `scripts/host/upgrade.sh`; runbook in `docs/operations/UPGRADE.md`. No `remit:upgrade`.  |
-| `remit:rotate-encryption-key` | Shipped | In-container | ADR-0021. Rotates registered encrypted columns and `.remitbak` archive encryption.       |
+| `remit:rotate-encryption-key` | Shipped | In-container | Rotates registered encrypted columns and `.remitbak` archive encryption.                 |
 | `remit:seed-demo`             | Shipped | In-container | Seeded demo data, random public tokens; presets plus capped numeric count overrides.     |
-| `remit:reset-data`            | Shipped | In-container | ADR-0025. Empties domain data; account, organization, and instance configuration stay.   |
+| `remit:reset-data`            | Shipped | In-container | Empties domain data; account, organization, and instance configuration stay.             |
 
 ## Operator command reference
 
@@ -167,7 +167,7 @@ implemented command.
   supplied; does not seed or mutate Better Auth-owned auth tables, organization tables, uploads,
   email logs, audit logs, or activity logs. Public tokens are the one field a seed does not
   determine: a demo instance's document links are real bearer credentials, so they come from the
-  CSPRNG like every other token (ADR-0029) and differ on every run.
+  CSPRNG like every other token and differ on every run.
 
 ### `pnpm remit:reset-data`
 
@@ -191,9 +191,7 @@ implemented command.
 - **Limitations:** never touches Better Auth-owned tables, the `settings` row, `tax_rates`,
   `templates`, or `audit_logs`. A counter that has issued a number since the seed is never rewound,
   because that number may already be with a client. A file a kept row still references — the
-  business logo, a template image — is never deleted. The scope classification is
-  [ADR-0025](../adr/0025-instance-data-reset-scope.md), refined by
-  [ADR-0049](../adr/0049-objects-leave-with-their-rows.md).
+  business logo, a template image — is never deleted.
 
 ### `pnpm remit:backup`
 
@@ -211,17 +209,17 @@ implemented command.
 - **Effects:** writes an AES-256-GCM encrypted `.remitbak` archive carrying the database and every
   object of the public and documents buckets for local output, or uploads the archive to the
   configured S3-compatible destination, in parts above 256 MiB. The exports bucket is not archived;
-  its objects are regenerable (ADR-0046). On normal command runs it updates backup success/failure
-  status and writes `instance.backup.completed` or `instance.backup.failed`. A file the database
-  names that the store listing omitted fails the backup, and so does a read the store refuses or a
-  missing public bucket; a file the store no longer holds is counted and reported as a warning, as
-  is an object under a key Remit never writes, which is left out.
+  its objects are regenerable. On normal command runs it updates backup success/failure status and
+  writes `instance.backup.completed` or `instance.backup.failed`. A file the database names that the
+  store listing omitted fails the backup, and so does a read the store refuses or a missing public
+  bucket; a file the store no longer holds is counted and reported as a warning, as is an object
+  under a key Remit never writes, which is left out.
 - **Limitations:** a single run writes to one destination. The archive format is specified in
   [Backup archive format](../specs/BACKUP-ARCHIVE.md). The command holds the backup lock for its run
   and exits 1 without writing anything when a scheduled backup, a restore or a key rotation already
   holds it, naming the holder and when it started; run it again once that finishes. A dry run takes
-  no lock (ADR-0047). A local run to the default path prunes the backups directory by the retention
-  policy, never the archive it just wrote and never an archive it did not name itself.
+  no lock. A local run to the default path prunes the backups directory by the retention policy,
+  never the archive it just wrote and never an archive it did not name itself.
 
 ### `pnpm remit:restore`
 
@@ -243,14 +241,14 @@ implemented command.
   database passed through the `PG*` environment variables rather than on the command line, and runs
   forward migrations through the compiled migration entrypoint. Files are written and verified
   before the database is replaced, and files the archive lacks are deleted last, after the
-  migrations, so a re-run repairs any stop (ADR-0046).
+  migrations, so a re-run repairs any stop.
 - **Audit:** writes `instance.restore.started`, `instance.restore.snapshot_taken`,
   `instance.restore.completed`, and, when eligible, `instance.restore.aborted`.
 - **Refusals:** an archive whose `schemaMigrationId` this build's journal does not know is refused,
   dry run included. An older one is migrated forward after a warning naming both migrations, which
   an interactive run confirms and an unattended run acknowledges with `--accept-older-schema`.
   Restore holds the backup lock from before its snapshot until it exits, and is refused while
-  another backup, restore or rotation holds it (ADR-0047).
+  another backup, restore or rotation holds it.
 - **Limitations:** no `--force-version`, partial restore, or point-in-time recovery. Detailed
   operator guidance is in the [Restore runbook](../../operations/RESTORE.md).
 
@@ -272,14 +270,13 @@ implemented command.
   through temporary files under `REMIT_DATA_DIR`, so it needs free space for one archive (two for a
   remote one) rather than memory for it. Outside a dry run it holds the backup lock for the whole
   rotation, so no backup is written or pruned while archives are re-encrypted, and it is refused
-  while a backup or restore holds it (ADR-0047).
+  while a backup or restore holds it.
 - **Audit:** writes `instance.key_rotation.started`, `instance.key_rotation.table_completed`,
   `instance.key_rotation.backup_reencrypted`, `instance.key_rotation.completed`, and
   `instance.key_rotation.aborted`.
 - **Limitations:** does not rewrite `.env` or deployment configuration, and does not rotate Better
   Auth-owned password hashes, TOTP secrets, backup codes, sessions, verification tokens,
-  organizations, or memberships. Detailed rotation semantics are in
-  [ADR-0021](../adr/0021-encryption-key-rotation.md).
+  organizations, or memberships.
 
 ### `bash scripts/host/install.sh`
 
@@ -345,11 +342,11 @@ implemented command.
 - **Required configuration:** `DATABASE_URL`, `REDIS_URL`, plus the encryption key and storage
   credentials the jobs it runs depend on.
 - **Destructive scope:** none directly, but the jobs it consumes are money-affecting — recurring
-  invoice generation, overdue detection and reminder dispatch (ADR-0023). Each carries its own
-  entity-scoped idempotency guard so a retry cannot double-generate or double-send. It also takes
-  the scheduled backup, which runs the same pipeline as `remit:backup` under a session advisory lock
-  and records `instance.backup.completed` or `instance.backup.failed` with
-  `userAgent: "worker/backup"` (ADR-0035). It stands down while a key rotation holds its own lock.
+  invoice generation, overdue detection and reminder dispatch. Each carries its own entity-scoped
+  idempotency guard so a retry cannot double-generate or double-send. It also takes the scheduled
+  backup, which runs the same pipeline as `remit:backup` under a session advisory lock and records
+  `instance.backup.completed` or `instance.backup.failed` with `userAgent: "worker/backup"`. It
+  stands down while a key rotation holds its own lock.
 - **Confirmation:** no prompts; it is a supervised process, not an operator command.
 - **Effects:** builds to `scripts/dist/worker.js`; registers the repeatable job schedulers in Redis
   on boot and consumes the queue until it receives `SIGTERM` or `SIGINT`.
@@ -364,7 +361,7 @@ implemented command.
 Upgrade is host-side only.
 
 There is no `remit:upgrade` package script. The name is not reserved. It must not be added to
-`package.json` unless a future ADR explicitly supersedes ADR-0020 and changes the operational model.
+`package.json` unless the operational model changes.
 
 The shipped upgrade flow is `scripts/host/upgrade.sh`, run by an operator on the host that owns the
 compose project. It snapshots through the in-container backup command, pulls images, restarts the

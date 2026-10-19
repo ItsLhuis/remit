@@ -4,9 +4,8 @@ This document is the implementation-facing specification for Remit's encrypted `
 format. The architecture overview summarizes the backup model; this file defines the durable archive
 contract used by `remit:backup` and `remit:restore`.
 
-ADR-0020 owns the accepted architectural decision; ADR-0046 supersedes it for the decrypted payload
-layout, which since format version 2 carries the stored files. Changes that break a released archive
-format must bump `archiveFormatVersion` and be recorded in a later ADR.
+Since format version 2, the decrypted payload carries the stored files. Changes that break a
+released archive format must bump `archiveFormatVersion`.
 
 ## Archive filename convention
 
@@ -49,7 +48,7 @@ header against the manifest's `archiveFormatVersion` and `encryption.keyFingerpr
 decryption; a mismatch aborts restore.
 
 `remit:backup` writes and `remit:restore` reads `archiveFormatVersion = 2`: the database and every
-object of the public and documents buckets (ADR-0046).
+object of the public and documents buckets.
 
 ## Decrypted payload layout
 
@@ -161,22 +160,21 @@ archive object.
 ## Encryption contract
 
 - Algorithm: AES-256-GCM, algorithm byte `0x01`.
-- Key: `REMIT_ENCRYPTION_KEY`, reused per ADR-0005. Backup does not introduce a second master
-  secret.
+- Key: `REMIT_ENCRYPTION_KEY`, reused. Backup does not introduce a second master secret.
 - IV: 12 random bytes per archive, written into the plaintext header.
 - Auth tag: 16 bytes, appended to the ciphertext.
 - `keyFingerprint`: first 16 bytes of `SHA-256(rawKey)`, enough to detect mismatched keys during
   restore without disclosing the key.
 
 Losing `REMIT_ENCRYPTION_KEY` loses both encrypted database columns and encrypted backup archives.
-Encryption key rotation is defined by ADR-0021 and uses a two-key window to re-encrypt registered
-database columns and existing backup archive envelopes. Re-encryption streams: it rewrites the
-header and the manifest's `keyFingerprint` and passes every other entry through unchanged, through a
-temporary file, so an archive's size never has to fit in memory.
+Encryption key rotation uses a two-key window to re-encrypt registered database columns and existing
+backup archive envelopes. Re-encryption streams: it rewrites the header and the manifest's
+`keyFingerprint` and passes every other entry through unchanged, through a temporary file, so an
+archive's size never has to fit in memory.
 
 ## Destinations
 
-Destinations match `settings.backup_destination` and ADR-0019:
+Destinations match `settings.backup_destination`:
 
 | Destination | Status  | Storage contract                                                                          |
 | ----------- | ------- | ----------------------------------------------------------------------------------------- |
@@ -206,8 +204,7 @@ Older versions of `remit:restore` must refuse archives with an `archiveFormatVer
 know how to read. Newer versions must accept every previously released format version.
 
 Any change to the byte layout, encryption algorithm, manifest schema, or destination model that
-breaks an existing version bumps `archiveFormatVersion` and is recorded in a new ADR that supersedes
-ADR-0020 for that point.
+breaks an existing version bumps `archiveFormatVersion`.
 
 ## Audit behavior for backup
 

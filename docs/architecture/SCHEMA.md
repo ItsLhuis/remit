@@ -448,17 +448,17 @@ Block-based PDF and email templates.
 
 ### `templates`
 
-| Column        | Type    | Null | Default             | Notes                                                                                                                                                       |
-| ------------- | ------- | ---- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id            | uuid    | no   | `gen_random_uuid()` | PK                                                                                                                                                          |
-| type          | enum    | no   |                     | See enum reference                                                                                                                                          |
-| name          | text    | no   |                     |                                                                                                                                                             |
-| description   | text    | yes  |                     |                                                                                                                                                             |
-| subject       | text    | yes  |                     | Email subject for `email_*` types; null for document types                                                                                                  |
-| blocks        | jsonb   | no   | `'[]'::jsonb`       | Block-based content; shape and invariants in ADR-0024                                                                                                       |
-| page_settings | jsonb   | no   | `'{}'::jsonb`       | Margins, default font family, base font size (ADR-0024)                                                                                                     |
-| is_default    | boolean | no   | `false`             | At most one default per type                                                                                                                                |
-| is_system     | boolean | no   | `false`             | No writer: the built-in layouts live in code (ADR-0043), so every row is `false` and the badge, delete guard and origin filter that read it are unreachable |
+| Column        | Type    | Null | Default             | Notes                                                                                                                                            |
+| ------------- | ------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| id            | uuid    | no   | `gen_random_uuid()` | PK                                                                                                                                               |
+| type          | enum    | no   |                     | See enum reference                                                                                                                               |
+| name          | text    | no   |                     |                                                                                                                                                  |
+| description   | text    | yes  |                     |                                                                                                                                                  |
+| subject       | text    | yes  |                     | Email subject for `email_*` types; null for document types                                                                                       |
+| blocks        | jsonb   | no   | `'[]'::jsonb`       | Block-based content                                                                                                                              |
+| page_settings | jsonb   | no   | `'{}'::jsonb`       | Margins, default font family, base font size                                                                                                     |
+| is_default    | boolean | no   | `false`             | At most one default per type                                                                                                                     |
+| is_system     | boolean | no   | `false`             | No writer: the built-in layouts live in code, so every row is `false` and the badge, delete guard and origin filter that read it are unreachable |
 
 Standard `timestamps` and `softDelete`.
 
@@ -472,13 +472,13 @@ Template enum types include: `invoice`, `proposal`, `contract`, `credit_note`, p
 counterparts `email_invoice_send`, `email_proposal_send`, `email_contract_send`,
 `email_payment_receipt`, `email_overdue_reminder`, `email_recurring_generated`. See enum reference.
 
-The `blocks` jsonb holds the block array whose full shape and invariants live in ADR-0024. Each
-block is `{ id, type, content, layout, hidden, locked, name?, rotation?, constraints?, style? }`,
-and the write-path union is six types: `text | image | table | shape | frame | group`. Content per
-type: `text` `{ html }`; `image` `{ source, uploadId, alt }`; `table` `{ source, columns, rows }`;
-`shape` `{ variant: "rectangle" | "ellipse" | "line" }` (a vector leaf whose appearance comes from
-`style`); `frame` `{ clip, children }` where children are **absolutely positioned** blocks (the full
-union, bounded to two container levels — `FRAME_MAX_DEPTH = 2` — by a depth walk on the write path);
+The `blocks` jsonb holds the block array. Each block is
+`{ id, type, content, layout, hidden, locked, name?, rotation?, constraints?, style? }`, and the
+write-path union is six types: `text | image | table | shape | frame | group`. Content per type:
+`text` `{ html }`; `image` `{ source, uploadId, alt }`; `table` `{ source, columns, rows }`; `shape`
+`{ variant: "rectangle" | "ellipse" | "line" }` (a vector leaf whose appearance comes from `style`);
+`frame` `{ clip, children }` where children are **absolutely positioned** blocks (the full union,
+bounded to two container levels — `FRAME_MAX_DEPTH = 2` — by a depth walk on the write path);
 `group` `{ children }`. Top-level array order is the **z-order** (a later block paints on top);
 overlap is legal.
 
@@ -575,7 +575,7 @@ attachments.
 
 Every reference to `uploads` is `on delete set null` **except `attachments.upload_id`**, which is
 `NOT NULL` and cascades: an invoice or an expense outlives its file, an attachment does not. See
-[section 28](#28-attachments) and [ADR-0028](adr/0028-attachments-and-visual-identity.md).
+[section 28](#28-attachments).
 
 A purge, an erasure or a reset removes the `uploads` rows its deletes left unreferenced, and queues
 their objects in [`object_deletions`](#33-object-deletions). "Referenced" covers every foreign key
@@ -648,26 +648,26 @@ Indexes: `leads_email_idx`, `leads_status_idx`, `leads_created_at_idx` on `creat
 
 ### `clients`
 
-| Column                    | Type             | Null | Default             | Notes                                                                                                                                                                                                                                                  |
-| ------------------------- | ---------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| id                        | uuid             | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                                                                     |
-| name                      | text             | no   |                     |                                                                                                                                                                                                                                                        |
-| email                     | text             | no   |                     |                                                                                                                                                                                                                                                        |
-| phone                     | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| website                   | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| tax_id                    | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| address_line1             | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| address_line2             | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| city                      | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| state                     | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| postal_code               | text             | yes  |                     |                                                                                                                                                                                                                                                        |
-| country                   | text             | yes  |                     | ISO 3166-1 alpha-2                                                                                                                                                                                                                                     |
-| currency                  | varchar(3)       | yes  |                     | Override of `settings.default_currency` for this client's documents                                                                                                                                                                                    |
-| locale                    | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default.                                                                                                                                     |
-| default_hourly_rate_cents | bigint           | yes  |                     | Default rate for time entries on this client's projects. Null = no negotiated rate, which is distinct from a rate of 0. ≥ 0 if not null.                                                                                                               |
-| notes                     | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                                                                                                                                                       |
-| portal_token              | text             | yes  |                     | Unique where not null. The bearer credential for `/s/[token]`, minted on demand by `rotateClientPortalLink` and read by `getClientPortal`. Null is both "no portal yet" and "portal revoked" — one state (ADR-0029) — and `softDeleteClient` clears it |
-| image_upload_id           | uuid             | yes  |                     | FK → `uploads.id` (set null). Logo or photo — a Remit client is either. Public bucket                                                                                                                                                                  |
+| Column                    | Type             | Null | Default             | Notes                                                                                                                                                                                                                                       |
+| ------------------------- | ---------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                        | uuid             | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                                                          |
+| name                      | text             | no   |                     |                                                                                                                                                                                                                                             |
+| email                     | text             | no   |                     |                                                                                                                                                                                                                                             |
+| phone                     | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| website                   | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| tax_id                    | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| address_line1             | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| address_line2             | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| city                      | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| state                     | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| postal_code               | text             | yes  |                     |                                                                                                                                                                                                                                             |
+| country                   | text             | yes  |                     | ISO 3166-1 alpha-2                                                                                                                                                                                                                          |
+| currency                  | varchar(3)       | yes  |                     | Override of `settings.default_currency` for this client's documents                                                                                                                                                                         |
+| locale                    | text             | yes  |                     | Override of `settings.default_locale` for this client's documents. BCP 47 locale tag. Null = use instance default.                                                                                                                          |
+| default_hourly_rate_cents | bigint           | yes  |                     | Default rate for time entries on this client's projects. Null = no negotiated rate, which is distinct from a rate of 0. ≥ 0 if not null.                                                                                                    |
+| notes                     | text (encrypted) | yes  |                     | NDA-sensitive; opt-in encryption at column level                                                                                                                                                                                            |
+| portal_token              | text             | yes  |                     | Unique where not null. The bearer credential for `/s/[token]`, minted on demand by `rotateClientPortalLink` and read by `getClientPortal`. Null is both "no portal yet" and "portal revoked" — one state — and `softDeleteClient` clears it |
+| image_upload_id           | uuid             | yes  |                     | FK → `uploads.id` (set null). Logo or photo — a Remit client is either. Public bucket                                                                                                                                                       |
 
 Standard `timestamps` and `softDelete`.
 
@@ -710,15 +710,14 @@ surfaced by the Contacts tab of the client workspace. Promotion is demote-then-p
 transaction, so the losing side of two concurrent promotions arrives as a unique violation on
 `uq_client_contacts_primary` and leaves as a translated message rather than a driver error.
 
-A contact carries two capabilities over its own client's documents and no others
-([ADR-0027](adr/0027-contact-identity.md)). It is the **delivery target**: every send path resolves
-the recipient through `getClientDocumentRecipient`, which returns the live primary contact when
-there is one and `clients.email` otherwise, and stores nothing on the document —
-`email_logs.recipient_email` is the record of where each send actually went. It is also an
-**acceptance identity**: the proposal OTP flow matches against `clients.email` plus every live
-contact of that same client (`features/proposals/publicResponse.ts`'s `matchProposalRespondent`),
-issues the code to the matched address alone, and never admits a soft-deleted contact or a contact
-of a different client.
+A contact carries two capabilities over its own client's documents and no others. It is the
+**delivery target**: every send path resolves the recipient through `getClientDocumentRecipient`,
+which returns the live primary contact when there is one and `clients.email` otherwise, and stores
+nothing on the document — `email_logs.recipient_email` is the record of where each send actually
+went. It is also an **acceptance identity**: the proposal OTP flow matches against `clients.email`
+plus every live contact of that same client (`features/proposals/publicResponse.ts`'s
+`matchProposalRespondent`), issues the code to the matched address alone, and never admits a
+soft-deleted contact or a contact of a different client.
 
 ---
 
@@ -752,8 +751,7 @@ Indexes: `projects_client_id_idx`, `projects_status_idx`, `projects_active_idx` 
 
 `uq_projects_id_client_id` is not a domain rule of its own — `id` is already unique. It exists
 because the five `fk_<table>_project_client` composite foreign keys reference that pair, and
-Postgres requires a unique index on a referenced column list. See
-[ADR-0026](adr/0026-document-parentage.md).
+Postgres requires a unique index on a referenced column list.
 
 **A project cannot be re-parented once it has financial records.** Every composite key carries
 `ON UPDATE RESTRICT`, so changing `projects.client_id` while an invoice, expense, contract,
@@ -886,7 +884,7 @@ database can.
 
 Foreign key: `fk_expenses_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
-`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+`0002_document_parent_agreement.sql`.
 
 Indexes: `expenses_project_id_idx`, `expenses_client_id_idx`, `expenses_spent_at_idx` on
 `spent_at DESC`, `expenses_unbilled_rebillable_idx` on `project_id` where
@@ -898,34 +896,34 @@ Indexes: `expenses_project_id_idx`, `expenses_client_id_idx`, `expenses_spent_at
 
 ### `proposals`
 
-| Column                      | Type          | Null | Default             | Notes                                                                                                                                                                                                               |
-| --------------------------- | ------------- | ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id                          | uuid          | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                                  |
-| project_id                  | uuid          | yes  |                     | Part of `fk_proposals_project_client` (see below) — null for client-level proposals                                                                                                                                 |
-| client_id                   | uuid          | yes  |                     | FK → `clients.id` (set null). Required whenever project_id is set                                                                                                                                                   |
-| template_id                 | uuid          | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                                      |
-| pdf_upload_id               | uuid          | yes  |                     | FK → `uploads.id` (set null). Written once by the `proposal.pdf.render` job and never regenerated: the stored object _is_ the record of what the client was sent                                                    |
-| number                      | text          | no   |                     | Unique. E.g. `PROP-0001`                                                                                                                                                                                            |
-| status                      | enum          | no   | `'draft'`           | See enum reference                                                                                                                                                                                                  |
-| currency                    | varchar(3)    | no   | `'EUR'`             |                                                                                                                                                                                                                     |
-| discount_type               | enum          | yes  |                     | `percentage \| fixed`                                                                                                                                                                                               |
-| discount_percentage         | numeric(5, 2) | yes  |                     | Set when `discount_type = 'percentage'`                                                                                                                                                                             |
-| discount_amount_cents       | bigint        | yes  |                     | Set when `discount_type = 'fixed'`                                                                                                                                                                                  |
-| subtotal_cents              | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                                 |
-| discount_amount_total_cents | bigint        | no   | `0`                 | Computed total discount in cents; ≥ 0                                                                                                                                                                               |
-| tax_amount_cents            | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                                 |
-| total_cents                 | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                                 |
-| valid_until                 | date          | yes  |                     | Used to compute `expired` status                                                                                                                                                                                    |
-| notes                       | text          | yes  |                     |                                                                                                                                                                                                                     |
-| public_token                | text          | yes  |                     | Unique. Anonymous access via `/p/[token]`. Minted with a CSPRNG at draft creation and never surfaced to any read model, URL, log, or audit entry until `issued_at` is set; null once the link is revoked (ADR-0029) |
-| first_viewed_at             | timestamptz   | yes  |                     |                                                                                                                                                                                                                     |
-| last_viewed_at              | timestamptz   | yes  |                     |                                                                                                                                                                                                                     |
-| view_count                  | integer       | no   | `0`                 | ≥ 0                                                                                                                                                                                                                 |
-| issued_at                   | timestamptz   | yes  |                     | Set when transitioning to `sent`                                                                                                                                                                                    |
-| locked_at                   | timestamptz   | yes  |                     | Set when accepted; immutable thereafter                                                                                                                                                                             |
-| responded_at                | timestamptz   | yes  |                     | Set on accept or reject                                                                                                                                                                                             |
-| responded_ip                | text          | yes  |                     |                                                                                                                                                                                                                     |
-| rejection_reason            | text          | yes  |                     |                                                                                                                                                                                                                     |
+| Column                      | Type          | Null | Default             | Notes                                                                                                                                                                                                    |
+| --------------------------- | ------------- | ---- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                          | uuid          | no   | `gen_random_uuid()` | PK                                                                                                                                                                                                       |
+| project_id                  | uuid          | yes  |                     | Part of `fk_proposals_project_client` (see below) — null for client-level proposals                                                                                                                      |
+| client_id                   | uuid          | yes  |                     | FK → `clients.id` (set null). Required whenever project_id is set                                                                                                                                        |
+| template_id                 | uuid          | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                           |
+| pdf_upload_id               | uuid          | yes  |                     | FK → `uploads.id` (set null). Written once by the `proposal.pdf.render` job and never regenerated: the stored object _is_ the record of what the client was sent                                         |
+| number                      | text          | no   |                     | Unique. E.g. `PROP-0001`                                                                                                                                                                                 |
+| status                      | enum          | no   | `'draft'`           | See enum reference                                                                                                                                                                                       |
+| currency                    | varchar(3)    | no   | `'EUR'`             |                                                                                                                                                                                                          |
+| discount_type               | enum          | yes  |                     | `percentage \| fixed`                                                                                                                                                                                    |
+| discount_percentage         | numeric(5, 2) | yes  |                     | Set when `discount_type = 'percentage'`                                                                                                                                                                  |
+| discount_amount_cents       | bigint        | yes  |                     | Set when `discount_type = 'fixed'`                                                                                                                                                                       |
+| subtotal_cents              | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| discount_amount_total_cents | bigint        | no   | `0`                 | Computed total discount in cents; ≥ 0                                                                                                                                                                    |
+| tax_amount_cents            | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| total_cents                 | bigint        | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| valid_until                 | date          | yes  |                     | Used to compute `expired` status                                                                                                                                                                         |
+| notes                       | text          | yes  |                     |                                                                                                                                                                                                          |
+| public_token                | text          | yes  |                     | Unique. Anonymous access via `/p/[token]`. Minted with a CSPRNG at draft creation and never surfaced to any read model, URL, log, or audit entry until `issued_at` is set; null once the link is revoked |
+| first_viewed_at             | timestamptz   | yes  |                     |                                                                                                                                                                                                          |
+| last_viewed_at              | timestamptz   | yes  |                     |                                                                                                                                                                                                          |
+| view_count                  | integer       | no   | `0`                 | ≥ 0                                                                                                                                                                                                      |
+| issued_at                   | timestamptz   | yes  |                     | Set when transitioning to `sent`                                                                                                                                                                         |
+| locked_at                   | timestamptz   | yes  |                     | Set when accepted; immutable thereafter                                                                                                                                                                  |
+| responded_at                | timestamptz   | yes  |                     | Set on accept or reject                                                                                                                                                                                  |
+| responded_ip                | text          | yes  |                     |                                                                                                                                                                                                          |
+| rejection_reason            | text          | yes  |                     |                                                                                                                                                                                                          |
 
 Standard `timestamps` and `softDelete`.
 
@@ -937,8 +935,8 @@ twice, with nothing keeping the two sides in agreement.
 A proposal hangs off a project or off a client, exactly as a contract does — it is the earliest
 document a freelancer produces, so requiring the later entity to exist first contradicted
 [Architecture: What Remit is](ARCHITECTURE.md#1-what-remit-is). `project_id` was `NOT NULL` with
-`ON DELETE CASCADE` until [ADR-0026](adr/0026-document-parentage.md), so deleting a project
-destroyed the accepted proposal a signed contract and an issued invoice both pointed at.
+`ON DELETE CASCADE`, so deleting a project destroyed the accepted proposal a signed contract and an
+issued invoice both pointed at.
 
 Constraints:
 
@@ -956,7 +954,7 @@ Constraints:
 
 Foreign key: `fk_proposals_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
-`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+`0002_document_parent_agreement.sql`.
 
 Indexes: `proposals_project_id_idx`, `proposals_client_id_idx`, `proposals_template_id_idx`,
 `proposals_status_idx`, unique `proposals_public_token_idx` on `public_token`.
@@ -1030,7 +1028,7 @@ Constraints:
 
 Foreign key: `fk_contracts_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
-`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+`0002_document_parent_agreement.sql`.
 
 Indexes: `contracts_project_id_idx`, `contracts_client_id_idx`, `contracts_proposal_id_idx`,
 `contracts_status_idx`, unique `contracts_public_token_idx`, unique
@@ -1106,7 +1104,7 @@ Constraints:
 
 Foreign key: `fk_recurring_invoices_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
-`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+`0002_document_parent_agreement.sql`.
 
 Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 `recurring_invoices_next_run_at_idx` on `next_run_at` where `status = 'active'`.
@@ -1125,7 +1123,7 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 | proposal_id                 | uuid            | yes  |                     | FK → `proposals.id` (set null) — when generated from a proposal                                                                                                                                                                                                                                                                          |
 | recurring_invoice_id        | uuid            | yes  |                     | FK → `recurring_invoices.id` (set null) — when generated from a schedule                                                                                                                                                                                                                                                                 |
 | template_id                 | uuid            | yes  |                     | FK → `templates.id` (set null)                                                                                                                                                                                                                                                                                                           |
-| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written by the `invoice.pdf.render` job; cleared only when a late fee is charged or adjusted, so the next render states the new total (ADR-0044)                                                                                                                                                           |
+| pdf_upload_id               | uuid            | yes  |                     | FK → `uploads.id` (set null). Written by the `invoice.pdf.render` job; cleared only when a late fee is charged or adjusted, so the next render states the new total                                                                                                                                                                      |
 | number                      | text            | no   |                     | Unique. E.g. `INV-0042`                                                                                                                                                                                                                                                                                                                  |
 | status                      | enum            | no   | `'draft'`           | See enum reference                                                                                                                                                                                                                                                                                                                       |
 | currency                    | varchar(3)      | no   | `'EUR'`             |                                                                                                                                                                                                                                                                                                                                          |
@@ -1137,7 +1135,7 @@ Indexes: `recurring_invoices_client_id_idx`, `recurring_invoices_status_idx`,
 | discount_amount_total_cents | bigint          | no   | `0`                 | ≥ 0                                                                                                                                                                                                                                                                                                                                      |
 | tax_amount_cents            | bigint          | no   | `0`                 | ≥ 0                                                                                                                                                                                                                                                                                                                                      |
 | total_cents                 | bigint          | no   | `0`                 | ≥ 0. Line items plus tax less discounts, plus `late_fee_cents` once a fee is charged                                                                                                                                                                                                                                                     |
-| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app. What is owed is `total_cents` less this less the live credit notes, and `status` is `paid` exactly when that reaches zero (ADR-0044)                                                                                                                                                  |
+| amount_paid_cents           | bigint          | no   | `0`                 | Sum of `payments.amount_cents`. Maintained by app. What is owed is `total_cents` less this less the live credit notes, and `status` is `paid` exactly when that reaches zero                                                                                                                                                             |
 | issue_date                  | date            | yes  |                     |                                                                                                                                                                                                                                                                                                                                          |
 | due_date                    | date            | yes  |                     | Used for overdue detection. ≥ issue_date if both set.                                                                                                                                                                                                                                                                                    |
 | paid_at                     | timestamptz     | yes  |                     | Set when status transitions to `paid`                                                                                                                                                                                                                                                                                                    |
@@ -1170,13 +1168,13 @@ the client the moment the project row went away.
 
 Foreign key: `fk_invoices_project_client` on `(project_id, client_id)` →
 `projects (id, client_id) ON DELETE SET NULL (project_id) ON UPDATE RESTRICT`, added in migration
-`0002_document_parent_agreement.sql`. See [ADR-0026](adr/0026-document-parentage.md).
+`0002_document_parent_agreement.sql`.
 
-**Note for whoever builds the retention purge ([ADR-0010](adr/0010-soft-delete.md)).** A client hard
-delete cascades its projects away and nulls `invoices.client_id`, which leaves an ad-hoc invoice
-with both parents null and fails `chk_invoices_parent`. It predates the composite parent keys rather
-than being caused by them, and no hard-delete path exists in the codebase. The purge has to order
-its writes so the invoices go before the client, or resolve the parent first.
+**Note for whoever builds the retention purge.** A client hard delete cascades its projects away and
+nulls `invoices.client_id`, which leaves an ad-hoc invoice with both parents null and fails
+`chk_invoices_parent`. It predates the composite parent keys rather than being caused by them, and
+no hard-delete path exists in the codebase. The purge has to order its writes so the invoices go
+before the client, or resolve the parent first.
 
 Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal_id_idx`,
 `invoices_recurring_invoice_id_idx`, `invoices_template_id_idx`, `invoices_status_idx`,
@@ -1186,8 +1184,7 @@ Indexes: `invoices_project_id_idx`, `invoices_client_id_idx`, `invoices_proposal
 
 ## 24. Line items
 
-Polymorphic — belongs to a proposal, invoice, or credit note via mutually-exclusive FKs (see
-[ADR-0017](adr/0017-polymorphic-line-items.md)).
+Polymorphic — belongs to a proposal, invoice, or credit note via mutually-exclusive FKs.
 
 ### `line_items`
 
@@ -1305,16 +1302,16 @@ Line items section above is the authoritative definition of that three-parent po
 A live credit note never moves its invoice's `total_cents`; it reduces what the invoice still owes,
 and it counts toward settlement: an invoice is `paid` once its payments and live credit notes cover
 its total, and issuing, withdrawing or restoring a credit note re-decides that in the same
-transaction (ADR-0044). Migration `0011_settle_credited_invoices` settled the invoices already
-covered when that rule arrived.
+transaction. Migration `0011_settle_credited_invoices` settled the invoices already covered when
+that rule arrived.
 
 ---
 
 ## 27. Data exports
 
 One row per export requested from `/settings/data`, and the only durable record that an archive
-exists. The archive itself is assembled by the `data_export.assemble` job (ADR-0023) in the worker
-process and stored in the credentialed exports bucket, never in the public runtime bucket.
+exists. The archive itself is assembled by the `data_export.assemble` job in the worker process and
+stored in the credentialed exports bucket, never in the public runtime bucket.
 
 ### `data_exports`
 
@@ -1360,8 +1357,8 @@ inclusion and exclusion policy.
 ## 28. Report exports
 
 One row per report PDF requested from `/reports`. The render runs in the worker through the
-`report.pdf.render` job (ADR-0022, ADR-0023) and the file is written to the credentialed exports
-bucket, reachable only through `app/api/report-exports/[id]/route.ts`.
+`report.pdf.render` job and the file is written to the credentialed exports bucket, reachable only
+through `app/api/report-exports/[id]/route.ts`.
 
 ### `report_exports`
 
@@ -1396,8 +1393,7 @@ they never finished): the nightly retention sweep deletes the row and queues its
 
 Many files per record, for the four entities that carry them: clients, projects, invoices and
 expenses. Every attachment object lives in the private `documents` bucket and is served only through
-`app/api/attachments/[id]/route.ts`; nothing here is reachable from a public token route. See
-[ADR-0028](adr/0028-attachments-and-visual-identity.md).
+`app/api/attachments/[id]/route.ts`; nothing here is reachable from a public token route.
 
 ### `attachments`
 
@@ -1439,7 +1435,6 @@ excludes archives and SVG.
 ## 30. API tokens
 
 Credentials for the read-only public API under `/api/v1/`, minted by the owner in `/settings/api`.
-See [ADR-0038](adr/0038-public-api-scope-and-tokens.md).
 
 ### `api_tokens`
 
@@ -1470,8 +1465,7 @@ current role, read from `members`; nothing about the role is copied onto this ro
 
 ## 31. Webhook endpoints
 
-Delivery targets for signed outbound webhooks, configured by the owner in `/settings/webhooks`. See
-[ADR-0039](adr/0039-outbound-webhook-delivery.md).
+Delivery targets for signed outbound webhooks, configured by the owner in `/settings/webhooks`.
 
 ### `webhook_endpoints`
 
@@ -1537,11 +1531,11 @@ sweep of its own.
 
 ### `object_deletions`
 
-Stored objects whose rows are already gone, waiting to be removed from the bucket
-([ADR-0049](adr/0049-objects-leave-with-their-rows.md)). A purge, an erasure, an instance reset or
-an export expiry writes a row here in the same transaction as its row deletes and removes the object
-only after the commit, so a failure leaves a row here with its object still present and never an
-object gone while a row names it. `storage.deletion.sweep` retries hourly.
+Stored objects whose rows are already gone, waiting to be removed from the bucket. A purge, an
+erasure, an instance reset or an export expiry writes a row here in the same transaction as its row
+deletes and removes the object only after the commit, so a failure leaves a row here with its object
+still present and never an object gone while a row names it. `storage.deletion.sweep` retries
+hourly.
 
 | Column          | Type                | Null | Default             | Notes                                                 |
 | --------------- | ------------------- | ---- | ------------------- | ----------------------------------------------------- |
@@ -1556,8 +1550,7 @@ Indexes: `uq_object_deletions_bucket_key` (unique, `bucket, key`),
 `idx_object_deletions_created_at`. Check: `chk_object_deletions_attempts`.
 
 A key is only ever written by an operation that released it, never inferred from the absence of a
-reference: this is not the orphan sweep ADR-0028 rejected. The table is kept by a reset and excluded
-from data exports.
+reference: this is not an orphan sweep. The table is kept by a reset and excluded from data exports.
 
 ---
 
@@ -1611,12 +1604,11 @@ eleven of its values and nothing else writes any of them, which is what lets the
 be generated from the enum. `task` was a value until it became clear nothing should write it — tasks
 are the highest-volume record in the product and Remit is not a project management platform — and it
 was removed rather than left as a filter option that can never match. A client contact is the one
-domain noun still absent, deliberately: ADR-0027 makes a contact a capability of a client rather
-than an entity, and it has no route to link a feed row to. Admitting any new noun means a migration
-plus the handler that writes it, in the same change.
+domain noun still absent, deliberately: a contact is a capability of a client rather than an entity,
+and it has no route to link a feed row to. Admitting any new noun means a migration plus the handler
+that writes it, in the same change.
 
 ---
 
 _When this schema is implemented, this document and the corresponding Drizzle code are the single
-source of truth. ADRs document the *why* of structural decisions; this document captures the *what*.
-Both are updated when the schema evolves._
+source of truth. Both are updated when the schema evolves._

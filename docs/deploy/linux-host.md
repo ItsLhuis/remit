@@ -97,7 +97,7 @@ cat .env
 
 Store `REMIT_ENCRYPTION_KEY` in a password manager, or anywhere that is not this machine. It cannot
 be recovered or reset. Without it the encrypted columns and every backup archive are permanently
-unreadable ([ADR-0005](../architecture/adr/0005-encryption-at-rest.md)).
+unreadable.
 
 ### 6. Create the owner account
 

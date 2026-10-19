@@ -68,9 +68,8 @@ In the panel's environment editor for this resource:
 [`.env.example`](../../.env.example) documents every variable, including the optional ones.
 
 **The encryption key lives in the panel's environment editor and nowhere else.** Deleting the
-resource deletes it, and no backup archive taken with it can ever be opened again
-([ADR-0005](../architecture/adr/0005-encryption-at-rest.md)). Copy it into a password manager before
-the first deploy.
+resource deletes it, and no backup archive taken with it can ever be opened again. Copy it into a
+password manager before the first deploy.
 
 ### 4. Point the domain at the app
 
@@ -81,8 +80,7 @@ Both panels attach a domain to one service and one port.
   certificate.
 
 Only `app` gets a domain. `database`, `redis`, `storage` and `worker` stay unreachable from outside;
-browsers never talk to object storage, because the app streams every stored file itself
-([ADR-0040](../architecture/adr/0040-deployment-agnostic-images.md)).
+browsers never talk to object storage, because the app streams every stored file itself.
 
 ### 5. Deploy, then create the owner account
 

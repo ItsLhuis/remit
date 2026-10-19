@@ -59,10 +59,9 @@ These are true on every platform, so each guide repeats them where they bite rat
 here.
 
 **`REMIT_ENCRYPTION_KEY` is not recoverable.** It encrypts the SMTP password, the Stripe keys, the
-bank details, the client notes, and every backup archive
-([ADR-0005](../architecture/adr/0005-encryption-at-rest.md)). Nobody can reconstruct it — not you,
-not a support channel, not the database. Store it off the host before the instance holds anything.
-Where it lives differs per platform, and recreating a service is the usual way it is lost.
+bank details, the client notes, and every backup archive. Nobody can reconstruct it — not you, not a
+support channel, not the database. Store it off the host before the instance holds anything. Where
+it lives differs per platform, and recreating a service is the usual way it is lost.
 
 **`REMIT_PUBLIC_URL` must be exactly the origin a browser uses.** Every link Remit emails is built
 from it, and it is also the only origin Better Auth trusts: reach the instance at a different

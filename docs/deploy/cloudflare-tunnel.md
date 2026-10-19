@@ -16,8 +16,7 @@ internet.
 It is also the deployment with the widest exposure decision in it. Every request, including the
 public invoice, proposal and contract links your clients open, passes through Cloudflare. That is
 compatible with Remit's position on data ownership only if you decide it is; Remit itself sends
-nothing anywhere ([ADR-0018](../architecture/adr/0018-no-telemetry.md)), and this is a deployment
-choice on top of that, not a product one.
+nothing anywhere, and this is a deployment choice on top of that, not a product one.
 
 If the host has a public address, [Linux host](linux-host.md) is simpler and keeps the traffic
 between your client and your server.
@@ -89,8 +88,7 @@ Back in the tunnel's **Routes** tab, add a route:
 connector is its own container, and its localhost is not the app's.
 
 Nothing else gets a route. `database`, `redis`, `storage` and `worker` have none, and browsers never
-reach object storage anyway — the app streams every stored file itself
-([ADR-0040](../architecture/adr/0040-deployment-agnostic-images.md)).
+reach object storage anyway — the app streams every stored file itself.
 
 ### 5. Create the owner account
 

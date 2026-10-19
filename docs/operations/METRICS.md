@@ -4,8 +4,7 @@ This runbook points a Prometheus scraper at a Remit instance. Metrics are off un
 on, and when on they are protected by one bearer token and nothing else.
 
 What the endpoint exposes, and why it exposes nothing more, is in the metrics section of
-[ARCHITECTURE.md](../architecture/ARCHITECTURE.md#16-observability) and in
-[ADR-0036](../architecture/adr/0036-metrics-allowlist-and-collection.md).
+[ARCHITECTURE.md](../architecture/ARCHITECTURE.md#16-observability).
 
 ## 1. Set the token
 

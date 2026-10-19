@@ -106,8 +106,7 @@ journal, and a dry run prints the comparison:
 
 Restore holds the backup lock from before its pre-restore snapshot until it exits, so no scheduled
 or manual backup and no key rotation can start while it writes files, swaps the database and deletes
-stale files ([ADR-0047](../architecture/adr/0047-one-backup-lock.md)). Its own pre-restore snapshot
-runs under that lock and is never refused.
+stale files. Its own pre-restore snapshot runs under that lock and is never refused.
 
 ## Order of the destructive steps
 
