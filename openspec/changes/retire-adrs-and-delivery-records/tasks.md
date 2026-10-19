@@ -64,7 +64,7 @@ Shared definitions for every task:
     `ARCHITECTURE.md` only, and every remaining hit is inside the index section, its
     table-of-contents line or the opening note; `pnpm exec vitest run tests/docs`.
 
-- [ ] 4. Citations removed from rules and contributor-facing text
+- [x] 4. Citations removed from rules and contributor-facing text
   - Do: `.agents/rules/{architecture,errors,money-and-dates}.md` keep the principle and drop the
     citation; `.agents/rules/comments.md` stops naming records among the standing documents and its
     example cites a rule or source symbol instead. `README.md` points to the runbook, command

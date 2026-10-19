@@ -15,8 +15,8 @@ Read the ones your change touches. `.agents/rules/code-style.md` names a canonic
 every category; match it rather than the nearest neighbour.
 
 For why the system is shaped the way it is, read
-[`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md). For a specific
-decision, read its ADR. Neither is optional reading for a change that touches a boundary.
+[`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md). It is not optional
+reading for a change that touches a boundary.
 
 ## Getting it running
 
@@ -58,11 +58,11 @@ A few rules are worth stating here because they are easy to miss and are refused
 Conventional Commits, enforced by commitlint: `feat(invoices): add late fee calculation`. Keep
 commits atomic — one change per commit, so `git log` stays useful as the project's history.
 
-## What gets recorded
+## How a change is described
 
-When a change delivers a whole capability rather than an increment of one, it also writes a delivery
-record. [`docs/delivery/README.md`](../docs/delivery/README.md) explains the format, when a record
-opens, and when it seals.
+A change to behaviour goes through [`openspec/`](../openspec/README.md): a proposal, a task list,
+and the capability specs in `openspec/specs/`, written with the change. Conventions live in
+`.agents/rules/`, and tests prove the behaviour.
 
 ## Reporting problems
 

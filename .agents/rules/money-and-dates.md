@@ -6,9 +6,8 @@ this file covers how the values move and render at the application boundary.
 
 ## Money is integer minor units
 
-Monetary amounts are integer minor units (cents), stored as `bigint` (see `database.md` and
-`docs/architecture/adr/0009-money-as-integer-minor-units.md`). Never represent money as a float and
-never do money math with floats.
+Monetary amounts are integer minor units (cents), stored as `bigint` (see `database.md`). Never
+represent money as a float and never do money math with floats.
 
 - Convert a `bigint` money column to `number` at the query boundary with `Number(...)` (see
   `queries.md`).

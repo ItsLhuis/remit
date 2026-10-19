@@ -152,5 +152,5 @@ section, and refuse to run while it has no entries.
 ## History before this file
 
 Remit has not published a tagged release. Work delivered before this changelog existed is not
-reconstructed here: [README.md](README.md) describes what the product does, and
-[docs/delivery/](docs/delivery/README.md) records what was built and how it was verified.
+reconstructed here: [README.md](README.md) describes what the product does, and `git log` records
+how it was built.

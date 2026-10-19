@@ -93,20 +93,18 @@ logger.error({ action: "sendInvoiceEmail", smtpPass: settings.smtpPass, err: err
 ## Reported versus logged
 
 Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure is also
-**reported** to their Sentry-compatible receiver, and it is reported from exactly two boundaries
-([ADR-0041](../../docs/architecture/adr/0041-error-tracking-boundary.md)):
+**reported** to their Sentry-compatible receiver, and it is reported from exactly two boundaries:
 
 - An error that **escapes** a server component, a route handler, a server action or the proxy.
   Next.js hands it to `onRequestError` in `instrumentation.ts`.
 - A job whose **last attempt** fails in the worker (`lib/jobs/worker.ts`), a worker that fails to
   start, and a worker that crashes after starting on an unhandled rejection or an uncaught exception
   (`scripts/worker.ts`, `scripts/core/worker/crash.ts`). An attempt a retry may still recover is
-  only logged. A crash is the same class as a failed start
-  ([ADR-0048](../../docs/architecture/adr/0048-worker-crash-and-request-error-log.md)): nobody is
-  watching the process, so it reports, logs, and exits non-zero for its container to restart.
+  only logged. A crash is the same class as a failed start: nobody is watching the process, so it
+  reports, logs, and exits non-zero for its container to restart.
 
 At the request boundary Next.js has already logged the error itself, so `onRequestError` logs a
-receipt — the event id, route, error type and digest — and never the error a second time (ADR-0048).
+receipt — the event id, route, error type and digest — and never the error a second time.
 
 A failure a handler catches is logged and **not** reported: catching it is the decision that it is
 handled. That covers every server action's `try`/`catch`, every event bus handler, `enqueueJob`

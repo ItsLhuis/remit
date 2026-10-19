@@ -27,8 +27,7 @@ add only the files the feature needs now.
 - `hooks/` - feature-scoped hooks (see `hooks.md`).
 - `services/` - pure business logic; no framework or IO imports.
 - `engine/` - the canvas editor's pointer runtime (gesture machinery, its hooks, module stores and
-  overlay components), which is one cohesive unit that belongs to none of the other folders
-  ([ADR 0024](../../docs/architecture/adr/0024-template-editor-canvas.md)). Only
+  overlay components), which is one cohesive unit that belongs to none of the other folders. Only
   `features/templates/` has one; do not copy it without an equally strong reason.
 - `labels.ts` - domain value → translation key, icon name, badge variant.
 - `queries.ts` - reads via Drizzle; server-only.
@@ -48,7 +47,7 @@ add only the files the feature needs now.
 
 - `features/B/index.ts` for client-safe code;
 - `features/B/server.ts` for server-only code;
-- `features/B/systemWrites.ts` for the session-free writes a background job calls (ADR-0023);
+- `features/B/systemWrites.ts` for the session-free writes a background job calls;
 - `features/B/services` for a pure domain rule. A pure module reaches no component, `"use server"`
   module or other feature's server graph, so it can never close an import cycle and is safe in the
   browser, the server, the worker and a unit test. Use it when the rule is all you need — the root
@@ -124,8 +123,8 @@ object from `lib/config/env.ts`; application code never reads `process.env` dire
 
 1. Add the variable to `lib/config/envSchema.ts`. Optional variables use `optionalEnvString` so
    blank values become `undefined`. Never use the `NEXT_PUBLIC_` prefix: Next.js freezes it into the
-   bundle at build time, and a published image must run at any address (ADR-0040). A value the
-   browser needs is read on the server and passed down.
+   bundle at build time, and a published image must run at any address. A value the browser needs is
+   read on the server and passed down.
 2. Document it in `.env.example` with a safe placeholder, never a real secret.
 
 Required secrets also follow `security.md`: validated here, never logged, never returned in a

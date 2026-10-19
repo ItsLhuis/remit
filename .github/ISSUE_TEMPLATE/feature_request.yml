@@ -5,9 +5,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Remit is opinionated on purpose. A request that conflicts with a recorded decision can still
-        be worth making — say so, and argue it. The decisions live in
-        [`docs/architecture/adr/`](../blob/main/docs/architecture/adr).
+        Remit is opinionated on purpose. A request that conflicts with a documented decision can
+        still be worth making — say so, and argue it. The decisions live in
+        [`docs/architecture/ARCHITECTURE.md`](../blob/main/docs/architecture/ARCHITECTURE.md) and
+        the capability specs in [`openspec/specs/`](../blob/main/openspec/specs).
 
   - type: textarea
     id: problem

@@ -76,9 +76,9 @@ Do not write a comment that:
   file, a stage/phase/milestone number, a session, a reviewer conversation, a mockup. Those rot
   silently. The encouraged opposites are durable: a **source file and symbol**
   (`services/constraints.ts`'s `applyFrameResize`), and a **standing specification document**
-  (`docs/architecture/ARCHITECTURE.md`, an ADR, `SCHEMA.md`, `DESIGN.md`, a capability spec under
+  (`docs/architecture/ARCHITECTURE.md`, `SCHEMA.md`, `DESIGN.md`, a capability spec under
   `openspec/specs/`, or a rule under `.agents/rules/`). Name the decision, not just the file:
-  `never matrix() — see ADR-0024` over `see ADR-0024`.
+  `integer minor units, never floats — see money-and-dates.md` over `see money-and-dates.md`.
 - **Justifies a change to a reviewer** — that is a commit message.
 - **Records a changelog or an author** — `git log` and `git blame` answer both.
 - **Is a divider or a banner** (`// ===== HELPERS =====`). Column-group comments in large

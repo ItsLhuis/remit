@@ -31,7 +31,7 @@
 - [ ] Business logic added to `services/` is pure — no framework, Drizzle, React or IO imports
 - [ ] Input crossing a trust boundary is validated with Zod
 - [ ] Comments added carry a "why" the code cannot, per `.agents/rules/comments.md`
-- [ ] A delivery record was opened and sealed, if this change delivers a whole capability
+- [ ] Behaviour changes are described in the capability specs under `openspec/specs/`
 
 ## Notes for the reviewer
 

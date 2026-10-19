@@ -260,7 +260,7 @@ Operational support:
   - `pnpm remit:rotate-encryption-key` rotates Remit-owned encrypted columns and existing
     `.remitbak` archive encryption with a mandatory pre-rotation backup. The rotation contract is
     documented in
-    [`docs/architecture/adr/0021-encryption-key-rotation.md`](./docs/architecture/adr/0021-encryption-key-rotation.md).
+    [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md#pnpm-remitrotate-encryption-key).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates demo data for screenshots, screencasts, and local demo
     deployments, with presets and capped numeric overrides. The same seed produces the same records
@@ -270,15 +270,14 @@ Operational support:
   - `pnpm remit:reset-data` is its inverse: it empties the instance's domain data in one transaction
     while the account, organization, settings, tax rates, templates, and audit trail survive. The
     scope is documented in
-    [`docs/architecture/adr/0025-instance-data-reset-scope.md`](./docs/architecture/adr/0025-instance-data-reset-scope.md).
+    [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md#pnpm-remitreset-data).
 - **Host-side upgrades** - `bash scripts/host/upgrade.sh` snapshots a backup, pulls images, restarts
   the compose project, and waits for `/api/health`. The operator runbook is
-  [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Per ADR-0020, upgrade is host-side:
-  no `remit:upgrade` package script, no Docker socket mount.
+  [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Upgrade is host-side: no
+  `remit:upgrade` package script, no Docker socket mount.
 - **Operational command contract** - new `remit:*` scripts follow
-  [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md)
-  and [ADR-0020](./docs/architecture/adr/0020-operational-cli-contract.md). No placeholder package
-  scripts ship.
+  [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md).
+  No placeholder package scripts ship.
 
 ## Stack
 
@@ -295,7 +294,6 @@ documented in [`docs/architecture/`](./docs/architecture/):
   model, multi-user model, hosted offering, all major decisions.
 - [`SCHEMA.md`](./docs/architecture/SCHEMA.md) — authoritative table-by-table specification of every
   column, constraint, and index in the database.
-- [`adr/`](./docs/architecture/adr) — Architecture Decision Records, numbered and immutable.
 
 Coding conventions for the codebase live in [`.agents/rules/`](./.agents/rules/) and are enforced
 through ESLint and the test suite.
