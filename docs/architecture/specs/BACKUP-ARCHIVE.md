@@ -4,8 +4,8 @@ This document is the implementation-facing specification for Remit's encrypted `
 format. The architecture overview summarizes the backup model; this file defines the durable archive
 contract used by `remit:backup` and `remit:restore`.
 
-Since format version 2, the decrypted payload carries the stored files. Changes that break a
-released archive format must bump `archiveFormatVersion`.
+The decrypted payload carries the database and the stored files (`archiveFormatVersion = 2`).
+Changes that break a released archive format must bump `archiveFormatVersion`.
 
 ## Archive filename convention
 
@@ -160,7 +160,8 @@ archive object.
 ## Encryption contract
 
 - Algorithm: AES-256-GCM, algorithm byte `0x01`.
-- Key: `REMIT_ENCRYPTION_KEY`, reused. Backup does not introduce a second master secret.
+- Key: `REMIT_ENCRYPTION_KEY`, the same key that encrypts the database columns. Backup does not
+  introduce a second master secret.
 - IV: 12 random bytes per archive, written into the plaintext header.
 - Auth tag: 16 bytes, appended to the ciphertext.
 - `keyFingerprint`: first 16 bytes of `SHA-256(rawKey)`, enough to detect mismatched keys during

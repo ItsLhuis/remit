@@ -933,10 +933,10 @@ from that proposal". A mirrored `converted_to_*_id` column on `proposals` would 
 twice, with nothing keeping the two sides in agreement.
 
 A proposal hangs off a project or off a client, exactly as a contract does — it is the earliest
-document a freelancer produces, so requiring the later entity to exist first contradicted
-[Architecture: What Remit is](ARCHITECTURE.md#1-what-remit-is). `project_id` was `NOT NULL` with
-`ON DELETE CASCADE`, so deleting a project destroyed the accepted proposal a signed contract and an
-issued invoice both pointed at.
+document a freelancer produces, so requiring the later entity to exist first would contradict
+[Architecture: What Remit is](ARCHITECTURE.md#1-what-remit-is). `project_id` is nullable and a
+project's deletion sets it to null, so deleting a project never destroys the accepted proposal a
+signed contract and an issued invoice both point at.
 
 Constraints:
 
