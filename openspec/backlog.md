@@ -7,8 +7,8 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
-1. `retire-adrs-and-delivery-records` — delete the decision and delivery record sets, every
-   reference to them, and the history sections of the spec format
+1. `retire-adrs-and-delivery-records` — delete the two historical record folders under `docs/`,
+   every reference to them, and the history sections of the spec format
 2. `restructure-reference-docs` — reduce `docs/` to runbooks, deployment guides, standing contracts
    and a short architecture map
 

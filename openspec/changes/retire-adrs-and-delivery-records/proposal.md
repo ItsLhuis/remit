@@ -76,4 +76,4 @@ records, and its table-of-contents line, consist only of citations and are delet
 
 ## Gate 1
 
-pending
+approved
