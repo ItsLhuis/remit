@@ -153,7 +153,7 @@ const importOrderRule = [
 // `systemWrites` is a second sanctioned cross-feature door, and it exists because `server.ts` cannot
 // serve the background worker: that barrel re-exports the feature's `"use server"` actions, which
 // pull `next/headers` and `next/cache` into whatever imports it. Those resolve inside Next and fail
-// outright in the standalone worker process (ADR-0023). A `systemWrites` module is the session-free
+// outright in the standalone worker process. A `systemWrites` module is the session-free
 // write path — plain async functions, no request context — so a job may import it directly.
 //
 // `services` is the third, for a pure domain rule: a pure module reaches no component, no `"use
@@ -175,7 +175,7 @@ const featureBoundaryRule = [
           "Import feature code through the feature root barrel (@/features/<feature>), its server barrel, its systemWrites module or its services barrel. Use relative imports within the same feature."
       },
       // Carried by the boundary rule because it applies to the same files: the reporter's callers
-      // are the two boundaries in `instrumentation.ts` and `lib/jobs/worker.ts` (ADR-0041), and a
+      // are the two boundaries in `instrumentation.ts` and `lib/jobs/worker.ts`, and a
       // capture call in a feature is the second, rule-less error path `errors.md` forbids.
       {
         group: ["@/lib/errorTracking", "@/lib/errorTracking/*"],

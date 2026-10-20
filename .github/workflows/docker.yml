@@ -59,8 +59,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # A copy of the bundled store's image, digest for digest, in this project's own namespace
-      # (ADR-0045), so a tag withdrawn upstream cannot stop an install: switching the reference
+      # A copy of the bundled store's image, digest for digest, in this project's own namespace,
+      # so a tag withdrawn upstream cannot stop an install: switching the reference
       # changes the registry and nothing else. The reference matches docker-compose.yml, which
       # `tests/docs/pinnedImages.test.ts` holds.
       - name: Mirror the pinned store image
@@ -99,9 +99,9 @@ jobs:
           done
 
       # Each target builds exactly the stage docker-compose.yml runs for it. Building with no target
-      # produced the Dockerfile's last stage, the worker, and published it under the application's
-      # name. Neither image takes a build argument: nothing about a deployment is baked in, so the
-      # same image serves every address (ADR-0040).
+      # would produce the Dockerfile's last stage, the worker, and publish it under the
+      # application's name. Neither image takes a build argument: nothing about a deployment is
+      # baked in, so the same image serves every address.
       - name: Build and push the application image
         uses: docker/build-push-action@v7
         with:

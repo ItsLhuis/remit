@@ -98,7 +98,7 @@ Shared definitions for every task:
   - Verify:
     `! git grep -nP "$CITE" -- scripts database drizzle tests ':!tests/docs/adr.test.ts' ':!tests/docs/delivery.test.ts' && pnpm lint && pnpm typecheck && pnpm exec vitest run scripts/core/release tests/docs`
 
-- [ ] 8. Comment citations removed in configuration files
+- [x] 8. Comment citations removed in configuration files
   - Do: comment-only edits in `eslint.config.mjs`, `Dockerfile`, `docker-compose.yml`,
     `docker-compose.dev.yml`, `.env.example`, `doctor.config.ts`, `deploy/caddy/Caddyfile` and
     `.github/workflows/docker.yml`. No rule, setting or value changes.

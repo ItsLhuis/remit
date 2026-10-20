@@ -22,7 +22,7 @@ ENV NODE_ENV=production
 
 # The image is built once and deployed anywhere, so nothing about a deployment enters the build: no
 # build ARG, no address, no secret, and no NEXT_PUBLIC_* variable, which Next.js would freeze into
-# the bundle (ADR-0040). Next.js still evaluates server modules during `next build`, so validation
+# the bundle. Next.js still evaluates server modules during `next build`, so validation
 # is skipped only for the build command below. The runner stage validates real values from the
 # runtime environment block in docker-compose.yml.
 
@@ -80,7 +80,7 @@ ENV HOSTNAME="0.0.0.0"
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # ─── Stage 5: worker ─────────────────────────────────────────────────────────
-# The background job consumer, and the only image that carries Chromium (ADR-0022). It extends the
+# The background job consumer, and the only image that carries Chromium. It extends the
 # runner rather than duplicating it, so both processes run byte-identical application code.
 #
 # Kept a separate stage on purpose: Chromium and its font and library closure add hundreds of
