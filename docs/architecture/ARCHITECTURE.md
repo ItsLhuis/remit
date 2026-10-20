@@ -8,8 +8,7 @@
 > codebase as a portfolio artefact, and for the author as the canonical record of every significant
 > architectural decision.
 >
-> Sections are refined in place as decisions evolve; outdated paragraphs are rewritten rather than
-> preserved as history.
+> Sections are rewritten in place as the system changes.
 >
 > **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions —
 > file naming, component patterns, form structure, import order, testing layout — are owned by the
