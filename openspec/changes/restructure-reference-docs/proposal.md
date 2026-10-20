@@ -2,12 +2,12 @@
 
 ## Product position
 
-`docs/` holds 419,255 bytes in 15 files besides the two folders `retire-adrs-and-delivery-records`
-deletes and the gitignored scratch folder. Two thirds of it (`ARCHITECTURE.md` 142,000 bytes,
-`SCHEMA.md` 149,308 bytes) restates what `database/schema/`, `AGENTS.md`, `.agents/rules/`, the lint
-config and the tests already say, and the copies drift: this proposal lists 19 statements in
-`ARCHITECTURE.md`, 2 in `SCHEMA.md`, 4 in operator documents and 2 in guidance files that the code
-contradicts. An agent that reads them is misled; one that does not misses nothing.
+`docs/` holds 409,120 bytes in 15 files besides the gitignored scratch folder. Two thirds of it
+(`ARCHITECTURE.md` 131,865 bytes, `SCHEMA.md` 149,308 bytes) restates what `database/schema/`,
+`AGENTS.md`, `.agents/rules/`, the lint config and the tests already say, and the copies drift: this
+proposal lists 19 statements in `ARCHITECTURE.md`, 2 in `SCHEMA.md`, 4 in operator documents and 2
+in guidance files that the code contradicts. An agent that reads them is misled; one that does not
+misses nothing.
 
 Admission test for every document and section: **a reader who lacks the text gets stuck or misled,
 and the code, the tests and the lint rules do not say it.** What passes stays: operator runbooks,
@@ -33,9 +33,17 @@ and agents gain one checked source per fact; operators keep every runbook, with 
   - Re-point every inbound link and every code comment that cites a deleted or renumbered section.
   - Three tests: relative links and cited doc paths resolve; `remit:*` packaging agrees;
     `audit_logs` is insert-only.
+  - The kept prose-only rules (owner decision 5) in their owning rule files; G2.
+  - GAP-4: `.github/CONTRIBUTING.md` and `.github/PULL_REQUEST_TEMPLATE.md` say the migration
+    history may be squashed before v1, and the GAP-4 row leaves `openspec/backlog.md`.
+  - One line in the `reviewer` checklist: nothing in the diff describes a former state, a migration,
+    a replacement or a removed document.
+  - The hand-written migration rule in `AGENTS.md` (Hard rules) and `.agents/rules/database.md`, and
+    the public-token minter (`mintPublicToken` in `lib/publicToken.ts`) in
+    `.agents/rules/security.md`.
 - Out: application behaviour (outside `docs/`, guidance files and tests, every diff is
-  comment-only); `openspec/specs/`; `.agents/rules/` except re-pointing links and the stale facts
-  beside those links (G2 below); released `CHANGELOG.md` entries; gitignored scratch files.
+  comment-only); `openspec/specs/` (the first spec comes with the first real change); every other
+  skill, agent or rule edit; released `CHANGELOG.md` entries; gitignored scratch files.
 
 ## Capabilities touched
 
@@ -58,7 +66,7 @@ test; verdict.
 
 - `docs/README.md`, 2,214, C/Op. No: `README.md` (Documentation) already routes to every target.
   **Delete.**
-- `docs/architecture/ARCHITECTURE.md`, 142,000, A/C. Partly: principles and flows pass, the rest
+- `docs/architecture/ARCHITECTURE.md`, 131,865, A/C. Partly: principles and flows pass, the rest
   restates code (disposition below). **Shrink to a map of about 18.9 KB.**
 - `docs/architecture/SCHEMA.md`, 149,308, A/C. No: every section derives from `database/schema/`
   (disposition below). **Delete.**
@@ -79,7 +87,7 @@ test; verdict.
 - `docs/deploy/cloudflare-tunnel.md`, 8,394, and `docs/deploy/coolify-and-dokploy.md`, 9,142, Op.
   Yes, marked Not tested. **Keep.**
 - `docs/deploy/raspberry-pi.md`, 6,512, Op. Weak: mostly "follow linux-host"; its own facts are
-  arm64 images and Chromium. **Fold into `linux-host.md`** (question 4).
+  arm64 images and Chromium. **Fold into `linux-host.md`** (decision 4).
 - `docs/operations/INSTALL.md`, 17,175, Op. Yes: key custody, re-run semantics, manual install, S3
   permissions. **Keep; fix O2.**
 - `docs/operations/UPGRADE.md`, 5,591, Op. Yes: rollback and "update the checkout first". **Keep;
@@ -93,7 +101,7 @@ Estimated result: about 110 KB in `docs/` plus about 11 KB next to code.
 
 ## `ARCHITECTURE.md` disposition
 
-142,000 bytes in 111 segments; a segment runs from its heading to the next, so a `##` line counts
+131,865 bytes in 110 segments; a segment runs from its heading to the next, so a `##` line counts
 only its lead text. Format: section (bytes): verdict — evidence. Verdicts: **keep**, **shrink** (to
 a principle plus a pointer), **delete** (derivable from the evidence), **move to** a runbook.
 Consecutive sections with the same verdict are grouped.
@@ -126,7 +134,7 @@ Consecutive sections with the same verdict are grouped.
   (A2).
 - The boundary rule (617): shrink — `eslint.config.mjs:163-187`, `.oxlintrc.json` (A1).
 - Why closed modules, Feature inventory (1,055): delete — `.agents/rules/architecture.md`;
-  `features/` (the monorepo rule: question 5).
+  `features/` (the monorepo rule: decision 5).
 - 6 lead and its four subsections (3,189): delete —
   `.agents/rules/{architecture,actions,queries}.md`, `pureServicesRule` (A3, A18).
 - 7 lead, Schema organisation, Universal table conventions, Money storage (3,122): delete —
@@ -135,7 +143,7 @@ Consecutive sections with the same verdict are grouped.
 - The `encryptedColumn()` helper (753): shrink — `database/schema/helpers.ts`, `lib/encryption/`,
   `INSTALL.md` (key custody).
 - Migrations strategy (1,190): delete — `drizzle/migrations/meta/_journal.json`,
-  `.agents/rules/database.md` (A10; the two-release rule: question 6).
+  `.agents/rules/database.md` (A10; the two-release rule: decision 6).
 - 8 lead (17): delete — heading only.
 - Purpose (686): shrink — `lib/events/bus.ts`, `.agents/rules/events.md`.
 - Event naming convention (1,518): delete — `lib/events/types.ts`, `.agents/rules/events.md` (A6).
@@ -186,7 +194,7 @@ Consecutive sections with the same verdict are grouped.
 - Health and status (567): move to `docs/operations/METRICS.md`.
 - Operational CLI contract, Instance data reset (1,994): delete — the CLI contract;
   `scripts/core/domainData/inventory.ts` and its test.
-- Backup and restore (4,818): move to `docs/operations/BACKUP.md` (new; question 3).
+- Backup and restore (4,818): move to `docs/operations/BACKUP.md` (new; decision 3).
 - Updates (1,952): move to `docs/operations/UPGRADE.md`.
 - Encryption key rotation, Operator documentation, Deployment guides (2,246): delete — the CLI
   contract (`remit:rotate-encryption-key`); `README.md` Documentation; `docs/deploy/README.md`.
@@ -207,12 +215,11 @@ Consecutive sections with the same verdict are grouped.
 - The commitment (1,469): shrink — `lib/config/envSchema.ts` (`REMIT_HOSTED_MODE`),
   `features/settings/backup/`, `features/backups/` (A16).
 - 19 Open architectural questions (823): delete — `openspec/backlog.md`.
-- 20 (10,211): removed by `retire-adrs-and-delivery-records`.
 
 Totals: keep 4 sections, 9,716 → about 7,200 bytes; shrink 25 sections, 50,632 → about 9,400; delete
-76 sections, 61,696; move 5 sections, 9,745, edited to fit their runbooks; section 20, 10,211, goes
-with the sibling change. About 2,300 bytes are new (request flow, job flow). Map: about 18.9 KB; if
-it runs over, cut the Key invariants bullets a schema constraint enforces.
+76 sections, 61,696; move 5 sections, 9,745, edited to fit their runbooks. About 2,300 bytes are new
+(request flow, job flow). Map: about 18.9 KB; if it runs over, cut the Key invariants bullets a
+schema constraint enforces.
 
 ## `SCHEMA.md` disposition
 
@@ -296,8 +303,9 @@ section. A: `ARCHITECTURE.md`; G: guidance; O: operator documents.
   business profile and TOTP are one `setupComplete` predicate; the file is `proxy.ts`.
 - A8 No proxy-level role gating exists; settings pages call `requireRole`.
 - A9 Foreign keys have no cascade default (25 cascade, 35 set null).
-- A10 There are 13 migrations, three hand-written (`0001`, `0002`, `0011`); the migrator compares
-  `created_at`, not a hash.
+- A10 There are 13 migrations, three hand-written (`0001`, `0002`, `0011`, the only ones with a
+  "Written by hand" header; `0000` and `0003` carry chosen names but are generated output); the
+  migrator compares `created_at`, not a hash.
 - A11 `line_items.quantity` is `numeric(10,2)`, not an integer.
 - A12 No `requestId` exists anywhere in the code.
 - A13 There are six scheduled sweeps, including `storage.deletion.sweep` (`lib/jobs/schedules.ts`).
@@ -446,35 +454,49 @@ Map outline, about 18.9 KB; every claim names the file that verifies it:
 10. What leaves the instance (1,900) — `lib/errorTracking/errorEvent.ts` and its test,
     `lib/metrics/admission.ts` and its test, `features/webhooks/safePost.ts`.
 
-## Open questions
+## Owner decisions
 
-1. Layout (a) central or (b) next to code? Recommended: (b) narrowly, as above.
-2. Generate a schema diagram from `database/schema/`? Recommended: no. Nothing reads one today; a
-   generated artefact needs a generator, a check and a home; `drizzle-kit studio` shows the live
-   schema on demand.
-3. A new `docs/operations/BACKUP.md`? Recommended: yes. No runbook holds the schedule
-   (`backup.run.sweep` at 01:00 UTC), the single backup lock, the destination test, hosted mode, the
-   dashboard banner, retention pruning, or the backup-test procedure `INSTALL.md` promises.
-4. The Raspberry Pi guide? Recommended: fold its arm64-image and Chromium facts into an "arm64
-   hosts" section of `linux-host.md` and delete the file; it is Not tested and otherwise defers to
-   that guide.
-5. Binding rules stated only in prose this change deletes or shrinks: no TOTP opt-out
-   (Authentication flow); no monorepo until a second artefact (Why closed modules); no URL-based
-   locale routing (Deferred decisions); no Docker socket and no `remit:upgrade` (Operational CLI
-   contract, Updates); no placeholder `remit:*` script (CLI contract); no application cache (Rate
-   limiting); no error-tracking SDK, build integration or browser DSN (Error tracking); built-in
-   layouts never seeded as templates (`SCHEMA.md`). Recommended: the owner reviews the list in one
-   pass; each kept rule becomes one line in the owning `.agents/rules/<name>.md` (a rule edit the
-   owner approves here) or in the map's Standing principles; the rest is dropped.
-6. The two-release migration rule (Migrations strategy, Updates) has no enforcing file and conflicts
-   with owner decision 2 (pre-v1). Recommended: delete it.
-7. Keep the CLI contract and the archive format as contracts? Recommended: yes, shrunk. The CLI
-   contract keeps naming, promotion criteria, execution context, the no-`remit:upgrade` boundary and
-   key-rotation semantics, and points to each command's `--help` for flags. The archive contract
-   keeps the forward-compatibility promise and the destination table, and points to
-   `scripts/core/archive/header.ts` and `scripts/core/restore/manifestSchema.ts` for the layout.
-8. The two Tested deployment guides once O1 is fixed? Recommended: keep the label, add the commit
-   each run used, and mark the corrected step as not re-executed until the owner re-runs the guide.
+1. Layout (b), narrowly: `CLI-CONTRACT.md` becomes `scripts/README.md`, `BACKUP-ARCHIVE.md` becomes
+   `scripts/core/archive/README.md`; every operator document stays in `docs/`, and
+   `docs/operations/UPGRADE.md` keeps its path.
+2. No schema diagram: `SCHEMA.md` and `tests/docs/schema.test.ts` are deleted.
+3. A new `docs/operations/BACKUP.md` runbook.
+4. The Raspberry Pi guide folds into an "arm64 hosts" section of `docs/deploy/linux-host.md`.
+5. Prose-only rules kept, each as one rule statement in its owning file:
+   - `.agents/rules/security.md`: TOTP can never be disabled, for any role; no telemetry, analytics
+     or update check leaves the instance unless the operator configures it; nothing reachable by a
+     public token is ever attachable; the client portal route writes nothing.
+   - `.agents/rules/database.md`: domain entities are soft-deleted by default; a new table with both
+     a project and a client parent needs the composite foreign key, the requires-client check and a
+     backfill, as `drizzle/migrations/0002_*` and
+     `database/__tests__/documentParentage.integration.test.ts` show.
+   - `.agents/rules/errors.md`: no error-tracking SDK, build integration, source-map upload or
+     browser DSN.
+   - `.agents/rules/architecture.md`: scheduled and asynchronous server work runs only through the
+     BullMQ job layer, never an in-process timer; no application cache, and adding one needs an
+     owner decision.
+   - `.agents/rules/routes.md`: a breaking change to the public API ships as `/api/v2` beside v1.
+   - `scripts/README.md`: the app container never mounts the Docker socket, upgrade runs on the
+     host, there is no `remit:upgrade` script.
+   - Schema comments: F4 and F5.
+
+   Every other rule that only the deleted prose states is dropped: no monorepo until a second
+   artefact, no URL locale routing, the criteria for a future cache, what a new Redis use must
+   decide, `@dnd-kit` on the template canvas, the criteria for moving the object-store image pin,
+   and "no placeholder `remit:*` scripts" as prose (the packaging test covers it).
+
+6. The two-release migration rule is deleted wherever it appears.
+7. The CLI contract and the archive format stay as contracts, shrunk as described under Inventory.
+8. The two Tested deployment guides keep the label, name the commit each run used when the guide or
+   its history records it (otherwise they say it is not recorded), and mark the corrected step (O1)
+   as not re-executed.
+9. GAP-4 closes: the migration history may be squashed before v1, when the owner schedules it.
+10. The `reviewer` checklist gains the present-tense line.
+11. Never edit generated migration output; hand-written SQL migrations exist only for what Drizzle
+    cannot express, each states why in its header, and a squash must recreate them unchanged.
+    `.agents/rules/security.md` names `mintPublicToken` in `lib/publicToken.ts` as the one minter.
+12. Surviving text has no former-state wording (H1).
+13. No `openspec/specs/` is written by this change.
 
 ## Draft task outline
 
@@ -483,8 +505,7 @@ For `plan-change`; each line is one verified commit.
 1. Schema facts: add F1-F5 as schema comments, resolve F6, re-point the eight `SCHEMA.md` code
    comments, add the `audit_logs` insert-only integration test, delete `SCHEMA.md` and
    `tests/docs/schema.test.ts`.
-2. Prose-only rules: apply the owner's answers to questions 5 and 6 in `.agents/rules/`, or carry
-   them into the map.
+2. Prose-only rules: apply decisions 5 and 6 in `.agents/rules/`, or carry them into the map.
 3. Runbooks: move Docker-first deployment to `docs/deploy/README.md`, Health and status and What an
    operator can observe to `METRICS.md`, Updates to `UPGRADE.md`; write `BACKUP.md` from Backup and
    restore plus the backup-test procedure.
@@ -505,4 +526,4 @@ For `plan-change`; each line is one verified commit.
 
 ## Gate 1
 
-pending
+approved
