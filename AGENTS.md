@@ -36,7 +36,8 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
   `mutations.ts`, `schemas.ts`, `types.ts`, `events.ts`, `index.ts`, `server.ts`). Cross-feature
   imports only through public doors (`.agents/rules/architecture.md`).
 - `components/` - shared UI (`ui/`, `layout/`), each with an `index.ts` barrel.
-- `database/` - Drizzle schemas (`database/schema/`); `drizzle/migrations/` is generated.
+- `database/` - Drizzle schemas (`database/schema/`); `drizzle/migrations/` is generated,
+  hand-written SQL aside.
 - `lib/` - server and client utilities; `lib/auth/session.ts` has `requireSession`/`requireRole`.
 - `hooks/`, `providers/`, `scripts/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
@@ -48,8 +49,9 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 - NEVER run `pnpm database:migrate` without confirming the target environment.
 - No `tenantId` columns or row-level tenancy: Remit is single-instance; Hosted mode is per-instance
   isolation.
-- No hand-edited migrations, no `any`, no non-null assertions, no unvalidated inputs, no plaintext
-  secrets, no TODO/stub code on `main`.
+- Never edit generated migration output; hand-written SQL migrations only cover what Drizzle cannot
+  express, state why in their header and survive a squash unchanged. No `any`, no non-null
+  assertions, no unvalidated inputs, no plaintext secrets, no TODO/stub code on `main`.
 - Server actions in `features/<feature>/mutations.ts` are the write path. API routes exist only for
   public anonymous token routes, webhooks, health/metrics and explicitly justified public APIs.
 - Business logic lives in pure functions under `features/<feature>/services/` (no framework,

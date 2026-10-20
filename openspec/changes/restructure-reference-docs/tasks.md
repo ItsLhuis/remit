@@ -27,7 +27,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `git grep -q "former state" -- .agents/agents/reviewer.md && ! git grep -q "GAP-4" -- openspec/backlog.md && ! git grep -qiE "never squashed|was not squashed" -- .github && pnpm exec vitest run tests/docs`
 
-- [ ] 2. Kept prose-only rules, migration rule and token minter
+- [x] 2. Kept prose-only rules, migration rule and token minter
   - Do: write each kept rule of owner decision 5 as one statement in its owning file
     (`.agents/rules/security.md`, `database.md`, `errors.md`, `architecture.md`, `routes.md`); the
     `scripts/README.md` rule waits for task 5 and the schema-comment rules for task 3. Owner

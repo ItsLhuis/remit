@@ -21,7 +21,8 @@
 - Use `timestamp(..., { withTimezone: true, mode: "date" })` for timestamp columns.
 - Spread `timestamps` from `@/database/schema/helpers` on normal domain tables instead of redefining
   `createdAt` and `updatedAt`.
-- Use `softDelete` only for domains that actually support soft deletion.
+- Domain entities are soft-deleted by default: spread `softDelete` from `@/database/schema/helpers`;
+  a domain table that hard-deletes says why in a comment, as `database/schema/attachments.ts` does.
 - Do not add `tenantId` columns or row-level tenancy.
 
 ## Foreign keys
@@ -34,6 +35,11 @@ Foreign key `onDelete` behavior follows the relationship semantics, not a single
   such as invoices pointing to clients, projects, proposals, recurring invoices, templates, or
   uploads.
 - Match the nearest existing table in the same domain before choosing behavior.
+
+A new table with both a project and a client parent needs the composite foreign key to
+`uq_projects_id_client_id`, a `chk_<table>_project_requires_client` check and a backfill of its
+existing rows, as `drizzle/migrations/0002_document_parent_agreement.sql` and
+`database/__tests__/documentParentage.integration.test.ts` show.
 
 ## Indexes and checks
 
@@ -58,8 +64,10 @@ values with `Intl.NumberFormat` at the application boundary.
 ## Migrations
 
 After any schema change, run `pnpm database:generate` to create a migration file. Never edit
-generated migration SQL manually. Do not run `pnpm database:migrate` without confirming the target
-environment first.
+generated migration output. Hand-written SQL migrations exist only for what Drizzle cannot express,
+each states why in its header, as `drizzle/migrations/0001_insert_only_guards.sql` does, and a
+squash must recreate them unchanged. Do not run `pnpm database:migrate` without confirming the
+target environment first.
 
 ## Database access
 

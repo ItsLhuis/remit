@@ -116,6 +116,12 @@ Environment variables are validated at boot in `lib/config/env.ts` and the proce
 No data crosses a trust boundary unvalidated; see `types.md` for the bans on `any` and non-null
 assertions.
 
+## Background work and caching
+
+Scheduled and asynchronous server work runs only through the BullMQ job layer in `lib/jobs/`
+(`enqueue.ts`, `schedules.ts`), never an in-process timer. Remit has no application cache, and
+adding one needs an owner decision.
+
 ## Adding an environment variable
 
 Variables are defined once in the Zod schema in `lib/config/envSchema.ts` and read through the `env`

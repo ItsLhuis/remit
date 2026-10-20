@@ -126,6 +126,10 @@ record's id. The boundary logs the full error with the same `errorEventId` the r
 is how an event is traced back to its log line; at the request boundary that full error is the line
 Next.js writes, and the receipt beside it carries the id and the digest that tie the two together.
 
+Remit adds no error-tracking SDK, build integration, source-map upload or browser DSN: reporting is
+the in-repository sender in `lib/errorTracking/`, which resolves stack frames against the source
+maps on the server.
+
 ## Database errors
 
 Raw database errors never reach the client. Map known constraint violations to user-friendly
