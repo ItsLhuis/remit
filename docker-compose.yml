@@ -37,10 +37,8 @@ services:
     # bytes. Moving it is a deliberate change, and the image workflow keeps a copy in this
     # project's own registry.
     image: ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
-    # The image's own non-root user (uid 10001). `storage_data` is a new volume, which Docker creates
-    # owned by that user from the image's /data, so the store never needs root. An instance
-    # upgraded from the previous store keeps its old volume untouched beside this one
-    # (docs/operations/UPGRADE.md).
+    # The image's own non-root user (uid 10001). Docker creates `storage_data` owned by that user
+    # from the image's /data, so the store never needs root.
     restart: unless-stopped
     environment:
       # The same pair the app and worker authenticate with, so .env holds one source of truth.

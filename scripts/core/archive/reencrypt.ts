@@ -31,9 +31,10 @@ export type ReencryptArchiveFileInput = {
   oldKey: Buffer
 }
 
-// Streams rather than reading the archive into memory: an archive carries every stored file
-// so its size is the instance's, not the database's. Only the leading `manifest.json` entry
-// changes — its key fingerprint — and every entry after it passes through byte for byte.
+// Streams rather than reading the archive into memory: an archive carries every file in the public
+// and documents buckets, so its size is the instance's, not the database's. Only the leading
+// `manifest.json` entry changes — its key fingerprint — and every entry after it passes through
+// byte for byte.
 //
 // An archive already on the new key is left alone and nothing is written, which is what makes a
 // re-run over an already-rotated set a no-op: `keyRotation/archives.ts` writes an archive back, and
