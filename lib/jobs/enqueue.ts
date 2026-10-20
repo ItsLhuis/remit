@@ -15,10 +15,10 @@ export type EnqueueJobOptions = {
   backoffDelayMs?: number
 }
 
-// The producer half of the BullMQ + Redis job queue. A producer that
-// cannot reach its queue must never fail the action that requested the job — hence a log rather
-// than a throw. The cost of that trade is explicit: an enqueue lost to a Redis outage is not
-// retried, and the work is picked up by the next repeatable sweep rather than by this call.
+// The producer half of the BullMQ + Redis job queue. A producer that cannot reach its queue must
+// never fail the action that requested the job — hence a log rather than a throw. The cost of that
+// trade is explicit: an enqueue lost to a Redis outage is not retried. Work a repeatable sweep
+// derives from database state is enqueued again by its next run; any other job is lost with it.
 //
 // A malformed job id is the one failure that does not get that treatment, and the asymmetry is the
 // point. A Redis outage is an environmental fact the caller cannot fix and must survive; a job id is
