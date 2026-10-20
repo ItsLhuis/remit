@@ -35,6 +35,9 @@ review: the `design.md` path instead of commits.
 - Rules: architecture boundaries, purity of `services/`, the matching layer rules, comments that
   carry a "why" and no narration.
 - Scope discipline: no unrelated edits, no speculative abstraction, nothing left unused.
+- Present tense: nothing in the diff describes a former state, a migration from an earlier design (a
+  database migration is present behaviour), a replacement or a removed document; repository files
+  describe the present and history lives in git.
 
 ## Output
 

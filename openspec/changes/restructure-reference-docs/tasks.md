@@ -13,7 +13,7 @@ files pass; after it, the touched files are grepped for `ADR`, `delivery record`
 `formerly`, `legacy`, `previously`, `no longer`, `used to`, `replaces`, `superseded`, `evolution`,
 and each hit is removed or justified in the commit body as present behaviour.
 
-- [ ] 1. Reviewer present-tense line and GAP-4
+- [x] 1. Reviewer present-tense line and GAP-4
   - Do: add one line to the quality checklist in `.agents/agents/reviewer.md` (owner decision 10):
     nothing in the diff describes a former state, a migration, a replacement or a removed document;
     repository files describe the present and history lives in git. Follow

@@ -45,7 +45,7 @@ formatter sets.
 A few rules are worth stating here because they are easy to miss and are refused in review:
 
 - Schema changes are generated with `pnpm database:generate`. Generated migration SQL is never
-  edited by hand, and the migration history is never squashed.
+  edited by hand. The migration history may be squashed before v1, when the owner schedules it.
 - No `any`, no non-null assertions, no unvalidated input crossing a trust boundary, no plaintext
   secrets, no `TODO` or stub code.
 - Every user-facing string goes through `t()`, and a new key is added to the `Translations` type and
