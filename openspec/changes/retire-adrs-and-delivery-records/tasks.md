@@ -107,7 +107,7 @@ Shared definitions for every task:
   - Verify:
     `! git grep -nP "$CITE" -- . ':!docs' ':!tests/docs/adr.test.ts' ':!tests/docs/delivery.test.ts' ':!openspec/changes/retire-adrs-and-delivery-records' && pnpm lint`
 
-- [ ] 9. Delete the records and their tests
+- [x] 9. Delete the records and their tests
   - Do:
     `git rm -r -- docs/architecture/adr docs/delivery tests/docs/adr.test.ts tests/docs/delivery.test.ts`;
     delete the `ARCHITECTURE.md` index section, its table-of-contents line and the opening note that
