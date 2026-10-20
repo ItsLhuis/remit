@@ -4,8 +4,8 @@ import { formatDay } from "@/lib/utils"
 // identical across invoices, proposals, contracts and credit notes because they describe the same
 // two parties and the same bank details whatever document they appear on.
 //
-// Extracted only once a third builder needed them (`code-style.md`'s abstraction threshold): with
-// two it was a coincidence, with four it is a contract. Each feature still owns its own
+// Shared because all four document builders need the same halves (`code-style.md`'s abstraction
+// threshold). Each feature still owns its own
 // document-specific values, which genuinely differ — an invoice has an amount due, a proposal has a
 // validity date, and neither belongs here.
 //
