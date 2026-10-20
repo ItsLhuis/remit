@@ -42,7 +42,7 @@ function proseOf(markdown: string): string {
 
 function relativeTargets(markdown: string): string[] {
   return [...proseOf(markdown).matchAll(/!?\[[^\]]*\]\(([^)]*)\)/g)]
-    .map((match) => match[1].trim())
+    .map((match) => match[1].trim().replace(/\s+"[^"]*"$/, ""))
     .filter((target) => target && !EXTERNAL_TARGET.test(target) && !/[\s<>]/.test(target))
     .map((target) => target.replace(/[#?].*$/, ""))
 }
