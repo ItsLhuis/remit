@@ -31,7 +31,7 @@ return { count, redis.call("PTTL", KEYS[1]) }
 `
 
 // While Redis is unreachable every call site counts in `fallback` instead — per process and lost on
-// restart, which is exactly what the limiter was before a shared store existed. Neither alternative
+// restart, the same guarantee a single process without a shared store gives. Neither alternative
 // survives a look at the call sites: failing open would switch off the OTP and signing limits at the
 // moment the instance is already degraded, and failing closed would turn a Redis blip into refused
 // Stripe webhooks and unreachable public documents.

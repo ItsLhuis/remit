@@ -26,8 +26,8 @@ import { type PublicContractDocument } from "./types"
 
 // Turning a stored contract into the HTML a reader sees, split out of `publicQueries.ts` because it
 // answers a different question: that file decides whether a token may see the contract at all, this
-// one renders the contract it decided to show. The signed-PDF worker renders the same
-// document, so this is the seam it will reuse rather than a second layout of its own.
+// one renders the contract it decided to show. The signed-PDF worker renders the same document
+// through it (`pdfDocument.ts`) rather than a second layout of its own.
 
 export type ContractDocumentContext = {
   business: ContractRenderBusiness
