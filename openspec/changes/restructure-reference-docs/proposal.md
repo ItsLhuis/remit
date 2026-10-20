@@ -325,6 +325,11 @@ section. A: `ARCHITECTURE.md`; G: guidance; O: operator documents.
   worker image's own `ENTRYPOINT` (`Dockerfile:102`).
 - O4 `CLI-CONTRACT.md`, scheduled backup (about line 350): re-verify the lock wording against
   `features/backups/jobs.ts:126-142` and the backup and rotation lock modules.
+- H1 Text that describes a former state, which no surviving text may keep: `ARCHITECTURE.md` "The
+  baseline has been regenerated twice, most recently when attachments landed" (Migrations), and in
+  `SCHEMA.md` the settlement migration "settled the invoices already covered when that rule arrived"
+  and "the block taxonomy moved from … to …" (keep only how a stored `box`, `divider` or `spacer`
+  reads back today, in a schema comment if `SCHEMA.md` is deleted).
 
 ## Operator documents: what each needs to be trusted
 
