@@ -103,7 +103,7 @@ export async function listArchivedObjects(store: ObjectStore): Promise<ListedObj
 }
 
 // A listing that ends early looks, from the outside, like a bucket with fewer files — RustFS 1.0.0
-// can return one (ADR-0045). Every file the database names is therefore checked against it: one that
+// can return one. Every file the database names is therefore checked against it: one that
 // exists but was not listed fails the backup rather than leaving it out of an archive that would
 // otherwise look complete. A row whose object is truly gone is an earlier interrupted delete; it is
 // counted and reported, not fatal, or a single lost file would stop every backup from then on.
@@ -146,7 +146,8 @@ export async function assertListingCoversUploads(
 // with the first read fails the whole archive: Remit writes every key once, so different bytes under
 // the same key mean corruption, never a legitimate update. An object deleted between the two reads
 // fails it too: the manifest and the checksums already promise it, and the next backup succeeds.
-// Reading every object once instead was weighed and turned down in ADR-0046.
+// Reading every object once instead would put each checksum after its object, and a restore
+// requires `checksums.sha256` as the archive's second entry (`restore/verifyArchive.ts`).
 export async function openVerifiedObjectStream(
   store: ObjectStore,
   object: ArchivedObject

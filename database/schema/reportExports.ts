@@ -5,7 +5,7 @@ import { reportExportStatus } from "./enums"
 import { timestamps } from "./helpers"
 
 // One row per requested report PDF, and the same shape `data_exports` uses for the same reason: the
-// render runs in the worker (ADR-0022, ADR-0023), so `status` is the only channel the page has to
+// render runs in the worker, so `status` is the only channel the page has to
 // learn whether the artifact exists, failed, or is still being produced.
 //
 // It is deliberately smaller than `data_exports`. There is no `progress`, because a render is one

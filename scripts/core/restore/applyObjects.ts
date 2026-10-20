@@ -12,9 +12,9 @@ import { type StagedObject } from "./verifyArchive"
 
 const OBJECT_RESTORE_CONCURRENCY = 4
 
-// The first step (ADR-0046): every archived object goes back into its bucket and is read back
-// and hashed. Nothing is deleted here, so stopping part-way leaves every file either the old or the
-// new database names, and running the restore again finishes the job.
+// The first step of a restore (`runRestore.ts`): every archived object goes back into its bucket
+// and is read back and hashed. Nothing is deleted here, so stopping part-way leaves every file
+// either the old or the new database names, and running the restore again finishes the job.
 export async function putArchivedObjects(
   store: ObjectStore,
   objects: readonly StagedObject[]

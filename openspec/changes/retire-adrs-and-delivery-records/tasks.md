@@ -87,7 +87,7 @@ Shared definitions for every task:
   - Done when: these paths have no citation; the diff is comment-only.
   - Verify: `! git grep -nP "$CITE" -- lib hooks app proxy.ts && pnpm lint && pnpm typecheck`
 
-- [ ] 7. Comment citations removed in `scripts/`, `database/`, `drizzle/` and `tests/`
+- [x] 7. Comment citations removed in `scripts/`, `database/`, `drizzle/` and `tests/`
   - Do: comment-only edits, except the sample path in
     `scripts/core/release/__tests__/changelogGate.test.ts`, which becomes an existing documentation
     path with the same tested behaviour. In `drizzle/migrations/*.sql` only comment lines change

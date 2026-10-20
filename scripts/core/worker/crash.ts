@@ -5,7 +5,7 @@ const CRASH_FLUSH_TIMEOUT_MS = 3_000
 const CRASH_EXIT_DEADLINE_MS = 5_000
 
 // A worker that throws outside any job after it has started is the same failure as one that fails
-// to start (ADR-0041's process boundary): nobody is watching, the container log is the only other
+// to start: nobody is watching, the container log is the only other
 // trace, and without this Node's default for an unhandled rejection kills the process with nothing
 // reported at all. It reports, logs with the event id, and exits non-zero, because after an uncaught
 // exception the process's state is unknown and a restart is the only safe continuation — the Compose

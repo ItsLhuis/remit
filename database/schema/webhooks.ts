@@ -15,7 +15,7 @@ import { users } from "./auth"
 import { webhookDeliveryStatus } from "./enums"
 import { encryptedColumn, timestamps } from "./helpers"
 
-// An endpoint an owner registered to receive signed event deliveries (ADR-0039). No `deleted_at`:
+// An endpoint an owner registered to receive signed event deliveries. No `deleted_at`:
 // an endpoint is configuration, and deleting one removes its delivery history with it.
 export const webhookEndpoints = pgTable(
   "webhook_endpoints",
@@ -60,7 +60,7 @@ export const webhookDeliveries = pgTable(
   "webhook_deliveries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // `cascade`: a delivery record says what was sent to an endpoint, and means nothing once the
+    // `cascade`: a delivery row says what was sent to an endpoint, and means nothing once the
     // endpoint itself is gone.
     endpointId: uuid("endpoint_id")
       .notNull()

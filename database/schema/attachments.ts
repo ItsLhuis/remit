@@ -12,10 +12,9 @@ import { uploads } from "./uploads"
 // The many-files-per-record surface, shaped like `line_items` rather than like a polymorphic
 // `(entity_type, entity_id)` pair: one nullable foreign key per attachable entity plus
 // `chk_attachments_parent`, so every parent link is a real foreign key Postgres enforces. A
-// polymorphic id cannot carry one, and ADR-0026 answered that same question by adding *more*
-// database-enforced integrity, not less. The cost is that this table widens when a fifth entity
-// becomes attachable — which is the point: joining costs a reviewed migration, because it is also a
-// bucket, an authorization, and a limits decision (ADR-0028).
+// polymorphic id cannot carry one. The cost is that this table widens when a fifth entity becomes
+// attachable — which is the point: joining costs a reviewed migration, because it is also a
+// bucket, an authorization, and a limits decision.
 //
 // `uploadId` is the one reference to `uploads` that cascades rather than setting null, and the only
 // one that is NOT NULL. Every other referencing row — an invoice, a contract, an expense — is a
@@ -60,7 +59,7 @@ export const attachments = pgTable(
     // Exactly one parent, in the same shape as `chk_line_items_parent`. It is what makes "an
     // attachment always belongs to precisely one record the requester can be checked against" a
     // structural fact rather than an application convention, and it is the half of attachment
-    // authorization that a forgotten `where` clause cannot undo (ADR-0028); the other half is the
+    // authorization that a forgotten `where` clause cannot undo; the other half is the
     // live-parent gate in `features/attachments/queries.ts`'s `getAttachmentForDownload`.
     check(
       "chk_attachments_parent",

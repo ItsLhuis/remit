@@ -6,7 +6,7 @@ import { loadWorkerFeatureModules } from "./core/worker/loadWorkerFeatureModules
 
 const START_FAILURE_FLUSH_TIMEOUT_MS = 3_000
 
-// The background job consumer (ADR-0023). Not a `remit:*` command: the CLI contract covers
+// The background job consumer. Not a `remit:*` command: the CLI contract covers
 // operator-invoked commands that exit 0 or 1, and this process exits only on a signal. It is
 // packaged the same way `scripts/migrate.ts` is — a tsup entry copied into the runtime image and
 // started by its own Compose service — and carries the same "not a package script" limitation.

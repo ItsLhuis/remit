@@ -64,7 +64,7 @@ export const invoices = pgTable(
     notes: text("notes"),
     // Nullable is the revoked state: clearing the column is what withdraws the public link, so a
     // revoked invoice cannot be found by `findIssuedInvoiceByPublicToken` at all rather than being
-    // found and then refused (ADR-0029). Postgres treats NULLs as distinct, so the unique index
+    // found and then refused. Postgres treats NULLs as distinct, so the unique index
     // below still admits any number of revoked rows.
     publicToken: text("public_token"),
     firstViewedAt: timestamp("first_viewed_at", { withTimezone: true, mode: "date" }),

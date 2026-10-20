@@ -4,8 +4,8 @@ import { splitTarName, TarPathTooLongError } from "../archive/tar"
 
 import { REMOTE_BACKUP_PREFIX } from "./filename"
 
-// Which of an instance's buckets a backup archives. The exports bucket is left out on purpose
-// (ADR-0046): its objects are whole-instance exports and report PDFs, each regenerable from the
+// Which of an instance's buckets a backup archives. The exports bucket is left out on purpose:
+// its objects are whole-instance exports and report PDFs, each regenerable from the
 // database the archive already carries.
 export const ARCHIVED_BUCKET_ROLES: readonly StorageBucketName[] = ["public", "documents"]
 

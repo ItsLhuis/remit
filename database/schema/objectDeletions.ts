@@ -18,10 +18,10 @@ import { storageBucketRole } from "./enums"
 // the commit (`lib/storage/objectDeletions.ts`). A row here therefore means "the database no longer
 // references this object": the state a failed or interrupted delete leaves behind is a row gone with
 // its object still present, which the next drain finishes, and never an object gone while a row
-// still points at it (ADR-0049).
+// still points at it.
 //
 // Only keys an operation explicitly released are ever written, which is what keeps this from being
-// the orphan sweep ADR-0028 rejected: nothing lists the bucket or infers that an object is
+// an orphan sweep: nothing lists the bucket or infers that an object is
 // unreferenced from the absence of a row.
 export const objectDeletions = pgTable(
   "object_deletions",

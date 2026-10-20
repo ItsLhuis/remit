@@ -7,7 +7,7 @@ import { dataExportScope, dataExportStatus } from "./enums"
 import { timestamps } from "./helpers"
 
 // One row per requested export, and the only durable record that an archive exists: the job that
-// assembles it runs in the worker process (ADR-0023) and reports back through `status` and
+// assembles it runs in the worker process and reports back through `status` and
 // `progress`, which is what the `/settings/data` page renders. Deliberately no `deletedAt` — an
 // export either has an archive behind it or it does not, and hiding a row would leave the object in
 // the exports bucket with nothing pointing at it.

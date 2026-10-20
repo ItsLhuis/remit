@@ -227,7 +227,7 @@ export async function runRestore(): Promise<void> {
 
     const { storage } = await import("@/lib/storage/s3")
 
-    // The order is what keeps a failure repairable without an atomic swap (ADR-0046): files are
+    // The order is what keeps a failure repairable without an atomic swap: files are
     // written and verified first, the database is replaced in one transaction second, and only then
     // is anything the archive lacks deleted. Every stop leaves the store a superset of what the
     // database names, and running the restore again completes it.

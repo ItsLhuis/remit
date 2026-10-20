@@ -5,7 +5,7 @@ import { users } from "./auth"
 import { apiTokenScope } from "./enums"
 import { timestamps } from "./helpers"
 
-// One row per token an owner minted for the public API (ADR-0038). The token itself is never
+// One row per token an owner minted for the public API. The token itself is never
 // stored: `token_hash` is the lookup key and the only form of the credential the database holds, so
 // a leaked dump or backup hands nobody a working token. Revocation stamps `revoked_at` rather than
 // deleting, so the list can still say which token was withdrawn and when, and the audit entries that

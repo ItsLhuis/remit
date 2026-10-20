@@ -108,7 +108,7 @@ export const emailProvider = pgEnum("email_provider", ["smtp", "resend"])
 // anonymously-readable bucket `lib/storage/s3.ts` puts a GetObject policy on — avatars and template
 // images, where an unguessable key is the whole access control. `documents` is the private bucket
 // generated PDFs land in: an invoice is a money document, and reachable-by-URL-alone is not an
-// acceptable default for one (ADR-0022, ADR-0019).
+// acceptable default for one.
 export const storageBucket = pgEnum("storage_bucket", ["public", "documents"])
 
 // Every bucket an object can be deleted from, which is one more than an `uploads` row can name: an

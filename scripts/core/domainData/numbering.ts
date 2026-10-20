@@ -38,8 +38,8 @@ export function advanceCountersPastSeed(
 // The counters a reset may put back, and only these: a counter that still holds exactly the value
 // the seed left it at has issued no number since the seed, so every number above its pre-seed value
 // belonged to a demo document and never reached anyone. A counter that moved on may have issued a
-// real number that is now in a client's inbox, and re-issuing it is the accounting hazard ADR-0025
-// refuses — so it stays.
+// real number that is now in a client's inbox, and re-issuing it is an accounting hazard — so it
+// stays.
 export function selectRewindableCounters(
   current: NumberingCounters,
   seed: SeedNumbering

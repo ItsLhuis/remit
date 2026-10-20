@@ -26,7 +26,7 @@ export type DomainDeleteResult = {
 // whose last reference went with the deleted rows, the difference between a read of every reference
 // before the deletes and one after (`lib/storage/objectOwnership.ts`). An upload a kept table still
 // names — the business logo, a template image — is in both reads and stays, and the objects behind
-// the removed ones are only queued here, never deleted before the commit (ADR-0049).
+// the removed ones are only queued here, never deleted before the commit.
 export async function deleteDomainRows(
   database: DeleteDatabase,
   schema: Schema,

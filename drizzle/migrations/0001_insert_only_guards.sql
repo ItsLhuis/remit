@@ -5,11 +5,11 @@
 -- Written by hand because Drizzle has no way to declare a trigger.
 --
 -- `audit_logs` is absolute: no UPDATE, no DELETE, no TRUNCATE, ever, by anyone. An audit trail a
--- maintenance command can erase is not an audit trail (ADR-0025).
+-- maintenance command can erase is not an audit trail.
 --
 -- `contract_signatures` is insert-only with exactly one sanctioned exception. The row is written the
 -- moment a counterparty signs; the PDF recording what they signed is rendered afterwards by a
--- background job (ADR-0022/ADR-0023), so `signed_pdf_upload_id` has to become writable once and
+-- background job, so `signed_pdf_upload_id` has to become writable once and
 -- never again. `contract_signatures_update_guard` permits that single NULL → non-NULL transition
 -- and rejects everything else, including a second write to that column and any change to a legally
 -- meaningful field. `features/contracts/pdfRenderJob.ts` is the only writer.

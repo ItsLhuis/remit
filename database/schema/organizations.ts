@@ -38,7 +38,7 @@ export const members = pgTable(
     index("member_organization_id_idx").on(table.organizationId),
     uniqueIndex("member_user_organization_idx").on(table.userId, table.organizationId),
     // "Exactly one owner per instance" made structural rather than left to the application: a
-    // second owner cannot be inserted even by a path that forgot to check (ADR-0002).
+    // second owner cannot be inserted even by a path that forgot to check.
     uniqueIndex("uq_member_owner_per_org")
       .on(table.organizationId)
       .where(sql`${table.role} = 'owner'`)

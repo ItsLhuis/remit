@@ -38,7 +38,7 @@ const bucketTotals = z.strictObject({
   totalSize: z.number().int().nonnegative()
 })
 
-// Version 2: the database and every object of the public and documents buckets (ADR-0046).
+// Version 2: the database and every object of the public and documents buckets.
 export const restoreManifestSchema = z.strictObject({
   archiveFormatVersion: z.literal(2),
   ...manifestFields,

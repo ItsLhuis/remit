@@ -1,10 +1,10 @@
 -- Settles every issued invoice whose live credit notes and recorded payments already cover its total.
--- Written by hand because it is a data correction, not a schema change: from ADR-0044 onwards credit
--- notes count toward settlement (`features/payments/services/paymentSettlement.ts`), and the write
--- paths re-decide settlement whenever a payment or a credit note moves. An invoice covered before that
--- rule existed was left `sent` with no `paid_at`, where it reads as overdue, is reminded and can be
--- charged a late fee for money nobody owes; nothing would ever re-decide it, because "mark as paid"
--- now refuses an invoice with nothing outstanding.
+-- Written by hand because it is a data correction, not a schema change. Credit notes count toward
+-- settlement (`features/payments/services/paymentSettlement.ts`), and the write paths re-decide
+-- settlement whenever a payment or a credit note moves. An issued invoice its payments and credits
+-- already cover but that is still `sent` with no `paid_at` reads as overdue, is reminded and can be
+-- charged a late fee for money nobody owes; nothing re-decides it, because "mark as paid" refuses
+-- an invoice with nothing outstanding.
 --
 -- The predicate is the SQL form of that settlement rule: a positive total, and payments plus credits
 -- reaching it. `paid_at` becomes the moment the invoice was covered, the later of its last live

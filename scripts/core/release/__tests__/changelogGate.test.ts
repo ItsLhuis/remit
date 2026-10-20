@@ -16,7 +16,7 @@ function gate(changedPaths: string[], headChangelog: string[] = base) {
 
 describe("evaluateChangelogGate", () => {
   test("requires nothing when only documentation changed", () => {
-    expect(gate(["docs/delivery/0053-test-suite.md", "README.md"])).toEqual({ required: false })
+    expect(gate(["docs/operations/INSTALL.md", "README.md"])).toEqual({ required: false })
   })
 
   test("requires nothing when only tests and tooling changed", () => {

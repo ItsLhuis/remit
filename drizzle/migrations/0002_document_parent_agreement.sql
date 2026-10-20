@@ -1,6 +1,5 @@
 -- Makes "when a row names both a project and a client, the client is that project's client" a rule
--- the database keeps, for the five tables that carry both columns. See
--- [ADR-0026](../../docs/architecture/adr/0026-document-parentage.md).
+-- the database keeps, for the five tables that carry both columns.
 --
 -- Written by hand because `ON DELETE SET NULL (project_id)` (Postgres 15+) and `ON UPDATE RESTRICT`
 -- are not expressible through Drizzle's `foreignKey().onDelete()`. The other half of the rule is:

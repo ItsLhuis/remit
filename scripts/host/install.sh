@@ -588,7 +588,7 @@ start_stack() {
 say "project root: $project_root"
 
 # The one line in this script that must never be wrong. REMIT_ENCRYPTION_KEY encrypts the sensitive
-# columns and every backup archive (ADR-0005, ADR-0020), and a second installer run that generated a
+# columns and every backup archive, and a second installer run that generated a
 # new one would leave all of it permanently unreadable while reporting success. So an existing .env is
 # never rewritten, whatever the options say. The only thing read from it is whether a key line with a
 # value is present: `grep -q` reports that as an exit status, and the value never reaches a variable,

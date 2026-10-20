@@ -28,7 +28,7 @@ export const proposals = pgTable(
     // in migration `0002_document_parent_agreement.sql`, which points at `(projects.id,
     // projects.client_id)` so the pair below can never name a project and someone else's client.
     // `ON DELETE SET NULL (project_id) ON UPDATE RESTRICT` is not expressible through
-    // `foreignKey().onDelete()`, so the TypeScript schema no longer states this link on its own.
+    // `foreignKey().onDelete()`, so the TypeScript schema does not state this link on its own.
     projectId: uuid("project_id"),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
@@ -51,8 +51,7 @@ export const proposals = pgTable(
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
     validUntil: date("valid_until", { mode: "date" }),
     notes: text("notes"),
-    // Minted at draft creation and never surfaced before `issued_at`; nullable is the revoked state
-    // (ADR-0029), which is why the column no longer needs to be `NOT NULL` to keep that invariant.
+    // Minted at draft creation and never surfaced before `issued_at`; null is the revoked state.
     publicToken: text("public_token"),
     firstViewedAt: timestamp("first_viewed_at", { withTimezone: true, mode: "date" }),
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true, mode: "date" }),
