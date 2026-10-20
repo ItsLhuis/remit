@@ -120,7 +120,7 @@ Shared definitions for every task:
     for its basename and its title (first heading) and remove or justify each hit;
     `pnpm exec vitest run tests/docs`.
 
-- [ ] 10. Relative links resolve
+- [x] 10. Relative links resolve
   - Do: add `tests/docs/links.test.ts`: every relative Markdown link in `docs/**/*.md`,
     `openspec/**/*.md`, `AGENTS.md`, `CLAUDE.md`, `.agents/rules/*.md` and `.claude/rules/*.md`
     resolves to an existing file or directory (anchors ignored, external links skipped). Keep it
