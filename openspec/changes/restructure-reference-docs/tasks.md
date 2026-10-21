@@ -47,6 +47,21 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `git grep -q "mintPublicToken" -- .agents/rules/security.md && git grep -q "encryptedColumn(" -- .agents/rules/security.md && ! git grep -q "smtpPass" -- .agents/rules/security.md && git grep -qi "hand-written" -- AGENTS.md .agents/rules/database.md && git grep -q "/api/v2" -- .agents/rules/routes.md && pnpm exec vitest run tests/docs`
 
+- [x] 2a. Task 2 review findings
+  - Do: in `.agents/rules/security.md`, make the portal rule one non-contradictory statement (it
+    writes no record besides a rate-limit trip audit); make the TOTP rule a rule for code whose
+    explanation claims no more than the code does (Better Auth's `/api/auth/two-factor/disable` is
+    not refused by `app/api/auth/[...all]/route.ts`; `proxy.ts` sends a session without an enrolled
+    factor back to `/setup`); make the rate-limit sentence true about where each limit lives
+    (`lib/auth/index.ts` `rateLimit`, `proxy.ts`, route modules such as
+    `app/(public)/s/[token]/page.tsx`); cite `database/schema/attachments.ts` having no proposal or
+    contract parent rather than `chk_attachments_parent`. In `.agents/rules/database.md`, the
+    project-and-client rule asks for a backfill only when the table already holds rows, and cites
+    `0002` for the composite foreign key it adds.
+  - Done when: each statement is true against the file it names and stays one statement.
+  - Verify:
+    `git grep -q "two-factor/disable" -- .agents/rules/security.md && git grep -q "already holds rows" -- .agents/rules/database.md && pnpm exec vitest run tests/docs`
+
 - [x] 3. Schema facts and the `audit_logs` guard test
   - Do: add facts F1-F5 of the proposal as comments in `database/schema/proposals.ts`,
     `timeEntries.ts` (or `lineItems.ts`), `invoices.ts` and `templates.ts`, each verified against

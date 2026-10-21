@@ -36,10 +36,11 @@ Foreign key `onDelete` behavior follows the relationship semantics, not a single
   uploads.
 - Match the nearest existing table in the same domain before choosing behavior.
 
-A new table with both a project and a client parent needs the composite foreign key to
-`uq_projects_id_client_id`, a `chk_<table>_project_requires_client` check and a backfill of its
-existing rows, as `drizzle/migrations/0002_document_parent_agreement.sql` and
-`database/__tests__/documentParentage.integration.test.ts` show.
+A table with both a project and a client parent needs the composite foreign key to
+`uq_projects_id_client_id` (hand-written, as `drizzle/migrations/0002_document_parent_agreement.sql`
+shows), a `chk_<table>_project_requires_client` check and, when the table already holds rows, a
+backfill of them first; `database/__tests__/documentParentage.integration.test.ts` shows the
+behaviour.
 
 ## Indexes and checks
 

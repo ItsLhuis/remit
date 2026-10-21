@@ -27,10 +27,10 @@ shape and timing as a "valid token, document archived" case to defeat enumeratio
 
 No attachment is ever reachable through a public token: `app/api/attachments/[id]/route.ts`, the one
 route that serves an attachment, requires a session, and proposals and contracts are never
-attachable (`chk_attachments_parent` in `database/schema/attachments.ts`).
+attachable (`database/schema/attachments.ts` has no proposal or contract parent column).
 
-The client portal route `/s/[token]` writes no record: `getClientPortal` in
-`features/clients/publicQueries.ts` only reads, and the rate-limit trip audit is its one write.
+The client portal route `/s/[token]` writes no record besides a rate-limit trip audit:
+`getClientPortal` in `features/clients/publicQueries.ts` only reads.
 
 ## Public route indexing
 
@@ -64,10 +64,11 @@ request audit metadata helper under `lib/utils/request.ts`.
 
 ## Rate limiting
 
-Every endpoint that handles authentication or processes a public token declares its rate limit at
-the top of the route module via the rate limiter helper. No such endpoint ships without a rate
-limit. Limits apply to: `POST /api/auth/sign-in/email`, `POST /api/auth/sign-up/email`,
-`/i/[token]`, `/p/[token]`, password reset requests, and recovery code redemption.
+No endpoint that handles authentication or processes a public token ships without a rate limit.
+Sign-in, sign-up and password reset requests take theirs from `rateLimit.customRules` in
+`lib/auth/index.ts` and every other Better Auth route, recovery code redemption included, from its
+default there; `proxy.ts` limits every public token route, and a route module adds a tighter limit
+where it needs one (`app/(public)/s/[token]/page.tsx`).
 
 ## Cookie settings
 
@@ -76,8 +77,10 @@ Cookies set anywhere in the codebase use `httpOnly: true`, `secure: true` in pro
 
 ## Two-factor authentication
 
-TOTP can never be disabled, for any role: `proxy.ts` sends every session whose user has no enrolled
-factor (`twoFactorEnabled`) back to `/setup`, and no Remit surface offers a way to turn it off.
+TOTP can never be disabled, for any role: no Remit surface may offer a way to turn it off, and when
+Better Auth's `/api/auth/two-factor/disable` (not refused by `app/api/auth/[...all]/route.ts`) turns
+it off, `proxy.ts` sends the session back to `/setup` to enrol again once the five-minute session
+cookie cache in `lib/auth/index.ts` expires.
 
 ## Outbound traffic
 
