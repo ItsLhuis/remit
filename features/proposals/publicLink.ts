@@ -122,8 +122,8 @@ export async function revokeProposalPublicLink(input: unknown): Promise<Proposal
 }
 
 // Both link actions refuse a proposal that was never issued. Its token exists from draft creation
-// but has never left the instance (SCHEMA.md's `public_token` note), so there is no URL to withdraw
-// and rotating one would invalidate nothing.
+// but has never left the instance (the `public_token` note in `database/schema/proposals.ts`), so
+// there is no URL to withdraw and rotating one would invalidate nothing.
 async function loadIssuedProposalForPublicLink(proposalId: string) {
   const proposal = await database.query.proposals.findFirst({
     where: and(eq(proposals.id, proposalId), isNull(proposals.deletedAt)),

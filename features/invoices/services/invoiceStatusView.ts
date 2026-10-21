@@ -9,8 +9,9 @@ export type InvoiceStatusViewInput = {
 }
 
 // `overdue` and `partially_paid` are never written to `invoices.status` — the stored machine has
-// exactly three values (SCHEMA.md, enum reference). They are derived here, once, and every surface
-// that shows a status badge reads this function so no two of them can disagree.
+// exactly three values (`invoiceStatus` in `database/schema/enums.ts`). They are derived here,
+// once, and every surface that shows a status badge reads this function so no two of them can
+// disagree.
 //
 // Precedence, highest first:
 //

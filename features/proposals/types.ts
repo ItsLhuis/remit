@@ -127,7 +127,8 @@ export type ProposalDetail = {
   viewCount: number
   templateName: string | null
   // Null unless the link is live: a proposal that has never been issued must not surface its token
-  // (SCHEMA.md's `proposals.public_token` note), and a revoked one has no token at all.
+  // (the `public_token` note in `database/schema/proposals.ts`), and a revoked one has no token
+  // at all.
   // `publicLinkState` is what tells those two apart — see `getProposalDetail` in queries.ts.
   publicPath: string | null
   publicLinkState: PublicLinkState

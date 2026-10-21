@@ -40,6 +40,10 @@ export const timeEntries = pgTable(
     hourlyRateSnapshotCents: bigint("hourly_rate_snapshot_cents", { mode: "number" }).notNull(),
     description: text("description"),
     source: timeEntrySource("source").notNull().default("timer"),
+    // The canonical "billed on that invoice" record, stamped under `invoiced_in_id IS NULL` by
+    // `features/invoices/billing.ts` and `features/recurringInvoices/jobs.ts`.
+    // `line_items.source_time_entry_id` is per-line provenance that neither mirrors nor derives
+    // from it.
     invoicedInId: uuid("invoiced_in_id").references(() => invoices.id, { onDelete: "set null" }),
     ...softDelete,
     ...timestamps

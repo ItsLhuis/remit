@@ -47,7 +47,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `git grep -q "mintPublicToken" -- .agents/rules/security.md && git grep -q "encryptedColumn(" -- .agents/rules/security.md && ! git grep -q "smtpPass" -- .agents/rules/security.md && git grep -qi "hand-written" -- AGENTS.md .agents/rules/database.md && git grep -q "/api/v2" -- .agents/rules/routes.md && pnpm exec vitest run tests/docs`
 
-- [ ] 3. Schema facts and the `audit_logs` guard test
+- [x] 3. Schema facts and the `audit_logs` guard test
   - Do: add facts F1-F5 of the proposal as comments in `database/schema/proposals.ts`,
     `timeEntries.ts` (or `lineItems.ts`), `invoices.ts` and `templates.ts`, each verified against
     the code that writes the column; F5 states that built-in layouts live in code and are never

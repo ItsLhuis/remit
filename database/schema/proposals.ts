@@ -20,6 +20,9 @@ import { softDelete, timestamps } from "./helpers"
 import { templates } from "./templates"
 import { uploads } from "./uploads"
 
+// A conversion is recorded only on the produced document, as `invoices.proposal_id`
+// (`features/invoices/conversion.ts`) or `contracts.proposal_id`
+// (`features/contracts/mutations.ts`); this table has no `converted_to_*` column.
 export const proposals = pgTable(
   "proposals",
   {
@@ -57,6 +60,8 @@ export const proposals = pgTable(
     lastViewedAt: timestamp("last_viewed_at", { withTimezone: true, mode: "date" }),
     viewCount: integer("view_count").notNull().default(0),
     issuedAt: timestamp("issued_at", { withTimezone: true, mode: "date" }),
+    // Set on acceptance by `recordProposalResponse` in `features/proposals/publicResponse.ts` and
+    // never written afterwards; a rejected proposal keeps it null.
     lockedAt: timestamp("locked_at", { withTimezone: true, mode: "date" }),
     respondedAt: timestamp("responded_at", { withTimezone: true, mode: "date" }),
     respondedIp: text("responded_ip"),

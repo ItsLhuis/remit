@@ -91,10 +91,11 @@ export async function markAllActivityRead(): Promise<MarkActivityReadResult> {
   }
 }
 
-// A hard delete, because `activity_logs` carries no `deleted_at` (SCHEMA.md's activity logs table):
-// the row is user-owned history rather than the security record `audit_logs` keeps, and editing one
-// is specified as delete plus insert. The audit entry below is what preserves the fact that a
-// history entry was removed, since the row itself no longer can.
+// A hard delete, because `activity_logs` carries no `deleted_at`
+// (`database/schema/activityLogs.ts`): the row is user-owned history rather than the security
+// record `audit_logs` keeps, and editing one is specified as delete plus insert. The audit entry
+// below is what preserves the fact that a history entry was removed, since the row itself no longer
+// can.
 export async function deleteActivity(input: unknown): Promise<DeleteActivityResult> {
   const gate = await requireActivityDelete()
 

@@ -226,9 +226,9 @@ async function listPortalInvoiceRows(where: SQL | undefined, offset: number | nu
   })
 }
 
-// `issued_at` is the boundary SCHEMA.md records for a proposal token: it is minted at draft creation
-// and does not exist as far as any reader is concerned until the proposal is issued. The portal
-// honours the same line.
+// `issued_at` is the boundary `database/schema/proposals.ts` records for a proposal token: it is
+// minted at draft creation and does not exist as far as any reader is concerned until the proposal
+// is issued. The portal honours the same line.
 function portalProposalWhere(clientId: string): SQL | undefined {
   return and(
     eq(proposals.clientId, clientId),

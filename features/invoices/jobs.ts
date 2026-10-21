@@ -52,9 +52,9 @@ type OverdueCandidate = {
 }
 
 // `overdue` is never written to `invoices.status` — the stored enum has three values and this job
-// must not add a fourth (SCHEMA.md, enum reference). It only announces the crossing, which the
-// dashboard and reporting surfaces subscribe to; every read model still derives the badge itself
-// through `isInvoiceOverdue`.
+// must not add a fourth (`invoiceStatus` in `database/schema/enums.ts`). It only announces the
+// crossing, which the dashboard and reporting surfaces subscribe to; every read model still derives
+// the badge itself through `isInvoiceOverdue`.
 async function runOverdueSweep(): Promise<void> {
   const now = new Date()
 

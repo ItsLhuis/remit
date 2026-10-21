@@ -19,6 +19,8 @@ export const templates = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
     isDefault: boolean("is_default").notNull().default(false),
+    // Nothing writes it, so every row keeps the default: the built-in layouts live in code
+    // (`features/templates/services/builtInLayout.ts`) and are never seeded as template rows.
     isSystem: boolean("is_system").notNull().default(false),
     ...softDelete,
     ...timestamps

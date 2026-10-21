@@ -168,8 +168,9 @@ export async function getProposalDetail(input: unknown): Promise<ProposalDetail 
     viewCount: proposal.viewCount,
     templateName: template?.name ?? null,
     // A proposal that was never issued keeps its token unexposed: surfacing it would hand out a live
-    // client URL for a document the client is not meant to have seen yet (SCHEMA.md's
-    // `proposals.public_token` note). An issued proposal whose link was revoked has no token at all.
+    // client URL for a document the client is not meant to have seen yet (the `public_token` note
+    // in `database/schema/proposals.ts`). An issued proposal whose link was revoked has no token at
+    // all.
     publicPath: toProposalPublicPath(proposal),
     publicLinkState: toProposalPublicLinkState(proposal),
     lineItems: rows.map(toProposalDetailLineItem),

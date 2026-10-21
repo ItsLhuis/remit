@@ -37,11 +37,13 @@ export const invoices = pgTable(
       onDelete: "set null"
     }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
-    // The rendered PDF, and the snapshot of what was sent. It is written once by the
-    // `invoice.pdf.render` job and never regenerated: re-rendering from `templateId` would silently
-    // restyle an invoice the client already holds if the template were edited afterwards, so the
-    // stored object *is* the record. NULL means "not rendered yet, or the render failed" — the two
-    // are told apart by the audit log, not by a status column here.
+    // The rendered PDF, and the snapshot of what was sent. The `invoice.pdf.render` job writes it
+    // only while it is null: re-rendering from `templateId` would silently restyle an invoice the
+    // client already holds if the template were edited afterwards, so the stored object *is* the
+    // record. Only a late fee clears it (`chargeLateFee` in `features/invoices/lateFees.ts` and
+    // `adjustInvoiceLateFee` in `features/invoices/mutations.ts`), and the render enqueued after
+    // it prices the new total. NULL means "not rendered yet, or the render failed" — the two are
+    // told apart by the audit log, not by a status column here.
     pdfUploadId: uuid("pdf_upload_id").references(() => uploads.id, { onDelete: "set null" }),
     number: text("number").notNull().unique(),
     status: invoiceStatus("status").notNull().default("draft"),
@@ -56,6 +58,10 @@ export const invoices = pgTable(
       .default(0),
     taxAmountCents: bigint("tax_amount_cents", { mode: "number" }).notNull().default(0),
     totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
+    // The sum of the live payments (`features/payments/paymentWrites.ts`). With the live credit
+    // notes it decides `paid` (`evaluateInvoiceSettlement` in
+    // `features/payments/services/paymentSettlement.ts`); credit notes net there, never in
+    // `total_cents`.
     amountPaidCents: bigint("amount_paid_cents", { mode: "number" }).notNull().default(0),
     issueDate: date("issue_date", { mode: "date" }),
     dueDate: date("due_date", { mode: "date" }),
