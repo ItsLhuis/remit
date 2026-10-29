@@ -134,7 +134,7 @@ export function buildDestinationAdapter(
 // finished, retries included, by the time `sendPart` resolves. A failure part-way aborts the upload,
 // so the destination never keeps the parts of an archive that was not completed; a body shorter or
 // longer than announced is such a failure. A process killed outright cannot abort, which is why the
-// destination bucket wants a lifecycle rule for incomplete uploads (BACKUP-ARCHIVE.md).
+// destination bucket wants a lifecycle rule for incomplete uploads (scripts/core/archive/README.md).
 async function putInParts(
   client: S3Client,
   input: { bucket: string; key: string; body: Readable; partSize: number; sizeBytes: number }

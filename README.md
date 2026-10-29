@@ -253,7 +253,7 @@ Operational support:
 - **CLI tools** - shipped in-container commands:
   - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
     `pg_dump --format=custom` output and uploads. The archive contract is documented in
-    [`docs/architecture/specs/BACKUP-ARCHIVE.md`](./docs/architecture/specs/BACKUP-ARCHIVE.md).
+    [`scripts/core/archive/README.md`](./scripts/core/archive/README.md).
   - `pnpm remit:restore <backup-file>` and remote `remit://<destination>/<key>` restores validate,
     decrypt, snapshot, and replace live data from a `.remitbak` archive. Restore safety details are
     documented in [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).

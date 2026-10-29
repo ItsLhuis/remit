@@ -142,7 +142,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test -f scripts/README.md && ! git grep -q "CLI-CONTRACT" -- ':!openspec' && pnpm exec vitest run tests/docs`
 
-- [ ] 6. Archive contract next to the archive code
+- [x] 6. Archive contract next to the archive code
   - Do: `git mv docs/architecture/specs/BACKUP-ARCHIVE.md scripts/core/archive/README.md` and shrink
     it to the forward-compatibility promise and the destination table, pointing to
     `scripts/core/archive/header.ts` and `scripts/core/restore/manifestSchema.ts` for the layout.

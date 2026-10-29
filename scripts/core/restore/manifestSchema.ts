@@ -9,7 +9,7 @@ const MANIFEST_FINGERPRINT = /^sha256:[a-f0-9]{32}$/
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/
 
 // Every version a release has written; restore reads them all
-// (docs/architecture/specs/BACKUP-ARCHIVE.md, "Forward compatibility").
+// (scripts/core/archive/README.md, "Forward compatibility").
 export const SUPPORTED_ARCHIVE_VERSIONS = [2] as const
 export type SupportedArchiveVersion = (typeof SUPPORTED_ARCHIVE_VERSIONS)[number]
 

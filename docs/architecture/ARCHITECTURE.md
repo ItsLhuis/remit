@@ -1639,8 +1639,8 @@ The deeper self-hosting references are:
 
 - [Operational CLI contract](../../scripts/README.md) for command naming, execution context,
   packaging, validation, status, and the explicit `remit:upgrade` exception.
-- [Backup archive format](specs/BACKUP-ARCHIVE.md) for the `.remitbak` byte layout, manifest,
-  encryption, destination, compatibility, and backup audit contract.
+- [Backup archive format](../../scripts/core/archive/README.md) for the `.remitbak` byte layout,
+  manifest, encryption, destination, compatibility, and backup audit contract.
 - [Restore runbook](../operations/RESTORE.md) for destructive restore safety, confirmation, refusal
   rules, data effects, and logging/redaction.
 - [Upgrade runbook](../operations/UPGRADE.md) for host-side upgrade prerequisites, execution,
@@ -1736,7 +1736,7 @@ recorded under its bucket's role so an archive restores into an instance whose b
 The exports bucket is left out: its objects are regenerable from the database. Backup encryption
 reuses `REMIT_ENCRYPTION_KEY`; losing that key loses both encrypted columns and encrypted backup
 archives. The detailed archive contract lives in the
-[Backup archive format](specs/BACKUP-ARCHIVE.md).
+[Backup archive format](../../scripts/core/archive/README.md).
 
 Restore is destructive-safe, not non-destructive. Before changing live data, `remit:restore` must
 create a local pre-restore snapshot. Restore refuses incompatible archive versions, key fingerprint
