@@ -81,7 +81,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `! git grep -q "SCHEMA.md" -- features lib && pnpm exec vitest run --config vitest.integration.config.ts lib/audit/__tests__/auditLogsInsertOnly.integration.test.ts`
 
-- [ ] 4. Operator runbooks: deployment, metrics, upgrade, backup
+- [x] 4. Operator runbooks: deployment, metrics, upgrade, backup
   - Do: move ARCHITECTURE.md "Docker-first deployment model" into `docs/deploy/README.md`; "Health
     and status" and "What an operator can observe" into `docs/operations/METRICS.md`; "Updates" into
     `docs/operations/UPGRADE.md` without the two-release rule (owner decision 6). Write

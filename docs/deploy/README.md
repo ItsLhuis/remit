@@ -8,6 +8,40 @@ installer asks and writes, [`UPGRADE.md`](../operations/UPGRADE.md) owns upgradi
 [`RESTORE.md`](../operations/RESTORE.md) owns restoring. A guide here says what is different about
 one platform and links to those rather than restating them.
 
+## How Remit runs
+
+Remit is published as two images on GitHub Container Registry, built from one `Dockerfile` by
+`.github/workflows/docker.yml`: `ghcr.io/itslhuis/remit/app`, the Next.js server, and
+`ghcr.io/itslhuis/remit/worker`, the job consumer, which adds Chromium for PDF rendering. Both are
+published for `linux/amd64` and `linux/arm64`. Neither image carries anything about a deployment:
+the `Dockerfile` takes no build argument, no address, no secret and no `NEXT_PUBLIC_*` value, so the
+image a release names runs at any address.
+
+`docker-compose.yml` runs the two beside PostgreSQL 16, Redis 8 and a bundled S3-compatible object
+store, RustFS, which is pinned to an exact release and image digest. Only `app` publishes a port;
+the database, Redis and object storage are reachable inside the Compose network alone, and browsers
+never talk to object storage: the app serves the files. `app` and `worker` mount the same
+`REMIT_DATA_DIR`, and `worker` starts only once `app` reports healthy, which keeps the two from
+migrating at the same time. There are two profiles:
+
+- **Default** publishes the app on `PORT` at the interface `REMIT_APP_BIND` names (`0.0.0.0` unless
+  set), for a reverse proxy you already run (Nginx, Caddy, Traefik, Cloudflare Tunnel) or a trusted
+  LAN.
+- **`with-proxy`** adds Caddy, which obtains and renews a certificate for `REMIT_PUBLIC_URL`,
+  redirects HTTP to HTTPS and proxies to the app (`deploy/caddy/Caddyfile`). The app's port is
+  published on loopback only when `REMIT_APP_BIND=127.0.0.1`, which `scripts/host/install.sh` writes
+  when you choose this profile. `COMPOSE_PROFILES=with-proxy` in `.env` keeps the profile on for
+  every later `docker compose` command, `scripts/host/upgrade.sh`'s included.
+
+Uploaded files go through one adapter, `lib/storage`, configured by `S3_ENDPOINT`, `S3_REGION`,
+`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and `S3_FORCE_PATH_STYLE`
+(`lib/config/envSchema.ts`). The bundled store starts with the same key pair the app and worker sign
+with. Pointed at Amazon S3, Cloudflare R2 or Backblaze B2 instead, the same variables keep the files
+there, in three buckets derived from `S3_BUCKET`: `<S3_BUCKET>`, `<S3_BUCKET>-documents` and
+`<S3_BUCKET>-exports` (`lib/storage/bucketNames.ts`). Remit creates a missing bucket, and leaves one
+alone that answers a head request with `403`, so you can create the three in advance for a key that
+cannot create buckets (`lib/storage/objectStore.ts`).
+
 ## Which guide is for me
 
 | You have                                                   | Guide                                         |

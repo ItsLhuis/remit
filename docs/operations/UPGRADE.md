@@ -6,7 +6,7 @@ or receive access to the Docker socket.
 ## Prerequisites
 
 - Host shell access to the checkout that contains `docker-compose.yml`.
-- Docker Engine 24 or newer.
+- Docker 24 or newer; `scripts/host/_check-prereqs.sh` checks the CLI version.
 - Docker Compose v2 plugin form available as `docker compose`.
 - The Remit compose stack is already running. If it is stopped, start it first with
   `docker compose up -d`, confirm it is healthy, then upgrade.
@@ -64,8 +64,8 @@ REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP=1 bash scripts/host/upgrade.sh --skip-backup
 ```
 
 Use that only when you already have a verified external snapshot. The host script has no other
-prompts. The app entrypoint applies pending migrations during `docker compose up -d`; the upgrade
-script does not run migrations itself.
+prompts. The app container's `docker-entrypoint.sh` applies pending database migrations before it
+starts the server, during `docker compose up -d`; the upgrade script does not run migrations itself.
 
 ## Rollback
 
