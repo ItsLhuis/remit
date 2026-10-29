@@ -38,9 +38,9 @@ Foreign key `onDelete` behavior follows the relationship semantics, not a single
 
 A table with both a project and a client parent needs the composite foreign key to
 `uq_projects_id_client_id` (hand-written, as `drizzle/migrations/0002_document_parent_agreement.sql`
-shows), a `chk_<table>_project_requires_client` check and, when the table already holds rows, a
-backfill of them first; `database/__tests__/documentParentage.integration.test.ts` shows the
-behaviour.
+shows for `fk_<table>_project_client`), a `chk_<table>_project_requires_client` check and, when the
+table already holds rows, a backfill of them first (a requirement, not shown by those files);
+`database/__tests__/documentParentage.integration.test.ts` shows the behaviour.
 
 ## Indexes and checks
 

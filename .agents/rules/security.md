@@ -66,9 +66,10 @@ request audit metadata helper under `lib/utils/request.ts`.
 
 No endpoint that handles authentication or processes a public token ships without a rate limit.
 Sign-in, sign-up and password reset requests take theirs from `rateLimit.customRules` in
-`lib/auth/index.ts` and every other Better Auth route, recovery code redemption included, from its
-default there; `proxy.ts` limits every public token route, and a route module adds a tighter limit
-where it needs one (`app/(public)/s/[token]/page.tsx`).
+`lib/auth/index.ts`, the Better Auth two-factor plugin limits `/two-factor/` routes (recovery code
+redemption included) to 3 per 10 seconds, and every other Better Auth route takes the default there;
+`proxy.ts` limits every public token route, and a route module adds a tighter limit where it needs
+one (`app/(public)/s/[token]/page.tsx`).
 
 ## Cookie settings
 

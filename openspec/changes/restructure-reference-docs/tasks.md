@@ -62,6 +62,21 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `git grep -q "two-factor/disable" -- .agents/rules/security.md && git grep -q "already holds rows" -- .agents/rules/database.md && pnpm exec vitest run tests/docs`
 
+- [x] 3a. Review findings of tasks 2a and 3
+  - Do: in `.agents/rules/security.md` the recovery-code limit comes from the Better Auth two-factor
+    plugin's `/two-factor/` rule (read
+    `node_modules/better-auth/dist/plugins/two-factor/index.mjs`), every other Better Auth route
+    from the `rateLimit` default in `lib/auth/index.ts`. In `.agents/rules/database.md` the
+    "hand-written, as 0002 shows" note belongs to the composite foreign key, not to
+    `uq_projects_id_client_id`; drop the backfill clause's unanchored claim or keep it as a
+    requirement without a citation. In `database/schema/auditLogs.ts` the comment names the UPDATE,
+    DELETE and TRUNCATE triggers of `drizzle/migrations/0001_insert_only_guards.sql` (comment-only).
+    In `lib/audit/__tests__/auditLogsInsertOnly.integration.test.ts` the two rejection tests are
+    named `<behavior> when <condition>` per `.agents/rules/testing.md`.
+  - Done when: each statement is true against the file it names; the integration test passes.
+  - Verify:
+    `git grep -q "UPDATE" -- database/schema/auditLogs.ts && pnpm exec vitest run --config vitest.integration.config.ts lib/audit/__tests__/auditLogsInsertOnly.integration.test.ts && pnpm exec vitest run tests/docs`
+
 - [x] 3. Schema facts and the `audit_logs` guard test
   - Do: add facts F1-F5 of the proposal as comments in `database/schema/proposals.ts`,
     `timeEntries.ts` (or `lineItems.ts`), `invoices.ts` and `templates.ts`, each verified against

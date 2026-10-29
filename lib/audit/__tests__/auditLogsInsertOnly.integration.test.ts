@@ -62,7 +62,7 @@ test("stores an audit entry when it is inserted", async () => {
   expect(row?.metadata).toEqual({ probe: true })
 })
 
-test("rejects an update to an audit entry", async () => {
+test("rejects the statement when an audit entry is updated", async () => {
   const entryId = await makeAuditEntry()
 
   const failure = await captureRejection(
@@ -72,7 +72,7 @@ test("rejects an update to an audit entry", async () => {
   expect(failure).toMatch(/audit_logs is insert-only: UPDATE operations are not permitted/)
 })
 
-test("rejects a delete of an audit entry", async () => {
+test("rejects the statement when an audit entry is deleted", async () => {
   const entryId = await makeAuditEntry()
 
   const failure = await captureRejection(
