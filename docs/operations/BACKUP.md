@@ -160,7 +160,8 @@ entries as the sweep. `--yes` skips the prompt that asks before an existing loca
 overwritten, `--dry-run` prints the plan without writing, `--destination local|s3|r2|b2` overrides
 the destination for one run, and `--output <path>` writes a local archive to that path, which
 retention then leaves alone (`scripts/core/backup/args.ts`). `scripts/host/upgrade.sh` runs this
-command before every upgrade.
+command before every upgrade, unless `--skip-backup` is passed together with
+`REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP=1`.
 
 ## Testing a backup
 
@@ -259,10 +260,12 @@ Do not run a restore against your live instance to test it.
 
    ```bash
    docker compose -p remit-scratch --env-file .env.scratch down -v
-   rm -rf /srv/remit-scratch-data .env.scratch
+   sudo rm -rf /srv/remit-scratch-data
+   rm -f .env.scratch
    ```
 
-   `-v` removes only the volumes of the `remit-scratch` project.
+   `-v` removes only the volumes of the `remit-scratch` project. `sudo` is needed because step 2
+   changed the owner of the data directory to the app's user.
 
 Repeat the scratch restore after changing the encryption key, the object storage or the backup
 destination, and on a schedule you will keep, because it is the only step in this runbook that fails
@@ -279,7 +282,8 @@ What automation runs:
   and records success, writes no second archive inside the cadence, writes none while a restore or a
   manual backup holds the lock, and records a failure with no credential for a misconfigured
   destination. `tests/e2e/scheduledBackup.spec.ts` drives the same flow through the production
-  worker process and the dashboard.
+  worker process and reads "Last successful backup" on `/settings/backup`. The dashboard banner is
+  covered only by the unit test above.
 - The backup command and the lock: `scripts/core/backup/__tests__/` covers a decryptable local
   archive, a remote upload to an in-process S3 test server with retention, a failed upload keeping
   the previous success time, local and remote retention, and refusal while the lock is held.
@@ -290,8 +294,8 @@ What automation runs:
   credential handling, the audit entry, the refusal of a non-owner and of a hosted instance, with
   the connection test itself mocked; `tests/e2e/backupSettings.spec.ts` configures a local backup,
   takes one and shows it as the last success.
-- `.github/workflows/install.yml` runs `pnpm remit:backup --yes` once in the installed stack, with
-  the local destination.
+- `.github/workflows/install.yml` runs `pnpm remit:backup --yes` once in the installed stack, which
+  checks that a backup can be written into the data directory.
 
 What is not executed by any automation:
 

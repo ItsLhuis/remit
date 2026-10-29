@@ -112,6 +112,18 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test -f docs/operations/BACKUP.md && git grep -q "backup.run.sweep" -- docs/operations/BACKUP.md && ! git grep -qi "two releases" -- docs/operations && pnpm exec vitest run tests/docs`
 
+- [x] 4a. Review findings of task 4
+  - Do: in `docs/operations/BACKUP.md` the Execution section says `.github/workflows/install.yml`
+    runs the backup command "with the local destination" (it only checks a backup can be written
+    into the data directory) and that `tests/e2e/scheduledBackup.spec.ts` drives the dashboard (it
+    opens `/settings/backup`); the scratch-restore cleanup `rm -rf` of the chowned data directory
+    needs root; "`scripts/host/upgrade.sh` runs this command before every upgrade" omits the
+    `--skip-backup` plus `REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP=1` double opt-out
+    (`scripts/host/upgrade.sh`, `docs/operations/UPGRADE.md`).
+  - Done when: each statement is true against the file it names.
+  - Verify:
+    `git grep -q "REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP" -- docs/operations/BACKUP.md && pnpm exec vitest run tests/docs`
+
 - [ ] 5. CLI contract next to the scripts
   - Do: `git mv docs/architecture/operations/CLI-CONTRACT.md scripts/README.md` and shrink it to
     naming, promotion criteria, execution context, the upgrade boundary rule of owner decision 5
