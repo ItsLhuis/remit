@@ -259,8 +259,7 @@ Operational support:
     documented in [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).
   - `pnpm remit:rotate-encryption-key` rotates Remit-owned encrypted columns and existing
     `.remitbak` archive encryption with a mandatory pre-rotation backup. The rotation contract is
-    documented in
-    [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md#pnpm-remitrotate-encryption-key).
+    documented in [`scripts/README.md`](./scripts/README.md#key-rotation).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates demo data for screenshots, screencasts, and local demo
     deployments, with presets and capped numeric overrides. The same seed produces the same records
@@ -269,15 +268,14 @@ Operational support:
     exposed to the internet never carries a link anyone could predict.
   - `pnpm remit:reset-data` is its inverse: it empties the instance's domain data in one transaction
     while the account, organization, settings, tax rates, templates, and audit trail survive. The
-    scope is documented in
-    [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md#pnpm-remitreset-data).
+    scope is the `reset` column of
+    [`scripts/core/domainData/inventory.ts`](./scripts/core/domainData/inventory.ts).
 - **Host-side upgrades** - `bash scripts/host/upgrade.sh` snapshots a backup, pulls images, restarts
   the compose project, and waits for `/api/health`. The operator runbook is
   [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Upgrade is host-side: no
   `remit:upgrade` package script, no Docker socket mount.
 - **Operational command contract** - new `remit:*` scripts follow
-  [`docs/architecture/operations/CLI-CONTRACT.md`](./docs/architecture/operations/CLI-CONTRACT.md).
-  No placeholder package scripts ship.
+  [`scripts/README.md`](./scripts/README.md).
 
 ## Stack
 

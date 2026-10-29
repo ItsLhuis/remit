@@ -124,7 +124,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `git grep -q "REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP" -- docs/operations/BACKUP.md && pnpm exec vitest run tests/docs`
 
-- [ ] 5. CLI contract next to the scripts
+- [x] 5. CLI contract next to the scripts
   - Do: `git mv docs/architecture/operations/CLI-CONTRACT.md scripts/README.md` and shrink it to
     naming, promotion criteria, execution context, the upgrade boundary rule of owner decision 5
     (the app container never mounts the Docker socket, upgrade runs on the host, there is no

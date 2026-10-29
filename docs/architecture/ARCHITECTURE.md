@@ -1637,7 +1637,7 @@ documented in the [installation runbook](../operations/INSTALL.md), and the
 
 The deeper self-hosting references are:
 
-- [Operational CLI contract](operations/CLI-CONTRACT.md) for command naming, execution context,
+- [Operational CLI contract](../../scripts/README.md) for command naming, execution context,
   packaging, validation, status, and the explicit `remit:upgrade` exception.
 - [Backup archive format](specs/BACKUP-ARCHIVE.md) for the `.remitbak` byte layout, manifest,
   encryption, destination, compatibility, and backup audit contract.
@@ -1709,7 +1709,7 @@ scripts live under `scripts/host/` and are not copied into the runtime image.
 
 `remit:upgrade` is the explicit exception: upgrade is host-side only, there is no `remit:upgrade`
 package script, and the name is not reserved. See the detailed
-[Operational CLI contract](operations/CLI-CONTRACT.md).
+[Operational CLI contract](../../scripts/README.md).
 
 ### Instance data reset
 

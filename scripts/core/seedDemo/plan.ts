@@ -544,7 +544,7 @@ function buildProposals(
       notes: "Prepared for review; scope can be adjusted before acceptance.",
       // The one field a seed does not determine: a demo instance's public links are real bearer
       // credentials on a real port, so they are minted from the CSPRNG like every other token
-      // (`security.md`). `CLI-CONTRACT.md` carries the resulting exception to the byte-identical
+      // (`security.md`). `scripts/README.md` carries the resulting exception to the byte-identical
       // plan contract.
       publicToken: mintPublicToken(),
       viewCount: status === "draft" ? 0 : 2 + index,

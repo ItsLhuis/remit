@@ -16,7 +16,7 @@ const SEEDING_DOCUMENTS = [
   "README.md",
   "docs/operations/INSTALL.md",
   "docs/architecture/ARCHITECTURE.md",
-  "docs/architecture/operations/CLI-CONTRACT.md"
+  "scripts/README.md"
 ]
 
 function read(path: string): string {

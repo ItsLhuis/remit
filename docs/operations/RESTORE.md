@@ -6,8 +6,7 @@ incident-response operation, not a routine import.
 
 The archive format is specified in
 [`docs/architecture/specs/BACKUP-ARCHIVE.md`](../architecture/specs/BACKUP-ARCHIVE.md). The command
-contract is specified in
-[`docs/architecture/operations/CLI-CONTRACT.md`](../architecture/operations/CLI-CONTRACT.md).
+contract is specified in [`scripts/README.md`](../../scripts/README.md).
 
 ## Destructive warning
 
