@@ -264,7 +264,9 @@ usage, and the retention counts on `/settings/backup` decide how many archives a
 ## arm64 hosts
 
 **Not tested** — no arm64 host has run this guide, a Raspberry Pi included. The facts below are read
-from the build files, not measured.
+from the build files, not measured, with one exception: a recorded run of the arm64 worker image's
+Chromium, which executed and reported `Chromium 149.0.7827.53 Alpine Linux`. No Raspberry Pi was
+used for it, and no one has re-run it for this guide.
 
 Both images are published for `linux/amd64` and `linux/arm64` (`.github/workflows/docker.yml`), and
 Docker picks the variant for the host, so every step above is unchanged. The worker image installs
@@ -276,6 +278,9 @@ Chromium from the distribution's packages (`Dockerfile`), so PDF rendering runs 
   `scripts/host/upgrade.sh` wait ten minutes for health, and `REMIT_HEALTH_TIMEOUT_SECONDS` gives a
   slower host longer (`scripts/host/_wait-for-health.sh`). How long a Pi takes has not been
   measured.
+- **Keep the database off an SD card.** PostgreSQL writes constantly, its data lives in the
+  `postgres_data` Docker volume (`docker-compose.yml`), and the SD card most small boards boot from
+  is the wrong place for it. Put Docker's data directory on an SSD or other durable disk.
 - **Memory and storage are unmeasured too.** The memory a PDF render needs on a small board is
   unknown; the 2 GB floor under **Before you start** applies. A host with no public address pairs
   with [Cloudflare Tunnel](cloudflare-tunnel.md).

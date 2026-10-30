@@ -218,6 +218,20 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test ! -f docs/deploy/raspberry-pi.md && ! git grep -q "no template to render" -- ':!openspec' && ! git grep -q "raspberry-pi.md" -- ':!openspec' && pnpm exec vitest run tests/docs`
 
+- [x] 9a. Review findings of task 9
+  - Do: in `docs/operations/INSTALL.md` the Execution section lists the setup wizard in a browser
+    and `remit:seed-demo` as unexecuted, but `tests/e2e/auth.spec.ts` drives the wizard on its own
+    stack and `scripts/core/seedDemo/__tests__/` covers the seed: say what each test covers and what
+    it does not (the wizard is not driven on an installer-run stack). In `docs/deploy/linux-host.md`
+    the arm64 section states that the arm64 worker image's Chromium was run and reported its version
+    string, without a date (read the recorded run with
+    `git show f47b6f8^:docs/deploy/raspberry-pi.md` and write only what it states); it carries the
+    warning that PostgreSQL writes constantly and the SD card most Pis boot from is the wrong place
+    for the database, if `docs/deploy/linux-host.md` does not already say it for any host. No Pi was
+    used; keep the section marked not tested.
+  - Done when: no operator document lists a covered path as unexecuted or an unrecorded run as run.
+  - Verify: `git grep -q "Chromium" -- docs/deploy/linux-host.md && pnpm exec vitest run tests/docs`
+
 - [ ] 10. Routing
   - Do: delete `docs/README.md`. Update `README.md` (Documentation and Architecture to the routing
     list in the proposal; drop the placeholder-scripts sentence), `AGENTS.md` (directory map with
