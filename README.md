@@ -216,8 +216,8 @@ Only the app, or Caddy in front of it, is reachable from outside the host. Uploa
 go through the app, so an instance needs one hostname and one certificate, and the published images
 carry no address of their own.
 
-[`docs/deploy/`](./docs/deploy) covers specific targets: a Linux host, an existing Nginx reverse
-proxy, Coolify or Dokploy, a Cloudflare Tunnel, and a Raspberry Pi. Each guide says whether it has
+[`docs/deploy/`](./docs/deploy) covers specific targets: a Linux host (arm64 included), an existing
+Nginx reverse proxy, Coolify or Dokploy, and a Cloudflare Tunnel. Each guide says whether it has
 been executed end to end or only written from documentation, and each ends with backups configured
 and a test invoice sent.
 

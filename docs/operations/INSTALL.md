@@ -98,8 +98,8 @@ recently. To take one immediately:
 docker compose exec app pnpm remit:backup
 ```
 
-A backup you have never restored is a hope rather than a backup; the [restore runbook](RESTORE.md)
-describes how to test one.
+A backup you have never restored is a hope rather than a backup;
+[Testing a backup](BACKUP.md#testing-a-backup) in the backup runbook is how to test one.
 
 ## 5. Configure what you actually use
 
@@ -272,6 +272,28 @@ This creates demo clients, projects, invoices, payments and expenses, the same o
 seed except for the public document links, which are random on every run because they are real
 bearer credentials. Its inverse, `pnpm remit:reset-data`, empties the domain data again while
 leaving your account, settings, tax rates and templates intact.
+
+## Execution
+
+What automation runs:
+
+- `.github/workflows/install.yml` builds the images from the commit and runs
+  `bash scripts/host/install.sh --yes --no-pull --image-tag ci --url http://localhost:3000 --accept-key-custody`
+  against real Docker on every pull request to `main`, nightly and on demand. It checks that
+  `/api/health` answers, that `/` redirects to `/register`, that the worker stays running for 30
+  seconds, that `.env` has mode `600`, that a second run leaves the encryption key unchanged, and
+  that `pnpm remit:backup --yes` writes a backup.
+- `scripts/host/__tests__/install.test.ts` runs the script with a stubbed `docker` and checks the
+  options, the refusals, the generated `.env`, key custody, the URL rules, and that `--proxy`
+  renders a Caddy service in `docker compose config`.
+
+What is not executed by any automation:
+
+- The interactive path: no test answers the three questions or the key confirmation.
+- Caddy running, and certificate issuance through ACME.
+- Installing without the installer.
+- External object storage: no run points Remit at Amazon S3, Cloudflare R2 or Backblaze B2.
+- The owner account and the setup wizard in a browser, and `remit:seed-demo`.
 
 ## Where to go next
 

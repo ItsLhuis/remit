@@ -126,3 +126,9 @@ roll back; after a timeout the app may still be starting, and running the upgrad
 - Host scripts under `scripts/host/` are not copied into the runtime image.
 - The pre-upgrade backup is mandatory unless both `--skip-backup` and
   `REMIT_ALLOW_UPGRADE_WITHOUT_BACKUP=1` are present.
+
+## Execution
+
+`scripts/host/__tests__/upgrade.test.ts` runs `upgrade.sh` with a stubbed `docker` and checks the
+sequence (backup, pull, restart, health), the refusals, and the failure stops. Nothing executes an
+upgrade against a real stack, a migration during one, or the rollback procedure above.

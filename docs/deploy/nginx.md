@@ -5,7 +5,9 @@ clone through every step below, including `nginx -t` on the block given here and
 forwarded-address check at the end. Two substitutions: the certificate was self-signed rather than
 issued by Let's Encrypt, and Nginx ran in a container on the app's Docker network with
 `proxy_pass http://app:3000` rather than on the host with `proxy_pass http://127.0.0.1:3000`.
-Certbot itself is therefore the one step not covered from experience.
+Certbot itself is therefore the one step not covered from experience. The commit the run used is not
+recorded. The template step of the verification section was corrected after the run and has not been
+re-executed.
 
 ## Who this is for
 
@@ -175,9 +177,10 @@ involved and does not need reloading: the container keeps the same published por
 2. **Sign in**, then open a second tab. Staying signed in is what proves the cookie survived the
    proxy.
 3. **Configure email** at `/settings/email` and send its test message.
-4. **Create an invoice template** at `/templates` and mark it the default for invoices. Without one
-   the render is skipped and no email is sent at all, while the invoice still shows as sent — see
-   the [Linux host](linux-host.md) guide's troubleshooting for what that looks like in the log.
+4. **Know what a new instance sends.** With no template, the invoice renders with the built-in
+   layout and is mailed as a plain-text message with the PDF attached. Create a template at
+   `/templates` and mark it the default for invoices only to change that look; the
+   [Linux host](linux-host.md) guide's verification says what to expect.
 5. **Create a client**, then a project for it.
 6. **Create an invoice** with one line item and send it. The email must arrive with a PDF attached.
 7. **Check the address that was recorded.** Sign out, fail one sign-in on purpose with a wrong

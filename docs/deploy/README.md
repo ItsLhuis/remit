@@ -50,10 +50,11 @@ cannot create buckets (`lib/storage/objectStore.ts`).
 | A Linux server already serving other sites through Nginx   | [Behind Nginx](nginx.md)                      |
 | Coolify or Dokploy managing a Docker host for you          | [Coolify and Dokploy](coolify-and-dokploy.md) |
 | A home server with no public IP, and a Cloudflare domain   | [Cloudflare Tunnel](cloudflare-tunnel.md)     |
-| A Raspberry Pi                                             | [Raspberry Pi](raspberry-pi.md)               |
+| A Raspberry Pi or another arm64 server                     | [Linux host](linux-host.md#arm64-hosts)       |
 
-Everything except the Raspberry Pi guide assumes a 64-bit x86 host. Both published images are
-`linux/amd64` and `linux/arm64`, so an arm64 server works anywhere a guide says amd64.
+Both published images are `linux/amd64` and `linux/arm64` (`.github/workflows/docker.yml`), so an
+arm64 server follows the same guides; the [arm64 hosts](linux-host.md#arm64-hosts) section covers
+what differs.
 
 ## What "tested" means here
 
@@ -61,14 +62,16 @@ Every guide opens with one of two lines, and they mean exactly what they say:
 
 - **Tested** — someone followed this document from a clean state, every step in the order written,
   and completed its verification section. The line names the date and the host, because a guide ages
-  against the platform it describes.
+  against the platform it describes, and the commit the run used, or says that it is not recorded. A
+  step edited after the run is named in the line as not re-executed.
 - **Not tested** — the guide was written from the platform's own documentation and from Remit's
   Compose file, but nobody has executed it end to end. The line names what was checked and what was
   not, and the guide is still correct about Remit; what it cannot promise is that a console screen
   still has the name it had when this was written.
 
-A guide never claims more than that. A deployment guide that fails at step four costs an evaluator
-their evening, and the honest label is what keeps this directory worth reading.
+No automation executes any guide in this directory; the labels record manual runs. A guide never
+claims more than that. A deployment guide that fails at step four costs an evaluator their evening,
+and the honest label is what keeps this directory worth reading.
 
 ## The shape every guide follows
 
@@ -114,13 +117,13 @@ deployment that quietly does half the job.
 over `http://`. You can register and then never stay signed in. Browsers make an exception for
 `localhost`, which is why a local trial works and a LAN address does not. Terminate TLS somewhere.
 
-**A new instance has no document templates, and sending without one sends nothing.** The render job
-stops at `Invoice PDF skipped: no template to render`, and because the email is what carries the
-PDF, no mail is attempted either. The invoice still moves to `sent` and still publishes a client
-link, so the interface shows a successful send and the client heard nothing. Create a template at
-`/templates` and mark it the default for its document type before the first real send. This is not
-specific to a platform; it is true of every new instance, and it is why every guide's verification
-includes it.
+**A new instance sends with built-in layouts, and sending needs email configured.** A document with
+no template of its own and no default for its type renders with a built-in layout
+(`features/templates/documentLayout.ts`), so a new instance renders the invoice PDF and mails it
+attached to a plain-text message with Remit's own wording (`features/invoices/emailJob.ts`). The
+mail goes out only once an email provider is configured at `/settings/email`
+(`features/email/documentEmail.ts`). Create templates at `/templates` only to change that look. This
+is true of every new instance, and it is why every guide's verification sends an invoice.
 
 ## Platforms without a guide
 

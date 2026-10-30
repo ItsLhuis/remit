@@ -175,7 +175,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test ! -f docs/architecture/SCHEMA.md && ! git grep -q "SCHEMA.md" -- ':!openspec' && pnpm exec vitest run tests/docs`
 
-- [ ] 9. Operator documents
+- [x] 9. Operator documents
   - Do: fix O1 in `docs/deploy/README.md`, `linux-host.md` and `nginx.md` (verify the fallback in
     `features/invoices/pdfRenderJob.ts` and `emailJob.ts`); fix O2 (point to the backup-test
     procedure in `BACKUP.md`). Add the execution statements the proposal lists under "Operator

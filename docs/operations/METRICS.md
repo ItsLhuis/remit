@@ -148,3 +148,9 @@ overdue or failed.
   carries a path, an id or an error message. Nothing is ever pushed out of the instance.
 - Metrics describe the app container's process and the shared job queue. The worker's own memory is
   not reported.
+
+## Execution
+
+`lib/metrics/__tests__/` runs the endpoint's behaviour: admission and the token, the exposition
+format, the closed set of metrics and labels, and degrading when a collector fails. The scrape
+configuration in step 3 has not been run against Prometheus.

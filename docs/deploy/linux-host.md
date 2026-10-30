@@ -5,7 +5,10 @@ every step below: the installer with its Caddy profile, the owner account and TO
 an invoice template, a client, a project, an invoice sent with its PDF attached, then a backup and a
 restore. One substitution: the host had no public DNS name, so Caddy issued the certificate from its
 own internal authority instead of from Let's Encrypt. ACME issuance is the single step this guide
-does not cover from experience; everything on either side of it ran as written.
+does not cover from experience; everything on either side of it ran as written. The commit the run
+used is not recorded. The template step of the verification section and the troubleshooting entry
+about an invoice that is sent but not received were corrected after the run and have not been
+re-executed. No automation executes this guide.
 
 ## Who this is for
 
@@ -176,7 +179,8 @@ Do this before the instance holds anything you care about.
    ```
 
 A backup you have never restored is a hope rather than a backup.
-[`RESTORE.md`](../operations/RESTORE.md) describes testing one.
+[Testing a backup](../operations/BACKUP.md#testing-a-backup) in `BACKUP.md` is the procedure, and
+[`RESTORE.md`](../operations/RESTORE.md) owns the command it ends with.
 
 ## Upgrading
 
@@ -203,10 +207,10 @@ worker, Chromium, object storage and email in one go, which is why it is the che
    tab is the part that proves cookies survive your TLS setup.
 2. **Configure email** at `/settings/email` — SMTP or Resend — and use its test send. Nothing else
    in this list works without it.
-3. **Create an invoice template** at `/templates` and mark it the default for invoices. A new
-   instance ships with none, and an invoice with no template to render produces no PDF — and
-   therefore no email at all, because the mail is what carries the PDF. The invoice still moves to
-   `sent` and still gets a client link, so nothing on screen says the client heard nothing.
+3. **Know what a new instance sends.** It ships with no template. The invoice renders with the
+   built-in layout (`features/templates/documentLayout.ts`) and the email is plain text in Remit's
+   own wording with the PDF attached (`features/invoices/emailJob.ts`). Create a template at
+   `/templates` and mark it the default for invoices only to change that look.
 4. **Create a client** at `/clients`, with an email address you can read, then a **project** for
    that client. Invoices hang off a project.
 5. **Create an invoice** on that project with one line item, and send it.
@@ -215,8 +219,8 @@ worker, Chromium, object storage and email in one go, which is why it is the che
    - the email arrived, with a PDF attached that opens;
    - `/settings/system` reports the database, storage and email checks green.
 
-If no mail arrives at all, check `docker compose logs worker` for
-`Invoice PDF skipped: no template to render` before looking anywhere else.
+If no mail arrives, check `docker compose logs worker` for `Invoice email skipped` before looking
+anywhere else; its reason is `no recipient` or `public link revoked`.
 
 ## Troubleshooting
 
@@ -240,11 +244,11 @@ reached over plain HTTP outside `localhost`. Fix `.env` and `docker compose up -
 
 ### An invoice says "sent" but the client got nothing
 
-There is no default invoice template. The render job stops with
-`Invoice PDF skipped: no template to render` in `docker compose logs worker`, writes an audit entry,
-and never chains to the email — so the invoice is marked sent, the client link works, and no mail
-was ever attempted. Create a template at `/templates`, set it as the default for invoices, and send
-again.
+The mail is not sent when no email provider is configured (`features/email/documentEmail.ts`), when
+the client has no email address, or when the invoice's public link was revoked
+(`features/invoices/emailJob.ts`). The last two log `Invoice email skipped: no recipient` or
+`Invoice email skipped: public link revoked` in `docker compose logs worker`. Configure
+`/settings/email`, add the address, or restore the link, and send again.
 
 ### Nothing scheduled ever happens
 
@@ -256,6 +260,25 @@ container is not running at all, the queue fills and the application keeps accep
 Backups in the local destination and stored files both grow, and every archive carries every stored
 file, so each one is at least as large as the files themselves. `/settings/system` reports disk
 usage, and the retention counts on `/settings/backup` decide how many archives a run leaves behind.
+
+## arm64 hosts
+
+**Not tested** — no arm64 host has run this guide, a Raspberry Pi included. The facts below are read
+from the build files, not measured.
+
+Both images are published for `linux/amd64` and `linux/arm64` (`.github/workflows/docker.yml`), and
+Docker picks the variant for the host, so every step above is unchanged. The worker image installs
+Chromium from the distribution's packages (`Dockerfile`), so PDF rendering runs the arm64 build.
+
+- **A 64-bit operating system is required.** No 32-bit variant is published, so a 32-bit install
+  such as `armv7l` (`uname -m`) cannot pull either image. `aarch64` is what you need.
+- **The first start can be slow.** The app applies migrations before it listens. The installer and
+  `scripts/host/upgrade.sh` wait ten minutes for health, and `REMIT_HEALTH_TIMEOUT_SECONDS` gives a
+  slower host longer (`scripts/host/_wait-for-health.sh`). How long a Pi takes has not been
+  measured.
+- **Memory and storage are unmeasured too.** The memory a PDF render needs on a small board is
+  unknown; the 2 GB floor under **Before you start** applies. A host with no public address pairs
+  with [Cloudflare Tunnel](cloudflare-tunnel.md).
 
 ## Where to go next
 
