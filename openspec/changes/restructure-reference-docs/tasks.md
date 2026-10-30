@@ -167,6 +167,33 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test $(wc -c < docs/architecture/ARCHITECTURE.md) -le 20000 && ! git grep -qE "ARCHITECTURE\.md[^)]*§|ARCHITECTURE\.md,? (section )?[0-9]" && pnpm exec vitest run tests/docs`
 
+- [x] 7a. Review findings of task 7
+  - Do: in `docs/architecture/ARCHITECTURE.md` fix the statements the code contradicts: an export
+    excludes secret and credential columns and sends `clients.notes` as the deliberate exception
+    (`features/dataExport/services/exportManifest.ts`, `database/schema/clients.ts`); the export
+    manifest is enforced when each row is serialised (`projectExportRow`,
+    `features/dataExport/__tests__/manifest.integration.test.ts`); the private `documents` bucket is
+    served by `app/api/attachments/[id]` and `app/api/documents/[type]/[id]`, and the public token
+    routes deliver documents; error reports leave from the places that call `reportError`, including
+    `scripts/core/worker/crash.ts`. Where a cited section does not state the fact the citing text
+    relies on, either state the fact in the map or re-point the citation: `.github/SECURITY.md`
+    (encryption algorithm, token strength, constant-time comparison, mandatory TOTP, append-only
+    audit log, security headers), the comment at `lib/securityHeaders.ts` (why no public route is
+    framable), `features/backups/queries.ts` (dashboard banner). Restore, as short statements each
+    naming its file and only if no rule, test or lint states it: the invoice number is permanent and
+    never reused; a project cannot be re-parented once it carries financial records
+    (`ON UPDATE RESTRICT` in `drizzle/migrations/0002_document_parent_agreement.sql`); the
+    recurring-invoice retainer branch also stamps `invoicedInId`
+    (`features/recurringInvoices/jobs.ts`); settlement re-decides under the invoice lock when a
+    credit note is issued, withdrawn or restored, and a zero outstanding settles only on a positive
+    total; a locked proposal refuses every edit and send path and a correction is a new proposal
+    (`features/proposals/`). Verify each against code before writing. Keep the map at most 20,000
+    bytes. Task 9's Verify line gains the `:!openspec` exclusion (already edited in this task's
+    `tasks.md` change).
+  - Done when: each statement is true against the file it names; the map is within budget.
+  - Verify:
+    `test $(wc -c < docs/architecture/ARCHITECTURE.md) -le 20000 && ! git grep -q "every encrypted column" -- docs/architecture/ARCHITECTURE.md && pnpm exec vitest run tests/docs`
+
 - [x] 8. Delete `SCHEMA.md`
   - Do: delete `docs/architecture/SCHEMA.md` and `tests/docs/schema.test.ts`; update the references
     that remain (`AGENTS.md` directory map, `.agents/rules/comments.md`, `README.md` Architecture,
@@ -189,7 +216,7 @@ and each hit is removed or justified in the commit body as present behaviour.
     `Invoice PDF skipped: no template to render`; no document says `RESTORE.md` tests a backup;
     every operator document says what was executed; no file cites `raspberry-pi.md`.
   - Verify:
-    `test ! -f docs/deploy/raspberry-pi.md && ! git grep -q "no template to render" && ! git grep -q "raspberry-pi.md" -- ':!openspec' && pnpm exec vitest run tests/docs`
+    `test ! -f docs/deploy/raspberry-pi.md && ! git grep -q "no template to render" -- ':!openspec' && ! git grep -q "raspberry-pi.md" -- ':!openspec' && pnpm exec vitest run tests/docs`
 
 - [ ] 10. Routing
   - Do: delete `docs/README.md`. Update `README.md` (Documentation and Architecture to the routing

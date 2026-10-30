@@ -148,13 +148,21 @@ document with no template of its type renders from the built-in layout
   `features/invoices/services/invoiceStatusView.ts`, and a proposal is expired when
   `isProposalExpired` in `features/proposals/services/proposalNumber.ts` says so.
 - What a client owes is one figure, `getInvoiceOutstandingCents`, and an invoice is settled exactly
-  when it reaches zero (`features/payments/services/paymentSettlement.ts`).
+  when it reaches zero on a positive total (`features/payments/services/paymentSettlement.ts`). A
+  credit note issued, withdrawn or restored re-decides settlement under the invoice lock
+  (`resettleInvoiceWrite` in `features/payments/paymentWrites.ts`).
+- An invoice number is permanent: `invoices.number` is unique across soft-deleted rows
+  (`database/schema/invoices.ts`) and the counter only moves forward (`claimInvoiceNumber` in
+  `features/invoices/invoiceWrites.ts`).
 - A conversion is recorded once, on the produced document (`invoices.proposal_id`,
   `contracts.proposal_id`); the proposal has no pointer back (`database/schema/proposals.ts`).
-  Acceptance stamps `proposals.locked_at` (`features/proposals/publicResponse.ts`).
+  Acceptance stamps `proposals.locked_at` (`features/proposals/publicResponse.ts`). A proposal moves
+  forward only and only a draft is editable, so a correction is a new proposal
+  (`features/proposals/services/canTransitionProposalStatus.ts`).
 - `time_entries.invoiced_in_id` and `expenses.invoiced_in_id` are the canonical billed link.
   `features/invoices/billing.ts` stamps them in the invoice's own transaction with an `IS NULL`
-  predicate whose row count must match the plan, so nothing is billed twice.
+  predicate whose row count must match the plan, so nothing is billed twice; the retainer branch of
+  `features/recurringInvoices/jobs.ts` stamps a project's unbilled time the same way.
   `line_items.source_time_entry_id` and `source_expense_id` are per-line provenance, set only for a
   line drawn from exactly one source row; they neither mirror nor derive from the billed link
   (`features/invoices/services/billableConversion.ts`).
@@ -162,8 +170,10 @@ document with no template of its type renders from the built-in layout
   `drizzle/migrations/0001_insert_only_guards.sql` (the signature row has one sanctioned update, its
   signed PDF).
 - A project and a client on one document must agree, enforced by the composite key in
-  `drizzle/migrations/0002_document_parent_agreement.sql`; soft delete and the rest of the table
-  conventions are `.agents/rules/database.md`.
+  `drizzle/migrations/0002_document_parent_agreement.sql`. Its `ON UPDATE RESTRICT` also refuses
+  re-parenting a project to another client while a proposal, invoice, expense, contract or recurring
+  invoice names it; soft delete and the rest of the table conventions are
+  `.agents/rules/database.md`.
 - Deleting from the application is a soft delete that stamps one row and never cascades. The owner
   restores from the trash (`features/trash/services/restoreEligibility.ts`) and purges by retention
   windows that are null, meaning never purge, by default
@@ -171,10 +181,11 @@ document with no template of its type renders from the built-in layout
   (`features/clients/forget.ts`) that ignores every retention window and is refused while the client
   has a countersigned contract, because the delete would cascade into an insert-only signature. Both
   walk the delete order in `scripts/core/domainData/inventory.ts`.
-- A data export is an allowlist of table and column enforced at the select
-  (`features/dataExport/services/exportManifest.ts`); a test fails when a new column is neither
-  included nor excluded. Bearer tokens, every encrypted column and the Better Auth tables are
-  excluded.
+- A data export is an allowlist of table and column enforced when each row is serialised
+  (`projectExportRow` in `features/dataExport/services/exportManifest.ts`);
+  `features/dataExport/__tests__/manifest.integration.test.ts` fails when a new column is neither
+  included nor excluded. Bearer tokens, provider secrets and the Better Auth tables are excluded;
+  `clients.notes`, an encrypted column, travels in plaintext as the owner's own record.
 
 ## Security model and roles
 
@@ -202,19 +213,25 @@ Routes and pages gate with `requireRole`; server actions use `getCurrentRole` an
 
 **Authentication.** Better Auth owns users, sessions, TOTP and memberships; the handler is
 `app/api/auth/[...all]/route.ts`, which writes the audit entries for sign-in, sign-up, password and
-TOTP routes and the rate-limit trips. TOTP enrollment is part of `setupComplete` in `proxy.ts`.
+TOTP routes and the rate-limit trips. TOTP enrollment is part of `setupComplete` in `proxy.ts`, so
+every role enrolls, and it can never be turned off (`.agents/rules/security.md`).
 
-**Public tokens.** Invoice, proposal, contract and portal links carry a bearer token minted only by
-`mintPublicToken` and compared with `matchesPublicToken` (`lib/publicToken.ts`). Public pages send
-`X-Robots-Tag: noindex` and every response carries a framing denial (`lib/securityHeaders.ts`,
-`applySecurityHeaders`).
+**Secrets.** `encryptedColumn` values are AES-256-GCM (`lib/encryption/aes.ts`).
+
+**Public tokens.** Invoice, proposal, contract and portal links carry a bearer token of 32 random
+bytes minted only by `mintPublicToken` and compared in constant time with `matchesPublicToken`
+(`lib/publicToken.ts`). Public pages send `X-Robots-Tag: noindex`. Every response carries a CSP and
+a framing denial (`lib/securityHeaders.ts`, `applySecurityHeaders`), token routes included: each
+hosts a control a framing page could steer a client into (paying, accepting, signing), and nothing
+embeds them.
 
 **Files.** A browser never talks to the object store. Uploads stream through
 `app/api/upload/[type]`; the public bucket is served by `app/api/storage/[...key]` and the private
-`documents` bucket only by `app/api/attachments/[id]` after a session check; the storage route
-cannot read any other bucket (`lib/storage/bucketNames.ts`, `app/api/storage/[...key]/route.ts`).
-Data exports and report PDFs live in a third `exports` bucket reached through `app/api/exports/[id]`
-and `app/api/report-exports/[id]`.
+`documents` bucket only by `app/api/attachments/[id]` and `app/api/documents/[type]/[id]` after a
+session check (the token routes render a document as a page and do not serve that bucket); the
+storage route cannot read any other bucket (`lib/storage/bucketNames.ts`,
+`app/api/storage/[...key]/route.ts`). Data exports and report PDFs live in a third `exports` bucket
+reached through `app/api/exports/[id]` and `app/api/report-exports/[id]`.
 
 **Rate limits.** `lib/rateLimit/` counts in Redis and falls back to a per-process counter while
 Redis is unreachable. Better Auth counts its own limits through it (`lib/auth/index.ts`), and
@@ -245,8 +262,9 @@ allowed; and, only when `SENTRY_DSN` is set, error reports.
 An error report is built only by `buildErrorEvent` in `lib/errorTracking/errorEvent.ts`: it carries
 no message, request path, id or business data, and it drops the whole event rather than a field when
 a value is outside its vocabulary (`lib/errorTracking/__tests__/errorEvent.test.ts`). Reports leave
-from `instrumentation.ts`, `lib/jobs/worker.ts` and `scripts/worker.ts` and nowhere else; features
-cannot import the reporter (`featureBoundaryRule` in `eslint.config.mjs`).
+from `instrumentation.ts`, `lib/jobs/worker.ts`, `scripts/worker.ts` and
+`scripts/core/worker/crash.ts` and nowhere else; features cannot import the reporter
+(`featureBoundaryRule` in `eslint.config.mjs`).
 
 `GET /api/metrics` is pull only, behind `REMIT_METRICS_TOKEN`; an unadmitted request is
 indistinguishable from an unknown path (`lib/metrics/admission.ts`). It exposes process gauges,

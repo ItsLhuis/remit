@@ -36,8 +36,8 @@ no demonstrated impact.
 ## What Remit already does
 
 These are documented in [`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md)
-under "Security model and roles", and are context for a report rather than a claim that the surface
-is closed:
+under "Security model and roles" and "Data model principles", and are context for a report rather
+than a claim that the surface is closed:
 
 - Mandatory TOTP for every role, with no opt-out.
 - AES-256-GCM encryption at rest for third-party credentials and client notes, with a rotation
