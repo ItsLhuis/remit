@@ -283,18 +283,23 @@ Next.js 16 (App Router) · TypeScript (strict) · React 19 · Drizzle ORM · Pos
 with TOTP and organization plugins · Tailwind CSS v4 · shadcn/ui · Zod · react-hook-form · i18next ·
 pino · Vitest · Playwright.
 
-## Architecture
+## Documentation
 
-Detailed system architecture, design philosophy, and security model are documented in
-[`docs/architecture/`](./docs/architecture/):
+Where to look:
 
-- [`ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md) — system architecture, principles, domain
-  model, multi-user model, hosted offering, all major decisions.
-- [`database/schema/`](./database/schema/) — the Drizzle definition of every table, column,
-  constraint, and index in the database.
-
-Coding conventions for the codebase live in [`.agents/rules/`](./.agents/rules/) and are enforced
-through ESLint and the test suite.
+- Install: [`docs/operations/INSTALL.md`](./docs/operations/INSTALL.md).
+- Deploy on a specific platform: [`docs/deploy/`](./docs/deploy/).
+- Back up: [`docs/operations/BACKUP.md`](./docs/operations/BACKUP.md).
+- Restore: [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).
+- Upgrade: [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md).
+- Monitor: [`docs/operations/METRICS.md`](./docs/operations/METRICS.md).
+- How the system fits together:
+  [`docs/architecture/ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md).
+- Tables and columns: [`database/schema/`](./database/schema/).
+- What a `remit:*` command does: [`scripts/README.md`](./scripts/README.md).
+- What a `.remitbak` archive contains:
+  [`scripts/core/archive/README.md`](./scripts/core/archive/README.md).
+- Writing code: [`AGENTS.md`](./AGENTS.md) and [`.agents/rules/`](./.agents/rules/).
 
 ## License
 

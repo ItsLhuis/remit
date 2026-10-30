@@ -232,7 +232,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Done when: no operator document lists a covered path as unexecuted or an unrecorded run as run.
   - Verify: `git grep -q "Chromium" -- docs/deploy/linux-host.md && pnpm exec vitest run tests/docs`
 
-- [ ] 10. Routing
+- [x] 10. Routing
   - Do: delete `docs/README.md`. Update `README.md` (Documentation and Architecture to the routing
     list in the proposal; drop the placeholder-scripts sentence), `AGENTS.md` (directory map with
     G1: no `(setup)` group, the groups are `(auth) (dashboard) (editor) (public)`; References names

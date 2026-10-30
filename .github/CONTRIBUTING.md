@@ -14,7 +14,7 @@ accessibility, i18n, testing, comments, money and dates, database, events, route
 Read the ones your change touches. `.agents/rules/code-style.md` names a canonical exemplar file for
 every category; match it rather than the nearest neighbour.
 
-For why the system is shaped the way it is, read
+For how the system fits together, read
 [`docs/architecture/ARCHITECTURE.md`](../docs/architecture/ARCHITECTURE.md). It is not optional
 reading for a change that touches a boundary.
 

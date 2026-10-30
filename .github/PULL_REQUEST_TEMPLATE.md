@@ -23,7 +23,7 @@
 <!-- Delete any line that does not apply to this change. -->
 
 - [ ] Schema changes were generated with `pnpm database:generate`; no generated migration SQL was
-      hand-edited, and the migration history is squashed only before v1, when the owner schedules it
+      hand-edited, and this PR does not squash the migration history
 - [ ] New user-facing strings go through `t()`, with the key added to both `lib/i18n/types.ts` and
       the English locale
 - [ ] Writes go through a server action in `mutations.ts`; new API routes are public token routes,
