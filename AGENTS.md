@@ -41,7 +41,7 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 - `lib/` - server and client utilities; `lib/auth/session.ts` has `requireSession`/`requireRole`.
 - `hooks/`, `providers/`, `scripts/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
-- `docs/architecture/` - `ARCHITECTURE.md`, `SCHEMA.md`.
+- `docs/architecture/ARCHITECTURE.md` - the map.
 
 ## Hard rules
 

@@ -285,13 +285,13 @@ pino · Vitest · Playwright.
 
 ## Architecture
 
-Detailed system architecture, design philosophy, security model, and the final database schema are
-documented in [`docs/architecture/`](./docs/architecture/):
+Detailed system architecture, design philosophy, and security model are documented in
+[`docs/architecture/`](./docs/architecture/):
 
 - [`ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md) — system architecture, principles, domain
   model, multi-user model, hosted offering, all major decisions.
-- [`SCHEMA.md`](./docs/architecture/SCHEMA.md) — authoritative table-by-table specification of every
-  column, constraint, and index in the database.
+- [`database/schema/`](./database/schema/) — the Drizzle definition of every table, column,
+  constraint, and index in the database.
 
 Coding conventions for the codebase live in [`.agents/rules/`](./.agents/rules/) and are enforced
 through ESLint and the test suite.

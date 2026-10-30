@@ -167,7 +167,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test $(wc -c < docs/architecture/ARCHITECTURE.md) -le 20000 && ! git grep -qE "ARCHITECTURE\.md[^)]*§|ARCHITECTURE\.md,? (section )?[0-9]" && pnpm exec vitest run tests/docs`
 
-- [ ] 8. Delete `SCHEMA.md`
+- [x] 8. Delete `SCHEMA.md`
   - Do: delete `docs/architecture/SCHEMA.md` and `tests/docs/schema.test.ts`; update the references
     that remain (`AGENTS.md` directory map, `.agents/rules/comments.md`, `README.md` Architecture,
     `docs/README.md`).

@@ -6,7 +6,7 @@ another, so start from the question you actually have.
 | Question                                        | Go to                                                                              |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
 | How is the system built, and why that way?      | [`architecture/ARCHITECTURE.md`](architecture/ARCHITECTURE.md)                     |
-| What is every table, column, constraint, index? | [`architecture/SCHEMA.md`](architecture/SCHEMA.md)                                 |
+| What is every table, column, constraint, index? | [`../database/schema/`](../database/schema)                                        |
 | How do I install and start an instance?         | [`operations/INSTALL.md`](operations/INSTALL.md)                                   |
 | How do I deploy it on a specific platform?      | [`deploy/`](deploy)                                                                |
 | How do I restore from a backup?                 | [`operations/RESTORE.md`](operations/RESTORE.md)                                   |
