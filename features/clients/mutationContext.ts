@@ -56,8 +56,8 @@ export class ExpectedClientError extends Error {}
 // names are what `doctor.config.ts` registers as server auth functions, so each call site stays
 // greppable to its privilege level. An assistant drafts and edits; only the owner destroys — and
 // only the owner touches the portal link, because a standing bearer credential to everything Remit
-// holds about a client is a transmit decision rather than an edit (ARCHITECTURE.md's role table
-// refuses `send` and `transmit` to both other roles).
+// holds about a client is a transmit decision rather than an edit (ARCHITECTURE.md, "Security model
+// and roles": links, sending and deleting are owner-only).
 export function requireClientWrite(): Promise<ClientWriteGate> {
   return requireClientRole(["owner", "assistant"])
 }

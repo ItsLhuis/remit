@@ -21,7 +21,7 @@ import { members, settings, users } from "@/database/schema"
 
 // The onboarding and authentication state machine below derives every routing decision from the
 // database and the active session, and from nothing else. Storing routing state in a cookie is a
-// violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Routing state rule",
+// violation of the rule in `.agents/rules/security.md` and ARCHITECTURE.md's "Request flow",
 // however tempting it is as a way to avoid the per-request reads here. The guard order
 // is the state machine itself: user existence, then session, then setup completion, then an
 // organization membership, then a forced password change; each stage may only be reached once the

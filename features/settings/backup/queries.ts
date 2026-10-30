@@ -14,9 +14,10 @@ export type BackupSettingsStatus = {
 export type BackupSettingsPageData = {
   settings: BackupSettingsValues
   status: BackupSettingsStatus
-  // ARCHITECTURE.md section 18: on a Hosted instance the destination is operator-managed, so the
-  // page shows status and refuses edits rather than asking a customer for S3 credentials the
-  // operator already holds. The mutations enforce it too — this only decides what the form renders.
+  // ARCHITECTURE.md, "Standing principles": on a Hosted instance the destination is
+  // operator-managed, so the page shows status and refuses edits rather than asking a customer for
+  // S3 credentials the operator already holds. The mutations enforce it too — this only decides
+  // what the form renders.
   hostedMode: boolean
 }
 

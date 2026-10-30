@@ -42,7 +42,7 @@ export type InvoiceLineItemRow = {
   taxPercentage: number
   // Per-line provenance, written only by a caller that can name a single source row. It is not a
   // mirror of `time_entries.invoiced_in_id` / `expenses.invoiced_in_id` and neither may be derived
-  // from the other — see ARCHITECTURE.md's key invariants and
+  // from the other — see ARCHITECTURE.md, "Data model principles", and
   // services/billableConversion.ts's toTimeLineDraft.
   sourceTimeEntryId?: string | null
   sourceExpenseId?: string | null

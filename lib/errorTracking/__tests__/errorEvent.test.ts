@@ -26,8 +26,8 @@ const REQUEST_CONTEXT: ErrorReportContext = {
 }
 
 // Hardcoded rather than generated: this list is the guard. Every value is something
-// ARCHITECTURE.md section 9 or `.agents/rules/security.md` says must never leave the instance, and
-// the tests below place each one everywhere an error can carry it.
+// ARCHITECTURE.md, "What leaves the instance", or `.agents/rules/security.md` says must never
+// leave the instance, and the tests below place each one everywhere an error can carry it.
 const BANNED_VALUES = {
   smtpPassword: "smtp-password-8f2kd93",
   resendApiKey: "re_live_4bT9sQx2mZ7pLk",

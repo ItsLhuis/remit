@@ -31,7 +31,7 @@ const CONTENT_SECURITY_POLICY = buildContentSecurityPolicy()
 // steer a client into — paying an invoice, accepting a proposal with a one-time code, signing a
 // contract — and the client portal links to all three. Allowing an invoice to be embedded was
 // considered and rejected: nothing in Remit embeds one, and clickjacking a payment or a signature
-// costs far more than a link in a new tab (ARCHITECTURE.md, HTTP security headers).
+// costs far more than a link in a new tab (ARCHITECTURE.md, "Security model and roles").
 
 export function applySecurityHeaders(
   response: NextResponse,

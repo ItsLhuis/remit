@@ -24,10 +24,10 @@ export type ApiTokenAccess =
   | { allowed: true; role: ApiTokenRole }
   | { allowed: false; reason: ApiTokenRefusal }
 
-// What each role may read through the application, restated for the API. ARCHITECTURE.md's role
-// table grants every role read access to every entity, so today the three rows are identical; the
-// table exists so that narrowing a role in the application is one edit here rather than a silent
-// widening through the API.
+// What each role may read through the application, restated for the API. ARCHITECTURE.md, "Security
+// model and roles", grants every role read access to every entity, so today the three rows are
+// identical; the table exists so that narrowing a role in the application is one edit here rather
+// than a silent widening through the API.
 const ROLE_READABLE_RESOURCES: Record<ApiTokenRole, readonly ApiResource[]> = {
   owner: ["clients", "projects", "invoices", "time_entries", "expenses"],
   accountant: ["clients", "projects", "invoices", "time_entries", "expenses"],
@@ -65,8 +65,9 @@ export function evaluateApiTokenAccess(input: ApiTokenAccessInput): ApiTokenAcce
 }
 
 // Every resource the token may read right now, derived by asking `evaluateApiTokenAccess` once per
-// resource rather than by a second rule. The MCP server lists and admits its tools from this set, so
-// the two surfaces cannot disagree about what a token reaches: there is one decision, asked twice.
+// resource rather than by a second rule. The MCP server lists and admits its tools from this set,
+// so the two surfaces cannot disagree about what a token reaches: there is one decision, asked
+// twice.
 export function readableApiResources(input: Omit<ApiTokenAccessInput, "resource">): ApiResource[] {
   return API_RESOURCES.filter((resource) => evaluateApiTokenAccess({ ...input, resource }).allowed)
 }

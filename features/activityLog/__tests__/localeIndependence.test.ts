@@ -12,7 +12,7 @@ import { type ActivityMessageKey } from "../types"
 // A stand-in second language, because Remit ships English only today. The point of the test is not
 // the Portuguese copy but that the same persisted row — a key plus ICU arguments, never a rendered
 // string — produces both sentences, which is what makes the feed follow a locale change
-// (ARCHITECTURE.md, internationalization).
+// (ARCHITECTURE.md, "Locale").
 const portuguese = {
   activity: {
     messages: {

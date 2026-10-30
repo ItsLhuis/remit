@@ -80,8 +80,8 @@ export async function setMcpEnabled(input: unknown): Promise<SetMcpEnabledResult
 }
 
 // Owner-only, on the same footing as minting an API token: letting an assistant read the
-// instance's business data is a transmit decision, which ARCHITECTURE.md's role table refuses to
-// both other roles.
+// instance's business data is a transmit decision, which ARCHITECTURE.md, "Security
+// model and roles", reserves to the owner.
 async function requireMcpSettingsWrite(): Promise<McpSettingsWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })

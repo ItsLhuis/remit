@@ -39,7 +39,7 @@ type ForgetTransaction = Parameters<Parameters<typeof database.transaction>[0]>[
 
 type DeletableTable = Parameters<ForgetTransaction["delete"]>[0]
 
-// The right to be forgotten (ARCHITECTURE.md, "Data export and deletion"). Unlike the retention
+// The right to be forgotten (ARCHITECTURE.md, "Data model principles"). Unlike the retention
 // purge this ignores every window: the owner is answering an erasure request rather than tidying a
 // trash, and no window can hold data the subject has asked to have removed.
 //

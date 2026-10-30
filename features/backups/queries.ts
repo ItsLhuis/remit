@@ -13,10 +13,11 @@ import { type BackupBanner } from "./types"
 // never has to know the healthy case exists.
 //
 // Owner-only, matching the write gating on `/settings/backup` and `/settings/system`
-// (ARCHITECTURE.md section 10): an accountant or an assistant cannot configure a destination, run a
-// backup, or even open the page this banner points at, so warning them describes a risk they have no
-// move against. Hosted instances are excluded for the same reason — the destination is the
-// operator's there, and `features/settings/backup/mutations.ts` already refuses the edit.
+// (ARCHITECTURE.md, "Security model and roles"): an accountant or an assistant cannot configure a
+// destination, run a backup, or even open the page this banner points at, so warning them describes
+// a risk they have no move against. Hosted instances are excluded for the same reason — the
+// destination is the operator's there, and `features/settings/backup/mutations.ts` already refuses
+// the edit.
 export async function getBackupBanner(): Promise<BackupBanner | null> {
   if (env.REMIT_HOSTED_MODE) return null
 

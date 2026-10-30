@@ -1,2203 +1,261 @@
-# Remit — Architecture
+# Remit architecture map
 
-> This document is the authoritative technical reference for Remit as it stands. It describes what
-> the system is, why it is built that way, and how its parts compose into a coherent whole. It
-> describes only what the repository contains: a capability that is not built is not in this
-> document, in any form — not as a plan, not as a marker, not as a reserved name. It is written for
-> engineers who want to understand the system deeply before contributing, for evaluators reading the
-> codebase as a portfolio artefact, and for the author as the canonical record of every significant
-> architectural decision.
->
-> Sections are rewritten in place as the system changes.
->
-> **Scope.** This document covers system architecture and the _why_ behind it. Coding conventions —
-> file naming, component patterns, form structure, import order, testing layout — are owned by the
-> rule files in `.agents/rules/` and referenced from here, not duplicated. The final database schema
-> is owned by `SCHEMA.md` in this directory.
+## Scope
 
----
+This is the map of how Remit's parts fit together and the principle behind each. Every section names
+the file that verifies it; when the two disagree, the file is right and this map is the defect.
+Conventions for writing code are in `AGENTS.md` and `.agents/rules/`, table and column shapes in
+`database/schema/`, `remit:*` commands in `scripts/README.md`, and operator procedures in
+`docs/operations/` and `docs/deploy/`.
 
-## Table of contents
+## What Remit is and is not
 
-1. [What Remit is](#1-what-remit-is)
-2. [Design philosophy](#2-design-philosophy)
-3. [Domain model](#3-domain-model)
-4. [System architecture](#4-system-architecture)
-5. [Module boundaries](#5-module-boundaries)
-6. [Business logic layer](#6-business-logic-layer)
-7. [Data layer](#7-data-layer)
-8. [Event bus](#8-event-bus)
-9. [Security architecture](#9-security-architecture)
-10. [Multi-user model](#10-multi-user-model)
-11. [Frontend architecture](#11-frontend-architecture)
-12. [API surface](#12-api-surface)
-13. [Infrastructure and deployment](#13-infrastructure-and-deployment)
-14. [Self-hosting experience](#14-self-hosting-experience)
-15. [Internationalization](#15-internationalization)
-16. [Observability](#16-observability)
-17. [Testing strategy](#17-testing-strategy)
-18. [Operating Remit for somebody else](#18-operating-remit-for-somebody-else)
-19. [Open architectural questions](#19-open-architectural-questions)
+Remit is a self-hostable business management app for independent freelancers, covering the money
+lifecycle from lead to payment (`AGENTS.md`, `README.md`). Every stage is optional: an invoice's
+client and project keys are nullable (`database/schema/invoices.ts`).
 
----
+The people at a client are sub-records of that client (`database/schema/clientContacts.ts`), never a
+top-level entity: no `features/contacts/` exists and no other table references a contact.
 
-## 1. What Remit is
+Multi-user is three fixed roles inside one organization (`lib/auth/index.ts`), not a team tool.
 
-Remit is an open-source, self-hostable business management application for independent freelancers.
-It covers the complete money lifecycle of an independent professional: from first contact with a
-potential client, through project execution and time tracking, to invoicing, payment collection,
-expense management, and end-of-year reporting.
+## Standing principles
 
-The market is saturated with fragmented SaaS tools. Platforms like Plutio, Bonsai, HoneyBook,
-Harvest, Toggl, and Invoice Ninja each solve fragments of this problem. Remit's thesis is that no
-single competitor combines all three of the following properties:
+- One instance is one business. No table carries a `tenantId` and no query is scoped by tenant
+  (`database/schema/`, `AGENTS.md` Hard rules). Operating Remit for somebody else means one isolated
+  instance per customer. `REMIT_HOSTED_MODE` (`lib/config/envSchema.ts`) is read in four files, all
+  for the backup destination: on a hosted instance the destination is the operator's, so
+  `features/backups/jobs.ts` skips the scheduled backup and `features/settings/backup/mutations.ts`
+  refuses writes. Nothing else branches on it.
+- Email and payment providers are optional and configured in settings, not required to boot
+  (`database/schema/settings.ts`). Postgres, Redis and an S3-compatible object store are required:
+  `lib/config/envSchema.ts` exits the process without them.
+- Secrets are encrypted at rest with `encryptedColumn(` (`database/schema/helpers.ts`) under
+  `REMIT_ENCRYPTION_KEY`; key custody is in `docs/operations/INSTALL.md`.
+- Business rules are pure functions in `features/<feature>/services/` (`pureServicesRule` in
+  `eslint.config.mjs`).
+- Self-hosting operations are product work: backup, restore, reset, rotation and upgrade are
+  `remit:*` commands and runbooks (`scripts/README.md`, `docs/operations/BACKUP.md`,
+  `docs/operations/UPGRADE.md`).
 
-**Self-hosted by default.** The user owns the database, the uploaded files, and the email transport.
-No vendor can change pricing, lose data, deprecate the product, or access client information without
-the user's knowledge.
-
-**Privacy-first by architecture.** Sensitive credentials are encrypted at rest. Email and payment
-providers are pluggable and user-selected — they are never forced. The system is designed so that
-data covered by an NDA or contractual confidentiality requirement never needs to leave the user's
-own infrastructure.
-
-**Single-instance simplicity.** Every domain entity is implicitly owned by the instance. There is no
-multi-tenancy in the application code, no per-seat pricing logic in the schema. Multi-user support
-exists as a layered addition (owner, accountant, assistant) — see the Multi-user model section — and
-never introduces tenant scoping into domain queries. Running an instance on somebody else's behalf
-is per-instance isolation rather than shared tenancy — see the Operating Remit for somebody else
-section — so the same simplification holds however the instance is operated.
-
-### Primary workflow
+## Processes and layers
 
 ```
-Lead ──► Client ──► Project ──► Proposal ──► Contract
-                       │                         │
-                       ├── Time Entries          │
-                       ├── Expenses              │
-                       └── Tasks                 │
-                                ▼                ▼
-                             Invoice ◄───────────┘
-                                │
-                                ├── Payments (manual or Stripe)
-                                └── Credit Notes
+ Browser
+   |
+   |  HTTPS
+   v
+ Caddy  (optional, profile with-proxy)
+   |
+   v
+ +---------------------------------------------+      +-----------------------------+
+ | app  (Next.js)                              |      | worker  (scripts/worker.ts) |
+ |                                             |      |                             |
+ |  proxy.ts           routing state, headers  |      |  lib/jobs/worker.ts         |
+ |  app/(auth) (dashboard) (editor) (public)   |      |  features/*/jobs.ts         |
+ |  app/api/**         routes                  |      |  features/*/pdfRenderJob.ts |
+ |  features/*         mutations, queries      |      |                             |
+ |  features/*/services   pure rules           |      |                             |
+ +---------------------------------------------+      +-----------------------------+
+      |             |               |                        |        |        |
+      v             v               v                        v        v        v
+  database       redis           storage                  database  redis   storage
+  (Postgres)     (queue, rate    (S3-compatible)
+                  limits, job stats)
 ```
 
-Any subset of this workflow is valid. A user may create invoices directly from a client without a
-project, track time without ever billing it, or skip the proposal stage entirely. The system
-enforces no required progression — it adapts to the workflow the freelancer actually has.
+`docker-compose.yml` defines these six services: `database`, `redis`, `storage`, `app`, `worker` and
+`caddy` (profile `with-proxy`). The app and worker images share one codebase; the worker image
+starts `scripts/dist/worker.js` (`Dockerfile`) and is the only one that ships Chromium. The route
+groups are `(auth)` (login, register, setup, invite, password pages), `(dashboard)`, `(editor)`
+(templates) and `(public)` (the `/i`, `/p`, `/c` and `/s` token routes), under `app/`.
 
-### What Remit is not
+## Module boundaries
 
-These are explicit out-of-scope areas that define the product's boundaries as much as its features:
+A feature is a closed module under `features/<feature>/`. Another feature, a route or a job imports
+it only through four doors: `index`, `server`, `systemWrites` and `services` (`featureBoundaryRule`
+in `eslint.config.mjs`; the shape and the reasons are in `.agents/rules/architecture.md`).
+`systemWrites` exists because `server` re-exports `"use server"` actions that cannot load in the
+worker. `import/no-cycle` runs in oxlint (`.oxlintrc.json`). Drizzle is called from `queries.ts`,
+`mutations.ts`, `public*.ts`, `jobs.ts`, `systemWrites.ts`, `proxy.ts` and `scripts/`, and never
+from `services/`.
 
-- **Not a multi-user team tool.** Collaborative workload balancing, resource allocation, and complex
-  permission matrices are out of scope. Light multi-user support (accountant, assistant) is in
-  scope; team operations are not.
-- **Not a marketplace.** Remit does not help find clients. There is no public profile, bidding, or
-  discovery feature.
-- **Not a double-entry accounting system.** Remit produces the data that accounting tools consume.
-  It does not perform bookkeeping, bank reconciliation, or statutory reporting.
-- **Not a project management platform.** Tasks exist to tie work to billing. Remit does not compete
-  with Linear, ClickUp, or Notion on project management depth.
-- **Not a contact manager.** The people at a client are sub-records of that client
-  (`client_contacts`), never a top-level Contact or Person entity. Nothing else in the schema
-  references a contact, and no surface navigates to one: they are created, edited, and given the
-  primary slot from a tab inside the client workspace. A contact does carry two capabilities over
-  its own client's documents — it receives them when it holds the primary slot, and it may accept a
-  proposal addressed to that client — but a capability is not an entity, and neither one gives a
-  contact a route, a module, or a foreign key pointing at it.
+## Request flow
 
----
-
-## 2. Design philosophy
-
-These principles govern every architectural decision. When two principles conflict, the one higher
-in this list takes precedence.
-
-### 1 — Data ownership and privacy are non-negotiable
-
-No feature, integration, or convenience trade-off justifies sending user data through third parties
-without explicit, opt-in configuration by the user. This is not aspirational — it is enforced by
-architecture: every external dependency (email, payments, object storage) is an adapter that stays
-disabled until the user provides credentials.
-
-### 2 — Single-instance simplicity is structural
-
-Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. Within an
-instance, multi-user adds a `role` per user account but does not partition data — every member of
-the instance sees the same domain dataset, scoped only by role permissions.
-
-This eliminates an entire class of permission-checking bugs, simplifies every query, and means the
-permission model can be understood in two sentences: you own everything in your instance, and your
-role decides what you can do with it. Running instances for other people preserves this by isolating
-each one — see the Operating Remit for somebody else section.
-
-### 3 — Modular architecture for a multi-year roadmap
-
-Each feature is a closed module with explicitly enforced boundaries. The codebase is structured as
-if it were already a monorepo, so future extraction of packages is mechanical. This constraint
-prevents the accretion of hidden cross-feature coupling that makes large codebases impossible to
-change safely.
-
-### 4 — Pure business logic, decoupled from infrastructure
-
-Every non-trivial calculation, state transition, and transformation lives in a named pure function
-that imports nothing from Next.js, React, Drizzle, or any IO module. This is not just a testing
-convenience — it is the foundation for the monorepo future and the guarantee that business logic
-never becomes entangled with delivery mechanism.
-
-### 5 — Defer what is not yet certain
-
-When a design decision has two viable paths, choose the one that leaves the most doors open.
-Features are added because they make the tool genuinely better for the freelancer's daily work — not
-to achieve completeness for its own sake, and not because they might be needed someday.
-
-### 6 — No incomplete code in the main branch
-
-No `TODO` comments as commitments. No stubbed functions. No half-implemented features. The `main`
-branch is always deployable. A feature is either done or it lives on a branch.
-
-### 7 — Type safety to every boundary
-
-Every server action, public endpoint, settings field, environment variable, and translation key
-validates with Zod or generated types. `any` is forbidden. Non-null assertions are forbidden. The
-compiler's guarantees hold all the way from the database schema to the React component.
-
-### 8 — The self-hosting experience is part of the product
-
-Self-hosting operations are product work, not afterthoughts. Password-reset recovery, encrypted
-backup archives, destructive-safe restores, seeded demo data and its inverse data reset,
-encryption-key rotation, host-side upgrades, and the background job worker are operational surfaces
-of the product, built and documented as such. See the Self-hosting experience section.
-
----
-
-## 3. Domain model
-
-### Entity relationships
-
-```mermaid
-erDiagram
-    Lead {
-        uuid id PK
-        string firstName
-        string lastName
-        string email
-        string status
-        string source
-        timestamp convertedAt
-    }
-    Client {
-        uuid id PK
-        string name
-        string email
-        string currency
-        string taxId
-        text notes
-        uuid imageUploadId FK
-        timestamp deletedAt
-    }
-    ClientContact {
-        uuid id PK
-        uuid clientId FK
-        string name
-        string email
-        string role
-        boolean isPrimary
-        timestamp deletedAt
-    }
-    Project {
-        uuid id PK
-        uuid clientId FK
-        string name
-        string status
-        bigint budgetCents
-        string currency
-        timestamp deletedAt
-    }
-    Proposal {
-        uuid id PK
-        uuid projectId FK
-        uuid clientId FK
-        string status
-        string publicToken
-        timestamp validUntil
-        timestamp lockedAt
-        timestamp deletedAt
-    }
-    Contract {
-        uuid id PK
-        uuid projectId FK
-        uuid proposalId FK
-        string status
-        string publicToken
-        timestamp deletedAt
-    }
-    Invoice {
-        uuid id PK
-        uuid projectId FK
-        uuid proposalId FK
-        string number
-        string status
-        bigint subtotalCents
-        bigint taxCents
-        bigint totalCents
-        string currency
-        string publicToken
-        timestamp dueDate
-        bigint lateFeeCents
-        timestamp deletedAt
-    }
-    LineItem {
-        uuid id PK
-        uuid proposalId FK
-        uuid invoiceId FK
-        string description
-        integer quantity
-        bigint unitPriceCents
-        decimal taxPercentageSnapshot
-        decimal discountPercentage
-    }
-    Payment {
-        uuid id PK
-        uuid invoiceId FK
-        bigint amountCents
-        string method
-        timestamp paidAt
-    }
-    TimeEntry {
-        uuid id PK
-        uuid projectId FK
-        uuid taskId FK
-        integer durationSeconds
-        boolean billable
-        bigint hourlyRateCents
-        uuid invoicedInId FK
-        timestamp startedAt
-    }
-    Expense {
-        uuid id PK
-        uuid projectId FK
-        bigint amountCents
-        string currency
-        string category
-        boolean rebillable
-        uuid invoicedInId FK
-    }
-    Task {
-        uuid id PK
-        uuid projectId FK
-        string title
-        string status
-        string priority
-        timestamp dueAt
-    }
-    RecurringInvoice {
-        uuid id PK
-        uuid clientId FK
-        string cadence
-        timestamp nextRunAt
-        integer includedHours
-        bigint overageRateCents
-    }
-    CreditNote {
-        uuid id PK
-        uuid invoiceId FK
-        string number
-        bigint totalCents
-    }
-    Template {
-        uuid id PK
-        string type
-        string name
-        string subject
-        jsonb blocks
-        boolean isDefault
-        boolean isSystem
-        timestamp deletedAt
-    }
-    Attachment {
-        uuid id PK
-        uuid clientId FK
-        uuid projectId FK
-        uuid invoiceId FK
-        uuid expenseId FK
-        uuid uploadId FK
-        string title
-        uuid uploadedByUserId FK
-    }
-    AuditLog {
-        uuid id PK
-        string event
-        uuid actorUserId FK
-        string targetEntityType
-        uuid targetEntityId
-        jsonb metadata
-        string ipAddress
-        string userAgent
-        timestamp createdAt
-    }
-
-    Lead ||--o| Client : "converts to"
-    Client ||--o{ ClientContact : has
-    Client ||--o{ Project : has
-    Client ||--o{ Invoice : "ad-hoc"
-    Client ||--o{ Proposal : "ad-hoc"
-    Client ||--o{ RecurringInvoice : has
-    Project ||--o{ Proposal : has
-    Project ||--o{ Contract : has
-    Project ||--o{ Invoice : has
-    Project ||--o{ Task : has
-    Project ||--o{ TimeEntry : has
-    Project ||--o{ Expense : has
-    Proposal ||--o{ LineItem : has
-    Proposal ||--o{ Invoice : "converts to"
-    Proposal ||--o{ Contract : "converts to"
-    Invoice ||--o{ LineItem : has
-    Invoice ||--o{ Payment : has
-    Invoice ||--o{ CreditNote : has
-    TimeEntry }o--o| Invoice : "invoiced in"
-    Expense }o--o| Invoice : "invoiced in"
-    Task ||--o{ TimeEntry : has
-    Client ||--o{ Attachment : has
-    Project ||--o{ Attachment : has
-    Invoice ||--o{ Attachment : has
-    Expense ||--o{ Attachment : has
-    Invoice }o--o| Template : "rendered with"
-    Proposal }o--o| Template : "rendered with"
-    Contract }o--o| Template : "rendered with"
-    RecurringInvoice }o--o| Template : "rendered with"
-```
-
-### Entity lifecycle states
-
-**Invoice**
+Every request meets `proxy.ts` first. It derives routing state from the database and the session and
+from nothing else; routing state is never stored in a cookie (`.agents/rules/security.md`). The
+order is the state machine:
 
 ```
-draft ──► sent ──► paid
-            │
-            ├── (overdue - computed, not stored: status is not draft, paidAt is null,
-            │              and dueDate's UTC day is before today's)
-            └── (partially_paid - computed: 0 < amountPaidCents < totalCents)
-
-paid is stored when payments plus credit notes cover the total
+public token route (/i /p /c /s)   rate limit, headers, then the route
+/invite/...                        its own rate limit, ahead of the user and session guards
+no user row                        -> /register
+no session                         -> /login
+setup incomplete                   -> /setup  (business name set AND TOTP enrolled)
+session without a membership       -> session cleared, /login
+users.mustChangePassword           -> /change-password
+otherwise                          -> the requested route
 ```
 
-`overdue` and `partially_paid` are never written to `invoices.status`, which holds exactly the three
-stored values. `features/invoices/services/invoiceStatusView.ts`'s `deriveInvoiceStatusView` is the
-single place both are derived, in that precedence, so no two badges can disagree.
-
-**Proposal**
-
-```
-draft ──► sent ──► accepted
-                ├── rejected
-                └── expired (computed: validUntil < now AND status = sent)
-```
-
-**Project**
-
-```
-active ──► on_hold
-  │
-  ├── completed
-  └── cancelled
-```
-
-**Lead**
-
-```
-new ──► contacted ──► qualified ──► proposal_sent ──► won ──► (converted to Client)
-                                                   └── lost
-```
-
-**Contract**
-
-```
-draft ──► sent ──► signed
-                ├── expired
-                └── terminated
-```
-
-**RecurringInvoice**
-
-```
-active ──► paused ──► active
-  │
-  ├── completed (end condition met: count or date)
-  └── cancelled
-```
-
-### Key invariants
-
-- A proposal is immutable once accepted. `proposals.locked_at` is set at the moment of acceptance by
-  `features/proposals/publicResponse.ts`, and every edit and send path in the module refuses a
-  locked row. There is no second version of an accepted proposal, because the accepted one can never
-  be edited into one — a correction is a new proposal, and the accepted document a client agreed to
-  stays exactly as they saw it.
-- An invoice number, once assigned, is permanent and never reused. The sequence is per-prefix and
-  configurable in settings.
-- A conversion link is stored once, on the produced document: `invoices.proposalId` and
-  `contracts.proposalId`. The proposal carries no mirrored pointer back, so the two sides can never
-  disagree.
-- Every financial document — proposal, contract, invoice, expense, recurring schedule — hangs off an
-  optional project and a client that is required whenever a project is named, and the pair must
-  agree: `clientId` is that project's own client. A composite foreign key on
-  `(projectId, clientId) → projects (id, clientId)` enforces it, alongside a
-  `projectId IS NULL OR clientId IS NOT NULL` check on each table that closes the MATCH SIMPLE hole.
-- A project cannot be re-parented once it carries financial records. `ON UPDATE RESTRICT` on those
-  composite keys refuses a `projects.clientId` change while any of them points at the project;
-  `features/projects/mutations.ts` refuses it first with a translated message.
-- `timeEntries.invoicedInId` and `expenses.invoicedInId` are the canonical "this was billed, on that
-  invoice" link, and the one the unbilled partial indexes rely on. `lineItems.sourceTimeEntryId` and
-  `lineItems.sourceExpenseId` are optional per-line provenance, not a mirror of it, and neither may
-  be derived from the other. `features/invoices/billing.ts` is what writes both: it stamps
-  `invoicedInId` on every entry and expense it bills, in the same transaction as the invoice, and
-  sets the per-line column only where a line is drawn from exactly one source row — a line grouped
-  from several carries neither. `features/recurringInvoices/jobs.ts` writes `invoicedInId` on the
-  retainer branch and no per-line column at all, which is the same rule rather than an exception:
-  its overage line aggregates many entries, and the hours inside the retainer pool are billed by the
-  blueprint's own fee line, which has no source row. Nothing is billed twice because the stamp is a
-  conditional update predicated on `invoicedInId IS NULL` whose row count must match the plan.
-- `audit_logs` is insert-only. No UPDATE or DELETE operation for this table ever exists at the
-  application level.
-- Money values are always `bigint` integers representing the smallest currency unit (cents for
-  EUR/USD). The ISO 4217 currency code lives on the parent entity, never on individual money
-  columns.
-- An invoice's `totalCents` is what its issued document states: the line items plus tax less
-  discounts, and — once the nightly overdue sweep charges one — the late fee as well, which
-  `invoices.lateFeeCents` records separately so the document can print it on its own line. Nothing
-  else moves the total after issuance.
-- What the client still owes is one figure, `getInvoiceOutstandingCents` in
-  `features/invoices/services/invoiceStatusView.ts`: the total less the live credit notes against it
-  less its payments, never below zero. Every surface that shows, charges or exposes it reads that
-  function, and an invoice is settled — `status` paid, `paidAt` set — exactly when it reaches zero
-  on a positive total, so payments and credit notes together close an invoice. Issuing, withdrawing
-  or restoring a credit note re-decides settlement under the same invoice lock payments take.
-- A document with no template of its type renders from the built-in layout for that type; contracts,
-  which carry their own blocks, have none.
-- Domain entities carry no `tenantId` foreign key. Ownership is implicit to the instance. The
-  single-instance model is structural — see the Design philosophy and Multi-user model sections.
-- All domain tables carry `createdAt` and `updatedAt` timestamps (via the `timestamps` helper) and a
-  `deletedAt` for soft delete (via the `softDelete` helper).
-
-### Domain model vs. database schema
-
-The domain model in this section is the conceptual reference. It defines entities, relationships,
-lifecycles, and invariants. The actual database schema in `database/schema/` implements this model
-faithfully and adds operational detail: indexes, check constraints, soft-delete columns, encryption
-helpers, polymorphic patterns where pragmatic. The full table-by-table schema specification is in
-`SCHEMA.md` in this directory - that is the authoritative reference for column shape, constraints,
-and indexes.
-
-A divergence between the domain model and the schema is a defect in either direction, and is
-reconciled before further work proceeds. The domain model describes what the schema implements: it
-does not run ahead of it to describe an entity that has no table, and it does not lag behind a table
-that exists. Both are updated in the same change as the code they describe.
-
----
-
-## 4. System architecture
-
-### High-level architecture
-
-```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                           Browser / Client                                │
-│              React 19  —  Next.js App Router  —  Tailwind CSS v4         │
-└────────────────────────────────────────────────────────────────────────────┘
-                    │  RSC + Server Actions          │  Public / anonymous
-                    │                                │
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │      Application Layer      │    │           Public Layer               │
-  │   app/(dashboard)/**        │    │   /i/[token]   Invoice view          │
-  │   app/(auth)/**             │    │   /p/[token]   Proposal acceptance   │
-  │   app/(setup)/**            │    │   /c/[token]   Contract signing      │
-  │                             │    │   /s/[token]   Client portal         │
-  └─────────────────────────────┘    └──────────────────────────────────────┘
-                 │
-                 │ calls
-                 │
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │    Business Logic Layer     │    │            Event Bus                 │
-  │  features/*/services/       ├────┤   lib/events/                        │
-  │  Pure functions             │    │   Typed, in-process pub/sub          │
-  │  No Next / Drizzle / React  │    │   Cross-feature side-effect wiring   │
-  └─────────────────────────────┘    └──────────────────────────────────────┘
-                 │
-                 │
-  ┌─────────────────────────────┐    ┌──────────────────────────────────────┐
-  │        Data Layer           │    │         External Adapters            │
-  │   Drizzle ORM               │    │   Email  - SMTP or Resend            │
-  │   PostgreSQL                │    │   Payments - Stripe (or others)      │
-  │   database/schema/          │    │   Storage  - local FS or S3          │
-  └─────────────────────────────┘    └──────────────────────────────────────┘
-```
-
-### Technology stack
-
-| Layer      | Technology                        | Rationale                                                                                                                               |
-| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router)           | RSC delivers zero-JS-by-default for read-heavy pages; server actions eliminate a separate API layer for all app writes                  |
-| Runtime    | Node.js ≥ 24.11.1 < 25            | Matches the supported runtime declared in `package.json`; provides `crypto.timingSafeEqual` and Web Crypto APIs natively                |
-| Language   | TypeScript (strict)               | Type safety enforced to every runtime boundary; `any` and non-null assertions banned                                                    |
-| ORM        | Drizzle                           | Thin, type-safe SQL layer; schema-as-code; migrations generated never hand-written                                                      |
-| Database   | PostgreSQL                        | ACID guarantees for financial data; JSONB for audit metadata; no extra infrastructure for full-text search                              |
-| Auth       | better-auth + organization plugin | TOTP plugin included; sessions; multi-user via the organization plugin (single org per instance) — see the Multi-user model section     |
-| Styling    | Tailwind CSS v4                   | Design tokens as CSS variables in `globals.css`; no config file                                                                         |
-| Validation | Zod                               | Runtime and compile-time safety at every boundary; single source of truth for input shape and inferred TypeScript types                 |
-| Forms      | react-hook-form + zodResolver     | Controlled validation with zero unnecessary re-renders per keystroke                                                                    |
-| i18n       | i18next + react-i18next + ICU     | Type-safe message keys derived from a single `Translations` type; ICU for plurals and parameters — see the Internationalization section |
-| Logging    | pino                              | Structured JSON in production; one log entry per significant event, with `requestId` correlation                                        |
-
----
-
-## 5. Module boundaries
-
-### Feature module shape
-
-Every domain feature lives under `features/<feature>/` and is a closed, independently-testable
-module. Not every feature needs every file — add only what the feature requires.
-
-```
-features/<feature>/
-  ├── components/          React UI. Barrel at index.ts.
-  ├── hooks/               Feature-scoped hooks.
-  ├── services/            Pure business logic. No framework or IO imports.
-  │   └── __tests__/       Vitest unit tests. Co-located with what they test.
-  ├── engine/              Cohesive runtime spanning services/hooks/components. templates/ only.
-  ├── queries.ts           Read operations via Drizzle. Server-only.
-  ├── mutations.ts         Write operations (server actions). Server-only.
-  ├── schemas.ts           Zod schemas + inferred types.
-  ├── labels.ts            Domain values → translation keys, icon names, badge variants.
-  ├── types.ts             Public types not derivable from schemas.
-  ├── events.ts            Event handler registration for this feature.
-  └── index.ts             Public barrel. Only what other features may consume.
-```
-
-File-level conventions (component naming, hook naming, import order, type rules) are codified in the
-rule files under `.agents/rules/` — see in particular `architecture.md`, `components.md`,
-`hooks.md`, `imports.md`, and `types.md`.
-
-### The boundary rule
-
-`features/A` may import from `features/B` only through `features/B/index.ts`. Direct imports between
-sibling files inside different features are a violation and are caught by ESLint
-(`eslint-plugin-boundaries`).
-
-Types from `database/schema` are the shared data substrate and are exempt from this rule — any
-feature may import them directly.
-
-```
-✓  import { type Client }    from "@/features/clients"           // barrel
-✓  import { type Client }    from "@/database/schema"            // substrate
-✗  import { clientSchema }   from "@/features/clients/schemas"   // sibling file
-```
-
-### Why closed modules
-
-This constraint produces four concrete benefits:
-
-**Refactoring safety.** Changing internals in `features/B` cannot silently break `features/A` as
-long as the barrel contract is maintained. The compiler enforces the boundary.
-
-**Testability.** Each module's `services/` can be tested in complete isolation with no mocking of
-other features, no database, and no framework.
-
-**Discoverability.** A new contributor reads `index.ts` and understands the public contract of a
-feature in one file.
-
-**Monorepo readiness.** When the project grows a second artefact — a CLI tool, a plugin SDK, a
-documentation site — each feature is ready for extraction into `packages/<feature>` with mechanical
-changes only. The boundary enforcement means no hidden coupling to unwind.
-
-### Feature inventory
-
-The feature inventory is the set of directories under `features/` and the relations declared in
-`database/schema/`. Those two are the inventory; no separate list is maintained, because a list kept
-by hand beside them drifts from both.
-
----
-
-## 6. Business logic layer
-
-### The services pattern
-
-Every non-trivial computation lives in a named pure function inside `features/<feature>/services/`.
-"Pure" means: no imports from `next/*`, `react`, `drizzle-orm/*`, `@/database`, or any module that
-performs IO. The function receives its inputs as arguments and returns its output as a return value.
-
-Representative examples by feature:
-
-```
-features/invoicing/services/
-  calculateInvoiceTotal.ts       — tax + discount arithmetic on line items
-  generateInvoiceNumber.ts       — sequence generation given prefix and last number
-  canTransitionInvoiceStatus.ts  — status transition guard, returns { allowed, reason }
-
-features/proposals/services/
-  isProposalExpired.ts           — expiresAt vs. a given Date
-  canTransitionProposalStatus.ts — transition guard
-
-features/timeTracking/services/
-  aggregateBillableHours.ts      — sum billable seconds, convert to hours
-  resolveHourlyRate.ts           — rate precedence: entry → task → project → client → default
-  computeInvoiceableEntries.ts   — filter + group unbilled entries for invoice line item generation
-
-features/recurring/services/
-  computeNextRunDate.ts          — next date from cadence + last run date
-  shouldGenerateInvoice.ts       — whether a schedule is due as of a given date
-```
-
-### Why pure functions here
-
-**Millisecond-level test feedback.** A full `services/` test suite runs without any network call,
-database connection, or module mock. The test cold-start is unmeasurable.
-
-**Refactor confidence.** When upgrading Drizzle, replacing the ORM, or migrating to a different
-runtime environment, `services/` is entirely unaffected. The blast radius of infrastructure changes
-is confined to the thin orchestration layer.
-
-**Auditability.** Pure functions are easy to read and reason about in isolation. A code reviewer
-does not need to understand the database schema or the request lifecycle to verify that a tax
-calculation is correct.
-
-**Future monorepo.** When a CLI tool, a worker process, or a plugin SDK needs the same business
-logic, `services/` extracts to `packages/core` with no architectural change — only a move.
-
-### Server actions as thin orchestrators
-
-Server actions in `mutations.ts` follow a strict four-step pattern with no exceptions:
-
-```
-1. Validate      → safeParse with the feature's Zod schema. Return { error } on failure.
-2. Compute       → call into services/ for any branching logic.
-3. Persist       → Drizzle writes, wrapped in try/catch. Map known DB errors to friendly strings.
-4. Side-effects  → emit event bus event; revalidatePath/revalidateTag; write audit log if needed.
-```
-
-They return `{ data: T } | { error: string }` and never throw to the caller. The full canonical
-pattern, including audit logging, event emission, and revalidation rules, is documented in
-`actions.md`.
-
-### Queries as typed read operations
-
-Read functions in `queries.ts` use Drizzle's relational query API or raw SQL for complex
-aggregations. They return typed results and perform no write operations. They are the only place in
-the codebase where Drizzle reads are performed outside of server actions.
-
----
-
-## 7. Data layer
-
-### Schema organisation
-
-One Drizzle schema file per domain entity in `database/schema/`. All schemas exported via
-`database/schema/index.ts`. Generated migrations live in `drizzle/migrations/` and are never
-hand-edited — the migration file is an artefact, not source code.
-
-The full final schema specification — every table, column, constraint, index — is in `SCHEMA.md` in
-this directory.
-
-### Universal table conventions
-
-| Convention       | Rule                                                                    | Rationale                                                                       |
-| ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Primary key      | `uuid` with `.defaultRandom()`                                          | No sequential ID leakage; safe to reference in public URLs before insertion     |
-| Timestamps       | Spread `timestamps` from `database/schema/helpers.ts`                   | Consistency; `createdAt` and `updatedAt` on every table without repetition      |
-| Timestamp type   | `{ withTimezone: true, mode: "date" }`                                  | Correct timezone handling; `Date` type in TypeScript                            |
-| Foreign keys     | `{ onDelete: "cascade" }` by default                                    | Prevents orphaned records; explicit exception required for non-cascade cases    |
-| Soft delete      | `deletedAt` via the `softDelete` helper                                 | Data is restorable; financial records survive deletion for legal retention      |
-| Money            | `bigint` storing integer minor units                                    | No floating-point rounding; exact arithmetic for all financial calculations     |
-| Currency         | `varchar(3)` on the parent entity                                       | ISO 4217 code (e.g., `"EUR"`) stored once, not duplicated on every money column |
-| Encrypted fields | `encryptedColumn()` Drizzle helper                                      | Transparent AES-256-GCM; no plaintext secrets in the database                   |
-| Indexes          | Explicit for every FK used in joins and every `WHERE`/`ORDER BY` column | Prevents table scans on foreign key joins in a growing dataset                  |
-
-Detailed conventions for schema files, including index declaration syntax and money formatting
-rules, live in `database.md`.
-
-### Money storage in depth
-
-Floating-point types (`real`, `double precision`) accumulate rounding errors in financial
-calculations. `10.00 * 0.23` can produce `2.3000000000000003` in IEEE 754 arithmetic. Storing money
-as integer minor units eliminates this entire class of bug. For EUR, `1000` minor units is always
-`€10.00`. Arithmetic on minor units is exact integer arithmetic.
-
-Display formatting always uses `Intl.NumberFormat` with the entity's currency code:
-
-```ts
-new Intl.NumberFormat("pt-PT", {
-  style: "currency",
-  currency: invoice.currency
-}).format(invoice.totalCents / 100)
-```
-
-### The `encryptedColumn()` helper
-
-Fields that contain sensitive credentials are defined in the Drizzle schema using
-`encryptedColumn()` from `database/schema/helpers.ts`. The helper provides:
-
-- **Transparent encryption on write** using AES-256-GCM with a per-row random IV generated at write
-  time.
-- **Transparent decryption on read** - consuming code receives the plaintext value and is unaware of
-  the encryption.
-- The master key is loaded from `REMIT_ENCRYPTION_KEY` (a base64-encoded 32-byte key generated at
-  install time by the install script).
-
-**Loss of the encryption key means permanent, unrecoverable loss of these fields.** This is the
-price of self-hosting and is documented prominently in the installation guide and setup wizard.
-
-### Migrations strategy
-
-Drizzle migrations are forward-compatible. Breaking schema changes are split across two releases:
-release N adds the new column as nullable; release N+1 backfills and adds the `NOT NULL` constraint.
-This ensures that any running instance can be upgraded without a maintenance window.
-
-The early migration history is squashed into one baseline: `0000_initial_schema.sql` is the whole
-schema as generated by `pnpm database:generate`, and it is followed by exactly two hand-written
-migrations, which exist because Drizzle cannot express what they contain —
-`0001_insert_only_guards.sql` (the insert-only triggers on `audit_logs` and `contract_signatures`)
-and `0002_document_parent_agreement.sql` (the five composite parent foreign keys). The baseline has
-been regenerated twice, most recently when attachments landed; each regeneration re-created those
-two files unchanged after it.
-
-A squash **invalidates every existing database**. There is no upgrade path across one: a developer
-or deployment holding the old history has to reset, because the replay is keyed by hash and the old
-hashes no longer exist. Migrations are only ever appended to that baseline.
-
----
-
-## 8. Event bus
-
-### Purpose
-
-Cross-feature side effects are mediated by a typed, in-process event bus at `lib/events/`.
-
-Without the bus, an action like `markInvoicePaid` must directly invoke every feature that needs to
-react: write an activity log entry, write an audit log entry, invalidate the dashboard cache, send a
-payment receipt email, and check whether all project invoices are now paid. Each new consumer
-requires modifying the action, which violates the closed module boundary and makes the action
-increasingly hard to test.
-
-With the bus, `markInvoicePaid` emits `invoice.paid` once. Each feature registers its own handler in
-`features/<feature>/events.ts` and owns its reaction entirely.
-
-### Event naming convention
-
-```
-<entity>.<past_tense_verb>
-```
-
-`lib/events/types.ts` holds the whole map, and the compiler rejects any `emit` whose name or payload
-is not in it. Grouped by entity, the names it declares are:
-
-```
-lead.created           lead.updated           lead.deleted            lead.stage_changed
-lead.converted
-client.created         client.updated         client.deleted
-project.created        project.updated        project.deleted         project.status_changed
-task.created           task.updated           task.deleted            task.status_changed
-template.created       template.updated       template.deleted
-proposal.created       proposal.updated       proposal.deleted        proposal.sent
-proposal.accepted      proposal.rejected
-contract.created       contract.updated       contract.deleted        contract.sent
-contract.signed        contract.terminated
-invoice.created        invoice.updated        invoice.deleted         invoice.sent
-invoice.paid           invoice.overdue        invoice.reminder_sent   invoice.late_fee_applied
-credit_note.issued     credit_note.deleted
-payment.received
-time.logged            expense.created
-recurring.invoice_generated  retainer.pool_exhausted
-auth.login.succeeded   auth.login.failed      auth.password.changed
-auth.totp.reconfigured auth.backup_code.consumed
-settings.email.configured  settings.payment.configured  settings.security.changed
-member.invited         member.accepted        member.removed          invitation.canceled
-```
-
-### Who subscribes
-
-The bus has two subscribers. `features/activityLog/events/` registers eighteen handlers, each of
-which turns one domain event into a row in the user-facing feed: one module per emitting feature,
-each exporting its subscriptions as a function that the folder's `index.ts` calls, so that file is
-the single import site. `features/webhooks/events.ts` relays the subscribable events to outbound
-webhook deliveries (see "Outbound webhooks"). Both are imported for that side effect by
-`instrumentation.ts` so the handlers exist before the first request and by `scripts/worker.ts` so
-they exist in the job process too.
-
-Those eighteen are a deliberate subset of the vocabulary above, and the `entity_type` enum is the
-record of the choice: every value of that enum has a handler here and no other, so the feed's type
-filter is generated from the enum rather than hand-listed. What the feed refuses is as considered as
-what it carries — intermediate lead stages, every entity's `updated` and `deleted`, and tasks, which
-are the highest-volume record in the product and would bury the documents and money the feed exists
-to show.
-
-Every other `features/*/events.ts` is emit-only: a thin typed wrapper such as
-`features/payments/events.ts`'s `emitInvoiceSettled`, which exists so a feature's own name for what
-happened stays inside that feature. The value the bus is buying is that adding another consumer — a
-receipt email, a cache invalidation — needs no change to `markInvoicePaid`, the way webhooks were
-added beside the feed.
-
-The security audit log is deliberately _not_ on the bus: audit writes happen inline in the mutation
-that performs the action, because an audit entry that a handler could drop is not an audit entry.
-
-### Bus properties
-
-| Property    | Value                                                                                  | Rationale                                                                                                                                                                      |
-| ----------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Type safety | Strongly typed event map                                                               | Adding an event requires extending the map; handlers are type-checked against the payload                                                                                      |
-| Execution   | In-process; handlers run concurrently under one `Promise.all`, and the emit is awaited | Handler failures surface as action errors; no silent background failures. `emit` catches nothing, so `.agents/rules/events.md` requires every handler to catch and log its own |
-| Topology    | In-process, no broker                                                                  | Correct for single-instance deployment; extractable to a queue when load demands it                                                                                            |
-
----
-
-## 9. Security architecture
-
-Security is a first-class feature. The goal is "demonstrably defensible" as a portfolio artefact and
-"actually safe" in production self-hosted use.
-
-### Authentication flow
-
-```
-POST /login
-  │
-  ├── Rate limiter check (in-memory or Redis adapter)
-  │
-  ├── better-auth credential verification
-  │     ├── Failure → emit auth.login.failed → audit log (IP, user-agent, timestamp)
-  │     └── Success → continue
-  │
-  ├── TOTP verification (mandatory, no bypass)
-  │     ├── Failure → audit log
-  │     └── Success → continue
-  │
-  ├── Session created (httpOnly, secure, sameSite: lax)
-  │     └── activeOrganizationId set on session (always the instance organization)
-  │
-  └── emit auth.login.succeeded → audit log
-```
-
-### Better Auth ownership
-
-Better Auth is the source of truth for authentication-owned state: user credentials, sessions,
-password hashing and reset tokens, email verification and change-email verification, TOTP secrets,
-backup codes, organizations, memberships, active organization state, invitations, and member roles.
-Runtime code manipulates that state through Better Auth APIs, client methods, and helpers. Direct
-writes to Better Auth-owned tables are allowed only in generated migrations and explicit operational
-recovery scripts.
-
-Remit-owned auth-adjacent fields may still be maintained by Remit code. For example,
-`users.mustChangePassword` is an application recovery flag used by the password reset CLI, but the
-credential password hash and session lifecycle remain Better Auth-owned.
-
-### Password reset paths
-
-Two coexisting paths, in order of availability:
-
-1. **Email reset link** - available when the configured SMTP or Resend transport is complete. Better
-   Auth generates the token and owns the reset flow; Remit only delivers the email.
-
-2. **CLI/admin reset** - `docker compose exec app pnpm remit:reset-password` for self-hosted
-   complete-lockout cases or environments without email transport. This is an explicit operational
-   recovery script: it generates a temporary password with Better Auth's password hasher, marks the
-   user `mustChangePassword`, and writes an audit log entry.
-
-TOTP is **never optional**. There is no UI to disable it. Password reset and second-factor fallback
-are separate concerns: password reset happens through Better Auth email/password APIs or the
-operational CLI fallback, while second-factor fallback uses Better Auth backup codes.
-
-Better Auth **backup codes** remain enabled as part of the TOTP plugin and are stored in
-`two_factors.backup_codes`. They are used only as a second-factor fallback during login when the
-authenticator app is unavailable.
-
-### Encryption at rest
-
-| Field                          | Encryption rationale                              |
-| ------------------------------ | ------------------------------------------------- |
-| `settings.smtpPass`            | SMTP server credential                            |
-| `settings.resendApiKey`        | Resend API key                                    |
-| `settings.stripeSecretKey`     | Stripe secret key                                 |
-| `settings.stripeWebhookSecret` | Stripe webhook signing secret                     |
-| `settings.paymentIban`         | Sensitive banking identifier                      |
-| `settings.backupS3AccessKey`   | S3-compatible backup access key                   |
-| `settings.backupS3SecretKey`   | S3-compatible backup secret key                   |
-| `webhook_endpoints.secret`     | Webhook signing secret                            |
-| `clients.notes`                | May contain NDA-protected or confidential content |
-
-### The two audit logs
-
-Two logs serve distinct purposes and must never be confused:
-
-**Activity log** (`activity_logs`) - user-facing, friendly messages ("Invoice #INV-042 sent to Acme
-Corp"), can be edited or deleted via the UI, used for "what happened this week" and client-facing
-event summaries.
-
-**Audit log** (`audit_logs`) - security-facing, append-only, immutable. No UI to delete entries.
-Schema: `id`, `event`, `actorUserId | null`, `actorRole | null`, `targetEntityType | null`,
-`targetEntityId | null`, `metadata jsonb`, `ipAddress`, `userAgent`, `createdAt`. No `updatedAt`, no
-`deletedAt`. Captures: login success/failure; rate limits tripped; password change; TOTP setup,
-reconfiguration; Better Auth backup-code consumption; CLI/admin password resets; settings changes
-touching SMTP, Stripe, or payment information; data exports; entity deletions; public token
-rotations and revocations; member changes (see the Multi-user model section); API token creation and
-revocation; webhook endpoint creation, secret rotation, enabling, disabling and deletion; turning
-the MCP server on or off, and every tool an assistant calls through it; backup and restore
-operations.
-
-### Public token security
-
-Tokens for document sharing (`/i/[token]`, `/p/[token]`, `/c/[token]`) and the client portal
-(`/s/[token]`, `clients.portal_token`) are:
-
-- Minted by `mintPublicToken` in `lib/publicToken.ts` — `crypto.randomBytes(32)` encoded
-  `base64url`, 256 bits of entropy. Every writer goes through that one function, including the demo
-  seeder, which is why a seeded run reproduces every row except its bearer tokens.
-- Compared with `crypto.timingSafeEqual` through `matchesPublicToken` in the same module.
-- On token miss, the response shape and approximate response time match a "valid token, document
-  archived" case to defeat enumeration via timing.
-- **Rotatable and revocable without touching the document.** Rotation mints a fresh value, so the
-  old URL stops resolving; revocation clears the column, so the row is not found by the lookup at
-  all and a revoked link is indistinguishable from one that never existed. Both are owner-only, both
-  are reachable from the surface the document already lives on, and neither touches the document's
-  content, status, or history. A client portal is the same pair of operations: enabling it is a
-  rotation from nothing, disabling it is a revocation, and soft-deleting the client performs one.
-- All public token pages set `X-Robots-Tag: noindex, nofollow` and
-  `<meta name="robots" content="noindex,nofollow">`.
-
-### Private files and attachments
-
-`uploads.bucket` splits stored objects in two. The `public` bucket holds what a browser may fetch
-without a session — avatars, the business logo, a client's image, template images and expense
-receipts — and its keys are turned into same-origin URLs by `resolveStorageUrl`, which
-`app/api/storage/[...key]/route.ts` answers by streaming the object out of the store. The
-`documents` bucket holds everything else, and that route cannot read it; handing one of its keys to
-`resolveStorageUrl` is a bug, because the helper would build a URL that answers 404 while telling
-the caller the object is reachable.
-
-No browser talks to object storage. An upload is the request body of `POST /api/upload/[type]`,
-which checks the session, the file type and the declared size against the variant's ceiling before
-streaming the file into the store under a key it mints, and no bucket carries a policy granting
-anonymous reads. The store therefore needs no public address, publishes no port, and names no origin
-in the Content-Security-Policy.
-
-A rendered report PDF is the one generated document that lives in neither bucket. It is a snapshot
-of live figures rather than a business record — nothing points at it and asking again produces a
-fresher one — so it has no `uploads` row, and it lands in the credentialed exports bucket beside
-data-export archives. `app/api/report-exports/[id]/route.ts` is the only path out, open to the same
-owner and accountant roles that may export the same report as CSV. The render itself runs in the
-worker through the `report.pdf.render` job, as every other PDF does.
-
-Every attachment lands in `documents` and is served only by `app/api/attachments/[id]/route.ts`,
-which checks the session before it reads anything and streams the object through the app rather than
-redirecting to storage. No attachment is reachable from a public token route, which is also why
-proposals and contracts — the two entities a client can open anonymously — are not attachable:
-there, every attached file would be an exposure decision rather than a storage one.
-
-The client portal at `/s/[token]` is the fourth route that has to be true of, and is where the rule
-is widest: it resolves a token to a client rather than to a document. It publishes an index — each
-invoice, proposal, contract and project by its number, state and value, with an onward link to the
-documents the client was already sent — and nothing else. It never exposes `clients.notes`, a
-project's budget, description or rate, a payment, a credit note's reason, a time entry, an expense,
-a task, a contact, an attachment, or any internal id, and it never carries a contract signing link,
-because signing is the one anonymous action with no second factor. It writes nothing at all.
-
-Authorization comes from the parent record, never from `uploads`, which carries no owner column.
-`chk_attachments_parent` guarantees an attachment names exactly one parent, so "may this requester
-touch this file" is always the already-answered question "may this requester touch that record".
-
-### Rate limiting
-
-A rate limiter with a swappable adapter protects every endpoint that processes authentication or a
-public token. `lib/rateLimit/` counts in Redis: each key is a fixed window counted by one atomic
-script, so a limit holds across the app process and any replica and survives a restart, and a
-result's reset time is the key's remaining TTL. `proxy.ts` uses the same limiter, because a Next.js
-16 proxy always runs on the Node.js runtime. While Redis is unreachable every call site falls back
-to a per-process in-memory counter, the behaviour the limiter had before a shared store existed, and
-the outage is logged when it starts and when it ends rather than on every request: no limit is
-switched off and no request is refused because the store is down. Better Auth still decides its own
-limits in the table below, path by path, but counts them through the same limiter: its rate-limit
-storage is `lib/rateLimit`'s `toBetterAuthRateLimitStorage`, so they too hold across processes and
-restarts.
-
-Coverage, and where each limit lives:
-
-| Surface                                           | Limit                                      | Enforced in                                                         |
-| ------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
-| `/i/`, `/p/`, `/c/`, `/s/[token]`                 | 60 per IP per minute                       | `proxy.ts`, ahead of the route                                      |
-| `/s/[token]`                                      | 30 per IP per 5 min                        | the page module, in addition to the proxy limit                     |
-| `/invite/[invitationId]`                          | 30 per IP per minute                       | `proxy.ts`                                                          |
-| Proposal OTP request and verify, contract signing | Per route, per IP                          | each `route.ts`, in addition to the proxy limit                     |
-| `POST /i/[token]/pay`                             | 5 per IP per 15 min                        | the route handler, in addition to the proxy limit                   |
-| `POST /api/auth/sign-in/email`                    | 10 per 15 minutes                          | Better Auth, configured in `lib/auth/index.ts`, counted in Redis    |
-| `POST /api/auth/sign-up/email`                    | 3 per hour                                 | Better Auth, counted in Redis                                       |
-| Password reset requests                           | 5 per hour                                 | Better Auth, counted in Redis                                       |
-| Every other Better Auth endpoint                  | 100 per 15 minutes                         | Better Auth, counted in Redis                                       |
-| `/api/webhooks/stripe`                            | Per IP                                     | the route handler                                                   |
-| `/api/storage/*`                                  | 1,200 per IP per minute                    | the route handler, ahead of the key check                           |
-| `/api/metrics`                                    | 30 per IP per minute                       | `proxy.ts` through `lib/metrics/admission.ts`, ahead of the token   |
-| `/api/v1/*`                                       | 300 per IP, then 120 per token, per minute | `features/api/handleApiRequest.ts`, the IP limit ahead of the token |
-| `/api/mcp`                                        | 300 per IP, then 60 per token, per minute  | `features/mcp/handleMcpRequest.ts`, the IP limit ahead of the token |
-
-A tripped limit writes an `auth.rate_limit.tripped` audit entry with the IP and the route label,
-once per key per window: the first refusal writes it and later ones are only counted, and the key's
-next entry carries how many the previous window suppressed (`lib/audit/index.ts`'s
-`writeRateLimitTripAudit`), so a flood is a handful of rows rather than one per request in a table
-nothing may prune. `/api/health` carries no limit, deliberately: it exists for uptime monitors that
-poll it on a fixed interval, and it reads nothing that a rate limit would protect. `/api/storage/*`
-serves the objects the public bucket already served anonymously, under keys nobody can enumerate,
-and marks every response immutable so a browser asks for each file once; its limit is sized from the
-heaviest page that loads from it, the clients list at its largest page of a hundred client images,
-so a person paging quickly never meets it and a loop over keys does within seconds.
-
-`/api/v1/*` publishes the token's own limit on every answer after the token is admitted, as the
-`RateLimit-Policy` and `RateLimit` fields of the IETF HTTPAPI draft, with `Retry-After` on that
-limit's `429`. The per-address limit before it publishes nothing: its counter is shared by every
-caller behind one address, and describing it would describe the others' traffic.
-
-### What an assistant can read
-
-The MCP server (`/api/mcp`) is the one surface that hands records to a language model, and its
-boundary is the public API's rather than one of its own. Each of its tools is the MCP face of one
-`/api/v1/` operation: it is admitted by the same `authenticateApiRequest` against the same resource,
-and its result is parsed through the same schema in `features/api/responseSchemas.ts`. So no tool
-returns `clients.notes`, a public token or path, an encrypted value, a storage key or a record in
-the trash, and no tool returns a field the API does not. `audit_logs`, settings, team, proposals,
-contracts, payments, credit notes, leads, tasks, contacts and attachments are not resources an
-assistant can name. Every tool reads; none creates, changes, sends or deletes.
-
-A browser page on another host is refused with 403 before anything else, the specification's defence
-against DNS rebinding, and the whole surface answers 404 until the owner turns it on in
-`/settings/mcp`. Each tool call is audited with its arguments, a search reduced to the fact that one
-was made, and a count of what it returned, never the records.
-
-### HTTP security headers
-
-`lib/securityHeaders.ts`'s `applySecurityHeaders` sets these on every response `proxy.ts` returns,
-which is every response except the static assets and the two routes its matcher leaves out.
-`app/api/upload/[type]/route.ts` is left out so an upload body is streamed rather than buffered and
-cut off at ten megabytes, and it sets these headers itself. `app/api/storage/[...key]/route.ts` sets
-only `X-Content-Type-Options`, because a page policy on a stored PDF stops the browser's viewer from
-rendering it.
-
-| Header                      | Value                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` (production)                    |
-| `Content-Security-Policy`   | `'self'` for every source except the flag images, and `frame-ancestors 'none'` |
-| `X-Frame-Options`           | `DENY` on every route                                                          |
-| `X-Content-Type-Options`    | `nosniff`                                                                      |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                              |
-| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                     |
-
-No page is frameable, the public token routes included, and the two framing headers agree on every
-response: `frame-ancestors 'none'` for browsers that honour the CSP and `X-Frame-Options: DENY` for
-those that do not. Every public token route carries a control a framing page could steer a client
-into — paying an invoice, accepting a proposal with a one-time code, signing a contract — and the
-client portal links to all three. Letting an invoice be embedded was considered and rejected:
-nothing in Remit embeds one, and the cost of a clickjacked payment or signature outweighs the
-convenience. The anonymous storage route sets neither header, because a stored file carries no
-control to hijack and a framing policy on a PDF only blocks the browser's own viewer.
-
-Session cookies: `httpOnly: true`, `secure: true` (production), `sameSite: "lax"`. Terminating TLS
-is the reverse proxy's job; the application does not check the scheme it is reached over.
-
-### Routing state rule
-
-Authentication and onboarding state is derived exclusively from the database and the active session.
-No routing decisions are stored in cookies. The middleware enforces a strict state machine:
-
-```
-No user record in DB             → redirect to /register
-No active session                → redirect to /login
-Business profile incomplete      → redirect to /setup (business step)
-TOTP not enrolled                → redirect to /setup (TOTP step)
-All conditions satisfied         → allow to (dashboard)
-```
-
-This rule is non-negotiable. Adding a cookie to influence routing is a violation.
-
-### Data export and deletion
-
-Two GDPR-aligned features:
-
-**Export.** `/settings/data` produces a zip containing JSON of every entity, every uploaded file,
-and every generated PDF. Audit-logged. Per-client export is also available for client offboarding or
-right-to-portability requests.
-
-The surface is owner-only (`requireRole("owner")` on the page, `requireDataExportWrite` in the
-mutation, and a role check in the download route). A request enqueues the `data_export.assemble`
-job; the worker reads the rows, streams every referenced storage object into a zip, uploads it, and
-reports `status`/`progress` on the `data_exports` row, which the page polls. Archives are stored in
-a **separate exports bucket** that the anonymous storage route cannot read, so
-`GET /api/exports/[id]` is the only path out.
-
-Three audit entries cover an export's life: `data_export.requested` (actor, role, scope, client id,
-IP, user-agent), `data_export.completed` or `data_export.failed` from the worker (no request
-context, so no IP), and `data_export.downloaded` when the bytes actually leave.
-
-The archive layout is `index.json`, one `data/<table>.json` per exported table, and the stored
-objects under `files/<storage key>`. `index.json` carries the exclusion list, so a recipient can
-tell a policy omission from a missing file.
-
-`features/dataExport/services/exportManifest.ts` is the authoritative inclusion list — an allowlist
-of table **and column**, enforced at the SELECT, with a test that fails when a new schema column is
-neither included nor explicitly excluded. Policy:
-
-Included:
-
-- Business records, all of them scoped to a client's subgraph when the export names one: `clients`
-  (including the encrypted `notes`, decrypted), `client_contacts`, `leads`, `projects`, `tasks`,
-  `time_entries`, `expenses`, `proposals`, `contracts`, `contract_signatures`, `recurring_invoices`,
-  `invoices`, `line_items`, `payments`, `credit_notes`, `attachments`, `activity_logs`,
-  `email_logs`, `uploads`.
-- `settings` business identity, locale and document-numbering columns, plus `payment_bank_name` and
-  `payment_instructions`.
-- `templates`, `tax_rates`, `audit_logs`, `data_exports`, `report_exports` — instance scope only.
-- Every `uploads` object's bytes, which is also how rendered PDFs travel once they are stored as
-  uploads.
-- Soft-deleted rows, with `deleted_at` intact, because they still exist in the instance.
-
-Excluded:
-
-- Public bearer tokens everywhere: `invoices.public_token`, `proposals.public_token`,
-  `contracts.public_token`, `clients.portal_token`.
-- The whole `settings` email, payment-provider and backup configuration surface — every
-  `encryptedColumn()` (SMTP password, Resend key, Stripe secret and webhook secret, backup S3 keys,
-  `payment_iban`) **and** its non-secret halves such as `smtp_host` and `stripe_publishable_key`.
-- Every Better Auth-owned table: `users`, `sessions`, `accounts`, `verifications`, `two_factors`,
-  `organizations`, `members`, `invitations`.
-- `proposal_otps` — single-use acceptance codes.
-- `data_exports.storage_key` and `report_exports.storage_key`, internal object paths.
-
-Two boundaries are deliberately wider than "everything the owner may see". The whole configuration
-surface is excluded rather than filtered field by field, because one auditable boundary does not
-grow a new leak each time a provider setting is added beside a secret; and the Better Auth boundary
-is drawn around the plugin's entire schema rather than around its credential columns, because those
-tables' shape is owned by a dependency that changes across upgrades. A client-scoped export drops
-the instance-wide tables (`settings`, `templates`, `tax_rates`, `audit_logs`, `data_exports`,
-`report_exports`) and scopes everything else to that client's subgraph.
-
-**Soft delete.** Domain entities carry `deletedAt` through the `softDelete` helper, and every read
-excludes rows where it is set. Deleting from the application is always this soft delete: the row
-stays, and financial records survive the deletion for the retention their legal context requires.
-The rows remain in a data export, with `deleted_at` intact, because they still exist in the
-instance.
-
-**Trash and restore.** `/settings/data` lists every deleted record the owner can bring back — what
-it is, what it hung off, when it was deleted and the day it will be removed permanently — paged in
-SQL with no ceiling, and restores it in place. The date comes from
-`features/trash/services/purgeSchedule.ts`'s `resolvePurgeSchedule`, the same rule the purge
-applies, so a record the purge never removes says so and why, and a client held by the documents
-naming it shows their later date. Soft delete stamps one row and never cascades, so a restore clears
-one row and never cascades either. A restore that would leave a live record under a deleted parent
-is refused by `features/trash/services/restoreEligibility.ts` before any write, naming the parent to
-restore first; Postgres would not object, because both rows exist. Restore is owner-only, the same
-gate as delete, and writes an audit entry on the same footing as the deletion it reverses.
-
-**Retention.** `settings.retention_trash_days` and `settings.retention_financial_days` are the two
-windows, both null by default, which is "never purge" — so an upgrade destroys nothing and a window
-is something an owner turns on after reading the dates it implies. The financial window covers
-invoices, credit notes, payments, contracts and expenses and can never be shorter than the general
-one. `retention.purge.sweep` enforces them nightly on BullMQ, walking the same FK-safe delete order
-in `scripts/core/domainData/inventory.ts` that the seed and reset commands walk, with its delete and
-its audit entry in one transaction. Which rows are due is decided by `resolvePurgeSchedule`, the
-rule the trash dates rows with. It never touches `audit_logs` or `contract_signatures`, never
-rewinds document numbering, and never purges a countersigned contract, because deleting one would
-cascade into a signature no code path may delete. Nor does it purge a client while an invoice,
-proposal or contract still names it: removing the client would null that document's `client_id`, and
-`chk_contracts_parent` and its siblings would reject the statement. The objects the purged rows
-owned leave with them: they are released into `object_deletions` in the purge's transaction and
-removed from the bucket after it commits, with `storage.deletion.sweep` retrying hourly whatever the
-store refused. The same sweep run expires data exports and report PDFs a week after they finish,
-with their objects.
-
-**The right to be forgotten.** Hard-deleting a client is a separate owner-only operation, confirmed
-by typing the client's name, preceded by a prompt to export that client's data first, and applied
-regardless of any retention window. It destroys the client, its contacts, projects, tasks,
-proposals, contracts, invoices, credit notes, payments, time entries, expenses, attachments,
-data-export records, and the activity and email log rows naming them, and every stored file those
-rows were the last to reference. The `audit_logs` trail survives, and its entry names the event, the
-actor, the client id and per-table counts but no personal detail. The operation is refused outright
-while the client has a countersigned contract: that contract cannot be deleted, because the delete
-cascades into an insert-only signature, and it cannot be left behind either, because the erasure
-removes both parents `chk_contracts_parent` accepts.
-
----
-
-## 10. Multi-user model
-
-### Why this section exists
-
-The single-instance simplicity in see the Design philosophy section is structural: every domain
-entity is owned by the instance, and there is no `tenantId` foreign key on domain tables. This
-section explains how to layer light multi-user access — accountant access, an assistant — on top of
-this base model **without introducing tenant scoping into domain queries**.
-
-### The roles
-
-Three roles, defined statically and never extended through configuration:
-
-| Role         | Permissions                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| `owner`      | Everything. Exactly one per instance. The account created during `/register` and `/setup`.      |
-| `accountant` | Read access to all entities. Can export data. Cannot create, update, send, delete, or transmit. |
-| `assistant`  | Can create and edit drafts. Cannot send, mark as paid, delete, or change settings.              |
-
-The owner is permanent and structural — it is the instance owner. Other roles are invitations, not
-seats.
-
-### Implementation: Better Auth organization plugin
-
-Multi-user is implemented via the Better Auth organization plugin, with **a single organization per
-Remit instance**. The organization is created automatically during `/setup` through Better Auth's
-organization API (named after the business profile), the first setup user becomes `owner`, and the
-active organization is set through Better Auth. Every authenticated user is a member of that one
-organization. The session always carries an `activeOrganizationId` and it is always that one
-organization.
-
-This deliberately uses the plugin in single-organization mode - multi-org-per-user is not exercised,
-because a Remit instance is a single business. The benefit is inheriting the plugin's invitation
-flow, role propagation, active organization state, active member role, and member tables for free,
-while keeping the conceptual model trivial.
-
-The installed Better Auth version is the schema contract for these tables. Remit customizes the
-allowed business roles at the plugin boundary, but it does **not** invent a parallel schema for the
-plugin-owned tables. Runtime code creates organizations, activates organizations, manages
-memberships, changes roles, and sends invitations through Better Auth organization APIs. If Better
-Auth expects `text` role/status fields, a required `slug`, or a session-level
-`activeOrganizationId`, the Remit schema mirrors that exactly.
-
-The plugin contributes the following tables to the schema:
-
-- `organization` - exactly one row per instance, with a required unique `slug`. `metadata` follows
-  Better Auth's storage contract for the installed version.
-- `member` - maps `(userId, organizationId, role)`. `role` is stored in the plugin-compatible column
-  shape and Remit constrains allowed values to `owner | accountant | assistant`.
-- `invitation` - pending invitations with email, role, expiry, inviter, and Better Auth's status
-  lifecycle (`pending | accepted | rejected | canceled` for the current version).
-
-Domain tables remain free of `tenantId` foreign keys, queries do not change, and ownership remains
-implicit to the instance.
-
-### Authorization model
-
-Authorization is implemented as a thin layer in two places:
-
-**Middleware-level (route gating).** Routes under `/settings/security`, `/settings/team`,
-`/settings/data`, `/settings/backup`, `/settings/system`, `/settings/api`, `/settings/webhooks`,
-`/settings/mcp`, and any endpoint that exposes the encryption key fingerprint are owner-only. Routes
-that perform sends or deletions are blocked for `assistant`. All other routes are accessible to all
-roles.
-
-**Action-level (operation gating).** Every server action gates on the active member's role before it
-writes. Both helpers live in `lib/auth/session.ts`, and which one a call site uses is determined by
-what that call site is allowed to do when the check fails:
-
-- **Route and RSC gating uses `requireRole`.** It redirects to `/login` without a session and calls
-  `notFound()` on an insufficient role, so an unauthorized role cannot use the response to learn
-  that the route exists.
-- **Server actions use `getCurrentRole` and an explicit comparison.** An action must return
-  `{ data } | { error }` and must never throw to the client, so it cannot call `requireRole` —
-  `notFound()` inside an action would escape the contract every caller branches on.
-
-```ts
-"use server"
-
-import { getCurrentRole } from "@/lib/auth/session"
-
-const role = await getCurrentRole({ headers: requestHeaders, userId: session.user.id })
-
-if (role !== "owner") return { error: t("errors.forbidden") }
-```
-
-Features with several gates name them rather than repeating the comparison — `requireInvoiceRole`,
-`requireContractRole`, `requirePaymentRole` and their siblings in each feature's
-`mutationContext.ts` wrap one implementation behind names that state the operation's policy (an
-assistant may draft and revise an invoice; recording that money arrived is the accountant's job as
-much as the owner's).
-
-`getCurrentRole` delegates role lookup to Better Auth's active member role for the active
-organization. It does not silently create organizations, repair memberships, or infer roles from
-Remit-owned tables; a user with no membership resolves to `null`, which every gate refuses. Audit
-log entries always include the actor's user id and role.
-
-**Read gating follows write gating.** A settings surface whose actions are owner-only also guards
-its page with `requireRole("owner")`. The settings rail hides links by role, but navigation
-visibility is never the authorization — each page refuses the URL on its own.
-
-### Invitation flow
-
-Implemented in `features/team`. Every organization write goes through a Better Auth organization
-API; nothing in the feature inserts, updates, or deletes `organizations`, `members`, or
-`invitations` directly.
-
-1. Owner invites an email address with a role from `/settings/team`, guarded by
-   `requireRole("owner")` on the page and an owner comparison in every mutation.
-   `auth.api.createInvitation` writes the `invitation` row.
-2. If email delivery is configured, Remit sends the invitation and records it in `email_logs`.
-   Otherwise the owner is shown a one-time link to `/invite/[invitationId]` to share manually. The
-   invitation id is the bearer credential for that link, so it is never written to `audit_logs`, to
-   an event payload, or to a log line.
-3. Invitee opens the link and `auth.api.acceptInvitation` activates the `member` row. The page
-   resolves which of its shapes to render server-side: sign up when the address has no account,
-   accept when the session is already the invitee's, sign out when it belongs to somebody else, and
-   sign in when the address has an account but no session. That last shape is not hypothetical —
-   removing a member deletes the membership and leaves the `users` row, so re-inviting a removed
-   address always reaches somebody who cannot register. `proxy.ts` lets `/invite/...` through ahead
-   of its other guards — an invitee has no session yet, and immediately after signing up has one
-   that is not setup-complete — under its own rate limit.
-4. The invitee enrolls TOTP - mandatory for all roles, no exceptions. Nothing in the acceptance path
-   redirects past `/setup`; it returns the invitee to `/` and lets the proxy's state machine route
-   them.
-
-Only `accountant` and `assistant` are invitable or assignable, which is what keeps a second owner
-unreachable from this surface; `uq_member_owner_per_org` remains the structural backstop, and Better
-Auth independently refuses to leave the organization without an owner.
-
-Owners can remove memberships at any time. Removal invalidates all sessions for that user through
-Better Auth's internal adapter (`deleteUserSessions`), because the plugin exposes no endpoint that
-revokes another user's sessions without the admin plugin. Revocation failure is reported to the
-owner rather than rolled back: the membership is already gone, so every gate refuses the removed
-user regardless.
-
-### What multi-user does not change
-
-- The domain model has no `tenantId` foreign keys. Adding one is a violation.
-- The single-instance model is the base; multi-user is layered on top via role assignment and the
-  gates described above.
-- The audit log captures the actor user id and role but never alters what gets recorded — the audit
-  log is not a permission system.
-- All roles must enroll TOTP through the same `/setup` flow. Backup codes are generated and shown as
-  part of the Better Auth TOTP flow; password recovery remains email- or CLI/admin-based.
-
-The single-instance model is structural; multi-user extends it.
-
----
-
-## 11. Frontend architecture
-
-### React Server Components by default
-
-Pages and layouts are React Server Components (RSC) by default. `"use client"` is added only when
-the component requires browser APIs, event listeners, or React hooks. The result is minimal
-JavaScript shipped to the browser for read-heavy pages — invoice lists, client detail, the dashboard
-
-- while interactive components remain fully reactive.
-
-### Component hierarchy
-
-```
-app/(dashboard)/invoices/page.tsx       Server component - fetches, composes
-  └── features/invoicing/components/
-        ├── InvoiceList.tsx              Server component - renders table
-        ├── InvoiceFilters.tsx           Client component - search, filter UI
-        └── InvoiceActions/
-              ├── InvoiceActions.tsx     Client component - send, mark paid, delete
-              └── DeleteInvoiceDialog.tsx  Client component - confirmation dialog
-                    └── components/ui/   Shared primitives (shadcn + Radix UI)
-```
-
-Component-level conventions — file naming, decomposition rules, the `Typography` and `Icon`
-primitives, the `data-slot` attribute — are codified in `components.md`.
-
-### Forms
-
-All forms use `react-hook-form` with `zodResolver` and a `Controller` per field. Field-level errors
-surface through `FieldError`; submit-level errors render in a `FieldError` above the submit button.
-The full pattern (modes, validation, accessibility attributes, server error surfacing) is documented
-in `forms.md`.
-
-### State management
-
-There is no global client-side state library. State lives in the closest reasonable place:
-
-| State kind                   | Location                                   |
-| ---------------------------- | ------------------------------------------ |
-| Server data                  | RSC / Next.js route cache                  |
-| Form state                   | react-hook-form                            |
-| Dialog and UI state          | `useState` in the owning component         |
-| Cross-component coordination | React context, scoped to the feature       |
-| URL-derived state            | `useSearchParams` / `usePathname`          |
-| Ephemeral gesture state      | Refs in a feature-scoped interaction store |
-
-Ephemeral gesture state is the shape a continuous direct-manipulation surface needs: the template
-editor's `useEditorInteraction` keeps in-flight geometry in refs, publishes it through a
-subscription, and writes each frame's transforms imperatively to registered DOM nodes, committing to
-the document store exactly once at `pointerup` as one undo entry — a per-frame document commit would
-be the defect, not the design.
-
-### Design system
-
-All standalone text uses the `Typography` component — never raw `<p>`, `<span>`, or heading elements
-outside of a primitive's own implementation. All icons use `<Icon name="..." />` — never direct
-imports from `lucide-react`. All design tokens (colours, radius, spacing) are CSS variables in
-`app/globals.css`; there is no `tailwind.config.js`.
-
-Before writing any visual UI, `components/ui/index.ts` is checked for an existing primitive. New UI
-work never reimplements a concept that already exists in the design system.
-
-### Accessibility
-
-Accessibility is non-negotiable. Every interactive element is a semantic button, link, or input;
-icons that convey meaning carry an accessible name; color is never the sole signal; focus is always
-visible; modals trap focus. Full conventions in `accessibility.md`.
-
----
-
-## 12. API surface
-
-### Server actions vs. API routes
-
-Server actions in `features/<feature>/mutations.ts` are the canonical write path for all
-application-level interactions. API routes exist only for specific, justified cases:
-
-| Route                                       | Purpose                                                          |
-| ------------------------------------------- | ---------------------------------------------------------------- |
-| `/i/[token]`                                | Public invoice view (anonymous)                                  |
-| `/i/[token]/pay`                            | Anonymous card-checkout initiation (POST)                        |
-| `/i/[token]/paid`                           | Stripe checkout return (anonymous)                               |
-| `/p/[token]`                                | Public proposal acceptance (anonymous + OTP)                     |
-| `/c/[token]`                                | Public contract signing (anonymous)                              |
-| `/s/[token]`                                | Public client portal (anonymous)                                 |
-| `/api/auth/[...all]`                        | Better Auth's own handler                                        |
-| `/api/webhooks/stripe`                      | Stripe webhook event receiver                                    |
-| `/api/health`                               | Uptime monitor health check (public)                             |
-| `/api/metrics`                              | Prometheus scrape, bearer-token protected; unknown path when not |
-| `/api/upload/[type]`                        | Session-gated upload, streamed into object storage               |
-| `/api/storage/[...key]`                     | Public-bucket file read (anonymous)                              |
-| `/api/attachments/[id]`                     | Session-gated attachment download from the private bucket        |
-| `/api/documents/[type]/[id]`                | Session-gated rendered-document download                         |
-| `/api/exports/[id]`                         | Owner-gated data export archive download                         |
-| `/api/report-exports/[id]`                  | Export-role-gated report PDF download                            |
-| `/api/v1/clients`, `/api/v1/clients/[id]`   | Public API, API-token gated, read-only                           |
-| `/api/v1/projects`, `/api/v1/projects/[id]` | Public API, API-token gated, read-only                           |
-| `/api/v1/invoices`, `/api/v1/invoices/[id]` | Public API, API-token gated, read-only                           |
-| `/api/v1/time-entries`, `/api/v1/expenses`  | Public API, API-token gated, read-only                           |
-| `/api/v1/openapi.json`                      | Generated OpenAPI document, API-token gated                      |
-| `/api/mcp`                                  | MCP server for an AI assistant, API-token gated, off by default  |
-
-`POST /i/[token]/pay` is the narrowest of these to justify and the reason the list is a list rather
-than a rule. It is a write from an unauthenticated context: the caller is a client with no account,
-holding a bearer token, and a server action would need a session it does not have. It carries no
-body — the amount, the currency and the invoice identity are all derived server-side from the
-token's own row — and it answers every refusal with the one message an unknown token gets, so it is
-a write that reveals nothing a read of the same token would not.
-
-### Public API
-
-A read-only REST API under `/api/v1/` serves an integration holding an API token: clients, projects
-and invoices as a paged list and a detail read, and time entries and expenses as paged lists. Every
-request carries `Authorization: Bearer <token>`. An owner mints tokens in `/settings/api`; each
-carries one read scope per resource, is stored as a SHA-256 digest, is shown once, and may expire.
-On every request a token's permission is its scopes intersected with its creator's current role,
-read from the membership, so a removed member's tokens stop working with nothing to revoke, and a
-revoked or expired token is refused on its next request. Every refusal is the same `401`.
-
-Collections page with `page` and `perPage` (at most 100) in a `{ data, pagination }` envelope, in
-the order of the matching screen, and any other parameter is refused. Money is integer minor units
-and instants are ISO 8601 in UTC. Each read delegates to the query the application's own screen
-uses, and every response is parsed through a schema in `features/api/responseSchemas.ts` that names
-each published field, so no client note, bearer token, storage key or encrypted value reaches a
-caller. The OpenAPI 3.1 document is generated from those same schemas and served at
-`/api/v1/openapi.json` to any valid token, rate-limit headers included. The API writes nothing. An
-invoice, in a list row and in its detail, carries `outstandingCents` — the one outstanding
-definition, credit notes netted — and `displayStatus`, the status the application's badges show
-(overdue and partially paid included), beside the stored `status`; the MCP tools publish the same
-fields through the same schemas.
-
-### Outbound webhooks
-
-An owner registers endpoints in `/settings/webhooks`, each subscribed to events drawn from the event
-bus: client, project, invoice, time and expense events, and `payment.received`. A delivery's body is
-`{ type, timestamp, data }`, where `data` holds record ids and the event's scalar facts and never
-the record itself; a receiver that needs more reads it through the API. Deliveries are signed with
-the Standard Webhooks scheme using a per-endpoint secret that is encrypted at rest and shown once,
-and they run as the `webhook.delivery.send` job: six attempts over about sixteen minutes, every
-attempt recorded, and an endpoint switched off after ten deliveries in a row fail. Every request
-goes through `features/webhooks/safePost.ts`, which refuses loopback, private, link-local and
-reserved addresses at the moment the socket connects, follows no redirect, reads no response body
-and gives up after ten seconds. Only hostnames listed in `REMIT_WEBHOOK_ALLOWED_HOSTS` may be
-reached over plain HTTP or at a private address.
-
-### MCP server
-
-`/api/mcp` serves the Model Context Protocol's Streamable HTTP transport, revision 2026-07-28, and
-answers clients of the 2025 revisions, which open with `initialize`, statelessly from the same
-tools. It keeps no session and opens no stream, so it refuses `subscriptions/listen` and advertises
-`tools.listChanged` as false in both eras. A browser page on another host is refused with `403`
-before anything else, by the SDK's Origin check and in the same JSON-RPC shape as every other
-refusal the endpoint writes, whose code is the HTTP status. Its justification as an API route is the
-public API's: the caller is an assistant holding an API token, with no browser and no session, and
-the surface writes nothing. It authenticates with those same tokens rather than the specification's
-optional OAuth flow, which the specification permits, so an assistant that can only sign in through
-OAuth cannot connect.
-
-Eight read-only tools cover clients, projects, invoices, time entries and expenses, each a list with
-the screens' own filters — a search, states, a client or project, a range of calendar days, billed
-or unbilled — or a single record. A token reads through them exactly what it reads through the API:
-the tools it is shown and may call are the resources its scopes allow, intersected with its
-creator's current role, and a refusal is the API's single 401. The server is off until the owner
-turns it on in `/settings/mcp`, below a statement of what it shares; that page also gives the
-address and a client command, and lists the latest tool calls from `audit_logs`.
-
-### Validation at every boundary
-
-```
-Browser input  ──►  Zod schema in features/*/schemas.ts   ──►  server action
-URL params     ──►  Zod schema in the route handler        ──►  query function
-Env vars       ──►  Zod schema in lib/config/env.ts        ──►  process fails fast at boot
-Settings read  ──►  Zod schema on read and write           ──►  defensive against old data
-```
-
-No data crosses a boundary unvalidated.
-
----
-
-## 13. Infrastructure and deployment
-
-### Docker-first deployment model
-
-Remit is published as two images on GitHub Container Registry, built from one Dockerfile:
-`ghcr.io/itslhuis/remit/app`, the Next.js server, and `ghcr.io/itslhuis/remit/worker`, the job
-consumer with Chromium for PDF rendering. Neither carries anything about a deployment — no address,
-no secret, no `NEXT_PUBLIC_*` value frozen into the bundle — so the image a release names runs at
-any address.
-
-`docker-compose.yml` runs the two beside PostgreSQL, Redis and a bundled S3-compatible object store,
-RustFS, pinned to an exact release and digest. Only the app publishes a port: the database, Redis
-and object storage are reachable inside the Compose network alone, and browsers reach stored files
-through the app. Two profiles:
-
-- **Default** — publishes the app on `PORT`, on the interface `REMIT_APP_BIND` names, for a reverse
-  proxy the operator already runs (Nginx, Caddy, Traefik, Cloudflare Tunnel) or a trusted LAN.
-- **`with-proxy`** — adds Caddy, which obtains and renews a certificate for `REMIT_PUBLIC_URL`,
-  redirects HTTP to HTTPS and proxies to the app, whose port is then published on loopback only. Its
-  configuration is `deploy/caddy/Caddyfile`. `COMPOSE_PROFILES=with-proxy` in `.env` keeps the
-  profile on for every later `docker compose` command, the upgrade script's included.
-
-Object storage is reached through one adapter, `lib/storage`, configured by vendor-neutral
-variables: `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and
-`S3_FORCE_PATH_STYLE`. The bundled store starts with the same key pair the app and worker sign with.
-Pointed at Amazon S3, Cloudflare R2 or Backblaze B2 instead, the same variables keep the files
-there, in three buckets derived from `S3_BUCKET` that an operator may create in advance for a key
-that can neither create nor list buckets.
-
-### Configuration hierarchy
-
-```
-lib/config/env.ts    Zod-validated deployment configuration. Process exits on failure.
-/setup wizard        First-run UI configuration. Minimal - see the Self-hosting experience section.
-/settings/**         Ongoing instance configuration stored in the settings table.
-.env                 Deployment-owned configuration: the public URL, database, auth secret,
-                     encryption key, object-store credentials, Redis, the image tag and Compose
-                     profile, Chromium path, the metrics token, and the error-tracking DSN.
-```
-
-No feature reads `process.env` directly. All environment access is through `lib/config/env.ts`.
-Environment variables are for boot-time and operator-owned infrastructure concerns. Settings are for
-instance behavior that an owner can reasonably manage through the product UI, such as SMTP/Resend,
-Stripe, bank-transfer details, invoice defaults, backup policy, and template customization.
-
-### Data residency
-
-All data is stored in the PostgreSQL instance owned and operated by the user. Nothing leaves the
-instance that the operator has not configured to leave it: there is no analytics, no telemetry and
-no usage reporting, and no code path that sends any of the three. The only outbound traffic Remit
-makes is to the email, payment and object-storage providers the operator supplies credentials for,
-to the webhook endpoints an owner registers, which receive record ids rather than records, and —
-only when the operator sets `SENTRY_DSN` — to the error-tracking receiver that DSN names, which
-receives failure events with no message and no business data (the Observability section lists what
-one carries).
-
-Two surfaces answer requests with records rather than sending them: the public API and the MCP
-server, both only to a holder of an API token the owner minted, and the MCP server only after the
-owner turns it on. An answer to an AI assistant leaves the operator's control the moment it is
-returned — the assistant sends it to the language model it runs against, under that provider's
-terms, and Remit can neither see nor recall it. Client notes, public document tokens, stored
-credentials and the audit log never pass through either.
-
----
-
-## 14. Self-hosting experience
-
-The biggest friction in adopting a self-hosted application is not the feature set; it is install,
-upgrade, backup, and recover. Remit treats each of these as first-class product concerns. The
-architecture defines the boundaries and safety model; focused operations and specification documents
-carry the command-level detail.
-
-The repository ships Docker Compose files, an entrypoint migration script, the `/settings/system`
-health surface, `pnpm remit:reset-password` for credential recovery, `pnpm remit:backup` for
-encrypted local, S3, R2, and B2 backup archives, `pnpm remit:restore` for destructive-safe local and
-remote restores, `pnpm remit:seed-demo` for seeded local/demo data (deterministic except its public
-tokens, which are minted at random because they are bearer credentials), `pnpm remit:reset-data` for
-returning a demoed instance to zero domain data without losing the account or its configuration,
-`pnpm remit:rotate-encryption-key` for operational master-key rotation, and two host-side scripts:
-`scripts/host/install.sh`, which takes a host with Docker on it to a running instance and is
-documented in the [installation runbook](../operations/INSTALL.md), and the
-`scripts/host/upgrade.sh` upgrade flow documented in
-[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md).
-
-The deeper self-hosting references are:
-
-- [Operational CLI contract](../../scripts/README.md) for command naming, execution context,
-  packaging, validation, status, and the explicit `remit:upgrade` exception.
-- [Backup archive format](../../scripts/core/archive/README.md) for the `.remitbak` byte layout,
-  manifest, encryption, destination, compatibility, and backup audit contract.
-- [Restore runbook](../operations/RESTORE.md) for destructive restore safety, confirmation, refusal
-  rules, data effects, and logging/redaction.
-- [Upgrade runbook](../operations/UPGRADE.md) for host-side upgrade prerequisites, execution,
-  rollback, and troubleshooting.
-
-### One-command install
-
-`bash scripts/host/install.sh`, run from a clone of the repository, takes a host with Docker on it
-to a running instance that answers at `/register`. It checks Docker 24 or newer, the Compose plugin,
-a writable checkout with 5 GB free and the ports it is about to bind. It asks for the public URL,
-whether Caddy should provide HTTPS, and an ACME email if so. It generates the database, object-store
-and auth secrets and `REMIT_ENCRYPTION_KEY` from the kernel's random source, writes `.env` with mode
-`0600`, pulls the images, starts the stack and waits for `/api/health`. Migrations run in the app's
-entrypoint, never in the installer.
-
-It asks only what Compose and the container need before any page exists. Everything an owner can set
-once signed in stays in `/setup` and `/settings/**`.
-
-The encryption key is shown once, interactively, and `.env` is written only after the operator types
-back its last characters. Unattended (`--yes`), the key is never printed and the run must pass
-`--accept-key-custody`. An existing `.env` is never rewritten: a re-run checks that it holds a key
-and starts the stack without pulling newer images, so it can neither replace the key nor become an
-upgrade without the upgrade script's backup. A missing `.env` beside existing Compose volumes is
-refused, because new credentials generated over that data would lock the instance out of it.
-
-The installer is obtained by cloning the repository rather than by piping a download into a shell:
-it needs the checkout's Compose file and Caddyfile, and the operator can read what it will run
-before it generates the key that encrypts their data. It never installs packages, uses `sudo`, or
-changes firewall or DNS settings.
-
-### Setup wizard
-
-`/setup` is deliberately short. It captures only what is required to use the application securely on
-the first day:
-
-1. Business profile: name, default currency, locale, timezone.
-2. TOTP enrollment.
-3. Backup codes generated by Better Auth as part of TOTP setup, displayed once, and strongly
-   encouraged for safe storage.
-
-Everything else belongs in `/settings/**`: branding, invoicing defaults, email credentials, Stripe,
-tax rates, templates, and backup destination. This keeps first-run setup short while still making
-advanced configuration discoverable and testable in place.
-
-### Health and status
-
-`/settings/system` is authenticated and owner-only. It is the human-readable operational status
-surface for database connectivity, email/Stripe/storage reachability, whether error tracking is
-configured, last successful backup, backup destination status, data-volume disk usage, encryption
-key fingerprint, and the running application version, beside links to the changelog and the upgrade
-runbook.
-
-`/api/health` is public and intentionally small. It returns `200` or `503` with a minimal JSON body
-for uptime monitors and host-side scripts.
-
-### Operational CLI contract
-
-Operational behaviour that runs inside the app container uses `remit:<operation>` package scripts
-only when the command has a real implementation, build entry, runtime packaging, tests appropriate
-to its risk, and matching documentation. Remit does not ship placeholder package scripts.
-
-Execution context is part of the contract. In-container commands may access the database, encryption
-key, data volume, and configured object stores. Host-side scripts own image pulls, compose restarts,
-host volumes, and registry access. The app container must never mount the Docker socket. Host-side
-scripts live under `scripts/host/` and are not copied into the runtime image.
-
-`remit:upgrade` is the explicit exception: upgrade is host-side only, there is no `remit:upgrade`
-package script, and the name is not reserved. See the detailed
-[Operational CLI contract](../../scripts/README.md).
-
-### Instance data reset
-
-Demo seeding is only safe to run on a real installation if it can be undone. `pnpm remit:reset-data`
-is that inverse: it returns a configured instance to zero domain data while the operator's account,
-organization, TOTP enrolment, `settings`, tax rates, templates, and audit trail survive verbatim.
-
-The operation rests on one classification of every table in the schema as either domain data or
-instance state, held once in `scripts/core/domainData/inventory.ts` and shared with the seed command
-so a table can never be deleted by one and missed by the other. A table with no explicit decision
-fails a test. `audit_logs` is deletable by no flag, and the queue drain is best-effort. The objects
-the deleted rows owned are released and removed after the commit, and a numbering counter the demo
-seed advanced is put back when nothing has been numbered since.
-
-The delete and its audit entry share one transaction, and confirmation is a typed phrase rather than
-a yes/no, because unlike a reseed the operation leaves nothing in place of what it removed.
-
-### Backup and restore
-
-Backups are encrypted single-file `.remitbak` archives. The archive contains a fixed plaintext
-header, an AES-256-GCM encrypted gzip tar payload, `manifest.json`, `checksums.sha256`, a
-`pg_dump --format=custom` database dump, and every object of the public and documents buckets,
-recorded under its bucket's role so an archive restores into an instance whose bucket name differs.
-The exports bucket is left out: its objects are regenerable from the database. Backup encryption
-reuses `REMIT_ENCRYPTION_KEY`; losing that key loses both encrypted columns and encrypted backup
-archives. The detailed archive contract lives in the
-[Backup archive format](../../scripts/core/archive/README.md).
-
-Restore is destructive-safe, not non-destructive. Before changing live data, `remit:restore` must
-create a local pre-restore snapshot. Restore refuses incompatible archive versions, key fingerprint
-mismatches, newer app archives, invalid headers, manifest/header mismatches, and checksum failures.
-After confirmation the archive's files are written and verified first, the database is replaced in
-one transaction second, and stored files the archive does not contain are deleted last, so every
-point a restore can stop at is one a re-run repairs. Operator safety, refusal rules, data effects,
-and logging/redaction details live in the [Restore runbook](../operations/RESTORE.md).
-
-Backup configuration and status live in the settings schema. `/settings/backup` is the owner-only
-surface that writes the configuration: the destination, the bucket, region and endpoint of an
-S3-compatible target, its two `encryptedColumn()` credentials, the cadence, and the three retention
-counts. `scripts/core/backup/` reads exactly those columns, so the command and the page share one
-representation rather than two. `/settings/system` reads the three status columns — destination,
-last success, last failure — and judges freshness; the settings page shows the same last outcome
-beside the configuration that produced it, and defers the verdict to the health check.
-
-The page also verifies a destination before a backup depends on it. The test writes one small object
-and deletes it, under a prefix outside the one retention prunes, because a backup needs write access
-and a listing proves only that the bucket can be read. Success is recorded in
-`backup_test_connection_at`; a failure is reported as a translated message, and the provider's own
-text reaches the log only through the operational redactor.
-
-On a hosted instance (`REMIT_HOSTED_MODE`) the destination belongs to the operator: the page renders
-read-only and says so, and the mutations refuse, because a read-only form is a rendering decision
-and never the authorization.
-
-`backup_cadence` is honoured by the worker. `backup.run.sweep` is a repeatable job on a fixed 01:00
-UTC pattern; the cadence decides at run time whether tonight is a backup night, so switching daily
-to weekly writes nothing to Redis and leaves exactly one scheduler registered. The hour sits ahead
-of `retention.purge.sweep` at 02:30 so the most recent archive always still holds the last rows that
-purge destroyed. One session advisory lock guards every backup: the sweep and `remit:backup` hold it
-for their run, and a restore and a key rotation hold it for theirs, running their own internal
-backup under it without taking it again. A second holder is refused with the first one named, so two
-workers, a re-delivered job or an operator's run produce one archive, and no backup is taken while a
-restore swaps data or a rotation re-encrypts archives. The sweep also stands down while an
-encryption key rotation holds its own lock. A failure is recorded rather than retried: the same two
-`settings.backup_last_failure_*` columns and the same `instance.backup.failed` audit entry the
-command writes, distinguished from an operator's run only by a `worker/backup` user agent. On a
-hosted instance the sweep does nothing, for the same reason the settings page refuses. An operator
-can still run `remit:backup` at any time the lock is free. Retention prunes the remote destination
-and the local backups directory alike, never the archive just written, and never a pre-restore
-snapshot, a pre-rotation backup or an archive written to `--output`.
-
-The dashboard says when that has not been happening. An owner sees a banner when no backup has ever
-run, when the last recorded outcome was a failure, or when the newest archive is older than the
-cadence plus a day of grace — derived from the absence of a recent success rather than from a
-failure row, so a worker that never started surfaces exactly like one that failed. It is owner-only,
-because the roles that cannot open `/settings/backup` cannot act on it, and it is not dismissible,
-because it clears itself the moment a backup succeeds.
-
-### Updates
-
-Drizzle migrations are forward-compatible. Breaking schema changes span two releases: release N adds
-the column nullable; release N+1 backfills and adds `NOT NULL`. This allows running instances to
-upgrade without a maintenance window.
-
-The container entrypoint applies pending migrations before starting the app. Upgrade orchestration
-is host-side only: the app container does not pull its own image, restart its parent compose
-project, or mount the Docker socket.
-
-The shipped upgrade flow is `scripts/host/upgrade.sh`, run by the operator on the host that owns the
-compose project. Its architecture is a four-step flow:
-
-1. Take an ad-hoc backup through the in-container `remit:backup` command and refuse to proceed if it
-   fails.
-2. Pull updated images.
-3. Restart the compose project; `docker-entrypoint.sh` applies pending migrations on container
-   start.
-4. Wait for the health check and print success or rollback instructions.
-
-The operator procedure, rollback path, and troubleshooting notes live in
-[`docs/operations/UPGRADE.md`](../operations/UPGRADE.md). Upgrading is always an operator action:
-nothing in the application detects a new release, and nothing upgrades itself.
-
-What a release changes is recorded in [`CHANGELOG.md`](../../CHANGELOG.md), written by hand for the
-operator in Keep a Changelog form. Each release opens with Upgrade notes naming every migration it
-applies on container start and any action it needs. `pnpm version:*` turns the Unreleased section
-into the new version's dated section and refuses to run while it has no entries, and the image
-workflow refuses to publish a `v*` tag whose version has no dated section. `/settings/system` links
-the changelog and the upgrade runbook beside the running version. No update check exists: the
-application makes no request to learn whether a newer release exists, so an operator learns of one
-by comparing the version that page shows against the changelog.
-
-### Encryption key rotation
-
-Key rotation ships as the in-container `remit:rotate-encryption-key` command. It has a two-key
-read-old-write-new window, mandatory pre-rotation backup, advisory-lock refusal rule,
-encrypted-column registry, table-scoped transaction and resume strategy, backup archive
-re-encryption, audit event contract, and post-run operator instructions. The command never accepts
-keys on the command line and never rewrites `.env`.
-
-### Operator documentation
-
-Three runbooks cover the operator's life-cycle: the [installation runbook](../operations/INSTALL.md)
-from a host with Docker, through `scripts/host/install.sh`, to an instance the operator is logged
-into, the [upgrade runbook](../operations/UPGRADE.md), and the
-[restore runbook](../operations/RESTORE.md). Each is written against the Docker Compose assets in
-the repository, which are the deployment surface Remit supports.
-
-### Deployment guides
-
-[`docs/deploy/`](../deploy) holds one guide per platform, each taking that target from nothing to an
-instance with backups configured and a test invoice sent. Five ship: a Linux host with Docker
-Compose, an existing Nginx reverse proxy, Coolify or Dokploy, a Cloudflare Tunnel, and a Raspberry
-Pi. They do not restate the runbooks above; a guide covers what is different about one platform and
-links to the runbook for the rest.
-
-Each guide states at the top whether it was executed end to end or only written from the platform's
-documentation, because a deployment guide nobody has followed is a plausible sequence of commands
-rather than a tested one. The Linux host and Nginx guides carry the tested marking; the other three
-do not, and say what was verified instead.
-
-Railway and Render are named in `docs/deploy/README.md` as targets with no guide. Both can run
-Remit, and neither can run it from this repository's Compose file: neither platform lets two
-services share a persistent disk, which the `app` and `worker` services do for the local backup
-destination, so each would need managed PostgreSQL, managed Redis, an S3-compatible bucket in place
-of the bundled store and an S3 backup destination. That is a different deployment model rather than
-a different console, and no untested guide for it ships.
-
----
-
-## 15. Internationalization
-
-### Two distinct locale concerns
-
-Remit separates two concepts that are often conflated:
-
-**App UI language** — which language the dashboard, labels, and error messages appear in. Controlled
-by i18next client-side. English only; additional languages are additive.
-
-**Document locale** — the BCP 47 locale tag used for number and date formatting (`1.234,56 €` vs
-`1,234.56`) and the language of text labels in generated PDFs and emails ("Fatura" vs "Invoice",
-column headers, notes). Stored in `settings.default_locale`. Clients can override this with their
-own `locale` field for when a Portuguese freelancer invoices a German client and wants the PDF in
-German. Null on a client means use the instance default.
-
-These can and often do diverge: the owner may run the app in English while generating invoices in
-`pt-PT` format for their local clients.
-
-### App UI language stack
-
-Remit ships with full i18n infrastructure from day one, configured for English with the structure
-ready for additional locales. Adding a new language is purely additive — adding a new locale file
-and registering it.
-
-- **i18next** — translation engine. Locale resources, fallback handling, plural rules.
-- **react-i18next** — React bindings. Provider, `useTranslation` hook.
-- **i18next-icu** — ICU MessageFormat support for plurals and parameters (e.g.
-  `"{count} item{count, plural, one {} other{s}}"`).
-
-Runs in Next.js without locale routing (no `/en/...`, `/pt/...` URL prefixes) - locale selection
-lives in user settings and is applied client-side.
-
-### Type-safe message keys
-
-Translation keys are derived from a single `Translations` TypeScript type defined in
-`lib/i18n/types.ts`. Every locale exports a `Language` object (with `code`, `name`, `flag`, `isRtl`,
-`translations`) where `translations` must satisfy `Translations`. The compiler rejects:
-
-- A locale that is missing a key.
-- A locale that has an extra key not declared in `Translations`.
-- A `t("...")` call with a non-existent key.
-
-The `t` function is strongly typed via `react-i18next`'s module augmentation - autocomplete works in
-editors out of the box.
-
-### File layout
-
-```
-lib/i18n/
-  config.ts         i18next initialization, ICU plugin, defaults
-  types.ts          Translations type definition (single source of truth for key shape)
-  locales.ts        Map of locale code → Language object (English only initially)
-  resources.ts      Translation resources for i18next consumption
-  hooks.ts          useTranslation hook (re-export with locales)
-  index.ts          Public barrel
-  locales/
-    en.tsx          English locale, conforms to Translations
-```
-
-When `pt`, `es`, etc. are added, each becomes a new file under `locales/` and is registered in
-`locales.ts`. No other change required.
-
-### Activity log and message keys
-
-User-facing messages in the `activity_logs` table store **message keys**, not rendered strings, so
-that re-rendering on a locale change produces the right translation. The activity log row's
-`message_key` column references a key in `Translations` and the row's `message_args` JSONB column
-carries ICU parameters.
-
-### Deferred decisions
-
-- **Date and number formatting** uses `Intl.*` directly (no library). Each locale's `Language`
-  object can carry an optional formatter override if a particular locale needs it.
-- **URL-based locale routing** (e.g. `/pt/dashboard`) is out of scope. Locale is a user preference,
-  not a URL property.
-- **Per-user UI language preference** — `settings.default_locale` is the instance-level document
-  locale set by the owner. UI language preference is a separate concern.
-
----
-
-## 16. Observability
-
-### Structured logging
-
-`pino` for structured JSON logging in production. Log levels:
-`trace | debug | info | warn | error | fatal`. Production default: `info`. Every log entry includes
-a `requestId` for distributed-trace correlation.
-
-Server-side log entries for errors always include structured context - action name, entity type,
-entity id - and never include sensitive data: passwords, tokens, API keys, or encryption secrets.
-The full convention is in `errors.md`.
-
-### What an operator can observe
-
-Five surfaces, and no others. `/api/health` returns `200` or `503` for an uptime monitor.
-`/api/metrics` serves Prometheus metrics to a scraper holding `REMIT_METRICS_TOKEN`.
-`/settings/system` is the human-readable status page described in the Self-hosting experience
-section. The container's stdout carries the pino log stream, which is where an error is found in
-full. With `SENTRY_DSN` set, a failure that escapes every handler is also reported to a
-Sentry-compatible receiver, as described below.
-
-### Error tracking
-
-**The DSN is the whole switch.** With `SENTRY_DSN` unset nothing is imported, constructed or sent,
-in any process. Set, it must be a Sentry DSN — `https://<key>@<host>/<project id>`, which
-self-hosted Sentry and GlitchTip both accept — or the instance refuses to boot, so a DSN that is set
-but unusable cannot pass for a working one. The app and the worker each start a sender from the
-validated environment, and only after it has validated: a boot that fails validation exits before a
-sender exists, which is what keeps the one error that carries the environment from leaving.
-`/settings/system` shows whether a DSN is set, and never the DSN, which holds the receiver's key.
-Hosted mode changes none of this: whoever operates the instance sets the DSN.
-
-**Two boundaries report, and nothing else does.** An error that escapes a server component, a route
-handler, a server action or the proxy reaches `onRequestError` in `instrumentation.ts`, which logs a
-receipt carrying the event id beside the line Next.js writes with the error itself. A job that fails
-its last attempt, and a worker that fails to start or crashes after starting, are reported from
-`lib/jobs/worker.ts` and `scripts/worker.ts`. A failure a handler catches is logged and not
-reported; the rule is in `.agents/rules/errors.md`. The browser reports nothing — a client-side
-handler sees form state and rendered line items, and reaching a receiver from there would mean
-giving the browser the DSN — and neither do the operational CLI commands, which run with the
-operator watching.
-
-**An event carries exactly this, and `lib/errorTracking/errorEvent.ts`'s `buildErrorEvent` is the
-only code that produces one:**
-
-| Field                                                                    | Source                                                       |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| Event id, also as the `errorEventId` tag; timestamp, `platform`, `level` | generated                                                    |
-| `release` (`remit@<version>`), `environment` (`NODE_ENV`)                | the process                                                  |
-| `runtime` tag — `server` or `worker`                                     | the process                                                  |
-| Route pattern (`/invoices/[invoiceId]`), route type and render source    | Next.js's `onRequestError` context, never the requested path |
-| Job name and attempt count                                               | BullMQ, never the job id                                     |
-| For the error and up to four `cause`s: its type and its stack frames     | the error's `name`, and its stack below the message          |
-| `error.code` tag — a SQLSTATE, a system code, a Node or undici code      | the first matching `code` in the chain                       |
-| `digest` tag                                                             | Next.js's numeric error digest                               |
-
-A stack frame is a function name, a file path relative to the application directory, a line and a
-column; a path outside that directory is cut to its file name, and a frame whose name or path falls
-outside a narrow character set is dropped. Every other value comes from a closed vocabulary.
-
-**Never sent, under any configuration:** an error's message, at any depth — each exception's value
-is one fixed sentence; the request's path, query string, headers, cookies and body; any environment
-value; any `encryptedColumn()` value or `clients.notes`; any token, OTP, TOTP secret or backup code;
-an entity id, a job id, an email address or a user. The message is withheld because it is free text
-written by whatever threw — a driver error quotes the column values it failed on — and no rule can
-classify it. The boundary that reports also writes the error, message included, to the log under the
-same `errorEventId`, which is how a received event is traced back to it.
-
-**The builder fails closed.** A context value that does not match its vocabulary — a requested path
-where a route pattern belongs, an unknown field — drops the whole event rather than the field.
-
-**Reporting never costs a request or a job anything.** Sending is not awaited by the caller — the
-one exception is a worker exiting after a failed start, which waits at most three seconds — is
-bounded at five seconds, and stops at five unanswered sends, dropping further events whose errors
-are in the log regardless. A receiver that stops answering is logged when delivery starts failing
-and when it recovers, never per event, and never with its address.
-
-**Frames name source files.** The image ships each server chunk's source map beside the chunk,
-without its source text and with the names the minifier dropped written back in by the build
-(`scripts/ship-server-source-maps.ts`). When an event is built, `lib/errorTracking/sourceMaps.ts`
-turns a chunk position into the source file, line and column it came from, a minified function name
-into its source name, and an error class the bundle renamed into the name its source gave it.
-Nothing is uploaded and nothing new is sent: the recovered file and function names pass the same
-allowlist patterns as any frame. The worker's bundle is not minified and needs none of this.
-
-### Metrics
-
-`GET /api/metrics` answers in the Prometheus text exposition format, version 0.0.4, and is pull
-only: nothing is pushed anywhere.
-
-**The token is the whole contract.** A request must carry `Authorization: Bearer <token>` matching
-`REMIT_METRICS_TOKEN`, compared in constant time through `lib/publicToken.ts`'s
-`matchesPublicToken`. No route serves `/api/metrics` itself: `proxy.ts` rewrites an admitted scrape
-to `/api/metrics/scrape`, and every other request — no credential, a wrong one, or the token unset —
-continues as a request for a path with no route, so it receives exactly what any unknown path does:
-a redirect to sign in, or the framework's not-found page for a signed-in caller. A caller cannot
-learn whether metrics are enabled on an instance, nor that the path is anything but unknown
-(`lib/metrics/admission.ts`). Scrapes carry `Cache-Control: no-store` and
-`X-Robots-Tag: noindex, nofollow`, and the path has its own limit of 30 requests per IP per minute,
-counted for every request to it whether metrics are enabled or not, which a 15-second scrape uses
-four of. Hosted mode changes none of this: whoever operates the instance sets the token.
-
-**It exposes exactly this, and `lib/metrics/__tests__/handleMetricsRequest.test.ts` fails on
-anything else:**
-
-| Metric                                               | Type    | Labels           | Source                        |
-| ---------------------------------------------------- | ------- | ---------------- | ----------------------------- |
-| `remit_build_info`                                   | gauge   | `version`        | the app process               |
-| `process_start_time_seconds`                         | gauge   | —                | the app process               |
-| `process_resident_memory_bytes`                      | gauge   | —                | the app process               |
-| `nodejs_heap_size_used_bytes`                        | gauge   | —                | the app process               |
-| `remit_queue_jobs`                                   | gauge   | `state`          | BullMQ, read from Redis       |
-| `remit_scheduled_job_runs_total`                     | counter | `job`, `outcome` | the worker, recorded in Redis |
-| `remit_scheduled_job_last_success_timestamp_seconds` | gauge   | `job`            | the worker, recorded in Redis |
-| `remit_metrics_collector_up`                         | gauge   | `collector`      | the scrape itself             |
-
-`state` is one of `waiting`, `active`, `delayed`, `prioritized`, `waiting-children` and `failed`.
-`job` is one of the five repeatable sweeps in `lib/jobs/schedules.ts`, and `outcome` is `completed`
-or `failed`, where a failure counts once, after its last retry. Every label value comes from a
-closed vocabulary; none is ever a path, an id or an error message.
-
-What it does not expose is as deliberate. **No count of domain rows** — invoices, clients, revenue —
-because those are business data, and a single shared bearer token is not the protection this
-document's opening section promises them. **No per-job-name counts for anything but the sweeps**,
-because a count of rendered invoices or sent reminders is the same business volume seen through a
-keyhole. **No HTTP request or error counters**: `proxy.ts` sees neither the matched route pattern
-nor the response status, and `logger.error`'s `action` field is not a closed vocabulary.
-
-**Collection happens at scrape time and costs a request nothing.** No request path is instrumented.
-The process gauges are read in the app container. The queue gauge is one `getJobCounts` call against
-Redis. The scheduled-job metrics are written into one Redis hash by the worker's `completed` and
-`failed` events (`lib/jobs/stats.ts`), because the worker runs in another container and an
-in-process counter there would be invisible to the app that answers the scrape. Each Redis read has
-a two-second bound. A collector that fails or times out drops its own metrics and reports `0` on
-`remit_metrics_collector_up`, and the scrape still returns `200` with everything else.
-
-[`docs/operations/METRICS.md`](../operations/METRICS.md) is the operator's scrape configuration.
-
----
-
-## 17. Testing strategy
-
-### Principle
-
-Tests exist to catch regressions in user-observable behavior, not to maximise a coverage metric.
-Every test justifies its existence by describing a behavior — never an implementation detail.
-
-### Coverage model
-
-```
-Tier 1 - Pure logic (>90%, CI gate)
-  features/*/services/         Tax calculations, state transitions, number generation,
-  hooks/                       rate resolution, next-run dates, billable hour aggregation.
-  features/*/hooks/            Non-trivial hooks with complex state or side effects.
-
-Tier 2 - Integration (every server action)
-  features/*/mutations.ts      Against a real Postgres instance (docker-compose.test.yml).
-  Recurring jobs               Daily invoice generation, overdue detection.
-  IO adapters                  Email providers, Stripe, S3 - SDK stubbed at module boundary.
-
-Tier 3 - E2E (Playwright)
-  tests/e2e/auth.spec.ts          Register → business setup → the TOTP QR step, and the
-                                  login page's CLI-reset help when SMTP is unconfigured.
-  tests/e2e/health.spec.ts        The public health endpoint.
-  tests/e2e/proposalToPaid        Client → project → proposal → anonymous OTP acceptance →
-                                  converted to an invoice → sent → payment recorded.
-  tests/e2e/timeToInvoice         Time entry → billed onto an invoice → sent → marked paid.
-  tests/e2e/recurringGeneration   A due schedule swept through a real BullMQ worker generates
-                                  one draft; a re-delivered occurrence generates nothing more.
-  tests/e2e/templateEditor*       Eleven specs over the canvas engine's pointer gestures,
-                                  which is the one surface whose behaviour only a real
-                                  browser can assert.
-
-Tier 4 - Selective component tests
-  When: state machine (multi-step dialogs), 3+ conditional branches,
-        form submission orchestration, non-trivial keyboard/focus behavior.
-  Always: assert visible output and user-observable behavior via getByRole.
-  Never: renderHook to inspect internal state, render counts, callback names.
-
-Tier 5 - Never tested
-  components/ui/    Trust shadcn + Radix UI.
-  Server components and pages - covered by E2E.
-  Pure presentational components with no logic.
-  Drizzle queries in isolation - covered by integration tests of their consumers.
-  Snapshot tests of rendered React - banned.
-```
-
-`.agents/rules/testing.md` names five canonical end-to-end flows this suite is held to. Flows two,
-three and four are Playwright specs; flow five is a Vitest integration test
-(`lib/auth/__tests__/passwordReset.integration.test.ts`) because Remit has exactly one user by
-construction — a browser-driven reset would change the credential of the sole owner every other spec
-authenticates as, and on a self-hosted instance that owner is a real account. Flow one is covered as
-far as the TOTP QR step; the recovery codes it shows next are not asserted anywhere, because
-`tests/e2e/support/ownerProvisioning.ts` finishes enrolment through Better Auth's own endpoints and
-never sees that screen. That commitment lives in the rule file, which is where a coverage target
-belongs — this document records the specs that exist.
-
-The full convention — file placement, naming, AAA structure, factories, determinism rules — lives in
-`.agents/rules/testing.md`. The project ships Vitest unit tests, Vitest integration tests against
-Dockerized Postgres, and Playwright E2E tests.
-
-### CI gates
-
-| Command                 | Runs                               | Gate                    |
-| ----------------------- | ---------------------------------- | ----------------------- |
-| `pnpm test`             | Vitest unit suite                  | Every PR                |
-| `pnpm test:integration` | Integration suite against Postgres | Every PR                |
-| `pnpm test:e2e`         | Playwright against built image     | PRs to `main` + nightly |
-
----
-
-## 18. Operating Remit for somebody else
-
-Remit is open-source and self-hostable. Running an instance on somebody else's behalf — a managed
-offering, an agency running one per client, an employer running one for a contractor — needs no
-application change, because of one architectural commitment the schema already keeps.
-
-### The commitment
-
-**One customer = one isolated Remit instance.** No shared database. No `tenantId` columns. No
-row-level tenant scoping inside the application code. The same Docker image and the same schema a
-self-hoster runs is what such a customer gets, with their own database and their own volume of
-files.
-
-The alternative — multi-tenancy via row-level scoping in a shared database — would force every
-domain query to carry tenant filtering, expand the security surface, and contradict the Design
-philosophy section. Per-instance isolation keeps the application code oblivious to whether it is
-running on a freelancer's Raspberry Pi or on somebody's fleet.
-
-That commitment is what this section is for. Without it, it is too easy for a contributor to add a
-`tenantId` column "just in case", which would compromise the single-instance model for self-hosters
-and add complexity nothing exercises. Everything an operator running a fleet would need beyond this
-— provisioning, routing, billing, centralised backups — is operations work outside this repository,
-and no part of it is here.
-
-`lib/config/env.ts` validates a `REMIT_HOSTED_MODE` boolean, and `/settings/backup` is what reads
-it: on a hosted instance the backup destination is the operator's, so that page renders read-only
-and its mutations refuse. Nothing else in the application branches on the flag, because nothing else
-differs — the isolation is structural rather than conditional.
-
----
-
-## 19. Open architectural questions
-
-Architectural questions that are genuinely undecided are recorded here, each with its candidate
-options and decision criteria, until it is settled; a settled decision lives in the relevant
-architecture section, not here. Recording open questions forces awareness of the trade-off space and
-prevents accidental de-facto decisions where the first prototype becomes the answer.
-
-No architectural questions are open. The section stays even while it is empty, because its value is
-the discipline it names rather than its contents: an undecided question is not an unbuilt feature,
-so it has a home here and nowhere else, and a system of this shape accumulates them. Two that such a
-system commonly leaves unsettled are decided — the PDF rendering engine and background job
-execution.
-
----
-
-_This document is the authoritative reference for Remit's technical architecture as it stands. It
-describes the system that exists; a capability that is not built is absent from it rather than
-marked. Sections are refined in place as the system changes; outdated paragraphs are rewritten
-rather than preserved as history (the git log is the historical record). When a significant
-architectural decision is made, this document is updated once the code behind it is real._
+`/api/health`, `/api/mcp`, `/api/v1/`, `/api/auth/` and `/api/webhooks/` pass straight through; each
+authenticates its own caller. `/api/metrics` is rewritten to `/api/metrics/scrape` only for an
+admitted scrape (`lib/metrics/admission.ts`). The matcher leaves out `api/upload/` and
+`api/storage/`, which set their own headers (`proxy.ts`).
+
+A page reads through `queries.ts`, gated by `requireRole` in `lib/auth/session.ts`, which answers an
+insufficient role with `notFound()`. A write is a server action in `mutations.ts`
+(`.agents/rules/actions.md`): validate, check the session and role, call the pure rule, write, then
+write the audit entry, emit the domain event and revalidate. It returns `{ data }` or `{ error }`
+and never throws to the client. API routes exist only for the anonymous token routes, webhooks,
+health and metrics and justified public surfaces such as uploads, downloads and the public API
+(`.agents/rules/routes.md`).
+
+The event bus (`lib/events/bus.ts`, names and payloads in `lib/events/types.ts`) is in-process.
+`emit` awaits every handler and catches nothing, so a handler catches and logs its own failures
+(`.agents/rules/events.md`). Its subscribers are `features/activityLog/events/`, which turns events
+into `activity_logs` rows, and `features/webhooks/events.ts`, which queues outbound deliveries. They
+are imported by `instrumentation.ts` for the app and by
+`scripts/core/worker/loadWorkerFeatureModules.ts` for the worker. The audit log is not on the bus:
+`writeAudit` (`lib/audit/index.ts`) runs inline in the action, because an entry a handler could drop
+is not an audit entry.
+
+## Job flow
+
+A server action or a sweep calls `enqueueJob` (`lib/jobs/enqueue.ts`); the names and payloads are
+the typed catalog in `lib/jobs/types.ts`. An enqueue that cannot reach Redis is logged, not thrown,
+so a queued side effect never fails the action; a malformed `jobId` does throw
+(`lib/jobs/jobId.ts`). The worker (`lib/jobs/worker.ts`) runs one job at a time, five attempts with
+exponential backoff (`lib/jobs/queue.ts`). A job name has exactly one handler, registered at module
+load by `features/*/jobs.ts` (`lib/jobs/registry.ts`), and the worker loads those modules through
+`scripts/core/worker/loadWorkerFeatureModules.ts`;
+`lib/jobs/__tests__/jobCatalog.integration.test.ts` fails when a name has no handler or a handler
+has no name. Money-affecting handlers are idempotent in the database, not by job id.
+
+Six sweeps are scheduled in UTC from `lib/jobs/schedules.ts`: backup, recurring invoices, overdue
+detection, reminders, retention purge and the hourly storage deletion sweep. A schedule that is
+dropped in code is removed from Redis at the next worker boot. The backup pattern is fixed; whether
+tonight is a backup night is decided from `settings.backup_cadence` in `features/backups/jobs.ts`.
+PDF rendering (`features/*/pdfRenderJob.ts`) and data and report exports run in the worker. A
+document with no template of its type renders from the built-in layout
+(`features/invoices/pdfRenderJob.ts`).
+
+## Data model principles
+
+- Table shapes, constraints and foreign-key actions are `database/schema/` and
+  `drizzle/migrations/`. Money is integer minor units (`.agents/rules/money-and-dates.md`).
+- Invoice states are `draft`, `sent` and `paid` in `database/schema/enums.ts`. `overdue` and
+  `partially_paid` are computed, never stored, by `deriveInvoiceStatusView` in
+  `features/invoices/services/invoiceStatusView.ts`, and a proposal is expired when
+  `isProposalExpired` in `features/proposals/services/proposalNumber.ts` says so.
+- What a client owes is one figure, `getInvoiceOutstandingCents`, and an invoice is settled exactly
+  when it reaches zero (`features/payments/services/paymentSettlement.ts`).
+- A conversion is recorded once, on the produced document (`invoices.proposal_id`,
+  `contracts.proposal_id`); the proposal has no pointer back (`database/schema/proposals.ts`).
+  Acceptance stamps `proposals.locked_at` (`features/proposals/publicResponse.ts`).
+- `time_entries.invoiced_in_id` and `expenses.invoiced_in_id` are the canonical billed link.
+  `features/invoices/billing.ts` stamps them in the invoice's own transaction with an `IS NULL`
+  predicate whose row count must match the plan, so nothing is billed twice.
+  `line_items.source_time_entry_id` and `source_expense_id` are per-line provenance, set only for a
+  line drawn from exactly one source row; they neither mirror nor derive from the billed link
+  (`features/invoices/services/billableConversion.ts`).
+- `audit_logs` and `contract_signatures` are insert-only, enforced by triggers in
+  `drizzle/migrations/0001_insert_only_guards.sql` (the signature row has one sanctioned update, its
+  signed PDF).
+- A project and a client on one document must agree, enforced by the composite key in
+  `drizzle/migrations/0002_document_parent_agreement.sql`; soft delete and the rest of the table
+  conventions are `.agents/rules/database.md`.
+- Deleting from the application is a soft delete that stamps one row and never cascades. The owner
+  restores from the trash (`features/trash/services/restoreEligibility.ts`) and purges by retention
+  windows that are null, meaning never purge, by default
+  (`features/trash/services/purgeSchedule.ts`). Erasing a client is a separate hard delete
+  (`features/clients/forget.ts`) that ignores every retention window and is refused while the client
+  has a countersigned contract, because the delete would cascade into an insert-only signature. Both
+  walk the delete order in `scripts/core/domainData/inventory.ts`.
+- A data export is an allowlist of table and column enforced at the select
+  (`features/dataExport/services/exportManifest.ts`); a test fails when a new column is neither
+  included nor excluded. Bearer tokens, every encrypted column and the Better Auth tables are
+  excluded.
+
+## Security model and roles
+
+**Roles.** Three roles, fixed in code: `owner`, `accountant`, `assistant` (`lib/auth/index.ts`).
+Exactly one owner per organization (`uq_member_owner_per_org` in `database/schema/organizations.ts`)
+and one organization per instance. The policy is spread over the gates in the eight
+`features/*/mutationContext.ts` files and in the `getCurrentRole` comparisons of the other
+`mutations.ts` files; this is the one statement of it:
+
+| Role         | Reads               | Writes                                                              |
+| ------------ | ------------------- | ------------------------------------------------------------------- |
+| `owner`      | everything          | everything, including send, delete, public links, settings and team |
+| `accountant` | every domain entity | records payments, writes credit notes, marks invoices paid, exports |
+| `assistant`  | every domain entity | creates and edits records: clients, projects, documents, time       |
+
+Send, delete, terminate, rotate or revoke a public link, and every settings page except the user's
+own profile, security and appearance, are owner-only. A full data export and the team are
+owner-only; an accountant may export a report or the expenses
+(`features/reports/mutationContext.ts`). `features/api/services/apiAccess.ts` restates what each
+role reads for API tokens, so narrowing a role is one edit there. A role that has no membership
+resolves to `null`, which every gate refuses (`lib/auth/session.ts`).
+
+Routes and pages gate with `requireRole`; server actions use `getCurrentRole` and return
+`{ error }`. A hidden link is never the authorization: each owner-only page repeats its own check.
+
+**Authentication.** Better Auth owns users, sessions, TOTP and memberships; the handler is
+`app/api/auth/[...all]/route.ts`, which writes the audit entries for sign-in, sign-up, password and
+TOTP routes and the rate-limit trips. TOTP enrollment is part of `setupComplete` in `proxy.ts`.
+
+**Public tokens.** Invoice, proposal, contract and portal links carry a bearer token minted only by
+`mintPublicToken` and compared with `matchesPublicToken` (`lib/publicToken.ts`). Public pages send
+`X-Robots-Tag: noindex` and every response carries a framing denial (`lib/securityHeaders.ts`,
+`applySecurityHeaders`).
+
+**Files.** A browser never talks to the object store. Uploads stream through
+`app/api/upload/[type]`; the public bucket is served by `app/api/storage/[...key]` and the private
+`documents` bucket only by `app/api/attachments/[id]` after a session check; the storage route
+cannot read any other bucket (`lib/storage/bucketNames.ts`, `app/api/storage/[...key]/route.ts`).
+Data exports and report PDFs live in a third `exports` bucket reached through `app/api/exports/[id]`
+and `app/api/report-exports/[id]`.
+
+**Rate limits.** `lib/rateLimit/` counts in Redis and falls back to a per-process counter while
+Redis is unreachable. Better Auth counts its own limits through it (`lib/auth/index.ts`), and
+`proxy.ts` limits the token routes and `/invite/`.
+
+**Assistants.** `/api/mcp` serves the public API's resources through the same
+`authenticateApiRequest` and response schemas as `/api/v1/` (`features/mcp/`,
+`features/api/responseSchemas.ts`): read-only, off until the owner enables it, and refused with a
+404 until then (`features/mcp/handleMcpRequest.ts`).
+
+## Locale
+
+Two locales are independent. The UI language comes from `lib/i18n/` (`lib/i18n/server.ts` translates
+on the server). The document locale, used for number and date formats in PDFs and emails, is
+`settings.default_locale` (`database/schema/settings.ts`), overridden per client by `clients.locale`
+(`database/schema/clients.ts`). Activity rows store a message key and its arguments, not rendered
+text, so the feed follows the viewer's language
+(`features/activityLog/__tests__/localeIndependence.test.ts`).
+
+## What leaves the instance
+
+Nothing leaves unless the operator configures it (`.agents/rules/security.md`). The outbound traffic
+is: the email, payment and object-store providers the operator supplies; webhook endpoints an owner
+registers, which receive record ids and a few scalar facts (`features/webhooks/services/payload.ts`)
+through `safePost` (`features/webhooks/safePost.ts`), which refuses private addresses unless
+allowed; and, only when `SENTRY_DSN` is set, error reports.
+
+An error report is built only by `buildErrorEvent` in `lib/errorTracking/errorEvent.ts`: it carries
+no message, request path, id or business data, and it drops the whole event rather than a field when
+a value is outside its vocabulary (`lib/errorTracking/__tests__/errorEvent.test.ts`). Reports leave
+from `instrumentation.ts`, `lib/jobs/worker.ts` and `scripts/worker.ts` and nowhere else; features
+cannot import the reporter (`featureBoundaryRule` in `eslint.config.mjs`).
+
+`GET /api/metrics` is pull only, behind `REMIT_METRICS_TOKEN`; an unadmitted request is
+indistinguishable from an unknown path (`lib/metrics/admission.ts`). It exposes process gauges,
+queue depths and the scheduled sweeps' outcomes, every label from a closed vocabulary, and no domain
+row counts (`lib/metrics/collectMetrics.ts`, `lib/metrics/__tests__/handleMetricsRequest.test.ts`);
+the scrape configuration is `docs/operations/METRICS.md`.
+
+The public API and the MCP server answer a holder of an API token with records of five resources:
+clients, projects, invoices, time entries and expenses (`features/api/services/apiAccess.ts`). Every
+result is parsed through a schema that names each field, so client notes, public tokens and storage
+keys are not returned (`features/api/responseSchemas.ts`). An answer to an assistant leaves the
+operator's control once returned.

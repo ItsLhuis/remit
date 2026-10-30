@@ -21,7 +21,7 @@ type ActivityTimelineItemsOptions<Entry extends ActivityEntry> = {
 // The one place a stored `message_key` becomes readable text. It runs on the client, through
 // `useTranslation`, so switching the interface language re-renders the whole history in the new
 // language — which is the reason rows store a key and ICU arguments instead of a rendered string
-// (ARCHITECTURE.md, internationalization).
+// (ARCHITECTURE.md, "Locale").
 export function useActivityTimelineItems<Entry extends ActivityEntry>({
   entries,
   locale,

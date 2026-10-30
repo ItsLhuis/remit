@@ -17,8 +17,8 @@ import { ROTATION_LOCK_ID } from "@/scripts/core/keyRotation/lock"
 import { isBackupDue } from "./services"
 
 // Distinguishes a scheduled archive from an operator's in the audit trail. Both write
-// `instance.backup.completed`, so without this the trail cannot answer "did the schedule run, or did
-// somebody run it by hand?" — the question an operator asks first when a backup is missing.
+// `instance.backup.completed`, so without this the trail cannot answer "did the schedule run, or
+// did somebody run it by hand?" — the question an operator asks first when a backup is missing.
 const SCHEDULED_USER_AGENT = "worker/backup"
 
 registerJobHandler("backup.run.sweep", runScheduledBackup)
@@ -28,9 +28,10 @@ registerJobHandler("backup.run.sweep", runScheduledBackup)
 // `/settings/backup` needs no scheduler write and can never leave a second scheduler in Redis —
 // see `lib/jobs/schedules.ts`.
 async function runScheduledBackup(): Promise<void> {
-  // ARCHITECTURE.md section 18: on a hosted instance the destination is the operator's and backups
-  // are theirs to run. Registering the scheduler regardless keeps `REPEATABLE_JOBS` static, so the
-  // refusal lives here where it is one branch rather than in the shape of the schedule.
+  // ARCHITECTURE.md, "Standing principles": on a hosted instance the destination is the operator's
+  // and backups are theirs to run. Registering the scheduler regardless keeps `REPEATABLE_JOBS`
+  // static, so the refusal lives here where it is one branch rather than in the shape of the
+  // schedule.
   if (env.REMIT_HOSTED_MODE) return
 
   const settingsRow = await database.query.settings.findFirst({

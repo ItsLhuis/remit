@@ -6,8 +6,9 @@ or changing one. Developer workflow scripts (`dev`, `services:*`, `database:test
 are out of scope.
 
 What a command does, its prompts and its flags are in the code. Run `pnpm remit:<operation> --help`
-for the flags; the parser and help text live in `scripts/core/<area>/args.ts`. The operator view of
-install, upgrade, backup and restore is in `docs/operations/`.
+for the flags of an operation that takes any; the parser and help text live in
+`scripts/core/<area>/args.ts`. `remit:reset-password` is interactive and has neither flags nor
+`--help`. The operator view of install, upgrade, backup and restore is in `docs/operations/`.
 
 ## Naming and layout
 

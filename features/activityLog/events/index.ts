@@ -10,7 +10,7 @@ import { subscribeProposalActivity } from "./proposals"
 import { subscribeRecurringInvoiceActivity } from "./recurringInvoices"
 import { subscribeTimeEntryActivity } from "./timeTracking"
 
-// The user-facing half of the fan-out described in ARCHITECTURE.md's event bus section: every
+// The user-facing half of the fan-out described in ARCHITECTURE.md, "Request flow": every
 // subscription in this folder turns one cross-feature domain event into one `activity_logs` row.
 // Handlers register when this module loads, the way `features/*/jobs.ts` register job handlers —
 // `instrumentation.ts` imports it for the Next server runtime and `scripts/worker.ts` for the job

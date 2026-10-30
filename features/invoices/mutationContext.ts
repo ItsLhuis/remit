@@ -90,8 +90,8 @@ export function requireInvoiceLateFee(): Promise<InvoiceWriteGate> {
 }
 
 // Owner-only, on the same footing as sending: rotating or revoking a link changes what a recipient
-// can still open, which is a transmit decision rather than a draft edit (ARCHITECTURE.md's role
-// table refuses `send` and `transmit` to both other roles).
+// can still open, which is a transmit decision rather than a draft edit (ARCHITECTURE.md,
+// "Security model and roles": links, sending and deleting are owner-only).
 export function requireInvoicePublicLink(): Promise<InvoiceWriteGate> {
   return requireInvoiceRole(["owner"])
 }

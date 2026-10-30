@@ -21,8 +21,8 @@ type CollectorResult = {
 
 // Well inside a scraper's default ten-second timeout. The bound is what keeps a Redis outage from
 // hanging the scrape: `lib/jobs/connection.ts` sets `maxRetriesPerRequest: null` for BullMQ's sake,
-// so a command issued while Redis is down is queued until it comes back rather than rejected, and an
-// unbounded await here would never settle.
+// so a command issued while Redis is down is queued until it comes back rather than rejected, and
+// an unbounded await here would never settle.
 const COLLECTOR_TIMEOUT_MS = 2_000
 
 const COLLECTORS: Collector[] = [
@@ -33,8 +33,9 @@ const COLLECTORS: Collector[] = [
 // Everything `/api/metrics` can ever expose is assembled here, and nothing else in the codebase
 // produces a family: this list is the allowlist, and `__tests__/handleMetricsRequest.test.ts` pins
 // it so a metric added later has to be added there too. No family carries a count of domain rows
-// (ARCHITECTURE.md section 1) and every label value is drawn from a closed vocabulary — a queue
-// state, a scheduled job name, a collector name — never from a path, an id or a message.
+// (ARCHITECTURE.md, "What leaves the instance") and every label value is drawn from a closed
+// vocabulary — a queue state, a scheduled job name, a collector name — never from a path, an id or
+// a message.
 //
 // A collector that fails or times out drops its own families and reports `0` on
 // `remit_metrics_collector_up` instead of failing the response: a 500 because Redis blipped would

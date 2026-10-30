@@ -231,7 +231,7 @@ function toGroupDescription(row: BillableTimeEntryRow, grouping: BillableGroupin
 // Provenance is written only for a line drawn from exactly one source row. Naming one member of a
 // grouped line would assert of that line a fact true of only part of it, and
 // `time_entries.invoiced_in_id` already carries the complete "billed on that invoice" answer for
-// every entry in the group (ARCHITECTURE.md's key invariants).
+// every entry in the group (ARCHITECTURE.md, "Data model principles").
 function toTimeLineDraft(group: TimeEntryGroup, hourUnit: string): BillableLineDraft {
   return {
     description: group.description,

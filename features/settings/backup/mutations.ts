@@ -229,9 +229,9 @@ async function requireBackupSettingsWrite(): Promise<BackupSettingsWriteGate> {
 
   if (role !== "owner") return { error: t("errors.forbidden") }
 
-  // Hosted mode makes the destination operator-managed (ARCHITECTURE.md section 18). The form
-  // renders read-only there, but the refusal has to live here too: a read-only form is a rendering
-  // decision and never the authorization.
+  // Hosted mode makes the destination operator-managed (ARCHITECTURE.md, "Standing principles").
+  // The form renders read-only there, but the refusal has to live here too: a read-only form is a
+  // rendering decision and never the authorization.
   if (env.REMIT_HOSTED_MODE) return { error: t("settings.backup.errors.hostedManaged") }
 
   return {

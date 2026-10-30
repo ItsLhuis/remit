@@ -126,7 +126,7 @@ export async function getClientPortal(input: unknown): Promise<ClientPortal | nu
     clientName: client.name,
     issuer: { name: issuer.name, email: issuer.email },
     // The client's own locale wins over the instance default, because this page is read by that
-    // client and ARCHITECTURE.md section 15 makes `clients.locale` the document locale. The time
+    // client and ARCHITECTURE.md, "Locale", makes `clients.locale` the document locale. The time
     // zone stays the instance's: it is where the business books its dates, and a due date that moved
     // because the reader is travelling would be a different due date.
     locale: client.locale ?? issuer.locale,

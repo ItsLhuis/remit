@@ -93,8 +93,8 @@ reports leave only when the operator sets `SENTRY_DSN` (`lib/errorTracking/repor
 The proxy logic in `proxy.ts` derives authentication and onboarding state exclusively from the
 database and the session. Routing state is never stored in cookies. Adding a cookie to control which
 route a user is directed to is a violation of this rule; extend the DB-derived state machine
-instead. See `docs/architecture/ARCHITECTURE.md` (Security Architecture - Routing state rule) for
-the authoritative state machine.
+instead. The state machine is listed in `docs/architecture/ARCHITECTURE.md` ("Request flow") and is
+the guard order in `proxy.ts`, tested in `__tests__/proxy.test.ts`.
 
 ## Comments
 

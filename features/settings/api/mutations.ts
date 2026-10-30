@@ -138,8 +138,8 @@ export async function revokeApiToken(input: unknown): Promise<RevokeApiTokenResu
 }
 
 // Owner-only, on the footing of the client portal link: a standing bearer credential to the
-// instance's business data is a transmit decision, which ARCHITECTURE.md's role table refuses to
-// both other roles.
+// instance's business data is a transmit decision, which ARCHITECTURE.md, "Security
+// model and roles", reserves to the owner.
 async function requireApiTokenWrite(): Promise<ApiTokenWriteGate> {
   const requestHeaders = await headers()
   const session = await auth.api.getSession({ headers: requestHeaders })

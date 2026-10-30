@@ -154,7 +154,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test -f scripts/core/archive/README.md && ! git grep -q "BACKUP-ARCHIVE" -- ':!openspec' && pnpm exec vitest run tests/docs scripts/core/archive`
 
-- [ ] 7. The architecture map
+- [x] 7. The architecture map
   - Do: rewrite `docs/architecture/ARCHITECTURE.md` to the proposal's map outline, at most 20 KB,
     resolving A1-A19 and H1; each surviving section is one principle plus the named file that
     verifies it. Draft in the scratch folder, check with a script that every backticked path exists,
