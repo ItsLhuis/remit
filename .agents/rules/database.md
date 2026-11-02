@@ -66,9 +66,9 @@ values with `Intl.NumberFormat` at the application boundary.
 
 After any schema change, run `pnpm database:generate` to create a migration file. Never edit
 generated migration output. Hand-written SQL migrations exist only for what Drizzle cannot express,
-each states why in its header, as `drizzle/migrations/0001_insert_only_guards.sql` does, and a
-squash must recreate them unchanged. Do not run `pnpm database:migrate` without confirming the
-target environment first.
+each states why in its header, as `drizzle/migrations/0001_insert_only_guards.sql` does, and the
+squash before the schema freeze, which the owner schedules, must recreate them unchanged. Do not run
+`pnpm database:migrate` without confirming the target environment first.
 
 ## Database access
 
