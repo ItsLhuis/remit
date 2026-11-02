@@ -261,7 +261,7 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Done when: a planted `.agents/rules/gone.md` citation fails the test; the budget holds.
   - Verify: `pnpm exec vitest run tests/docs && test $(cat AGENTS.md CLAUDE.md | wc -c) -le 10201`
 
-- [ ] 11. Verify the change
+- [x] 11. Verify the change
   - Do: measure `docs/` against the proposal; confirm the map is at most 20 KB; grep for
     `SCHEMA.md`, `CLI-CONTRACT`, `BACKUP-ARCHIVE`, `docs/README.md`, `raspberry-pi.md` and numbered
     `ARCHITECTURE.md` sections; run the present-tense grep over every file the change touched; run
