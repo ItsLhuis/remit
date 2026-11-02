@@ -3,11 +3,11 @@ set -euo pipefail
 
 # The budget for a first start, which applies every pending migration before the app answers. A cold
 # start from empty volumes, measured with the app and worker held to one x86 CPU and 1 GB each, was
-# healthy 14 seconds after `docker compose up`. A Raspberry Pi on an SD card, the slowest host the
-# deployment guides name, has not been measured, so the default leaves forty times that: running out
-# early tells an operator their install failed while it was still starting, and costs nothing when it
-# succeeds sooner. REMIT_HEALTH_TIMEOUT_SECONDS, or --timeout, gives a slower host longer, through
-# the installer and the upgrade alike.
+# healthy 14 seconds after `docker compose up`. Slow-storage and arm64 hosts are the slowest case and
+# have not been measured, so the default leaves forty times that: running out early tells an operator
+# their install failed while it was still starting, and costs nothing when it succeeds sooner.
+# REMIT_HEALTH_TIMEOUT_SECONDS, or --timeout, gives a slower host longer, through the installer and
+# the upgrade alike.
 default_timeout_seconds=600
 timeout_seconds=${REMIT_HEALTH_TIMEOUT_SECONDS:-$default_timeout_seconds}
 interval_seconds=5
