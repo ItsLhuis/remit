@@ -250,6 +250,17 @@ and each hit is removed or justified in the commit body as present behaviour.
   - Verify:
     `test ! -f docs/README.md && ! git grep -q "docs/README.md" -- ':!openspec' && ! git grep -q "(setup)" -- AGENTS.md && pnpm exec vitest run tests/docs`
 
+- [x] 10a. Review findings of task 10
+  - Do: `tests/docs/links.test.ts` recognises `.md` paths under dot-prefixed directories
+    (`.agents/rules/security.md`, `.github/SECURITY.md`) cited in code comments, and the
+    planted-path test covers one; it also scans the other tracked files whose comments cite
+    repository `.md` paths (`.env.example`, compose files, workflows, `eslint.config.mjs`,
+    `.claude/hooks/`, `.codex/`) or states in a comment that only TypeScript is scanned. The
+    `AGENTS.md` References line says the plans align with the architecture map again, within the
+    always-loaded byte budget (10,201).
+  - Done when: a planted `.agents/rules/gone.md` citation fails the test; the budget holds.
+  - Verify: `pnpm exec vitest run tests/docs && test $(cat AGENTS.md CLAUDE.md | wc -c) -le 10201`
+
 - [ ] 11. Verify the change
   - Do: measure `docs/` against the proposal; confirm the map is at most 20 KB; grep for
     `SCHEMA.md`, `CLI-CONTRACT`, `BACKUP-ARCHIVE`, `docs/README.md`, `raspberry-pi.md` and numbered

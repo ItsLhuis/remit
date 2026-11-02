@@ -92,11 +92,11 @@ describe the present state; history lives in git.
 
 ## Rules
 
-Before writing or editing a file, read the rules that match it. Claude Code loads a pointer to the
-matching rule automatically (`.claude/rules/`); other agents use this table. A rule counts as
-enforced only when a lint rule at `error` backs it; the rest is reviewer guidance. `pnpm lint` does
-not fail on warnings; the `warn` rules (`max-lines`, `max-params`, `sonarjs/*`) are advisory and no
-change may add new warnings to them.
+Before writing or editing a file, read the rules that match it. Claude Code loads the matching rule
+pointer automatically (`.claude/rules/`); others use this table. A rule counts as enforced only when
+a lint rule at `error` backs it; the rest is reviewer guidance. `pnpm lint` does not fail on
+warnings; the `warn` rules (`max-lines`, `max-params`, `sonarjs/*`) are advisory and no change may
+add new ones.
 
 | Files                                                    | Rules                                                                             |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -137,6 +137,7 @@ oxlint without deciding deliberately which tool owns them.
 
 ## References
 
-- `docs/architecture/ARCHITECTURE.md` - the architecture map; the file a section names wins over it.
+- `docs/architecture/ARCHITECTURE.md` - the architecture map; plans align with it; the file a
+  section names wins over it.
 - `openspec/README.md` - the spec format; `openspec/backlog.md` - what is next and every known gap.
 - `.agents/README.md` - where agent guidance lives and how the tool wrappers map to it.
