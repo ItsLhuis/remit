@@ -50,8 +50,8 @@ export async function countRateLimitTrip(
 
     return decideTripAudit(parseTripReply(reply))
   } catch {
-    // Not logged: a refusal reaches this only after the limiter made the same round trip, and
-    // `redisAdapter.ts` already reports the outage once, when it starts.
+    // Not logged: the fallback still counts, and `redisAdapter.ts` reports the outage once, when it
+    // starts, on any limited request.
     return decideTripAudit(fallback.count(key, windowMs))
   }
 }

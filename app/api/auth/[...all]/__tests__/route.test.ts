@@ -6,6 +6,7 @@ const USER_ID = "00000000-0000-0000-0000-000000000001"
 const REQUEST_IP = "203.0.113.1"
 const REQUEST_USER_AGENT = "vitest"
 const USER_ID_PREDICATE = "user id predicate"
+const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
 
 const requestAuditContext = {
   ipAddress: REQUEST_IP,
@@ -23,7 +24,9 @@ const mocks = vi.hoisted(() => ({
   betterAuthGet: vi.fn(() => new Response(null, { status: 204 })),
   betterAuthPost: vi.fn(),
   writeAudit: vi.fn(),
+  countRateLimitTrip: vi.fn(),
   getSession: vi.fn(),
+  loggerError: vi.fn(),
   set: vi.fn(),
   where: vi.fn(),
   update: vi.fn(),
@@ -51,6 +54,16 @@ vi.mock("@/lib/audit", () => ({
   // one-entry-per-window counting itself is covered by `lib/rateLimit/__tests__/tripWindow.test.ts`.
   writeRateLimitTripAudit: (_trip: unknown, options: unknown) =>
     mocks.writeAudit("auth.rate_limit.tripped", options)
+}))
+
+vi.mock("@/lib/rateLimit", () => ({
+  countRateLimitTrip: mocks.countRateLimitTrip
+}))
+
+vi.mock("@/lib/i18n/server", () => ({ t: (key: string) => key }))
+
+vi.mock("@/lib/logger", () => ({
+  logger: { error: mocks.loggerError }
 }))
 
 vi.mock("drizzle-orm", () => ({
@@ -97,6 +110,7 @@ describe("auth route audit wrapper", () => {
     vi.clearAllMocks()
 
     mocks.betterAuthPost.mockResolvedValue(new Response(null, { status: 204 }))
+    mocks.countRateLimitTrip.mockResolvedValue({ write: true, suppressedSincePreviousEntry: 0 })
     mocks.getSession.mockResolvedValue({
       user: { id: USER_ID }
     })
@@ -220,4 +234,126 @@ describe("auth route audit wrapper", () => {
       })
     }
   )
+
+  test.each(["owner", "accountant", "assistant"])(
+    "refuses to disable two-factor when the session belongs to an %s",
+    async (role) => {
+      mocks.getSession.mockResolvedValueOnce({ user: { id: USER_ID, role } })
+
+      const response = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+      expect(response.status).toBe(403)
+      expect(await response.json()).toEqual({ error: "errors.forbidden" })
+      expect(mocks.betterAuthPost).not.toHaveBeenCalled()
+    }
+  )
+
+  test("refuses to disable two-factor when there is no session", async () => {
+    mocks.getSession.mockResolvedValueOnce(null)
+
+    const response = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: "errors.forbidden" })
+    expect(mocks.betterAuthPost).not.toHaveBeenCalled()
+  })
+
+  test("audits a windowed refusal with the session user and the suppressed count", async () => {
+    mocks.countRateLimitTrip.mockResolvedValueOnce({
+      write: true,
+      suppressedSincePreviousEntry: 12
+    })
+
+    await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(mocks.countRateLimitTrip).toHaveBeenCalledWith(
+      `auth:two-factor-disable:${REQUEST_IP}`,
+      FIFTEEN_MINUTES_MS
+    )
+    expect(mocks.writeAudit).toHaveBeenCalledTimes(1)
+    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.totp.disable_refused", {
+      ...userAuditContext,
+      metadata: { suppressedSincePreviousEntry: 12 }
+    })
+  })
+
+  test("audits a refusal without an actor when there is no session", async () => {
+    mocks.getSession.mockResolvedValueOnce(null)
+
+    await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.totp.disable_refused", {
+      ...requestAuditContext,
+      metadata: { suppressedSincePreviousEntry: 0 }
+    })
+  })
+
+  test("still refuses and audits without an actor when the session read fails", async () => {
+    const sessionError = new Error("database unavailable")
+
+    mocks.getSession.mockRejectedValueOnce(sessionError)
+
+    const response = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(response.status).toBe(403)
+    expect(mocks.betterAuthPost).not.toHaveBeenCalled()
+    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.totp.disable_refused", {
+      ...requestAuditContext,
+      metadata: { suppressedSincePreviousEntry: 0 }
+    })
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      expect.objectContaining({ err: sessionError }),
+      expect.any(String)
+    )
+  })
+
+  test("audits once and refuses both when refusals repeat inside a window", async () => {
+    mocks.countRateLimitTrip
+      .mockResolvedValueOnce({ write: true, suppressedSincePreviousEntry: 0 })
+      .mockResolvedValueOnce({ write: false })
+
+    const first = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+    const second = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(first.status).toBe(403)
+    expect(second.status).toBe(403)
+    expect(mocks.writeAudit).toHaveBeenCalledTimes(1)
+    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.totp.disable_refused", {
+      ...userAuditContext,
+      metadata: { suppressedSincePreviousEntry: 0 }
+    })
+  })
+
+  test("still refuses, without an entry or a session read, when the window suppresses the refusal", async () => {
+    mocks.countRateLimitTrip.mockResolvedValueOnce({ write: false })
+
+    const response = await postToAuthRoute("/two-factor/disable", { password: "correct" })
+
+    expect(response.status).toBe(403)
+    expect(mocks.writeAudit).not.toHaveBeenCalled()
+    expect(mocks.getSession).not.toHaveBeenCalled()
+    expect(mocks.betterAuthPost).not.toHaveBeenCalled()
+  })
+
+  test("counts refusals under one key when the caller varies the path prefix", async () => {
+    await postToAuthRoute("/anything/two-factor/disable")
+
+    expect(mocks.countRateLimitTrip).toHaveBeenCalledWith(
+      `auth:two-factor-disable:${REQUEST_IP}`,
+      FIFTEEN_MINUTES_MS
+    )
+  })
+
+  test.each([
+    "/two-factor/enable",
+    "/two-factor/verify-totp",
+    "/two-factor/verify-backup-code",
+    "/two-factor/generate-backup-codes"
+  ])("still hands %s to Better Auth", async (path) => {
+    const response = await postToAuthRoute(path, { code: "123456" })
+
+    expect(response.status).toBe(204)
+    expect(mocks.betterAuthPost).toHaveBeenCalledTimes(1)
+    expect(mocks.countRateLimitTrip).not.toHaveBeenCalled()
+  })
 })

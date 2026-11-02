@@ -3,7 +3,7 @@
 Each task is one commit whose body contains `Change: enforce-totp-always-on, task <n>`. Tick the box
 in the same commit. A ticked box is a claim; `next-step` checks it against `git log`.
 
-- [ ] 1. Refuse the disable route, audited, with the rule and the spec requirement that state it
+- [x] 1. Refuse the disable route, audited, with the rule and the spec requirement that state it
   - Do: in `app/api/auth/[...all]/route.ts`, answer `POST` paths ending in `/two-factor/disable`
     before `getAuditedRoute`, as the proposal's Decisions say; add `auth.totp.disable_refused` to
     `AuditEvent` in `lib/audit/index.ts`. In `app/api/auth/[...all]/__tests__/route.test.ts`, cover

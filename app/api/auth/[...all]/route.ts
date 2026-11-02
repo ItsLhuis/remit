@@ -1,24 +1,31 @@
-import { type NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
 import { toNextJsHandler } from "better-auth/next-js"
 
 import { eq } from "drizzle-orm"
 
+import { t } from "@/lib/i18n/server"
+
 import { auth } from "@/lib/auth"
 
 import { writeAudit, writeRateLimitTripAudit } from "@/lib/audit"
 
+import { logger } from "@/lib/logger"
+
 import { getIpAddress } from "@/lib/utils"
+
+import { countRateLimitTrip } from "@/lib/rateLimit"
 
 import { database } from "@/database"
 import { users } from "@/database/schema"
 
 const handler = toNextJsHandler(auth)
 
-// Better Auth applies these limits itself, counting them in Redis through `lib/rateLimit`'s
-// `toBetterAuthRateLimitStorage`, and tells this route only that it refused, so the audit
-// windows on the shortest of its windows (`lib/auth/index.ts`, sign-in's 15 minutes): one entry per
-// address and path per window, never one per refused attempt.
+// The audit window of every refusal in this file, never one entry per refused attempt: Better
+// Auth's limits get one per address and path, the two-factor disable refusal one per address.
+// Better Auth applies its limits itself, counting them in Redis through `lib/rateLimit`'s
+// `toBetterAuthRateLimitStorage`, and tells this route only that it refused, so the length is the
+// shortest of its windows (`lib/auth/index.ts`, sign-in's 15 minutes).
 const AUTH_TRIP_WINDOW_MS = 15 * 60 * 1000
 
 type AuditContext = {
@@ -156,10 +163,56 @@ async function auditSignInResponse(
   })
 }
 
+// Swallowed deliberately: the window has already counted this refusal as its first, so a throw here
+// would lose the window's only entry and turn the refusal into a server error.
+async function getRefusedSessionUser(request: NextRequest): Promise<SessionUser | null> {
+  try {
+    return await getSessionUser(request)
+  } catch (error) {
+    logger.error(
+      { action: "api.auth.refuseTwoFactorDisable", err: error },
+      "Session read failed, auditing the refusal without an actor"
+    )
+
+    return null
+  }
+}
+
+// TOTP can never be disabled (`.agents/rules/security.md`), and Better Auth's handler clears the
+// factor for any session holding the password, so the refusal comes before it. This path is open
+// without a session and ahead of Better Auth's limiter, so the audit is windowed: a row per request
+// would let an anonymous caller flood the insert-only `audit_logs`, and reading the session only for
+// a written entry keeps a flood from one address at one Redis round trip per request. The key never
+// holds the pathname, because the suffix match accepts caller-chosen prefixes.
+async function refuseTwoFactorDisable(request: NextRequest): Promise<Response> {
+  const context: AuditContext = {
+    ipAddress: getIpAddress(request.headers),
+    userAgent: request.headers.get("user-agent") ?? null
+  }
+  const decision = await countRateLimitTrip(
+    `auth:two-factor-disable:${context.ipAddress ?? "unknown"}`,
+    AUTH_TRIP_WINDOW_MS
+  )
+
+  if (decision.write) {
+    const user = await getRefusedSessionUser(request)
+
+    await writeAudit("auth.totp.disable_refused", {
+      ...withUserAuditContext(context, user),
+      metadata: { suppressedSincePreviousEntry: decision.suppressedSincePreviousEntry }
+    })
+  }
+
+  return NextResponse.json({ error: t("errors.forbidden") }, { status: 403 })
+}
+
 export const GET = handler.GET
 
 export async function POST(request: NextRequest): Promise<Response> {
   const pathname = new URL(request.url).pathname
+
+  if (pathname.endsWith("/two-factor/disable")) return await refuseTwoFactorDisable(request)
+
   const auditedRoute = getAuditedRoute(pathname)
 
   if (!auditedRoute) return handler.POST(request)

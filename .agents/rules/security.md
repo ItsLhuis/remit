@@ -67,9 +67,10 @@ request audit metadata helper under `lib/utils/request.ts`.
 No endpoint that handles authentication or processes a public token ships without a rate limit.
 Sign-in, sign-up and password reset requests take theirs from `rateLimit.customRules` in
 `lib/auth/index.ts`, the Better Auth two-factor plugin limits `/two-factor/` routes (recovery code
-redemption included) to 3 per 10 seconds, and every other Better Auth route takes the default there;
-`proxy.ts` limits every public token route, and a route module adds a tighter limit where it needs
-one (`app/(public)/s/[token]/page.tsx`).
+redemption included, `/two-factor/disable` excepted because it is refused before the limiter) to 3
+per 10 seconds, and every other Better Auth route takes the default there; `proxy.ts` limits every
+public token route, and a route module adds a tighter limit where it needs one
+(`app/(public)/s/[token]/page.tsx`).
 
 ## Cookie settings
 
@@ -78,10 +79,9 @@ Cookies set anywhere in the codebase use `httpOnly: true`, `secure: true` in pro
 
 ## Two-factor authentication
 
-TOTP can never be disabled, for any role: no Remit surface may offer a way to turn it off, and when
-Better Auth's `/api/auth/two-factor/disable` (not refused by `app/api/auth/[...all]/route.ts`) turns
-it off, `proxy.ts` sends the session back to `/setup` to enrol again once the five-minute session
-cookie cache in `lib/auth/index.ts` expires.
+TOTP can never be disabled, for any role: no Remit surface offers it, and
+`app/api/auth/[...all]/route.ts` answers Better Auth's `POST /api/auth/two-factor/disable` with
+`403` before its handler, audited as `auth.totp.disable_refused`, one entry per address per window.
 
 ## Outbound traffic
 

@@ -30,8 +30,9 @@ cache expires. The application refuses the request instead.
   the count the previous window suppressed, through `countRateLimitTrip`. The route is reachable
   without a session and sits before Better Auth's limiter, so a row per request would let an
   anonymous caller flood the insert-only `audit_logs`. The session is read only when an entry is
-  written, so a flood costs one Redis round trip per request. The trip key is a fixed string plus
-  the address, never the pathname, because the suffix match accepts caller-chosen prefixes.
+  written, so a flood from one address costs one Redis round trip per request. The trip key is a
+  fixed string plus the address, never the pathname, because the suffix match accepts caller-chosen
+  prefixes. The bound holds where a reverse proxy overwrites `X-Forwarded-For` (GAP-4).
 - The match is the file's `pathname.endsWith`. Better Auth's router matches the path byte for byte
   and answers 404 for a trailing slash, an encoded byte, a changed case or a doubled slash, so the
   one spelling that runs the endpoint is the one refused.
