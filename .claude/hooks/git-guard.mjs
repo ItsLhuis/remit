@@ -35,7 +35,15 @@ function isDirectory(path) {
   }
 }
 
-const verdict = classifyCommand(command, isDirectory)
+function isFile(path) {
+  try {
+    return statSync(resolve(workingDirectory, path)).isFile()
+  } catch {
+    return false
+  }
+}
+
+const verdict = classifyCommand(command, isDirectory, isFile)
 
 if (!verdict.allowed) {
   process.stderr.write(
