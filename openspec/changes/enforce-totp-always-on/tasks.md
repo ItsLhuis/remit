@@ -19,7 +19,7 @@ in the same commit. A ticked box is a claim; `next-step` checks it against `git 
     rule and its enforcing file with no caveat.
   - Verify:
     `pnpm exec vitest run "app/api/auth/[...all]/__tests__/route.test.ts" tests/docs/openspec.test.ts`
-- [ ] 2. Specify enrolment and recovery codes against the code
+- [x] 2. Specify enrolment and recovery codes against the code
   - Do: add a test to `__tests__/proxy.test.ts` that a session with a business name and no TOTP
     factor is sent to `/setup` from a dashboard route, with no change to `proxy.ts`. Add the
     requirements "TOTP enrolment is required" and "Recovery codes" to the spec with `write-spec`,

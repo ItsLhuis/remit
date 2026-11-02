@@ -1,7 +1,8 @@
 # Two-factor authentication
 
 A TOTP second factor protects every Remit account, for every role. An account holder cannot turn it
-off, whatever the role and even with the correct password.
+off, whatever the role and even with the correct password. Enrolment comes before the dashboard, and
+recovery codes stand in for the authenticator at sign-in.
 
 ## Status
 
@@ -37,6 +38,78 @@ forbidden message, and SHALL leave the account's factor untouched.
 
 Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts`
 
+### Requirement: TOTP enrolment is required
+
+The system SHALL send a session with no TOTP factor to `/setup` from a dashboard route, even when
+the business profile is complete.
+
+#### Scenario: A business name and no factor
+
+- WHEN a session with a business name and no TOTP factor requests a dashboard route
+- THEN the response redirects to `/setup`
+
+#### Scenario: Setup stays reachable
+
+- WHEN a session with no business name and no TOTP factor requests `/setup`
+- THEN the request is not redirected
+
+#### Scenario: An enrolled member
+
+- WHEN a member with a business name and a TOTP factor requests the dashboard
+- THEN the request is not redirected
+
+#### Scenario: The wizard opens on the TOTP step
+
+- WHEN the setup form starts on the TOTP step because the business profile is complete
+- THEN it shows the TOTP step and no business profile field
+
+Enforced by: `__tests__/proxy.test.ts` `features/setup/components/__tests__/SetupForm.test.tsx`
+
+### Requirement: Recovery codes
+
+The system SHALL show recovery codes once a TOTP factor is verified, and SHALL let a recovery code
+stand in for a TOTP code at sign-in.
+
+#### Scenario: Enrolling during setup
+
+- WHEN a code from the authenticator verifies in the setup wizard
+- THEN the codes `twoFactor.enable` returned are listed, and confirming them and continuing finishes
+  the wizard
+
+#### Scenario: Reconfiguring in security settings
+
+- WHEN a code from the new authenticator verifies in the reconfigure dialog
+- THEN the codes `twoFactor.generateBackupCodes` returned are listed, and confirming them closes the
+  flow with a success message
+
+#### Scenario: Choosing a recovery code at sign-in
+
+- WHEN the user selects the recovery option on the TOTP form
+- THEN the form asks for a recovery code
+
+#### Scenario: A code is accepted
+
+- WHEN a recovery code is accepted on the recovery form
+- THEN the form hands on to the signed-in state
+
+#### Scenario: A code is refused
+
+- WHEN verification of a recovery code fails
+- THEN the form shows the error verification returned
+
+#### Scenario: A malformed code
+
+- WHEN the entered text does not match the recovery code format
+- THEN the form shows a format error
+
+#### Scenario: A verified code is audited
+
+- WHEN a recovery code verifies on a request that carries a session
+- THEN an `auth.backup_code.consumed` entry is written with that user as actor and target
+
+<!-- prettier-ignore -->
+Enforced by: `features/setup/components/__tests__/SetupForm.test.tsx` `features/settings/security/components/TotpReconfigureDialog/__tests__/TotpReconfigureDialog.test.tsx` `features/auth/components/LoginForm/__tests__/TotpForm.test.tsx` `features/auth/components/LoginForm/__tests__/RecoveryCodeForm.test.tsx` `app/api/auth/[...all]/__tests__/route.test.ts`
+
 ## How it works
 
 `POST` in `app/api/auth/[...all]/route.ts` matches the path suffix `/two-factor/disable` before it
@@ -48,6 +121,18 @@ stays `403`.
 Better Auth's router matches a path byte for byte and answers `404` for a trailing slash, an encoded
 byte, a changed case or a doubled slash, so the one spelling that runs the endpoint is the one
 refused.
+
+`proxy.ts` counts setup as complete only with a business name on the settings row and a TOTP factor
+on the session; until then it sends every route but `/setup` and `/api/setup/` to `/setup`.
+`app/(auth)/setup/page.tsx` picks the wizard's first step from `getSetupProgress`
+(`features/setup/queries.ts`).
+
+The setup wizard takes its codes from `twoFactor.enable`
+(`features/setup/components/TotpEnableStep.tsx`) and lists them in `RecoveryCodesStep.tsx`. The
+reconfigure dialog requests its own after the new factor verifies
+(`features/settings/security/components/TotpReconfigureDialog/ScanStep.tsx`).
+`features/auth/components/LoginForm/TotpForm.tsx` opens `RecoveryCodeForm.tsx`, and `POST` in
+`app/api/auth/[...all]/route.ts` audits a successful verification.
 
 ## Decisions
 
@@ -68,6 +153,12 @@ prefixes. The bound is per address, and the address comes from `getIpAddress`, w
 does), and a caller reaching the app directly can vary it. Rejected: a row per request, because an
 anonymous caller could flood the insert-only `audit_logs`; the pathname in the key, because a caller
 could then mint a fresh window per request.
+
+### D3: Enrolment is enforced by the routing guard, from the database and the session
+
+`proxy.ts` derives "setup complete" on every request from the settings row and the session, so a
+user cannot leave the wizard by navigating away. Rejected: a routing cookie, which
+`.agents/rules/security.md` forbids.
 
 ## Known limits
 

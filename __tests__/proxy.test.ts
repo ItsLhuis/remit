@@ -243,6 +243,19 @@ describe("proxy on a session whose membership is gone", () => {
   })
 })
 
+describe("proxy on a session with no TOTP factor", () => {
+  test("sends a session with a business name to setup from a dashboard route", async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: "user-1", twoFactorEnabled: false } })
+    mocks.selectResults = [[{ id: "user-1" }], [{ businessName: "Acme" }]]
+
+    const { proxy } = await import("../proxy")
+
+    const response = await proxy(createRequest("/invoices"))
+
+    expect(response.headers.get("location")).toBe("https://remit.test/setup")
+  })
+})
+
 describe("proxy on the metrics path", () => {
   function metricsRequest(authorization?: string): NextRequest {
     return new NextRequest("https://remit.test/api/metrics", {
