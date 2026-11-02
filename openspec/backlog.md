@@ -7,9 +7,6 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
-1. `restructure-reference-docs` — reduce `docs/` to runbooks, deployment guides, standing contracts
-   and a short architecture map
-
 ## Gaps
 
 Every gap has exactly one owner: a change name from Next or `openspec/changes/`, `owner` (needs an
