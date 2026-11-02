@@ -24,8 +24,8 @@ import { subscribeTimeEntryActivity } from "./timeTracking"
 // Every value of the `entity_type` enum is written by these modules and no other, which is what lets
 // the feed's type filter be generated from the enum instead of hand-listed. Tasks are the deliberate
 // absence: they are the highest-volume record in the product, and a feed that announced them would
-// bury the documents and money it exists to show, so `task` was removed from the enum rather than
-// left as a filter option that can never match.
+// bury the documents and money it exists to show, so `task` is not in the enum: a filter option
+// that can never match would be worse.
 subscribeClientActivity()
 subscribeLeadActivity()
 subscribeProjectActivity()
