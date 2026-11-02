@@ -267,7 +267,7 @@ describe("auth route audit wrapper", () => {
     await postToAuthRoute("/two-factor/disable", { password: "correct" })
 
     expect(mocks.countRateLimitTrip).toHaveBeenCalledWith(
-      `auth:two-factor-disable:${REQUEST_IP}`,
+      "auth:two-factor-disable",
       FIFTEEN_MINUTES_MS
     )
     expect(mocks.writeAudit).toHaveBeenCalledTimes(1)
@@ -339,7 +339,7 @@ describe("auth route audit wrapper", () => {
     await postToAuthRoute("/anything/two-factor/disable")
 
     expect(mocks.countRateLimitTrip).toHaveBeenCalledWith(
-      `auth:two-factor-disable:${REQUEST_IP}`,
+      "auth:two-factor-disable",
       FIFTEEN_MINUTES_MS
     )
   })

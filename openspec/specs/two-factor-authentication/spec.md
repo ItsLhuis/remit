@@ -27,7 +27,7 @@ forbidden message, and SHALL leave the account's factor untouched.
 
 #### Scenario: A refusal is audited once per window
 
-- WHEN refusals repeat from one address inside a window
+- WHEN refusals repeat inside a window, from any address
 - THEN one `auth.totp.disable_refused` entry is written, carrying the session user when there is one
   and the count the previous window suppressed, and the rest write nothing and read no session
 
@@ -142,17 +142,15 @@ The route never asks who is calling before it refuses, so no session changes the
 `404`, because the route is known and refused; `401`, because signing in would not change the
 answer.
 
-### D2: The refusal's audit is windowed per address
+### D2: The refusal's audit is windowed across the instance
 
-One entry per address per 15 minutes, carrying the count the previous window suppressed. The route
-is reachable without a session and sits before Better Auth's limiter, so the session is read only
-when an entry is written and a flood from one address costs one Redis round trip per request. The
-trip key is a fixed string plus the address, because the suffix match accepts caller-chosen
-prefixes. The bound is per address, and the address comes from `getIpAddress`, which trusts
-`X-Forwarded-For`: it holds where a reverse proxy overwrites that header (`docs/deploy/nginx.md`
-does), and a caller reaching the app directly can vary it. Rejected: a row per request, because an
-anonymous caller could flood the insert-only `audit_logs`; the pathname in the key, because a caller
-could then mint a fresh window per request.
+One entry per 15 minutes, carrying the count the previous window suppressed. The route is reachable
+without a session and sits before Better Auth's limiter, so the session is read only when an entry
+is written and a flood costs one Redis round trip per request. The trip key is a fixed string,
+because the caller chooses both the pathname prefix and, without a proxy that overwrites it,
+`X-Forwarded-For`. A flood can therefore hide the actor of another attempt, which is still refused
+and counted. Rejected: a row per request, or a window per address or pathname, because an anonymous
+caller could flood the insert-only `audit_logs` and grow the in-memory fallback counter.
 
 ### D3: Enrolment is enforced by the routing guard, from the database and the session
 
@@ -162,6 +160,4 @@ user cannot leave the wizard by navigating away. Rejected: a routing cookie, whi
 
 ## Known limits
 
-- GAP-4: The audit of a refused disable is bounded per address, and a caller reaching the app
-  directly can vary `X-Forwarded-For`, so the bound holds only behind a reverse proxy that
-  overwrites that header (owner: see `openspec/backlog.md`)
+None.

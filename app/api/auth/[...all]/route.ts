@@ -22,10 +22,10 @@ import { users } from "@/database/schema"
 const handler = toNextJsHandler(auth)
 
 // The audit window of every refusal in this file, never one entry per refused attempt: Better
-// Auth's limits get one per address and path, the two-factor disable refusal one per address.
+// Auth's limits get one per address and path, the two-factor disable refusal one per instance.
 // Better Auth applies its limits itself, counting them in Redis through `lib/rateLimit`'s
-// `toBetterAuthRateLimitStorage`, and tells this route only that it refused, so the length is the
-// shortest of its windows (`lib/auth/index.ts`, sign-in's 15 minutes).
+// `toBetterAuthRateLimitStorage`, and tells this route only that it refused, so the length is its
+// default window and sign-in's, 15 minutes (`lib/auth/index.ts`).
 const AUTH_TRIP_WINDOW_MS = 15 * 60 * 1000
 
 type AuditContext = {
@@ -180,19 +180,17 @@ async function getRefusedSessionUser(request: NextRequest): Promise<SessionUser 
 
 // TOTP can never be disabled (`.agents/rules/security.md`), and Better Auth's handler clears the
 // factor for any session holding the password, so the refusal comes before it. This path is open
-// without a session and ahead of Better Auth's limiter, so the audit is windowed: a row per request
-// would let an anonymous caller flood the insert-only `audit_logs`, and reading the session only for
-// a written entry keeps a flood from one address at one Redis round trip per request. The key never
-// holds the pathname, because the suffix match accepts caller-chosen prefixes.
+// without a session and ahead of Better Auth's limiter, so the audit is windowed across the instance:
+// a row per request would let an anonymous caller flood the insert-only `audit_logs`, and the key
+// holds neither the address nor the pathname because the caller chooses both (`X-Forwarded-For`, the
+// suffix match). The price is that a flood can hide who else tried; the count still says how many.
+// Reading the session only for a written entry keeps a flood at one Redis round trip per request.
 async function refuseTwoFactorDisable(request: NextRequest): Promise<Response> {
   const context: AuditContext = {
     ipAddress: getIpAddress(request.headers),
     userAgent: request.headers.get("user-agent") ?? null
   }
-  const decision = await countRateLimitTrip(
-    `auth:two-factor-disable:${context.ipAddress ?? "unknown"}`,
-    AUTH_TRIP_WINDOW_MS
-  )
+  const decision = await countRateLimitTrip("auth:two-factor-disable", AUTH_TRIP_WINDOW_MS)
 
   if (decision.write) {
     const user = await getRefusedSessionUser(request)

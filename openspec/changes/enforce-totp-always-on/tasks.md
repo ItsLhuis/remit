@@ -28,3 +28,9 @@ in the same commit. A ticked box is a claim; `next-step` checks it against `git 
   - Done when: every requirement has scenarios and an anchor, and each scenario is one a named test
     asserts.
   - Verify: `pnpm exec vitest run __tests__/proxy.test.ts tests/docs/openspec.test.ts`
+- [x] 3. Window the refusal's audit across the instance
+  - Do: use a fixed trip key in `app/api/auth/[...all]/route.ts`, so a forged `X-Forwarded-For` can
+    neither write a row per request nor grow the fallback counter; update the tests, the rule and
+    the spec; correct the window comment.
+  - Done when: the trip key holds no caller-chosen text.
+  - Verify: `pnpm exec vitest run "app/api/auth/[...all]/__tests__/route.test.ts" tests/docs`

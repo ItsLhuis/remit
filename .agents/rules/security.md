@@ -81,7 +81,7 @@ Cookies set anywhere in the codebase use `httpOnly: true`, `secure: true` in pro
 
 TOTP can never be disabled, for any role: no Remit surface offers it, and
 `app/api/auth/[...all]/route.ts` answers Better Auth's `POST /api/auth/two-factor/disable` with
-`403` before its handler, audited as `auth.totp.disable_refused`, one entry per address per window.
+`403` before its handler, audited as `auth.totp.disable_refused`, one entry per instance per window.
 
 ## Outbound traffic
 
