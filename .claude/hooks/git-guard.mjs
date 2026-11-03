@@ -1,6 +1,7 @@
 // PreToolUse hook for the Bash and PowerShell tools: refuses git commands that break the agents'
 // git policy (AGENTS.md, Owner decisions). Exit code 2 blocks the call and shows stderr to the
-// agent. The decision logic lives in tools/git-guard/classify.mjs, which is unit-tested.
+// agent. Claude Code runs it from .claude/settings.json and Codex from .codex/hooks.json. The
+// decision logic lives in tools/git-guard/classify.mjs, which is unit-tested.
 
 import { statSync } from "node:fs"
 import { resolve } from "node:path"
@@ -30,14 +31,6 @@ const workingDirectory = typeof payload.cwd === "string" ? payload.cwd : process
 function isDirectory(path) {
   try {
     return statSync(resolve(workingDirectory, path)).isDirectory()
-  } catch {
-    return false
-  }
-}
-
-function isFile(path) {
-  try {
-    return statSync(resolve(workingDirectory, path)).isFile()
   } catch {
     return false
   }

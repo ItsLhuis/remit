@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.claude/hooks/git-guard.mjs\"",
+            "statusMessage": "Checking git policy"
+          }
+        ]
+      }
+    ]
+  }
+}

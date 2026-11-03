@@ -104,13 +104,13 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["git", "add", ["-A", "--all", "-u", "--update", ".", ":/"]],
+    pattern = ["git", "add", ["-A", "--all", "-u", "--update", ".", ":/", "-f", "--force", "--no-ignore-removal"]],
     decision = "forbidden",
     justification = "Agents stage explicit paths only (.agents/skills/git-commit/SKILL.md).",
 )
 
 prefix_rule(
-    pattern = ["git", "commit", ["--amend", "--no-verify", "-n"]],
+    pattern = ["git", "commit", ["--amend", "--no-verify", "-n", "-a", "--all"]],
     decision = "forbidden",
     justification = "Agents never amend or bypass hooks (.agents/skills/git-commit/SKILL.md).",
 )
