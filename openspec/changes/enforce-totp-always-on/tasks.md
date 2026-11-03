@@ -34,3 +34,10 @@ in the same commit. A ticked box is a claim; `next-step` checks it against `git 
     the spec; correct the window comment.
   - Done when: the trip key holds no caller-chosen text.
   - Verify: `pnpm exec vitest run "app/api/auth/[...all]/__tests__/route.test.ts" tests/docs`
+- [x] 4. Reset the instance window in the integration test
+  - Do: in `app/api/auth/[...all]/__tests__/route.integration.test.ts`, clear the trip keys of
+    `auth:two-factor-disable` before the request instead of sending a fresh address; word the spec
+    scenario after what `route.test.ts` asserts, the fixed key.
+  - Done when: the integration test passes twice within 15 minutes.
+  - Verify:
+    `pnpm exec vitest run --config vitest.integration.config.ts "app/api/auth/[...all]/__tests__/route.integration.test.ts"`

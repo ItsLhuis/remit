@@ -1,7 +1,5 @@
 import { NextRequest } from "next/server"
 
-import { randomUUID } from "node:crypto"
-
 import { eq } from "drizzle-orm"
 
 import { afterAll, expect, test, vi } from "vitest"
@@ -9,6 +7,7 @@ import { afterAll, expect, test, vi } from "vitest"
 import { auth } from "@/lib/auth"
 
 import { getRateLimitConnection } from "@/lib/rateLimit/connection"
+import { toTripKeys } from "@/lib/rateLimit/tripWindow"
 
 import { auditLogs, twoFactors, users } from "@/database/schema"
 
@@ -70,16 +69,19 @@ async function enrolAccount(): Promise<{ cookie: string; userId: string }> {
 test("refuses an enrolled user's disable request with the correct password and keeps the factor", async () => {
   const { cookie, userId } = await enrolAccount()
 
-  // A fresh address per run: the trip window lives in Redis, which `tests/integration/setup.ts` does
-  // not reset, so a repeated address inside 15 minutes would write no entry.
+  // The trip window is one per instance and lives in Redis, which `tests/integration/setup.ts` does
+  // not reset: without clearing it, a rerun inside 15 minutes would write no entry.
+  const connection = await getRateLimitConnection()
+
+  await connection.del(...toTripKeys("auth:two-factor-disable"))
+
   const response = await POST(
     new NextRequest("http://localhost:3000/api/auth/two-factor/disable", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         cookie,
-        origin: "http://localhost:3000",
-        "x-forwarded-for": `fake-${randomUUID()}`
+        origin: "http://localhost:3000"
       },
       body: JSON.stringify({ password: ACCOUNT_PASSWORD })
     })

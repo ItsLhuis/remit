@@ -27,7 +27,7 @@ forbidden message, and SHALL leave the account's factor untouched.
 
 #### Scenario: A refusal is audited once per window
 
-- WHEN refusals repeat inside a window, from any address
+- WHEN refusals repeat inside a window, counted under one fixed key that holds no address or path
 - THEN one `auth.totp.disable_refused` entry is written, carrying the session user when there is one
   and the count the previous window suppressed, and the rest write nothing and read no session
 
