@@ -6,7 +6,7 @@ recovery codes stand in for the authenticator at sign-in.
 
 ## Status
 
-draft
+verified
 
 ## Requirements
 
@@ -36,7 +36,8 @@ forbidden message, and SHALL leave the account's factor untouched.
 - WHEN a caller posts to enable, verify-totp, verify-backup-code or generate-backup-codes
 - THEN the request reaches Better Auth's handler
 
-Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts`
+<!-- prettier-ignore -->
+Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts` `app/api/auth/[...all]/__tests__/route.integration.test.ts`
 
 ### Requirement: TOTP enrolment is required
 
