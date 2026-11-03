@@ -20,7 +20,8 @@ permission rules).
 1. `git status --porcelain`. If it lists changes you did not make in this session, stop and report
    them: you must never commit the owner's unrelated work.
 2. List the exact paths you intend to commit. Never stage with `git add -A`, `git add .`,
-   `git add -u`, a directory or a glob.
+   `git add -u`, a directory or a glob. A path containing `[` (Next.js dynamic routes) is staged as
+   a literal pathspec, for example `git add -- ':(literal)app/api/auth/[...all]/route.ts'`.
 
 ## 2. Read the message rules
 

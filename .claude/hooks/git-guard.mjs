@@ -43,7 +43,7 @@ function isFile(path) {
   }
 }
 
-const verdict = classifyCommand(command, isDirectory, isFile)
+const verdict = classifyCommand(command, isDirectory)
 
 if (!verdict.allowed) {
   process.stderr.write(

@@ -53,6 +53,8 @@ const ADD_FORBIDDEN_FLAGS = new Set([
 
 const ADD_FORBIDDEN_PATHS = new Set([".", "./", ":/", ":", "*", "-"])
 
+const LITERAL_PATHSPEC_PREFIX = ":(literal)"
+
 const COMMIT_FORBIDDEN_LONG_FLAGS = new Set(["--amend", "--no-verify", "--all"])
 
 // Short commit flags that are refused even inside a cluster such as `-nm`: `n` skips hooks and `a`
@@ -147,9 +149,11 @@ function stripPrefix(tokens) {
   return tokens.slice(index)
 }
 
-// `[` alone passes for a file that exists, because route folders such as `[...all]` carry it in
-// their name; `*` and `?` never do, and a bracket that names no file is still a pattern.
-function classifyAdd(args, isDirectory, isFile) {
+// Git reads `[` in a pathspec as a glob, so `r/[id]/page.tsx` can also stage `r/i/page.tsx`, yet
+// Next.js route folders (`[id]`, `[token]`, `[...all]`) must stay stageable. A path with `[` is
+// therefore accepted only as a literal pathspec, which git never reads as a glob; `*` and `?` are
+// refused in every form.
+function classifyAdd(args, isDirectory) {
   for (const arg of args) {
     if (arg === "--") continue
     if (ADD_FORBIDDEN_FLAGS.has(arg)) return deny(`git add ${arg} stages more than explicit paths`)
@@ -157,10 +161,17 @@ function classifyAdd(args, isDirectory, isFile) {
       return deny(`git add ${arg} stages more than explicit paths`)
     }
     if (arg.startsWith("-")) continue
-    if (ADD_FORBIDDEN_PATHS.has(arg) || /[*?]/.test(arg) || (arg.includes("[") && !isFile(arg))) {
+
+    const literal = arg.startsWith(LITERAL_PATHSPEC_PREFIX)
+    const path = literal ? arg.slice(LITERAL_PATHSPEC_PREFIX.length) : arg
+
+    if (path === "" || ADD_FORBIDDEN_PATHS.has(path) || /[*?]/.test(path)) {
       return deny(`git add ${arg} is not an explicit path`)
     }
-    if (isDirectory(arg)) return deny(`git add ${arg} stages a whole directory; list the files`)
+    if (!literal && path.includes("[")) {
+      return deny(`git add ${arg} reads [ as a glob; pass it as ':(literal)${arg}'`)
+    }
+    if (isDirectory(path)) return deny(`git add ${arg} stages a whole directory; list the files`)
   }
 
   return ALLOWED
@@ -213,7 +224,7 @@ function classifyBranch(args) {
   return changes.length === 0 ? ALLOWED : deny(`git branch ${changes.join(" ")} changes branches`)
 }
 
-function classifyGit(args, isDirectory, isFile) {
+function classifyGit(args, isDirectory) {
   let index = 0
 
   while (index < args.length && args[index].startsWith("-")) {
@@ -233,7 +244,7 @@ function classifyGit(args, isDirectory, isFile) {
   if (subcommand === undefined) return ALLOWED
   if (FORBIDDEN_SUBCOMMANDS.has(subcommand))
     return deny(`git ${subcommand} is reserved for the owner`)
-  if (subcommand === "add") return classifyAdd(rest, isDirectory, isFile)
+  if (subcommand === "add") return classifyAdd(rest, isDirectory)
   if (subcommand === "commit") return classifyCommit(rest)
   if (subcommand === "branch") return classifyBranch(rest)
   if (subcommand === "config") return classifyConfig(rest)
@@ -241,7 +252,7 @@ function classifyGit(args, isDirectory, isFile) {
   return ALLOWED
 }
 
-export function classifyCommand(command, isDirectory, isFile = () => false) {
+export function classifyCommand(command, isDirectory) {
   if (/\bgit\b/i.test(command) && HOOK_BYPASS_PATTERNS.some((pattern) => pattern.test(command))) {
     return deny("bypassing git hooks is not allowed")
   }
@@ -258,7 +269,7 @@ export function classifyCommand(command, isDirectory, isFile = () => false) {
       )
 
       if (body !== undefined) {
-        const verdict = classifyCommand(body, isDirectory, isFile)
+        const verdict = classifyCommand(body, isDirectory)
 
         if (!verdict.allowed) return verdict
       }
@@ -267,7 +278,7 @@ export function classifyCommand(command, isDirectory, isFile = () => false) {
     }
 
     if (isGitExecutable(program)) {
-      const verdict = classifyGit(args, isDirectory, isFile)
+      const verdict = classifyGit(args, isDirectory)
 
       if (!verdict.allowed) return verdict
     }
