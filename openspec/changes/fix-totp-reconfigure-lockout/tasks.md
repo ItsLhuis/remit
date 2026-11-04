@@ -3,7 +3,7 @@
 Each task is one commit whose body contains `Change: fix-totp-reconfigure-lockout, task <n>`. Tick
 the box in the same commit. A ticked box is a claim; `next-step` checks it against `git log`.
 
-- [ ] 1. Add the TOTP helpers the reconfigure hold needs
+- [x] 1. Add the TOTP helpers the reconfigure hold needs
   - Do: create `lib/auth/totp.ts` with two pure functions and no IO: `buildTotpUri` (the
     `otpauth://totp/<issuer>:<account>?secret=<base32>&issuer=&digits=&period=` URI Better Auth's
     `createOTP(...).url` builds, base32 of the secret's UTF-8 bytes without padding) and
