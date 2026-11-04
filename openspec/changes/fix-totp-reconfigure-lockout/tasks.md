@@ -15,7 +15,7 @@ the box in the same commit. A ticked box is a claim; `next-step` checks it again
     refused; the issuer and account encoded in the label.
   - Done when: both helpers exist and their tests pass; nothing imports them yet.
   - Verify: `pnpm exec vitest run lib/auth/__tests__/totp.test.ts`
-- [ ] 2. Hold a reconfigured TOTP secret until it verifies
+- [x] 2. Hold a reconfigured TOTP secret until it verifies
   - Do: create `lib/auth/totpReconfigure.ts`, a Better Auth plugin with the two `before` hooks
     `design.md` describes (`enable` for a session whose user has a verified factor; a session's
     `verify-totp` with a live pending entry), using `getSessionFromCtx`, `APIError` and

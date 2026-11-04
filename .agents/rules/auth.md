@@ -27,7 +27,10 @@ own runtime password reset tokens or write credential password hashes directly o
 operational recovery scripts.
 
 TOTP setup, verification, recovery-code consumption, and recovery-code regeneration use Better Auth
-two-factor APIs.
+two-factor APIs. The one exception is `lib/auth/totpReconfigure.ts`, the one runtime writer: inside
+Better Auth's pipeline and through its adapters it writes only `two_factors.secret` and its own
+`totp-reconfigure-<userId>` entry in `verifications`, and it verifies a code only against that
+pending secret.
 
 Auth-sensitive routes and actions that write audit metadata use shared request metadata helpers,
 including `getIpAddress` from `@/lib/utils`, instead of parsing forwarded headers inline.

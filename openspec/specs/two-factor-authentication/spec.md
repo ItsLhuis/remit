@@ -34,7 +34,8 @@ forbidden message, and SHALL leave the account's factor untouched.
 #### Scenario: Other two-factor routes are untouched
 
 - WHEN a caller posts to enable, verify-totp, verify-backup-code or generate-backup-codes
-- THEN the request reaches Better Auth's handler
+- THEN the route hands the request to Better Auth's HTTP handler, inside which the reconfigure
+  plugin may answer enable and verify-totp
 
 <!-- prettier-ignore -->
 Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts` `app/api/auth/[...all]/__tests__/route.integration.test.ts`
@@ -80,8 +81,8 @@ stand in for a TOTP code at sign-in.
 #### Scenario: Reconfiguring in security settings
 
 - WHEN a code from the new authenticator verifies in the reconfigure dialog
-- THEN the codes `twoFactor.generateBackupCodes` returned are listed, and confirming them closes the
-  flow with a success message
+- THEN the recovery codes saved before stay valid until `twoFactor.generateBackupCodes` replaces
+  them, the codes it returned are listed, and confirming them closes the flow with a success message
 
 #### Scenario: Choosing a recovery code at sign-in
 
@@ -109,7 +110,49 @@ stand in for a TOTP code at sign-in.
 - THEN an `auth.backup_code.consumed` entry is written with that user as actor and target
 
 <!-- prettier-ignore -->
-Enforced by: `features/setup/components/__tests__/SetupForm.test.tsx` `features/settings/security/components/TotpReconfigureDialog/__tests__/TotpReconfigureDialog.test.tsx` `features/auth/components/LoginForm/__tests__/TotpForm.test.tsx` `features/auth/components/LoginForm/__tests__/RecoveryCodeForm.test.tsx` `app/api/auth/[...all]/__tests__/route.test.ts`
+Enforced by: `features/setup/components/__tests__/SetupForm.test.tsx` `features/settings/security/components/TotpReconfigureDialog/__tests__/TotpReconfigureDialog.test.tsx` `features/auth/components/LoginForm/__tests__/TotpForm.test.tsx` `features/auth/components/LoginForm/__tests__/RecoveryCodeForm.test.tsx` `app/api/auth/[...all]/__tests__/route.test.ts` `lib/auth/__tests__/totpReconfigure.integration.test.ts`
+
+### Requirement: Reconfiguring keeps the current factor until the new one verifies
+
+The system SHALL keep the current authenticator and recovery codes of a user with a verified factor
+working when that user starts a reconfiguration, and the new secret MUST NOT sign in until a code
+from it has verified in the session that started the reconfiguration.
+
+#### Scenario: A reconfiguration stops after the first step
+
+- WHEN a user with a verified factor starts a reconfiguration and stops before any code verifies
+- THEN the current authenticator and a saved recovery code still sign in, and a code from the new
+  secret does not
+
+#### Scenario: A code from the new secret verifies
+
+- WHEN a code from the new secret verifies in the session that started the reconfiguration
+- THEN sign-in accepts the new authenticator and refuses the previous one
+
+#### Scenario: The same code is submitted again after the swap
+
+- WHEN the code that completed the swap is submitted again in the same session
+- THEN it verifies, which is the retry the dialog makes when recovery code generation fails
+
+#### Scenario: A wrong code
+
+- WHEN a wrong code is submitted while the new secret is pending
+- THEN the response is `401`, the current factor stays in force, and a later code from the new
+  secret still verifies
+
+#### Scenario: A wrong password or an invalid body
+
+- WHEN a user with a verified factor posts to enable with a wrong password or a body that fails
+  validation
+- THEN the request is refused and the current factor stays in force
+
+#### Scenario: First-time enrolment
+
+- WHEN a session with no verified factor posts to enable
+- THEN Better Auth's handler runs and returns the recovery codes, as in the setup wizard
+
+<!-- prettier-ignore -->
+Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `lib/auth/__tests__/totp.test.ts`
 
 ## How it works
 
@@ -135,6 +178,18 @@ reconfigure dialog requests its own after the new factor verifies
 `features/auth/components/LoginForm/TotpForm.tsx` opens `RecoveryCodeForm.tsx`, and `POST` in
 `app/api/auth/[...all]/route.ts` audits a successful verification.
 
+The `totpReconfigure` plugin (`lib/auth/totpReconfigure.ts`, registered after `twoFactor` in
+`lib/auth/index.ts`) has two `before` hooks, so both the HTTP router and `auth.api.*` reach them.
+For a user whose `two_factors` row exists and is not unverified, `enable` checks the body and the
+password itself, never hands the request to Better Auth's handler, and answers a TOTP URI with no
+recovery codes after storing the new secret, encrypted with Better Auth's `symmetricEncrypt`, as the
+`totp-reconfigure-<userId>` entry in `verifications`. That entry expires with the session that made
+it. A session's `verify-totp` with an unexpired entry checks the code against the pending secret
+with `verifyTotpCode` (`lib/auth/totp.ts`); a wrong code answers `401` and changes nothing, a right
+one writes the pending ciphertext to `two_factors.secret`, deletes the entry and answers as Better
+Auth does. Without a session or an entry the request goes on to Better Auth, so first-time
+enrolment, sign-in and a retry after the swap run its own handlers.
+
 ## Decisions
 
 ### D1: The refusal is `403` with the forbidden message, the same for every caller
@@ -158,6 +213,22 @@ caller could flood the insert-only `audit_logs` and grow the in-memory fallback 
 `proxy.ts` derives "setup complete" on every request from the settings row and the session, so a
 user cannot leave the wizard by navigating away. Rejected: a routing cookie, which
 `.agents/rules/security.md` forbids.
+
+### D4: A reconfigured secret is held, then swapped in one update, by a Better Auth plugin
+
+Better Auth's `enable` deletes the verified user's row and inserts an unproven secret with
+`verified: true` carried over, which refuses the user's own authenticator and recovery codes from
+the first dialog step. A plugin's `before` hooks run inside Better Auth's pipeline, after its rate
+limiter and for `auth.api.*` callers too, and the account has exactly one factor in force at every
+point: the old one until a single row update, the new verified one after. The pending entry lives as
+long as the session, not for a fixed time: the dialog cannot outlive its session, and a lapsed entry
+would let a code from the old authenticator verify while the dialog reports a reconfiguration that
+never happened. Once a verified row is found the `enable` hook answers every outcome, because
+handing a request on is the lockout. Rejected: restoring the old row when the flow is abandoned,
+because the unproven secret signs in until then and a crash loses the old row; moving the row aside
+in an `after` hook, which leaves the unproven row in force in between; intercepting in the route,
+which runs before the rate limiter and is bypassed by `auth.api.*`; a column or table for the
+pending secret, a migration for state `verifications` already holds.
 
 ## Known limits
 

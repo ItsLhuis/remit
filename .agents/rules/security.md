@@ -83,6 +83,12 @@ TOTP can never be disabled, for any role: no Remit surface offers it, and
 `app/api/auth/[...all]/route.ts` answers Better Auth's `POST /api/auth/two-factor/disable` with
 `403` before its handler, audited as `auth.totp.disable_refused`, one entry per instance per window.
 
+A reconfigured factor takes effect only when a code from it verifies. Until then the current
+authenticator and recovery codes stay valid: for a user with a verified factor,
+`lib/auth/totpReconfigure.ts` answers `enable` by holding the new secret as pending and swaps it
+into the factor on a session's `verify-totp`. Better Auth's own `enable` replaces the factor with an
+unproven secret and must never run for such a user.
+
 ## Outbound traffic
 
 No telemetry, analytics or update check leaves the instance unless the operator configures it; error

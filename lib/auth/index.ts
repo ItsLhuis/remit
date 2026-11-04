@@ -27,6 +27,8 @@ import {
 
 import { sendTransactionalEmail } from "@/features/email/server"
 
+import { totpReconfigure } from "./totpReconfigure"
+
 // Accountant and assistant deliberately share one role with no organization, member, invitation or
 // team permissions: Remit runs one organization per instance, so only the owner may ever change
 // membership or invite anyone. Feature-level authorization is done by `requireRole` in session.ts,
@@ -99,6 +101,7 @@ export const auth = betterAuth({
     twoFactorPlugin({
       issuer: "Remit"
     }),
+    totpReconfigure,
     organizationPlugin({
       creatorRole: "owner",
       // Better Auth turns this on by default whenever `advanced.database.generateId` is customized,
