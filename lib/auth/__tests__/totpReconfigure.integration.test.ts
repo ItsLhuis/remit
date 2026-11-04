@@ -442,4 +442,27 @@ describe("enrolling a first TOTP factor", () => {
       oldSecret: await signInWithTotp(account.secret)
     }).toEqual({ backupCodes: [], oldSecret: true })
   })
+
+  test("verifies a code from the new secret when a reconfiguration entry outlived the removed factor", async () => {
+    const account = await enrolAccount()
+    const userId = await readUserId()
+
+    await startReconfigure(account)
+    await database.delete(twoFactors).where(eq(twoFactors.userId, userId))
+    await database.update(users).set({ twoFactorEnabled: false }).where(eq(users.id, userId))
+
+    // With no factor left, a password sign-in opens a full session, so the cached user data of the
+    // old session cannot claim a factor that is gone.
+    const reenrolling = { ...account, headers: await startSignIn() }
+    const { totpURI } = await auth.api.enableTwoFactor({
+      headers: reenrolling.headers,
+      body: { password: ACCOUNT_PASSWORD }
+    })
+    const secret = readSecret(totpURI)
+
+    expect({
+      newSecretVerified: await submitCode(reenrolling, generateTotpCode(secret)),
+      newSecretSignsIn: await signInWithTotp(secret)
+    }).toEqual({ newSecretVerified: true, newSecretSignsIn: true })
+  })
 })

@@ -164,7 +164,9 @@ export const totpReconfigure = {
         handler: createAuthMiddleware(async (ctx) => {
           const session = await getSessionFromCtx(ctx)
 
-          if (!session) return
+          // The entry can outlive the factor it was made for, and first-time enrolment must never
+          // consult it.
+          if (!session || !(await hasVerifiedFactor(ctx, session.user.id))) return
 
           // The entry expires with the session that made it, not after a fixed time: the dialog
           // cannot outlive its session, and an entry that lapsed first would let the old

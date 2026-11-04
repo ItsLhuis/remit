@@ -151,6 +151,12 @@ from it has verified in the session that started the reconfiguration.
 - WHEN a session with no verified factor posts to enable
 - THEN Better Auth's handler runs and returns the recovery codes, as in the setup wizard
 
+#### Scenario: A pending secret outlives the factor
+
+- WHEN a pending secret exists for a user whose factor row is gone and that user enrols again
+- THEN a code from the new secret verifies and signs in, because a pending secret is consulted only
+  while the user has a verified factor
+
 <!-- prettier-ignore -->
 Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `lib/auth/__tests__/totp.test.ts`
 
