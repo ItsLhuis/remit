@@ -7,6 +7,9 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
+1. `fix-totp-reconfigure-lockout` - keep the verified TOTP factor and its recovery codes working
+   until a reconfigured factor verifies.
+
 ## Gaps
 
 Every gap has exactly one owner: a change name from Next or `openspec/changes/`, `owner` (needs an
