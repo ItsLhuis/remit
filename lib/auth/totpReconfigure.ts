@@ -118,11 +118,15 @@ async function swapPendingSecret(
 
   // One row update, so the account has the old factor or the new one and never neither. The
   // ciphertext was made with Better Auth's own `symmetricEncrypt`, which is what its handlers read.
-  await ctx.context.adapter.update({
+  const swapped = await ctx.context.adapter.update({
     model: "twoFactor",
     where: [{ field: "userId", value: session.user.id }],
     update: { secret: pendingCiphertext }
   })
+
+  // The adapter answers null when no row matched, e.g. the factor was disabled after `enable`.
+  if (!swapped) throw APIError.from("BAD_REQUEST", TWO_FACTOR_ERROR_CODES.TOTP_NOT_ENABLED)
+
   await ctx.context.internalAdapter.deleteVerificationByIdentifier(
     pendingIdentifier(session.user.id)
   )

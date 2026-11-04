@@ -36,14 +36,15 @@ const TotpReconfigureDialog = () => {
     setState({})
   }
 
-  // Deliberately refuses to close past the first step, and the Escape / click-outside guards on
-  // DialogContent below enforce the same thing. This is not the usual dialog contract. The factor
-  // changes in `ScanStep`: `ConfirmStep`'s `enable` only holds the new secret on the server
-  // (`lib/auth/totpReconfigure.ts`) and changes nothing the account signs in with, `verifyTotp`
-  // switches the account to the new authenticator, and the recovery codes the user saved work until
-  // `generateBackupCodes` replaces them. Once `generateBackupCodes` has answered, `CodesStep` is the
-  // only time the replacements are ever displayed and the new authenticator is already in force, so
-  // a stray Escape would leave the account enrolled with recovery codes nobody has seen.
+  // Deliberately stays open past the first step, and the Escape / click-outside guards on
+  // DialogContent below enforce the same thing. This is not the usual dialog contract, and it is not
+  // about the account's safety before the codes step: `ConfirmStep`'s `enable` only holds the new
+  // secret on the server (`lib/auth/totpReconfigure.ts`), and the old authenticator and saved
+  // recovery codes keep working until `verifyTotp` accepts a code from the new one. The reasons are
+  // these. Once `generateBackupCodes` has answered, `CodesStep` is the only place the replacement
+  // codes are ever shown, so a stray close there leaves an account whose codes nobody has seen. A
+  // stray close during the scan step leaves a useless entry for the same account label in the
+  // user's authenticator app and discards the QR code and the password held in `ReconfigureState`.
   const handleOpenChange = (next: boolean) => {
     if (!next && step !== "confirm") return
 

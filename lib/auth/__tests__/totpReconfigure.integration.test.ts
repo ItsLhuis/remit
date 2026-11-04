@@ -2,14 +2,19 @@ import { NextRequest } from "next/server"
 
 import { randomInt } from "node:crypto"
 
+import { eq } from "drizzle-orm"
+
 import { afterAll, describe, expect, test, vi } from "vitest"
 
 import { auth } from "@/lib/auth"
 
 import { getRateLimitConnection } from "@/lib/rateLimit/connection"
 
+import { twoFactors, users, verifications } from "@/database/schema"
+
 import { POST } from "@/app/api/auth/[...all]/route"
 import { generateTotpCode } from "@/tests/e2e/support/totp"
+import { database } from "@/tests/integration/database"
 
 vi.mock("@/features/email/server", () => ({
   isEmailConfigured: () => true,
@@ -51,15 +56,19 @@ function toCookieHeader(headers: Headers): Headers {
   return new Headers({ cookie })
 }
 
-// Better Auth rotates the session when the first factor verifies, so only the cookies of that
-// response stay valid; the sign-up cookie is dead after it.
-async function enrolAccount(): Promise<EnrolledAccount> {
+async function signUpAccount(): Promise<Headers> {
   const signUp = await auth.api.signUpEmail({
     body: { email: ACCOUNT_EMAIL, password: ACCOUNT_PASSWORD, name: "Totp Reconfigure" },
     returnHeaders: true
   })
 
-  const signUpHeaders = toCookieHeader(signUp.headers)
+  return toCookieHeader(signUp.headers)
+}
+
+// Better Auth rotates the session when the first factor verifies, so only the cookies of that
+// response stay valid; the sign-up cookie is dead after it.
+async function enrolAccount(): Promise<EnrolledAccount> {
+  const signUpHeaders = await signUpAccount()
   const { totpURI, backupCodes } = await auth.api.enableTwoFactor({
     headers: signUpHeaders,
     body: { password: ACCOUNT_PASSWORD }
@@ -153,6 +162,35 @@ function readCookie(account: EnrolledAccount): string {
   if (!cookie) throw new Error("The enrolled account carries no session cookie")
 
   return cookie
+}
+
+async function readUserId(): Promise<string> {
+  const [user] = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, ACCOUNT_EMAIL))
+
+  if (!user) throw new Error("The account under test does not exist")
+
+  return user.id
+}
+
+// The plugin keeps the new secret under this identifier until a code from it verifies.
+function pendingIdentifier(userId: string): string {
+  return `totp-reconfigure-${userId}`
+}
+
+async function readPendingEntries(userId: string) {
+  return database
+    .select()
+    .from(verifications)
+    .where(eq(verifications.identifier, pendingIdentifier(userId)))
+}
+
+async function countFactors(userId: string): Promise<number> {
+  const rows = await database.select().from(twoFactors).where(eq(twoFactors.userId, userId))
+
+  return rows.length
 }
 
 describe("reconfiguring a verified TOTP factor", () => {
@@ -297,5 +335,111 @@ describe("reconfiguring a verified TOTP factor", () => {
       rightCode: 200,
       newSecretAfterRightCode: true
     })
+  })
+
+  test("replaces the pending secret when enable is called twice before a code verifies", async () => {
+    const account = await enrolAccount()
+    const firstSecret = await startReconfigure(account)
+    const secondSecret = await startReconfigure(account)
+
+    expect({
+      pendingEntries: (await readPendingEntries(await readUserId())).length,
+      firstSecret: await submitCode(account, generateTotpCode(firstSecret)),
+      secondSecret: await submitCode(account, generateTotpCode(secondSecret))
+    }).toEqual({ pendingEntries: 1, firstSecret: false, secondSecret: true })
+  })
+
+  test("deletes the pending entry when a code from the new secret verified", async () => {
+    const account = await enrolAccount()
+    const newSecret = await startReconfigure(account)
+
+    await submitCode(account, generateTotpCode(newSecret))
+
+    expect((await readPendingEntries(await readUserId())).length).toBe(0)
+  })
+
+  test("expires the pending entry with the session that made it", async () => {
+    const account = await enrolAccount()
+
+    await startReconfigure(account)
+
+    const session = await auth.api.getSession({ headers: account.headers })
+    const [entry] = await readPendingEntries(await readUserId())
+
+    if (!session || !entry) throw new Error("The session or the pending entry is missing")
+
+    expect(entry.expiresAt).toEqual(session.session.expiresAt)
+  })
+
+  test("verifies against the factor in force when the pending entry has expired", async () => {
+    const account = await enrolAccount()
+    const newSecret = await startReconfigure(account)
+    const userId = await readUserId()
+
+    await database
+      .update(verifications)
+      .set({ expiresAt: new Date(Date.now() - 60_000) })
+      .where(eq(verifications.identifier, pendingIdentifier(userId)))
+
+    expect({
+      pendingSecret: await submitCode(account, generateTotpCode(newSecret)),
+      oldSecret: await submitCode(account, generateTotpCode(account.secret))
+    }).toEqual({ pendingSecret: false, oldSecret: true })
+  })
+
+  test("refuses the code when the factor row is gone before the swap", async () => {
+    const account = await enrolAccount()
+    const newSecret = await startReconfigure(account)
+
+    await database.delete(twoFactors).where(eq(twoFactors.userId, await readUserId()))
+
+    const response = await postAuth("verify-totp", {
+      cookie: readCookie(account),
+      body: { code: generateTotpCode(newSecret) },
+      address: randomAddress()
+    })
+
+    expect(response.status).toBe(400)
+  })
+})
+
+describe("enrolling a first TOTP factor", () => {
+  test("hands the second enable of an unverified enrolment to Better Auth and enrols from the new secret", async () => {
+    const headers = await signUpAccount()
+
+    await auth.api.enableTwoFactor({ headers, body: { password: ACCOUNT_PASSWORD } })
+
+    const second = await auth.api.enableTwoFactor({
+      headers,
+      body: { password: ACCOUNT_PASSWORD }
+    })
+    const secret = readSecret(second.totpURI)
+
+    await auth.api.verifyTOTP({ headers, body: { code: generateTotpCode(secret) } })
+
+    expect({
+      hasBackupCodes: second.backupCodes.length > 0,
+      factors: await countFactors(await readUserId()),
+      newSecret: await signInWithTotp(secret)
+    }).toEqual({ hasBackupCodes: true, factors: 1, newSecret: true })
+  })
+
+  test("holds the secret when a factor row has no verified flag, as Better Auth treats it as verified", async () => {
+    const account = await enrolAccount()
+
+    await database
+      .update(twoFactors)
+      .set({ verified: null })
+      .where(eq(twoFactors.userId, await readUserId()))
+
+    const { backupCodes } = await auth.api.enableTwoFactor({
+      headers: account.headers,
+      body: { password: ACCOUNT_PASSWORD }
+    })
+
+    expect({
+      backupCodes,
+      oldSecret: await signInWithTotp(account.secret)
+    }).toEqual({ backupCodes: [], oldSecret: true })
   })
 })
