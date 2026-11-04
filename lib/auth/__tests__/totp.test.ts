@@ -88,6 +88,22 @@ describe("verifying a code", () => {
     expect(accepted).toBe(true)
   })
 
+  test("accepts a code that starts with zero when the next step produces it", () => {
+    const code = authenticatorCodeAt(10_000 + PERIOD * 1000)
+
+    expect(code.startsWith("0")).toBe(true)
+
+    const accepted = verifyTotpCode({
+      secret: SECRET,
+      code,
+      digits: DIGITS,
+      period: PERIOD,
+      now: 10_000
+    })
+
+    expect(accepted).toBe(true)
+  })
+
   test("accepts the RFC 6238 SHA-1 reference code when the time is its reference time", () => {
     const accepted = verifyTotpCode({
       secret: "12345678901234567890",
@@ -99,10 +115,22 @@ describe("verifying a code", () => {
 
     expect(accepted).toBe(true)
   })
+
+  test("accepts an eight digit code of a sixty second step when the period is sixty seconds", () => {
+    const accepted = verifyTotpCode({
+      secret: "12345678901234567890",
+      code: "37359152",
+      digits: 8,
+      period: 60,
+      now: 120_000
+    })
+
+    expect(accepted).toBe(true)
+  })
 })
 
 describe("building the URI", () => {
-  test("builds the otpauth URI with the secret, issuer, digits and period in Better Auth's order", () => {
+  test("builds the otpauth URI with the secret, issuer, digits and period in Better Auth's parameter order when the secret is plain ASCII", () => {
     const uri = buildTotpUri({
       secret: "12345678901234567890",
       issuer: "Remit",
@@ -114,6 +142,18 @@ describe("building the URI", () => {
     expect(uri).toBe(
       "otpauth://totp/Remit:owner%40example.com?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Remit&digits=6&period=30"
     )
+  })
+
+  test("carries the given digits and period when they differ from the defaults", () => {
+    const uri = buildTotpUri({
+      secret: SECRET,
+      issuer: "Remit",
+      account: "owner@example.com",
+      digits: 8,
+      period: 60
+    })
+
+    expect(uri.endsWith("&digits=8&period=60")).toBe(true)
   })
 
   test("encodes the issuer and the account in the label when they carry reserved characters", () => {
