@@ -36,7 +36,8 @@ The fix keeps the verified factor in force until a code from the new secret veri
 - The pending secret is generated and encrypted with Better Auth's own `generateRandomString` and
   `symmetricEncrypt` (`better-auth/crypto`) under the instance's secret configuration, so the value
   written to the factor on verification is the one Better Auth's handlers decrypt. It is held in
-  Better Auth's `verifications` table through `internalAdapter`, one entry per user, for one hour.
+  Better Auth's `verifications` table through `internalAdapter`, one entry per user, expiring with
+  the session that made it.
 - Verification of a code against the pending secret is an in-application RFC 6238 check with the
   same parameters as Better Auth's (SHA-1, six digits, thirty seconds, one step either side,
   constant-time comparison). Better Auth does not export its OTP helper and `@better-auth/utils` is
@@ -52,7 +53,10 @@ The fix keeps the verified factor in force until a code from the new secret veri
 
 - Added: "Reconfiguring keeps the current factor until the new one verifies".
 - Modified: "Recovery codes" — the reconfigure scenario states that the recovery codes in force stay
-  valid until the dialog replaces them after the new factor verifies.
+  valid until the dialog replaces them after the new factor verifies. "TOTP cannot be disabled",
+  scenario "Other two-factor routes are untouched" — it states the route layer: the route hands
+  enable and verify-totp to Better Auth's HTTP handler, inside which the reconfigure plugin may
+  answer.
 - Removed: none
 - Unchanged behaviour that must survive: first-time enrolment in the setup wizard (`enable` for a
   user with no verified factor reaches Better Auth's handler and its codes are listed); sign-in with
@@ -63,4 +67,4 @@ The fix keeps the verified factor in force until a code from the new secret veri
 
 ## Gate 1
 
-pending
+approved
