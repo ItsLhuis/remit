@@ -23,11 +23,11 @@ const SKILL_BODY_MAX_LINES = 200
 const AGENT_BODY_MAX_LINES = 120
 
 // Split so this file does not cite the gitignored path it guards against.
-const GITIGNORED_PROMPTS_PATH = ["docs", "prompts/"].join("/")
+const GITIGNORED_AI_PATH = ["docs", "ai/"].join("/")
 
 // Files allowed to name that path: the ignore file itself, and the comment rule that names it as an
 // anti-pattern.
-const PROMPTS_PATH_ALLOWED = [".gitignore", ".agents/rules/comments.md"]
+const AI_PATH_ALLOWED = [".gitignore", ".agents/rules/comments.md"]
 
 function read(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8").replaceAll("\r\n", "\n")
@@ -260,13 +260,13 @@ describe("agent guidance stays within budget and consistent", () => {
     expect(unguarded).toEqual([])
   })
 
-  test("no versioned file cites the gitignored prompt packs", () => {
-    const citing = execFileSync("git", ["grep", "-l", "--fixed-strings", GITIGNORED_PROMPTS_PATH], {
+  test("no versioned file cites the gitignored agent workspace", () => {
+    const citing = execFileSync("git", ["grep", "-l", "--fixed-strings", GITIGNORED_AI_PATH], {
       cwd: repoRoot,
       encoding: "utf8"
     })
       .split("\n")
-      .filter((path) => path && !PROMPTS_PATH_ALLOWED.includes(path))
+      .filter((path) => path && !AI_PATH_ALLOWED.includes(path))
 
     expect(citing).toEqual([])
   })

@@ -72,10 +72,10 @@ Do not write a comment that:
 
 - **Narrates the next line** (`// Set the status to paid`).
 - **Restates a name or a type.**
-- **References a transient artifact**: a plan, a prompt, `docs/prompts/**`, a ledger, a progress
-  file, a stage/phase/milestone number, a session, a reviewer conversation, a mockup. Those rot
-  silently. The encouraged opposites are durable: a **source file and symbol**
-  (`services/constraints.ts`'s `applyFrameResize`), and a **standing specification document**
+- **References a transient artifact**: a plan, a prompt, `docs/ai/**`, a ledger, a progress file, a
+  stage/phase/milestone number, a session, a reviewer conversation, a mockup. Those rot silently.
+  The encouraged opposites are durable: a **source file and symbol** (`services/constraints.ts`'s
+  `applyFrameResize`), and a **standing specification document**
   (`docs/architecture/ARCHITECTURE.md`, `DESIGN.md`, a capability spec under `openspec/specs/`, or a
   rule under `.agents/rules/`). Name the decision, not just the file:
   `integer minor units, never floats — see money-and-dates.md` over `see money-and-dates.md`.
