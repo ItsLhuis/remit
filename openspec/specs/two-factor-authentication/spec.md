@@ -243,4 +243,10 @@ already holds.
 
 ## Known limits
 
-None.
+- GAP-5: The route writes `auth.totp.reconfigured` on every successful `enable` and `verify-totp`,
+  so a reconfiguring user's entry predates the change of factor, and a sign-in verification writes
+  one with no actor.
+- GAP-6: First-time enrolment keeps Better Auth's two-tab race on `enable`, which can carry
+  `verified: true` onto an unproven secret.
+- GAP-7: A transient session-read failure on `enable` for a verified user reaches Better Auth's
+  handler, because the hold cannot tell it from a missing session.
