@@ -45,3 +45,18 @@ the box in the same commit. A ticked box is a claim; `next-step` checks it again
     `pnpm exec vitest run --config vitest.integration.config.ts lib/auth/__tests__/totpReconfigure.integration.test.ts "app/api/auth/[...all]/__tests__/route.integration.test.ts" lib/auth/__tests__/passwordReset.integration.test.ts`
     and
     `pnpm exec vitest run lib/auth/__tests__/totp.test.ts features/settings/security features/setup "app/api/auth/[...all]/__tests__/route.test.ts" tests/docs`
+- [x] 3. Make the spec say exactly what binds the pending secret
+  - Do: in `openspec/specs/two-factor-authentication/spec.md`, word the requirement "Reconfiguring
+    keeps the current factor until the new one verifies", "How it works" and D4 after what the code
+    does: the pending entry is keyed to the user (`totp-reconfigure-<userId>`), any session of that
+    user that submits a code from the pending secret completes the swap, and the entry lapses at the
+    expiry the session that created it had (signing out does not remove it; a later `enable`
+    replaces it); add `lib/auth/__tests__/totpReconfigure.integration.test.ts` to the `Enforced by:`
+    line of "TOTP cannot be disabled" (its scenario "Other two-factor routes are untouched" is
+    proven for the plugin half only there); in the integration test, rename "refuses the code when
+    the factor row is gone before the swap" to what it exercises (the code is refused by Better Auth
+    when the factor row is gone before the code is submitted).
+  - Done when: no sentence of the spec claims a binding to the session id or to the creating session
+    beyond the expiry; the anchor line lists the plugin's test; the test title names what the test
+    asserts.
+  - Verify: `pnpm exec vitest run tests/docs`

@@ -38,7 +38,7 @@ forbidden message, and SHALL leave the account's factor untouched.
   plugin may answer enable and verify-totp
 
 <!-- prettier-ignore -->
-Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts` `app/api/auth/[...all]/__tests__/route.integration.test.ts`
+Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts` `app/api/auth/[...all]/__tests__/route.integration.test.ts` `lib/auth/__tests__/totpReconfigure.integration.test.ts`
 
 ### Requirement: TOTP enrolment is required
 
@@ -116,7 +116,7 @@ Enforced by: `features/setup/components/__tests__/SetupForm.test.tsx` `features/
 
 The system SHALL keep the current authenticator and recovery codes of a user with a verified factor
 working when that user starts a reconfiguration, and the new secret MUST NOT sign in until a code
-from it has verified in the session that started the reconfiguration.
+from it has verified in a session of that user.
 
 #### Scenario: A reconfiguration stops after the first step
 
@@ -126,12 +126,12 @@ from it has verified in the session that started the reconfiguration.
 
 #### Scenario: A code from the new secret verifies
 
-- WHEN a code from the new secret verifies in the session that started the reconfiguration
+- WHEN a code from the new secret verifies
 - THEN sign-in accepts the new authenticator and refuses the previous one
 
 #### Scenario: The same code is submitted again after the swap
 
-- WHEN the code that completed the swap is submitted again in the same session
+- WHEN the code that completed the swap is submitted again
 - THEN it verifies, which is the retry the dialog makes when recovery code generation fails
 
 #### Scenario: A wrong code
@@ -189,12 +189,14 @@ The `totpReconfigure` plugin (`lib/auth/totpReconfigure.ts`, registered after `t
 For a user whose `two_factors` row exists and is not unverified, `enable` checks the body and the
 password itself, never hands the request to Better Auth's handler, and answers a TOTP URI with no
 recovery codes after storing the new secret, encrypted with Better Auth's `symmetricEncrypt`, as the
-`totp-reconfigure-<userId>` entry in `verifications`. That entry expires with the session that made
-it. A session's `verify-totp` with an unexpired entry checks the code against the pending secret
-with `verifyTotpCode` (`lib/auth/totp.ts`); a wrong code answers `401` and changes nothing, a right
-one writes the pending ciphertext to `two_factors.secret`, deletes the entry and answers as Better
-Auth does. Without a session or an entry the request goes on to Better Auth, so first-time
-enrolment, sign-in and a retry after the swap run its own handlers.
+`totp-reconfigure-<userId>` entry in `verifications`. The entry is keyed to the user, not to a
+session: it lapses at the expiry the session that created it had, signing out does not remove it,
+and a later `enable` replaces it. A `verify-totp` from any session of a user with a verified factor
+and an unexpired entry checks the code against the pending secret with `verifyTotpCode`
+(`lib/auth/totp.ts`); a wrong code answers `401` and changes nothing, a right one writes the pending
+ciphertext to `two_factors.secret`, deletes the entry and answers as Better Auth does. Without a
+session or an entry the request goes on to Better Auth, so first-time enrolment, sign-in and a retry
+after the swap run its own handlers.
 
 ## Decisions
 
@@ -226,15 +228,18 @@ Better Auth's `enable` deletes the verified user's row and inserts an unproven s
 `verified: true` carried over, which refuses the user's own authenticator and recovery codes from
 the first dialog step. A plugin's `before` hooks run inside Better Auth's pipeline, after its rate
 limiter and for `auth.api.*` callers too, and the account has exactly one factor in force at every
-point: the old one until a single row update, the new verified one after. The pending entry lives as
-long as the session, not for a fixed time: the dialog cannot outlive its session, and a lapsed entry
-would let a code from the old authenticator verify while the dialog reports a reconfiguration that
-never happened. Once a verified row is found the `enable` hook answers every outcome, because
-handing a request on is the lockout. Rejected: restoring the old row when the flow is abandoned,
-because the unproven secret signs in until then and a crash loses the old row; moving the row aside
-in an `after` hook, which leaves the unproven row in force in between; intercepting in the route,
-which runs before the rate limiter and is bypassed by `auth.api.*`; a column or table for the
-pending secret, a migration for state `verifications` already holds.
+point: the old one until a single row update, the new verified one after. The pending entry is keyed
+to the user and lapses at the expiry the session that created it had, not after a fixed time: a
+fixed lifetime could lapse while the dialog is open, and a code from the old authenticator would
+then verify through Better Auth while the dialog reports a reconfiguration that never happened. Any
+session of the user that submits a code from the pending secret completes the swap; signing out does
+not remove the entry, and a later `enable` replaces it. Once a verified row is found the `enable`
+hook answers every outcome, because handing a request on is the lockout. Rejected: restoring the old
+row when the flow is abandoned, because the unproven secret signs in until then and a crash loses
+the old row; moving the row aside in an `after` hook, which leaves the unproven row in force in
+between; intercepting in the route, which runs before the rate limiter and is bypassed by
+`auth.api.*`; a column or table for the pending secret, a migration for state `verifications`
+already holds.
 
 ## Known limits
 

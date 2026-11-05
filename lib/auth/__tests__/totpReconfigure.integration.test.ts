@@ -387,7 +387,7 @@ describe("reconfiguring a verified TOTP factor", () => {
     }).toEqual({ pendingSecret: false, oldSecret: true })
   })
 
-  test("refuses the code when the factor row is gone before the swap", async () => {
+  test("refuses the code through Better Auth when the factor row is gone before the code is submitted", async () => {
     const account = await enrolAccount()
     const newSecret = await startReconfigure(account)
 
