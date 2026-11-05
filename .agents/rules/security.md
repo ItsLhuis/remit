@@ -40,9 +40,9 @@ Public token routes always set `X-Robots-Tag: noindex, nofollow` on the HTTP res
 ## Audit logging
 
 Auth-sensitive flows write an audit log entry to `audit_log` before returning. Covered flows: login
-success and failure, password change, TOTP setup and reconfiguration, recovery code generation and
-consumption, settings changes touching SMTP / Stripe / payment information, data exports, entity
-deletions, public token rotations, and backup and restore operations written by the CLI scripts with
+success and failure, password change, TOTP setup and reconfiguration, recovery code consumption,
+settings changes touching SMTP / Stripe / payment information, data exports, entity deletions,
+public token rotations, and backup and restore operations written by the CLI scripts with
 `actorUserId: null`.
 
 Required fields per entry: `actorUserId` (or `null` for pre-auth events), `targetEntityType`,
@@ -88,6 +88,10 @@ authenticator and recovery codes stay valid: for a user with a verified factor,
 `lib/auth/totpReconfigure.ts` answers `enable` by holding the new secret as pending and swaps it
 into the factor on a session's `verify-totp`. Better Auth's own `enable` replaces the factor with an
 unproven secret and must never run for such a user.
+
+`auth.totp.reconfigured` is written once per change of factor, by the same plugin on the swap and by
+a database hook when a first factor verifies; `auth.totp.reconfigure_started` when `enable` holds a
+pending secret. The route writes neither, and no sign-in writes a TOTP entry.
 
 ## Outbound traffic
 

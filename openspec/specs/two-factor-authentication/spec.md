@@ -160,6 +160,41 @@ from it has verified in a session of that user.
 <!-- prettier-ignore -->
 Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `lib/auth/__tests__/totp.test.ts`
 
+### Requirement: A change of factor is audited once
+
+The system SHALL write `auth.totp.reconfigured`, carrying the acting user, once per change of the
+TOTP factor, and SHALL write `auth.totp.reconfigure_started`, carrying the acting user, when a
+password-checked `enable` holds a pending secret.
+
+#### Scenario: A reconfiguration stops after the first step
+
+- WHEN a user with a verified factor calls `enable` and stops
+- THEN one `auth.totp.reconfigure_started` entry is written and no `auth.totp.reconfigured` entry
+
+#### Scenario: The new secret verifies
+
+- WHEN a code from the pending secret verifies
+- THEN one `auth.totp.reconfigured` entry is written, and resubmitting the code, replacing recovery
+  codes or submitting a wrong code writes no TOTP entry
+
+#### Scenario: A first factor verifies
+
+- WHEN the first code of a first-time enrolment verifies
+- THEN one `auth.totp.reconfigured` entry is written, and the `enable` before it wrote none
+
+#### Scenario: A second factor completes a sign-in
+
+- WHEN a TOTP code completes a sign-in
+- THEN no TOTP entry is written
+
+#### Scenario: The request is posted through the route
+
+- WHEN `enable` is posted to the route with a forwarded address
+- THEN the entry carries that address and the route writes no TOTP entry of its own
+
+<!-- prettier-ignore -->
+Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `app/api/auth/[...all]/__tests__/route.test.ts`
+
 ## How it works
 
 `POST` in `app/api/auth/[...all]/route.ts` matches the path suffix `/two-factor/disable` before it
@@ -197,6 +232,12 @@ and an unexpired entry checks the code against the pending secret with `verifyTo
 ciphertext to `two_factors.secret`, deletes the entry and answers as Better Auth does. Without a
 session or an entry the request goes on to Better Auth, so first-time enrolment, sign-in and a retry
 after the swap run its own handlers.
+
+The factor-change entries are written by `lib/auth/totpReconfigure.ts` (`auditTotp`) for a swap and
+a started reconfiguration, and by `auditTotpEnrolment`, a Better Auth `user.update.after` database
+hook registered in `lib/auth/index.ts`, when the first code of an enrolment sets `twoFactorEnabled`.
+`POST` in the route writes no entry for `enable`, `verify-totp` or `generate-backup-codes`; those
+paths stay in its audited set only for the rate-limit entry.
 
 ## Decisions
 
@@ -243,10 +284,10 @@ already holds.
 
 ## Known limits
 
-- GAP-5: The route writes `auth.totp.reconfigured` on every successful `enable` and `verify-totp`,
-  so a reconfiguring user's entry predates the change of factor, and a sign-in verification writes
-  one with no actor.
 - GAP-6: First-time enrolment keeps Better Auth's two-tab race on `enable`, which can carry
   `verified: true` onto an unproven secret.
 - GAP-7: A transient session-read failure on `enable` for a verified user reaches Better Auth's
   handler, because the hold cannot tell it from a missing session.
+- GAP-8: Generating recovery codes writes no audit entry.
+- GAP-9: A sign-in that completes its second factor writes no entry; `auth.login.succeeded` is
+  written when the password step answers, before the second factor, and without an actor.

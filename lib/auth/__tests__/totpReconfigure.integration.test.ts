@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 
 import { randomInt } from "node:crypto"
 
-import { eq } from "drizzle-orm"
+import { asc, eq, like } from "drizzle-orm"
 
 import { afterAll, describe, expect, test, vi } from "vitest"
 
@@ -10,7 +10,7 @@ import { auth } from "@/lib/auth"
 
 import { getRateLimitConnection } from "@/lib/rateLimit/connection"
 
-import { twoFactors, users, verifications } from "@/database/schema"
+import { auditLogs, twoFactors, users, verifications } from "@/database/schema"
 
 import { POST } from "@/app/api/auth/[...all]/route"
 import { generateTotpCode } from "@/tests/e2e/support/totp"
@@ -464,5 +464,122 @@ describe("enrolling a first TOTP factor", () => {
       newSecretVerified: await submitCode(reenrolling, generateTotpCode(secret)),
       newSecretSignsIn: await signInWithTotp(secret)
     }).toEqual({ newSecretVerified: true, newSecretSignsIn: true })
+  })
+})
+
+type TotpAuditEntry = { event: string; actorUserId: string | null; ipAddress: string | null }
+
+async function readTotpAudit(): Promise<TotpAuditEntry[]> {
+  return database
+    .select({
+      event: auditLogs.event,
+      actorUserId: auditLogs.actorUserId,
+      ipAddress: auditLogs.ipAddress
+    })
+    .from(auditLogs)
+    .where(like(auditLogs.event, "auth.totp.%"))
+    .orderBy(asc(auditLogs.createdAt))
+}
+
+async function readNewTotpAudit(before: TotpAuditEntry[]): Promise<TotpAuditEntry[]> {
+  return (await readTotpAudit()).slice(before.length)
+}
+
+describe("auditing changes of the TOTP factor", () => {
+  test("writes a reconfiguration start and no reconfiguration when a reconfigure stops after enable", async () => {
+    const account = await enrolAccount()
+    const userId = await readUserId()
+    const before = await readTotpAudit()
+
+    await startReconfigure(account)
+
+    expect(await readNewTotpAudit(before)).toEqual([
+      { event: "auth.totp.reconfigure_started", actorUserId: userId, ipAddress: null }
+    ])
+  })
+
+  test("writes one reconfiguration with the acting user when the new secret verified", async () => {
+    const account = await enrolAccount()
+    const userId = await readUserId()
+    const code = generateTotpCode(await startReconfigure(account))
+    const before = await readTotpAudit()
+
+    await submitCode(account, code)
+
+    expect(await readNewTotpAudit(before)).toEqual([
+      { event: "auth.totp.reconfigured", actorUserId: userId, ipAddress: null }
+    ])
+  })
+
+  test("writes no further entry when the swap code is resubmitted and recovery codes are replaced", async () => {
+    const account = await enrolAccount()
+    const code = generateTotpCode(await startReconfigure(account))
+
+    await submitCode(account, code)
+
+    const before = await readTotpAudit()
+
+    await submitCode(account, code)
+    await auth.api.generateBackupCodes({
+      headers: account.headers,
+      body: { password: ACCOUNT_PASSWORD }
+    })
+
+    expect(await readNewTotpAudit(before)).toEqual([])
+  })
+
+  test("writes no TOTP entry when a wrong code is submitted during a reconfigure", async () => {
+    const account = await enrolAccount()
+
+    await startReconfigure(account)
+
+    const before = await readTotpAudit()
+
+    await submitCode(account, WRONG_CODE)
+
+    expect(await readNewTotpAudit(before)).toEqual([])
+  })
+
+  test("writes one reconfiguration with the acting user when a first factor verified", async () => {
+    const headers = await signUpAccount()
+    const userId = await readUserId()
+    const { totpURI } = await auth.api.enableTwoFactor({
+      headers,
+      body: { password: ACCOUNT_PASSWORD }
+    })
+
+    expect(await readTotpAudit()).toEqual([])
+
+    await auth.api.verifyTOTP({ headers, body: { code: generateTotpCode(readSecret(totpURI)) } })
+
+    expect(await readTotpAudit()).toEqual([
+      { event: "auth.totp.reconfigured", actorUserId: userId, ipAddress: null }
+    ])
+  })
+
+  test("writes no TOTP entry when a second factor completes a sign-in", async () => {
+    const account = await enrolAccount()
+    const before = await readTotpAudit()
+
+    await signInWithTotp(account.secret)
+
+    expect(await readNewTotpAudit(before)).toEqual([])
+  })
+
+  test("writes the request address once when enable is posted through the route", async () => {
+    const account = await enrolAccount()
+    const userId = await readUserId()
+    const address = randomAddress()
+    const before = await readTotpAudit()
+
+    await postAuth("enable", {
+      cookie: readCookie(account),
+      body: { password: ACCOUNT_PASSWORD },
+      address
+    })
+
+    expect(await readNewTotpAudit(before)).toEqual([
+      { event: "auth.totp.reconfigure_started", actorUserId: userId, ipAddress: address }
+    ])
   })
 })

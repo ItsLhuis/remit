@@ -213,10 +213,10 @@ describe("auth route audit wrapper", () => {
     ["/two-factor/enable", { password: "secret" }],
     ["/two-factor/verify-totp", { code: "123456" }],
     ["/two-factor/generate-backup-codes", { password: "secret" }]
-  ])("writes TOTP reconfigured audit after %s", async (path, body) => {
+  ])("writes no TOTP audit after a successful %s", async (path, body) => {
     await postToAuthRoute(path, body)
 
-    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.totp.reconfigured", userAuditContext)
+    expect(mocks.writeAudit).not.toHaveBeenCalled()
   })
 
   test.each(["/sign-in/email", "/sign-up/email"])(

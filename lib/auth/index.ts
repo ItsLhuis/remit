@@ -27,7 +27,7 @@ import {
 
 import { sendTransactionalEmail } from "@/features/email/server"
 
-import { totpReconfigure } from "./totpReconfigure"
+import { auditTotpEnrolment, totpReconfigure } from "./totpReconfigure"
 
 // Accountant and assistant deliberately share one role with no organization, member, invitation or
 // team permissions: Remit runs one organization per instance, so only the owner may ever change
@@ -80,6 +80,10 @@ export const auth = betterAuth({
         url
       })
     }
+  },
+  // Plugins cannot add database hooks, so the enrolment audit is registered here.
+  databaseHooks: {
+    user: { update: { after: auditTotpEnrolment } }
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {

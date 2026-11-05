@@ -221,11 +221,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     userAgent: request.headers.get("user-agent") ?? null
   }
   const sessionUser =
-    auditedRoute === "backupCode" ||
-    auditedRoute === "changePassword" ||
-    auditedRoute === "enableTwoFactor" ||
-    auditedRoute === "verifyTotp" ||
-    auditedRoute === "generateBackupCodes"
+    auditedRoute === "backupCode" || auditedRoute === "changePassword"
       ? await getSessionUser(request)
       : null
 
@@ -279,13 +275,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     return response
   }
 
-  if (auditedRoute === "enableTwoFactor") {
-    await writeAudit("auth.totp.reconfigured", withUserAuditContext(context, sessionUser))
-
-    return response
-  }
-
-  await writeAudit("auth.totp.reconfigured", withUserAuditContext(context, sessionUser))
-
+  // The three two-factor mutations are in `AuditedAuthRoute` only so a 429 reaches the rate-limit
+  // audit above. Their entries are written where the factor changes (`lib/auth/totpReconfigure.ts`),
+  // which also covers `auth.api.*` callers; writing one per call here would record `enable` and
+  // `generate-backup-codes` as reconfigurations and every sign-in verification with no actor.
   return response
 }

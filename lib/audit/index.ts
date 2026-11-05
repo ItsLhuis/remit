@@ -9,6 +9,7 @@ export type AuditEvent =
   | "auth.login.succeeded"
   | "auth.login.failed"
   | "auth.password.changed"
+  | "auth.totp.reconfigure_started"
   | "auth.totp.reconfigured"
   | "auth.totp.disable_refused"
   | "auth.backup_code.consumed"

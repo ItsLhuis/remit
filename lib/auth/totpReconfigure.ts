@@ -6,6 +6,10 @@ import { TWO_FACTOR_ERROR_CODES } from "better-auth/plugins"
 
 import { z } from "zod"
 
+import { writeAudit } from "@/lib/audit"
+
+import { getIpAddress } from "@/lib/utils"
+
 import { buildTotpUri, verifyTotpCode } from "./totp"
 
 const ENABLE_PATH = "/two-factor/enable"
@@ -24,6 +28,35 @@ const verifyTotpBodySchema = z.object({
   code: z.string(),
   trustDevice: z.boolean().optional()
 })
+
+// The entries are written here and not by the route so that `auth.api.*` callers are audited too,
+// and so that the event follows the change of factor rather than the endpoint that was called.
+async function auditTotp(
+  event: "auth.totp.reconfigure_started" | "auth.totp.reconfigured",
+  ctx: GenericEndpointContext,
+  userId: string
+): Promise<void> {
+  const headers = ctx.headers ?? ctx.request?.headers
+
+  await writeAudit(event, {
+    actorUserId: userId,
+    targetEntityType: "user",
+    targetEntityId: userId,
+    ipAddress: headers ? getIpAddress(headers) : null,
+    userAgent: headers?.get("user-agent") ?? null
+  })
+}
+
+// First-time enrolment is Better Auth's own handler, which flips `twoFactorEnabled` only when the
+// first code verifies; no other `verify-totp` updates the user, so a sign-in never reaches this.
+export async function auditTotpEnrolment(
+  user: { id: string; twoFactorEnabled?: boolean | null } | null,
+  ctx: GenericEndpointContext | null
+): Promise<void> {
+  if (!user?.twoFactorEnabled || ctx?.path !== VERIFY_TOTP_PATH) return
+
+  await auditTotp("auth.totp.reconfigured", ctx, user.id)
+}
 
 type Session = NonNullable<Awaited<ReturnType<typeof getSessionFromCtx>>>
 
@@ -87,6 +120,8 @@ async function holdPendingSecret(ctx: GenericEndpointContext, session: Session) 
     expiresAt: session.session.expiresAt
   })
 
+  await auditTotp("auth.totp.reconfigure_started", ctx, session.user.id)
+
   return {
     totpURI: buildTotpUri({
       secret,
@@ -130,6 +165,8 @@ async function swapPendingSecret(
   await ctx.context.internalAdapter.deleteVerificationByIdentifier(
     pendingIdentifier(session.user.id)
   )
+
+  await auditTotp("auth.totp.reconfigured", ctx, session.user.id)
 
   return {
     token: session.session.token,
