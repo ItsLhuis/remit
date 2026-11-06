@@ -40,10 +40,16 @@ Public token routes always set `X-Robots-Tag: noindex, nofollow` on the HTTP res
 ## Audit logging
 
 Auth-sensitive flows write an audit log entry to `audit_log` before returning. Covered flows: login
-success and failure, password change, TOTP setup and reconfiguration, recovery code consumption,
-settings changes touching SMTP / Stripe / payment information, data exports, entity deletions,
-public token rotations, and backup and restore operations written by the CLI scripts with
+success and failure, password change, TOTP setup and reconfiguration, recovery code generation and
+consumption, settings changes touching SMTP / Stripe / payment information, data exports, entity
+deletions, public token rotations, and backup and restore operations written by the CLI scripts with
 `actorUserId: null`.
+
+A sign-in is audited by the stage it reaches: `auth.login.password_verified` when the password
+checks out, `auth.login.succeeded` only when a session is established, and `auth.login.failed` with
+the stage (`password` or `second_factor`) in its metadata. Regenerating recovery codes writes
+`auth.backup_codes.regenerated`. `lib/auth/authAudit.ts` writes them inside Better Auth, so
+`auth.api.*` callers are covered; the route writes none of them.
 
 Required fields per entry: `actorUserId` (or `null` for pre-auth events), `targetEntityType`,
 `targetEntityId`, `metadata` (JSONB with relevant context), `ipAddress`, `userAgent`. The

@@ -8,8 +8,7 @@ import { z } from "zod"
 
 import { writeAudit } from "@/lib/audit"
 
-import { getIpAddress } from "@/lib/utils"
-
+import { buildAuditContext } from "./auditContext"
 import { buildTotpUri, verifyTotpCode } from "./totp"
 
 const ENABLE_PATH = "/two-factor/enable"
@@ -36,15 +35,7 @@ async function auditTotp(
   ctx: GenericEndpointContext,
   userId: string
 ): Promise<void> {
-  const headers = ctx.headers ?? ctx.request?.headers
-
-  await writeAudit(event, {
-    actorUserId: userId,
-    targetEntityType: "user",
-    targetEntityId: userId,
-    ipAddress: headers ? getIpAddress(headers) : null,
-    userAgent: headers?.get("user-agent") ?? null
-  })
+  await writeAudit(event, buildAuditContext(ctx, userId))
 }
 
 // First-time enrolment is Better Auth's own handler, which flips `twoFactorEnabled` only when the

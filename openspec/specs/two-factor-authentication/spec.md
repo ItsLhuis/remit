@@ -288,6 +288,3 @@ already holds.
   `verified: true` onto an unproven secret.
 - GAP-7: A transient session-read failure on `enable` for a verified user reaches Better Auth's
   handler, because the hold cannot tell it from a missing session.
-- GAP-8: Generating recovery codes writes no audit entry.
-- GAP-9: A sign-in that completes its second factor writes no entry; `auth.login.succeeded` is
-  written when the password step answers, before the second factor, and without an actor.

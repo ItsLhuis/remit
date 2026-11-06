@@ -27,6 +27,7 @@ import {
 
 import { sendTransactionalEmail } from "@/features/email/server"
 
+import { authAudit } from "./authAudit"
 import { auditTotpEnrolment, totpReconfigure } from "./totpReconfigure"
 
 // Accountant and assistant deliberately share one role with no organization, member, invitation or
@@ -106,6 +107,7 @@ export const auth = betterAuth({
       issuer: "Remit"
     }),
     totpReconfigure,
+    authAudit,
     organizationPlugin({
       creatorRole: "owner",
       // Better Auth turns this on by default whenever `advanced.database.generateId` is customized,

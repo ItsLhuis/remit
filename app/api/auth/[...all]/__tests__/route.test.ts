@@ -136,32 +136,19 @@ describe("auth route audit wrapper", () => {
     expect(mocks.writeAudit).not.toHaveBeenCalled()
   })
 
-  test("writes successful login audit with actor user id", async () => {
-    mocks.betterAuthPost.mockResolvedValueOnce(Response.json({ user: { id: USER_ID } }))
+  test.each([
+    ["a successful", Response.json({ user: { id: USER_ID } })],
+    ["a failed", Response.json({ error: "Invalid credentials" }, { status: 401 })]
+  ])(
+    "writes no sign-in audit after %s sign-in, which Better Auth's plugin records",
+    async (_, answer) => {
+      mocks.betterAuthPost.mockResolvedValueOnce(answer)
 
-    await postToAuthRoute("/sign-in/email", { email: "owner@example.com", password: "x" })
+      await postToAuthRoute("/sign-in/email", { email: "owner@example.com", password: "x" })
 
-    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.login.succeeded", {
-      ...requestAuditContext,
-      actorUserId: USER_ID
-    })
-  })
-
-  test("writes failed login audit with email but without password metadata", async () => {
-    mocks.betterAuthPost.mockResolvedValueOnce(
-      Response.json({ error: "Invalid credentials" }, { status: 401 })
-    )
-
-    await postToAuthRoute("/sign-in/email", {
-      email: "owner@example.com",
-      password: "secret"
-    })
-
-    expect(mocks.writeAudit).toHaveBeenCalledWith("auth.login.failed", {
-      ...requestAuditContext,
-      metadata: { email: "owner@example.com" }
-    })
-  })
+      expect(mocks.writeAudit).not.toHaveBeenCalled()
+    }
+  )
 
   test("writes backup code consumed audit after successful verification", async () => {
     await postToAuthRoute("/two-factor/verify-backup-code", { code: "secret" })

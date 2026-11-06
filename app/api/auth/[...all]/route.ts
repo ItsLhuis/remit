@@ -80,22 +80,6 @@ async function readJson(request: NextRequest): Promise<unknown> {
   }
 }
 
-async function readResponseJson(response: Response): Promise<unknown> {
-  try {
-    return await response.clone().json()
-  } catch {
-    return null
-  }
-}
-
-function getResponseUserId(value: unknown): string | null {
-  if (!isRecord(value)) return null
-
-  const user = value.user
-
-  return getStringProperty(user, "id")
-}
-
 type SessionUser = {
   id: string
 }
@@ -136,31 +120,6 @@ function getEmailMetadata(body: unknown): { email: string } | undefined {
 
 function isSuccess(response: Response): boolean {
   return response.status >= 200 && response.status < 300
-}
-
-async function auditSignInResponse(
-  response: Response,
-  context: AuditContext,
-  body: unknown
-): Promise<void> {
-  if (isSuccess(response)) {
-    const responseBody = await readResponseJson(response)
-    const actorUserId = getResponseUserId(responseBody)
-
-    await writeAudit("auth.login.succeeded", {
-      ...context,
-      ...(actorUserId ? { actorUserId } : {})
-    })
-
-    return
-  }
-
-  const emailMetadata = getEmailMetadata(body)
-
-  await writeAudit("auth.login.failed", {
-    ...context,
-    ...(emailMetadata ? { metadata: emailMetadata } : {})
-  })
 }
 
 // Swallowed deliberately: the window has already counted this refusal as its first, so a throw here
@@ -236,17 +195,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     return response
   }
 
-  if (auditedRoute === "signIn") {
-    await auditSignInResponse(response, context, body)
-
-    return response
-  }
-
-  // Sign-up is in `AuditedAuthRoute` only so a 429 on registration reaches the rate-limit audit
-  // above; a successful sign-up writes nothing here. Dropping it from `getAuditedRoute` would send
-  // the route down the unaudited fast path and silently stop auditing registration rate-limit
-  // trips, which `security.md` requires.
-  if (auditedRoute === "signUp") return response
+  // Sign-in and sign-up are in `AuditedAuthRoute` only so a 429 reaches the rate-limit audit above.
+  // A sign-in's own entries are written inside Better Auth (`lib/auth/authAudit.ts`) and a
+  // successful sign-up writes nothing. Dropping either from `getAuditedRoute` would send it down
+  // the unaudited fast path and silently stop auditing its rate-limit trips, which `security.md`
+  // requires.
+  if (auditedRoute === "signUp" || auditedRoute === "signIn") return response
 
   if (!isSuccess(response)) return response
 

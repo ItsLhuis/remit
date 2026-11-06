@@ -6,6 +6,7 @@ import { database } from "@/database"
 import { auditLogs } from "@/database/schema"
 
 export type AuditEvent =
+  | "auth.login.password_verified"
   | "auth.login.succeeded"
   | "auth.login.failed"
   | "auth.password.changed"
@@ -13,6 +14,7 @@ export type AuditEvent =
   | "auth.totp.reconfigured"
   | "auth.totp.disable_refused"
   | "auth.backup_code.consumed"
+  | "auth.backup_codes.regenerated"
   | "auth.password_reset.email_requested"
   | "auth.password_reset.cli_issued"
   | "auth.rate_limit.tripped"
