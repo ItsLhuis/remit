@@ -67,7 +67,7 @@ const PhoneInput = ({
       inputComponent={InputComponent}
       smartCaret={false}
       defaultCountry={defaultCountry}
-      value={(value || undefined) as RPNInput.Value | undefined}
+      value={value || undefined}
       onChange={handleChange}
       disabled={disabled}
       {...(props as object)}

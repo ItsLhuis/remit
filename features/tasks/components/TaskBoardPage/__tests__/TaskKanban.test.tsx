@@ -25,7 +25,7 @@ vi.mock("@/lib/i18n", () => ({
 
 vi.mock("@dnd-kit/react", () => ({
   DragDropProvider: ({ children, ...props }: { children: React.ReactNode }) => {
-    dnd.props = props as Record<string, (event: unknown) => unknown>
+    dnd.props = props
 
     return children
   },

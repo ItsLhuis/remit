@@ -1,6 +1,5 @@
 export type InvoiceDiscount =
-  | { type: "percentage"; percentage: number }
-  | { type: "fixed"; amountCents: number }
+  { type: "percentage"; percentage: number } | { type: "fixed"; amountCents: number }
 
 export type InvoiceLineItemInput = {
   quantity: number

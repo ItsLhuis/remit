@@ -7,8 +7,7 @@ import { isAddressAllowed, toBareHostname } from "./addressPolicy"
 export type WebhookUrlRefusal = "too_long" | "invalid" | "scheme" | "credentials" | "address"
 
 export type WebhookUrlEvaluation =
-  | { ok: true; url: URL; allowPrivate: boolean }
-  | { ok: false; reason: WebhookUrlRefusal }
+  { ok: true; url: URL; allowPrivate: boolean } | { ok: false; reason: WebhookUrlRefusal }
 
 // The static half of the SSRF defence: what can be decided from the URL alone, before any DNS. It
 // runs when an endpoint is saved and again before every delivery, because the operator's allowlist

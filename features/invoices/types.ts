@@ -119,8 +119,7 @@ export type PublicLinkState = "unissued" | "live" | "revoked"
 // invoice was charged under. Both are null when that entry is gone — the fee itself still stands,
 // and the card says only what it can prove.
 export type InvoiceLateFeePolicySnapshot =
-  | { kind: "percentage"; percentage: number }
-  | { kind: "fixed"; amountCents: number }
+  { kind: "percentage"; percentage: number } | { kind: "fixed"; amountCents: number }
 
 export type InvoiceLateFee = {
   feeCents: number
@@ -240,8 +239,7 @@ export type DeleteInvoiceResult = { data: { id: string } } | { error: string }
 export type InvoicePublicLinkResult = { data: { id: string } } | { error: string }
 
 export type AdjustInvoiceLateFeeResult =
-  | { data: { id: string; lateFeeCents: number } }
-  | { error: string }
+  { data: { id: string; lateFeeCents: number } } | { error: string }
 
 // An accepted proposal that has not been turned into an invoice yet. `totalCents` and `currency`
 // travel with it so the conversion dialog can show what the invoice will be worth before the write.

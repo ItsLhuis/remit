@@ -8,11 +8,7 @@ import { t } from "@/lib/i18n/server"
 
 import { logger } from "@/lib/logger"
 
-import {
-  buildS3ClientConfig,
-  type BackupDestination,
-  type CompleteBackupCredentials
-} from "@/lib/backups/destinationConfig"
+import { buildS3ClientConfig, type BackupDestination } from "@/lib/backups/destinationConfig"
 import { env } from "@/lib/config/env"
 
 import { type settings } from "@/database/schema"
@@ -99,10 +95,7 @@ async function getRemoteStorageHealthCheck(
   }
 
   const client = new S3Client(
-    buildS3ClientConfig(
-      remoteStorageConfiguration.destination,
-      remoteStorageConfiguration as CompleteBackupCredentials
-    )
+    buildS3ClientConfig(remoteStorageConfiguration.destination, remoteStorageConfiguration)
   )
 
   try {

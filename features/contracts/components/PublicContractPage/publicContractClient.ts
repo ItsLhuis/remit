@@ -45,7 +45,7 @@ async function readErrorMessage(response: Response): Promise<string> {
   const payload = await readJsonBody(response)
 
   if (typeof payload === "object" && payload !== null && "error" in payload) {
-    const message = (payload as { error: unknown }).error
+    const message = payload.error
 
     if (typeof message === "string") return message
   }

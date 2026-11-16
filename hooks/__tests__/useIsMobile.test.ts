@@ -7,7 +7,6 @@ import { afterEach, beforeEach, expect, test } from "vitest"
 import { useIsMobile } from "../useIsMobile"
 
 const mediaListeners = new Set<EventListenerOrEventListenerObject>()
-type LegacyMediaQueryListener = (this: MediaQueryList, event: MediaQueryListEvent) => void
 
 let originalInnerWidthDescriptor: PropertyDescriptor | undefined
 let originalMatchMediaDescriptor: PropertyDescriptor | undefined
@@ -40,8 +39,6 @@ beforeEach(() => {
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     value: (query: string): MediaQueryList => {
-      const legacyListeners = new Map<LegacyMediaQueryListener, EventListener>()
-
       const mediaQueryList = {
         matches: window.innerWidth < 768,
         media: query,
@@ -51,26 +48,6 @@ beforeEach(() => {
         },
         removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
           if (type === "change") mediaListeners.delete(listener)
-        },
-        addListener: (listener: LegacyMediaQueryListener | null) => {
-          if (!listener) return
-
-          const wrappedListener: EventListener = (event) => {
-            listener.call(mediaQueryList, event as MediaQueryListEvent)
-          }
-
-          legacyListeners.set(listener, wrappedListener)
-          mediaListeners.add(wrappedListener)
-        },
-        removeListener: (listener: LegacyMediaQueryListener | null) => {
-          if (!listener) return
-
-          const wrappedListener = legacyListeners.get(listener)
-
-          if (!wrappedListener) return
-
-          mediaListeners.delete(wrappedListener)
-          legacyListeners.delete(listener)
         },
         dispatchEvent: (event: Event) => {
           for (const listener of mediaListeners) {

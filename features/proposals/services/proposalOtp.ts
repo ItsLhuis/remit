@@ -21,8 +21,7 @@ export type ProposalOtpRecord = {
 export type ProposalOtpRejection = "consumed" | "expired" | "attempts_exhausted"
 
 export type ProposalOtpUsability =
-  | { usable: true }
-  | { usable: false; reason: ProposalOtpRejection }
+  { usable: true } | { usable: false; reason: ProposalOtpRejection }
 
 export function evaluateProposalOtp(otp: ProposalOtpRecord, now: Date): ProposalOtpUsability {
   if (otp.usedAt !== null || otp.invalidatedAt !== null) {

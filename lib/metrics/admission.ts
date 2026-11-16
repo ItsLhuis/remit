@@ -34,9 +34,7 @@ export const METRICS_RESPONSE_HEADERS = {
 }
 
 export type MetricsAdmission =
-  | { outcome: "admitted" }
-  | { outcome: "refused" }
-  | { outcome: "limited"; response: NextResponse }
+  { outcome: "admitted" } | { outcome: "refused" } | { outcome: "limited"; response: NextResponse }
 
 // Decided in `proxy.ts`, ahead of the session state machine, because a refused scrape must be
 // answered exactly as a path with no route is: a redirect to sign in for an anonymous caller, the

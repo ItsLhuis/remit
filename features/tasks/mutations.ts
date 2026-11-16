@@ -50,11 +50,7 @@ type TaskWriteContext = {
 type TaskWriteGate = { context: TaskWriteContext } | { error: string }
 
 type TaskAuditEvent =
-  | "task.created"
-  | "task.updated"
-  | "task.deleted"
-  | "task.restored"
-  | "task.status_changed"
+  "task.created" | "task.updated" | "task.deleted" | "task.restored" | "task.status_changed"
 
 type TaskWriteValues = {
   title: string

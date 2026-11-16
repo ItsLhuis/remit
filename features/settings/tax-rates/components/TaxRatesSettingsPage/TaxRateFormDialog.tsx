@@ -36,9 +36,7 @@ import {
 } from "../../schemas"
 
 export type TaxRateFormState =
-  | { mode: "create" }
-  | { mode: "edit"; taxRate: TaxRateListItem }
-  | null
+  { mode: "create" } | { mode: "edit"; taxRate: TaxRateListItem } | null
 
 const emptyTaxRateValues: TaxRateFormValues = {
   name: "",

@@ -14,8 +14,7 @@ const MAXIMUM_PART_COUNT = 10_000
 export const MINIMUM_PART_BYTES = 5 * MiB
 
 export type MultipartUploadPlan =
-  | { kind: "single" }
-  | { kind: "multipart"; partSize: number; partCount: number }
+  { kind: "single" } | { kind: "multipart"; partSize: number; partCount: number }
 
 export function planMultipartUpload(
   sizeBytes: number,

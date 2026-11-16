@@ -3,8 +3,7 @@ import { ASSIGNABLE_ROLES, type AssignableRole } from "../schemas"
 export type TeamRole = "owner" | AssignableRole
 
 export type TeamMembershipDecision =
-  | { allowed: true }
-  | { allowed: false; reason: "ownerImmutable" | "selfRemoval" | "roleUnchanged" }
+  { allowed: true } | { allowed: false; reason: "ownerImmutable" | "selfRemoval" | "roleUnchanged" }
 
 export function toTeamRole(value: string): TeamRole | null {
   if (value === "owner") return "owner"

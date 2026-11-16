@@ -38,16 +38,13 @@ import {
 import { type WebhookEndpointListItem } from "./types"
 
 type CreateWebhookEndpointResult =
-  | { data: { endpoint: WebhookEndpointListItem; secret: string } }
-  | { error: string }
+  { data: { endpoint: WebhookEndpointListItem; secret: string } } | { error: string }
 
 type RotateWebhookSecretResult =
-  | { data: { endpointId: string; secret: string } }
-  | { error: string }
+  { data: { endpointId: string; secret: string } } | { error: string }
 
 type SetWebhookEndpointActiveResult =
-  | { data: { endpoint: WebhookEndpointListItem } }
-  | { error: string }
+  { data: { endpoint: WebhookEndpointListItem } } | { error: string }
 
 type WebhookEndpointActionResult = { data: { endpointId: string } } | { error: string }
 

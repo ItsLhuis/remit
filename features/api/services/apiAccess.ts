@@ -14,15 +14,10 @@ export type ApiTokenAccessInput = {
 }
 
 export type ApiTokenRefusal =
-  | "revoked"
-  | "expired"
-  | "no_creator"
-  | "role_forbidden"
-  | "scope_missing"
+  "revoked" | "expired" | "no_creator" | "role_forbidden" | "scope_missing"
 
 export type ApiTokenAccess =
-  | { allowed: true; role: ApiTokenRole }
-  | { allowed: false; reason: ApiTokenRefusal }
+  { allowed: true; role: ApiTokenRole } | { allowed: false; reason: ApiTokenRefusal }
 
 // What each role may read through the application, restated for the API. ARCHITECTURE.md, "Security
 // model and roles", grants every role read access to every entity, so today the three rows are

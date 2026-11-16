@@ -54,8 +54,7 @@ export type LateFeeRefusal =
   | "rounds_to_zero"
 
 export type LateFeeAssessment =
-  | { charge: true; feeCents: number; daysLate: number }
-  | { charge: false; reason: LateFeeRefusal }
+  { charge: true; feeCents: number; daysLate: number } | { charge: false; reason: LateFeeRefusal }
 
 const MILLISECONDS_PER_DAY = 86_400_000
 

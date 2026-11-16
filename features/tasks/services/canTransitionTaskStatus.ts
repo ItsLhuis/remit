@@ -3,8 +3,7 @@ import { TASK_STATUS_VALUES, type TaskStatus } from "../schemas"
 export type TaskTransitionReason = "same_status" | "not_allowed"
 
 export type TaskStatusTransition =
-  | { allowed: true; nextStatus: TaskStatus }
-  | { allowed: false; reason: TaskTransitionReason }
+  { allowed: true; nextStatus: TaskStatus } | { allowed: false; reason: TaskTransitionReason }
 
 // Unlike leads and projects, the task board is deliberately fully connected — every status reaches
 // every other, and there is no terminal state. A board column must stay draggable in both

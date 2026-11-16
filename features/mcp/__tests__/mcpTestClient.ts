@@ -3,11 +3,7 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { makeApiToken, makeMember, makeOrganization, makeUser } from "@/tests/factories"
 
 export type ApiTokenScopeValue =
-  | "clients:read"
-  | "projects:read"
-  | "invoices:read"
-  | "time_entries:read"
-  | "expenses:read"
+  "clients:read" | "projects:read" | "invoices:read" | "time_entries:read" | "expenses:read"
 
 export const ALL_SCOPES: ApiTokenScopeValue[] = [
   "clients:read",

@@ -2,7 +2,7 @@ import i18n from "i18next"
 
 import ICU from "i18next-icu"
 
-import { Locales, type LocaleKeys } from "./locales"
+import { Locales } from "./locales"
 import { getTranslationResources } from "./resources"
 import { type Translations } from "./types"
 
@@ -22,7 +22,7 @@ if (!i18n.isInitialized) {
     resources: getTranslationResources(),
     lng: "en",
     fallbackLng: "en",
-    supportedLngs: Object.keys(Locales) as LocaleKeys[],
+    supportedLngs: Object.keys(Locales),
     defaultNS: "translation",
     debug: process.env.NODE_ENV === "development",
     initAsync: false,

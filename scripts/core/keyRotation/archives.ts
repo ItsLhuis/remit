@@ -68,14 +68,12 @@ export async function listArchivePlans(
   const remoteObjects = await adapter.list(REMOTE_BACKUP_PREFIX)
   const remotePlans = remoteObjects
     .filter((object) => object.key.endsWith(".remitbak"))
-    .map(
-      (object): ArchivePlan => ({
-        adapter,
-        destination: settings.destination as Exclude<BackupDestination, "local">,
-        key: object.key,
-        size: object.size
-      })
-    )
+    .map((object): ArchivePlan => ({
+      adapter,
+      destination: settings.destination as Exclude<BackupDestination, "local">,
+      key: object.key,
+      size: object.size
+    }))
 
   return [...localPlans, ...remotePlans]
 }
@@ -84,14 +82,12 @@ async function listLocalArchives(rootDirectory: string): Promise<ArchivePlan[]> 
   const root = path.resolve(rootDirectory)
   const files = await listLocalArchiveFiles(root)
 
-  return files.map(
-    (file): ArchivePlan => ({
-      destination: "local",
-      key: path.relative(root, file.path).split(path.sep).join("/"),
-      path: file.path,
-      size: file.size
-    })
-  )
+  return files.map((file): ArchivePlan => ({
+    destination: "local",
+    key: path.relative(root, file.path).split(path.sep).join("/"),
+    path: file.path,
+    size: file.size
+  }))
 }
 
 async function listLocalArchiveFiles(

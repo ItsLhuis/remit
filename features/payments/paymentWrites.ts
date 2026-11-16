@@ -48,8 +48,7 @@ export type PaymentWriteResult =
 // Only the Stripe path can be a replay, so only its result carries that case; the manual paths would
 // have to handle a branch they can never reach.
 export type StripePaymentWriteResult =
-  | PaymentWriteResult
-  | { status: "duplicate"; paymentId: string }
+  PaymentWriteResult | { status: "duplicate"; paymentId: string }
 
 export type RecordPaymentWriteInput = {
   invoiceId: string

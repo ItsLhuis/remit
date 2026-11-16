@@ -54,8 +54,7 @@ the outcome:
 
 ```ts
 export type InvoiceStatusTransition =
-  | { allowed: true; nextStatus: InvoiceStatus }
-  | { allowed: false; reason: string }
+  { allowed: true; nextStatus: InvoiceStatus } | { allowed: false; reason: string }
 ```
 
 Avoid boolean-plus-optional-field result shapes when a discriminated union would make invalid states

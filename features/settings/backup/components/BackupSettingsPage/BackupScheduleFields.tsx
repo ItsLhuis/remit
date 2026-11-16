@@ -28,9 +28,7 @@ type BackupScheduleFieldsProps = {
 }
 
 type RetentionFieldName =
-  | "backupRetentionDaily"
-  | "backupRetentionWeekly"
-  | "backupRetentionMonthly"
+  "backupRetentionDaily" | "backupRetentionWeekly" | "backupRetentionMonthly"
 
 const BackupScheduleFields = ({ control, disabled }: BackupScheduleFieldsProps) => {
   const { t } = useTranslation()

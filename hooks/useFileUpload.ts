@@ -12,12 +12,7 @@ export { IMAGE_UPLOAD_MAX_BYTES, IMAGE_UPLOAD_MIME_TYPES } from "@/lib/storage"
 // browser. A value added there and not here fails to compile at the call site, which is the loud
 // half of the tradeoff.
 export type FileUploadType =
-  | "attachment"
-  | "avatar"
-  | "business-logo"
-  | "client-image"
-  | "expense-receipt"
-  | "template-image"
+  "attachment" | "avatar" | "business-logo" | "client-image" | "expense-receipt" | "template-image"
 
 // What the caller persists. The file itself never travels through a server action: it is streamed to
 // the upload route, which mints its key, and only this metadata goes on to the action, which

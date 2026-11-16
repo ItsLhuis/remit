@@ -371,7 +371,7 @@ function toPosition(source: string, offset: number): { line: number; column: num
   let line = 1
   let lineStart = 0
 
-  for (let index = source.indexOf("\n"); index >= 0 && index < offset; ) {
+  for (let index = source.indexOf("\n"); index >= 0 && index < offset;) {
     line += 1
     lineStart = index + 1
     index = source.indexOf("\n", lineStart)

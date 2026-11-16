@@ -1,8 +1,7 @@
 export type ChangelogReleaseRefusal = "missingUnreleased" | "emptyUnreleased" | "versionExists"
 
 export type ChangelogReleaseResult =
-  | { ok: true; content: string }
-  | { ok: false; reason: ChangelogReleaseRefusal }
+  { ok: true; content: string } | { ok: false; reason: ChangelogReleaseRefusal }
 
 const UNRELEASED_HEADING = "## [Unreleased]"
 

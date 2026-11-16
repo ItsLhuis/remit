@@ -8,12 +8,7 @@ import {
 } from "@/lib/backups/destination"
 
 export type BackupConnectionTestErrorCode =
-  | "auth"
-  | "connection"
-  | "not_found"
-  | "permission"
-  | "probe_not_removed"
-  | "provider_failed"
+  "auth" | "connection" | "not_found" | "permission" | "probe_not_removed" | "provider_failed"
 
 export type BackupConnectionTestOutcome = {
   // True only when the probe object was written *and* removed. A run that wrote and could not

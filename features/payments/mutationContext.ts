@@ -22,10 +22,7 @@ import { type PaymentActor } from "./types"
 export type PaymentWriteGate = { context: PaymentActor } | { error: string }
 
 export type PaymentAuditEvent =
-  | "payment.recorded"
-  | "payment.updated"
-  | "payment.deleted"
-  | "payment.restored"
+  "payment.recorded" | "payment.updated" | "payment.deleted" | "payment.restored"
 
 export type PaymentInvoiceRef = {
   id: string

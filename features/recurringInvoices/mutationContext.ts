@@ -24,8 +24,7 @@ export type RecurringInvoiceWriteContext = {
 }
 
 export type RecurringInvoiceWriteGate =
-  | { context: RecurringInvoiceWriteContext }
-  | { error: string }
+  { context: RecurringInvoiceWriteContext } | { error: string }
 
 export type RecurringInvoiceAuditEvent =
   | "recurring_invoice.created"

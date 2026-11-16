@@ -46,8 +46,7 @@ export type ExpenseMutationResult = { data: { expense: ExpenseFormData } } | { e
 export type DeleteExpenseResult = { data: { id: string } } | { error: string }
 
 export type ExportExpensesResult =
-  | { data: { filename: string; csv: string; rowCount: number } }
-  | { error: string }
+  { data: { filename: string; csv: string; rowCount: number } } | { error: string }
 
 type ExpenseWriteContext = {
   userId: string

@@ -3,8 +3,7 @@ import { type InvoiceStatus } from "../schemas"
 export type InvoiceTransitionReason = "same_status" | "not_allowed"
 
 export type InvoiceStatusTransition =
-  | { allowed: true; nextStatus: InvoiceStatus }
-  | { allowed: false; reason: InvoiceTransitionReason }
+  { allowed: true; nextStatus: InvoiceStatus } | { allowed: false; reason: InvoiceTransitionReason }
 
 // An invoice moves forward only, over the three *stored* statuses. `sent` is the point of no
 // return: the client holds a numbered document, so it can never fall back to `draft` and be

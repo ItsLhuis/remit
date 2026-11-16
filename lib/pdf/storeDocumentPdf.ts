@@ -10,11 +10,7 @@ import { uploads } from "@/database/schema"
 // and the row shape cannot drift apart per feature.
 
 export type DocumentPdfKind =
-  | "invoice"
-  | "proposal"
-  | "contract"
-  | "contract_signed"
-  | "credit_note"
+  "invoice" | "proposal" | "contract" | "contract_signed" | "credit_note"
 
 export type StoreDocumentPdfInput = {
   bytes: Buffer

@@ -65,7 +65,7 @@ async function startAndGetFailedHandler(): Promise<FailedHandler> {
 
   if (!handler) throw new Error("No failed handler registered")
 
-  return handler as FailedHandler
+  return handler
 }
 
 beforeEach(() => {

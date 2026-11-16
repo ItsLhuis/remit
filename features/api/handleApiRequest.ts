@@ -41,8 +41,7 @@ const RESPONSE_HEADERS = {
 }
 
 type ApiAdmission =
-  | { context: ApiRequestContext; limitHeaders: Record<string, string> }
-  | { response: NextResponse }
+  { context: ApiRequestContext; limitHeaders: Record<string, string> } | { response: NextResponse }
 
 export async function handleApiListRequest<TItem>(
   request: Request,

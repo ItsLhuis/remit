@@ -16,8 +16,7 @@ const tripReplySchema = z.tuple([z.number().int().min(1), z.number().int().min(0
 export type TripReply = z.infer<typeof tripReplySchema>
 
 export type TripAuditDecision =
-  | { write: true; suppressedSincePreviousEntry: number }
-  | { write: false }
+  { write: true; suppressedSincePreviousEntry: number } | { write: false }
 
 export function toTripKeys(key: string): [windowKey: string, carryKey: string] {
   return [`${TRIP_KEY_PREFIX}window:${key}`, `${TRIP_KEY_PREFIX}carry:${key}`]

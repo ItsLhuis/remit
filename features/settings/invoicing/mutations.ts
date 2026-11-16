@@ -24,8 +24,7 @@ import { toInvoicingSettingsFormData } from "./queries"
 import { invoicingSettingsSchema, type InvoicingSettingsValues } from "./schemas"
 
 type SaveInvoicingSettingsResult =
-  | { data: { settings: InvoicingSettingsValues } }
-  | { error: string }
+  { data: { settings: InvoicingSettingsValues } } | { error: string }
 
 type InvoicingSettingsWriteContext = {
   userId: string

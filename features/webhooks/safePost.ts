@@ -35,7 +35,7 @@ const DEFAULT_TIMEOUT_MS = 10 * 1000
 class BlockedAddressError extends Error {}
 
 const resolveWithSystemDns: WebhookResolver = (hostname) =>
-  lookup(hostname, { all: true, verbatim: true })
+  lookup(hostname, { all: true, order: "verbatim" })
 
 // The one way Remit sends a request to a user-supplied URL, and the dynamic half of the SSRF
 // defence. Each property below closes a specific hole; none is redundant.

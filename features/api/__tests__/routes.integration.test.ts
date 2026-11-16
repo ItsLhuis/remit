@@ -29,11 +29,7 @@ vi.mock("@/lib/rateLimit", async (importOriginal) => ({
 }))
 
 type ApiTokenScopeValue =
-  | "clients:read"
-  | "projects:read"
-  | "invoices:read"
-  | "time_entries:read"
-  | "expenses:read"
+  "clients:read" | "projects:read" | "invoices:read" | "time_entries:read" | "expenses:read"
 
 async function makeCaller(
   role: "owner" | "accountant" | "assistant",

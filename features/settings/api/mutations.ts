@@ -28,8 +28,7 @@ import { resolveApiTokenExpiry } from "./services/apiTokenLifecycle"
 import { type ApiTokenListItem } from "./types"
 
 type CreateApiTokenResult =
-  | { data: { token: ApiTokenListItem; secret: string } }
-  | { error: string }
+  { data: { token: ApiTokenListItem; secret: string } } | { error: string }
 
 type RevokeApiTokenResult = { data: { token: ApiTokenListItem } } | { error: string }
 

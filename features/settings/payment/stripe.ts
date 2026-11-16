@@ -1,13 +1,7 @@
 import Stripe from "stripe"
 
 export type StripeConnectionTestErrorCode =
-  | "api"
-  | "auth"
-  | "connection"
-  | "permission"
-  | "provider_failed"
-  | "rate_limit"
-  | "rejected"
+  "api" | "auth" | "connection" | "permission" | "provider_failed" | "rate_limit" | "rejected"
 
 export class StripeConnectionTestError extends Error {
   constructor(

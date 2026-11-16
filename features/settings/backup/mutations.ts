@@ -41,8 +41,7 @@ import {
 import { requiresBackupCredentials } from "./services/destinationRequirements"
 
 type SaveBackupSettingsResult =
-  | { data: { settings: BackupSettingsValues; status: BackupSettingsStatus } }
-  | { error: string }
+  { data: { settings: BackupSettingsValues; status: BackupSettingsStatus } } | { error: string }
 
 type TestBackupConnectionResult = { data: { backupTestConnectionAt: string } } | { error: string }
 

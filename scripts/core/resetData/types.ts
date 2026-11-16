@@ -23,9 +23,7 @@ export type ResetDataPlan = {
 }
 
 export type QueueDrainOutcome =
-  | { status: "drained" }
-  | { status: "failed"; reason: string }
-  | { status: "skipped" }
+  { status: "drained" } | { status: "failed"; reason: string } | { status: "skipped" }
 
 export type StorageDrainOutcome = {
   queued: number

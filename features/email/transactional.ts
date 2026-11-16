@@ -295,7 +295,7 @@ export function mapNodemailerError(error: unknown): EmailDeliveryErrorCode {
 function getErrorCode(error: unknown): string | null {
   if (typeof error !== "object" || error === null || !("code" in error)) return null
 
-  const code = (error as { code: unknown }).code
+  const code = error.code
 
   return typeof code === "string" ? code : null
 }

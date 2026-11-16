@@ -31,5 +31,4 @@ export type PaymentMutationResult = { data: { id: string } } | { error: string }
 // Reported back to the invoice-side caller so it can decide whether the invoice reached `paid` and
 // therefore whether `invoice.paid` should be emitted.
 export type InvoiceSettlementResult =
-  | { data: { paymentId: string; settled: boolean } }
-  | { error: string }
+  { data: { paymentId: string; settled: boolean } } | { error: string }

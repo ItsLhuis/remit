@@ -5,8 +5,7 @@ import {
 } from "../schemas"
 
 export type AttachmentLimitCheck =
-  | { allowed: true }
-  | { allowed: false; reason: "count" | "totalBytes" }
+  { allowed: true } | { allowed: false; reason: "count" | "totalBytes" }
 
 export type ExistingAttachmentSize = {
   sizeBytes: number

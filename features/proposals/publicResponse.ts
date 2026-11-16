@@ -57,9 +57,7 @@ export type ProposalResponseResult = { data: { status: ProposalStatus } } | { er
 type ProposalOtpRow = typeof proposalOtps.$inferSelect
 
 type ProposalResponseAuditEvent =
-  | "proposal.otp.requested"
-  | "proposal.accepted"
-  | "proposal.rejected"
+  "proposal.otp.requested" | "proposal.accepted" | "proposal.rejected"
 
 const BCRYPT_COST = 10
 

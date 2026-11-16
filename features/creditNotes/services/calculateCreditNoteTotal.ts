@@ -1,6 +1,5 @@
 export type CreditNoteDiscount =
-  | { type: "percentage"; percentage: number }
-  | { type: "fixed"; amountCents: number }
+  { type: "percentage"; percentage: number } | { type: "fixed"; amountCents: number }
 
 export type CreditNoteLineItemInput = {
   quantity: number

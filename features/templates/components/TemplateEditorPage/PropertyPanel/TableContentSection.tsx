@@ -30,8 +30,7 @@ type TableContentSectionProps = {
 }
 
 type CellLocation =
-  | { kind: "header"; columnIndex: number }
-  | { kind: "cell"; rowIndex: number; cellIndex: number }
+  { kind: "header"; columnIndex: number } | { kind: "cell"; rowIndex: number; cellIndex: number }
 
 const TABLE_MAX_COLUMNS = 8
 const TABLE_MAX_ROWS = 50

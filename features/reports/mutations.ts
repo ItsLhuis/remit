@@ -15,8 +15,7 @@ import { reportQuerySchema, scopeReportFilters, toReportFilterSnapshot } from ".
 import { buildReportCsvRows, buildReportExportFilename, countReportRows } from "./services"
 
 export type ExportReportResult =
-  | { data: { filename: string; csv: string; rowCount: number } }
-  | { error: string }
+  { data: { filename: string; csv: string; rowCount: number } } | { error: string }
 
 export async function exportReportCsv(input: unknown): Promise<ExportReportResult> {
   const gate = await requireReportExport()

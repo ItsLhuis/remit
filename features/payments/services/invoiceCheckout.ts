@@ -11,8 +11,7 @@ export type InvoiceCheckoutInput = InvoiceOutstandingInput & {
 export type InvoiceCheckoutRefusal = "not_configured" | "invoice_not_issued" | "nothing_outstanding"
 
 export type InvoiceCheckoutDecision =
-  | { payable: true; amountCents: number }
-  | { payable: false; reason: InvoiceCheckoutRefusal }
+  { payable: true; amountCents: number } | { payable: false; reason: InvoiceCheckoutRefusal }
 
 // Whether a Checkout Session may be started for an invoice, and for how much. The amount is derived
 // here and nowhere else, so a caller cannot be talked into charging a number that arrived in a

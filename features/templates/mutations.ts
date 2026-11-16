@@ -50,8 +50,7 @@ export type DeleteTemplateResult = { data: { id: string } } | { error: string }
 export type SetDefaultTemplateResult = { data: { id: string } } | { error: string }
 
 export type ConfirmTemplateImageUploadResult =
-  | { data: { uploadId: string; storageKey: string } }
-  | { error: string }
+  { data: { uploadId: string; storageKey: string } } | { error: string }
 
 type TemplateWriteContext = {
   userId: string

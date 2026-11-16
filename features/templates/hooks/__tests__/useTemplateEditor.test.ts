@@ -398,11 +398,8 @@ describe("useTemplateEditor.resizeBlocks", () => {
   // reference), so resizeBlocks' own quantize->clamp reproduces the preview's clamped reference
   // bit-for-bit instead of re-quantizing an already-clamped, off-grid width.
   test("commits the exact preview rect for an off-grid block resized into the page bound", () => {
-    const offGridBlocks = makeInitialBlocks().map(
-      (block): Block =>
-        block.type === "text"
-          ? { ...block, layout: { x: 70, y: 10, width: 160, height: 96 } }
-          : block
+    const offGridBlocks = makeInitialBlocks().map((block): Block =>
+      block.type === "text" ? { ...block, layout: { x: 70, y: 10, width: 160, height: 96 } } : block
     )
 
     const { result } = renderHook(() =>

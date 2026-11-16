@@ -63,14 +63,12 @@ type TeamAuditEvent =
   | "team.invitation.accepted"
 
 type InviteTeamMemberResult =
-  | { data: { invitation: TeamInvitationListItem; emailDelivered: boolean } }
-  | { error: string }
+  { data: { invitation: TeamInvitationListItem; emailDelivered: boolean } } | { error: string }
 
 type ChangeTeamMemberRoleResult = { data: { member: TeamMemberListItem } } | { error: string }
 
 type RemoveTeamMemberResult =
-  | { data: { memberId: string; sessionsRevoked: boolean } }
-  | { error: string }
+  { data: { memberId: string; sessionsRevoked: boolean } } | { error: string }
 
 type CancelTeamInvitationResult = { data: { invitationId: string } } | { error: string }
 
@@ -452,11 +450,11 @@ function handleTeamActionError(
 function getApiErrorCode(error: unknown): string {
   if (typeof error !== "object" || error === null || !("body" in error)) return "unknown"
 
-  const body = (error as { body: unknown }).body
+  const body = error.body
 
   if (typeof body !== "object" || body === null || !("code" in body)) return "unknown"
 
-  const code = (body as { code: unknown }).code
+  const code = body.code
 
   return typeof code === "string" ? code : "unknown"
 }

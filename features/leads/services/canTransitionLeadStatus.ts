@@ -3,8 +3,7 @@ import { type LeadStatus } from "../schemas"
 export type LeadTransitionReason = "same_status" | "terminal" | "not_allowed"
 
 export type LeadStatusTransition =
-  | { allowed: true; nextStatus: LeadStatus }
-  | { allowed: false; reason: LeadTransitionReason }
+  { allowed: true; nextStatus: LeadStatus } | { allowed: false; reason: LeadTransitionReason }
 
 // A lead may only step one stage forward or one stage back, never skip ahead: a "qualified" lead
 // must have been contacted, and a proposal must have been sent before it can be won or lost, so

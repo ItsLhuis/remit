@@ -158,7 +158,7 @@ async function hasAlreadySent(input: DocumentEmailInput): Promise<boolean> {
 function toOccasion(metadata: unknown): string | null {
   if (typeof metadata !== "object" || metadata === null || !("occasion" in metadata)) return null
 
-  const occasion = (metadata as { occasion: unknown }).occasion
+  const occasion = metadata.occasion
 
   return typeof occasion === "string" ? occasion : null
 }

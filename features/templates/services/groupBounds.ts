@@ -63,7 +63,7 @@ function normalizeContainer(block: Block): Block | null {
   if (block.type === "frame") {
     if (children === block.content.children) return block
 
-    return { ...block, content: { ...block.content, children } } as Block
+    return { ...block, content: { ...block.content, children } }
   }
 
   if (children.length === 0) return null
@@ -89,7 +89,7 @@ function normalizeContainer(block: Block): Block | null {
 
   if (rebased === children && rectEqual(layout, block.layout)) return block
 
-  return { ...block, layout, content: { ...block.content, children: rebased } } as Block
+  return { ...block, layout, content: { ...block.content, children: rebased } }
 }
 
 function rectEqual(a: Rect, b: Rect): boolean {

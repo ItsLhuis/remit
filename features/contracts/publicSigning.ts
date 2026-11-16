@@ -34,8 +34,7 @@ export type PublicContractSignContext = {
 }
 
 export type SignPublicContractResult =
-  | { data: { status: ContractStatus; signedAt: Date } }
-  | { error: string }
+  { data: { status: ContractStatus; signedAt: Date } } | { error: string }
 
 type RecordContractSignatureInput = {
   target: ContractSigningTarget

@@ -3,8 +3,7 @@ import { type ProjectStatus } from "../schemas"
 export type ProjectTransitionReason = "same_status" | "terminal" | "not_allowed"
 
 export type ProjectStatusTransition =
-  | { allowed: true; nextStatus: ProjectStatus }
-  | { allowed: false; reason: ProjectTransitionReason }
+  { allowed: true; nextStatus: ProjectStatus } | { allowed: false; reason: ProjectTransitionReason }
 
 // `on_hold` is the only reversible state: a paused project is expected to resume, whereas
 // `completed` and `cancelled` are terminal because downstream records (invoices, time entries)
