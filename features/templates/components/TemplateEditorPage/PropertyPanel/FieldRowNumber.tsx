@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FocusEvent,
-  type KeyboardEvent
-} from "react"
+import { useRef, useState, type ChangeEvent, type FocusEvent, type KeyboardEvent } from "react"
 
 import { FieldLabel, NumberInput } from "@/components/ui"
 
@@ -60,14 +53,18 @@ const FieldRowNumber = ({
   onChange
 }: FieldRowNumberProps) => {
   const [draft, setDraft] = useState(() => formatFieldValue(value))
+  const [syncedValue, setSyncedValue] = useState(value)
   // The raw text already committed for the current `value`, so a blur/Enter that fires after a
   // keystroke already committed the same text (the common case for a plain numeral, which commits
   // per keystroke) does not re-commit an identical value as a second, redundant onChange call.
   const lastCommittedRawRef = useRef<string | null>(null)
 
-  useEffect(() => {
+  // A new `value` from outside resets the draft, adjusted while rendering rather than in an effect.
+  // `Object.is` keeps a NaN value from re-adjusting on every render.
+  if (!Object.is(syncedValue, value)) {
+    setSyncedValue(value)
     setDraft(formatFieldValue(value))
-  }, [value])
+  }
 
   const commit = (raw: string): boolean => {
     if (raw.trim() === "") {

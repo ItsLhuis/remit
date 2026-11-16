@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -42,10 +42,18 @@ const ApiTokensTable = ({ initialTokens, locale, timeZone }: ApiTokensTableProps
   const router = useRouter()
 
   const [tokens, setTokens] = useState(initialTokens)
+  const [syncedTokens, setSyncedTokens] = useState(initialTokens)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<ApiTokenListItem | null>(null)
 
   const [isRevoking, startRevoking] = useTransition()
+
+  // A refreshed server render replaces the local copy. Adjusting while rendering, not in an effect,
+  // keeps the stale list from painting first.
+  if (!Object.is(syncedTokens, initialTokens)) {
+    setSyncedTokens(initialTokens)
+    setTokens(initialTokens)
+  }
 
   const columns = useMemo<ColumnDef<ApiTokenListItem>[]>(
     () =>
@@ -90,10 +98,6 @@ const ApiTokensTable = ({ initialTokens, locale, timeZone }: ApiTokensTableProps
       router.refresh()
     })
   }
-
-  useEffect(() => {
-    setTokens(initialTokens)
-  }, [initialTokens])
 
   return (
     <Fragment>

@@ -27,10 +27,10 @@ type SelectionActionsContext = {
   setSelection: (ids: readonly string[]) => void
 }
 
-// The whole-selection mutators, each committing in a single undo entry. A plain factory with no
-// hook calls of its own, re-created every render from useTemplateEditor's current state and
-// setters, split out only to keep that file under the repo's line budget.
-export function createSelectionActions({
+// The whole-selection mutators, each committing in a single undo entry, built every render from
+// useTemplateEditor's current state and setters. A hook with no hook calls of its own: calling it
+// as one tells the React Compiler that its handlers run on events, not while rendering.
+export function useSelectionActions({
   blocks,
   bounds,
   selectedIds,

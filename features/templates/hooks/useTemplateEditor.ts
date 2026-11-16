@@ -42,7 +42,7 @@ import {
   type ResizeEdges
 } from "../services"
 
-import { createSelectionActions } from "./selectionActions"
+import { useSelectionActions } from "./useSelectionActions"
 
 export const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
@@ -180,7 +180,7 @@ export function useTemplateEditor(
     setSelectedIds((current) => current.filter((existing) => existing !== id))
   }
 
-  const selectionActions = createSelectionActions({
+  const selectionActions = useSelectionActions({
     blocks,
     bounds,
     selectedIds,

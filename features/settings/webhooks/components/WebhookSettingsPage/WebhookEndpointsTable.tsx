@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -57,9 +57,17 @@ const WebhookEndpointsTable = ({
   const router = useRouter()
 
   const [endpoints, setEndpoints] = useState(initialEndpoints)
+  const [syncedEndpoints, setSyncedEndpoints] = useState(initialEndpoints)
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
 
   const [isPending, startTransition] = useTransition()
+
+  // A refreshed server render replaces the local copy. Adjusting while rendering, not in an effect,
+  // keeps the stale list from painting first.
+  if (!Object.is(syncedEndpoints, initialEndpoints)) {
+    setSyncedEndpoints(initialEndpoints)
+    setEndpoints(initialEndpoints)
+  }
 
   const rotateTarget = activeDialog?.kind === "rotate" ? activeDialog.endpoint : null
   const deleteTarget = activeDialog?.kind === "delete" ? activeDialog.endpoint : null
@@ -185,10 +193,6 @@ const WebhookEndpointsTable = ({
       router.refresh()
     })
   }
-
-  useEffect(() => {
-    setEndpoints(initialEndpoints)
-  }, [initialEndpoints])
 
   return (
     <Fragment>

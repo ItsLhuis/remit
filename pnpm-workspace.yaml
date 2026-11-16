@@ -3,6 +3,11 @@ packages:
 
 minimumReleaseAge: 1440
 trustPolicy: no-downgrade
+# eslint-config-next accepts only the 3.x line of this resolver. Its last release, 3.10.1, came from
+# the same maintainer and repository as the rest, signed by the registry, but without the provenance
+# that 4.x releases published before it carry, which the policy reads as a downgrade.
+trustPolicyExclude:
+  - eslint-import-resolver-typescript@3.10.1
 engineStrict: true
 packageManagerStrict: true
 packageManagerStrictVersion: true

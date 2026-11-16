@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -61,19 +61,25 @@ const TeamSettingsForm = ({
   const router = useRouter()
 
   const [members, setMembers] = useState(initialMembers)
+  const [syncedMembers, setSyncedMembers] = useState(initialMembers)
   const [invitations, setInvitations] = useState(initialInvitations)
+  const [syncedInvitations, setSyncedInvitations] = useState(initialInvitations)
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
 
   const [isRemovePending, startRemoveTransition] = useTransition()
   const [isCancelPending, startCancelTransition] = useTransition()
 
-  useEffect(() => {
+  // A refreshed server render replaces the local copies. Adjusting while rendering, not in an
+  // effect, keeps the stale lists from painting first.
+  if (!Object.is(syncedMembers, initialMembers)) {
+    setSyncedMembers(initialMembers)
     setMembers(initialMembers)
-  }, [initialMembers])
+  }
 
-  useEffect(() => {
+  if (!Object.is(syncedInvitations, initialInvitations)) {
+    setSyncedInvitations(initialInvitations)
     setInvitations(initialInvitations)
-  }, [initialInvitations])
+  }
 
   const roleTarget = activeDialog?.kind === "role" ? activeDialog.member : null
   const removeTarget = activeDialog?.kind === "remove" ? activeDialog.member : null

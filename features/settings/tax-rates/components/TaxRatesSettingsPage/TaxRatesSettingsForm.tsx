@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react"
+import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
@@ -49,6 +49,7 @@ const TaxRatesSettingsForm = ({ initialTaxRates, locale }: TaxRatesSettingsFormP
   const router = useRouter()
 
   const [taxRates, setTaxRates] = useState(initialTaxRates)
+  const [syncedTaxRates, setSyncedTaxRates] = useState(initialTaxRates)
   const [activeDialog, setActiveDialog] = useState<
     | { kind: "form"; state: NonNullable<TaxRateFormState> }
     | { kind: "delete"; taxRate: TaxRateListItem }
@@ -58,9 +59,12 @@ const TaxRatesSettingsForm = ({ initialTaxRates, locale }: TaxRatesSettingsFormP
   const [isDefaultPending, startDefaultTransition] = useTransition()
   const [isDeletePending, startDeleteTransition] = useTransition()
 
-  useEffect(() => {
+  // A refreshed server render replaces the local copy. Adjusting while rendering, not in an effect,
+  // keeps the stale list from painting first.
+  if (!Object.is(syncedTaxRates, initialTaxRates)) {
+    setSyncedTaxRates(initialTaxRates)
     setTaxRates(initialTaxRates)
-  }, [initialTaxRates])
+  }
 
   const sortedTaxRates = useMemo(() => sortTaxRates(taxRates), [taxRates])
   const defaultTaxRate = sortedTaxRates.find((taxRate) => taxRate.isDefault) ?? null
