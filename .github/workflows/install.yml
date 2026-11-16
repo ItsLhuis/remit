@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # The images this commit produces, tagged locally, so the run exercises the installer against
       # the code under review rather than whatever the registry last published.

@@ -23,7 +23,7 @@ export default defineConfig({
   outDir: OUT_DIR,
   format: ["esm"],
   platform: "node",
-  target: "node24",
+  target: "node26",
   clean: true,
   dts: false,
   sourcemap: false,

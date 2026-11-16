@@ -9,3 +9,13 @@ packageManagerStrictVersion: true
 managePackageManagerVersions: true
 verifyStoreIntegrity: true
 strictStorePkgContentCheck: true
+
+# Install scripts that stay off: each package ships prebuilt binaries through optional platform
+# packages (esbuild, sharp, msgpackr-extract, unrs-resolver), or its script copies a file Remit
+# never uses (msw).
+allowBuilds:
+  esbuild: false
+  msgpackr-extract: false
+  msw: false
+  sharp: false
+  unrs-resolver: false

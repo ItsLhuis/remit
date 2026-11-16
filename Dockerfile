@@ -1,17 +1,19 @@
 # ─── Stage 1: base ───────────────────────────────────────────────────────────
-FROM node:24.11.1-alpine AS base
+FROM node:26.13.1-alpine3.24 AS base
 RUN apk add --no-cache libc6-compat
+# Node.js no longer bundles Corepack, so pnpm is installed at the exact `packageManager` version.
+RUN npm install --global --no-fund --no-audit pnpm@10.33.4
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # ─── Stage 2: deps ───────────────────────────────────────────────────────────
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
+RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable pnpm && pnpm i --prod --frozen-lockfile --ignore-scripts
+RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────
 FROM base AS builder
@@ -26,23 +28,23 @@ ENV NODE_ENV=production
 # is skipped only for the build command below. The runner stage validates real values from the
 # runtime environment block in docker-compose.yml.
 
-RUN corepack enable pnpm && REMIT_BUILD_ENV_VALIDATION=skip pnpm build
+RUN REMIT_BUILD_ENV_VALIDATION=skip pnpm build
 
 # The standalone output keeps the server chunks but not their source maps, which is what lets a
 # reported error's frames name source files instead of minified chunks (lib/errorTracking/
 # sourceMaps.ts). The maps go in without their source text, and nothing uploads them anywhere.
-RUN corepack enable pnpm && pnpm build:source-maps
+RUN pnpm build:source-maps
 
 # ─── Stage 4: runner ─────────────────────────────────────────────────────────
-FROM node:24.11.1-alpine AS runner
+FROM node:26.13.1-alpine3.24 AS runner
 RUN apk add --no-cache libc6-compat
-RUN apk add --no-cache postgresql16-client
+RUN apk add --no-cache postgresql18-client
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable pnpm
+RUN npm install --global --no-fund --no-audit pnpm@10.33.4
 
 # Create a non-root system user and group in a single layer.
 RUN addgroup --system --gid 1001 nodejs && \

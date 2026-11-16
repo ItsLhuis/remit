@@ -26,7 +26,7 @@ pnpm dev:setup   # starts local services and applies migrations
 pnpm dev
 ```
 
-Node >= 24.11.1 < 25, pnpm 10.33.4. `.env.example` documents every environment variable with a safe
+Node >= 26.13.1 < 27, pnpm 10.33.4. `.env.example` documents every environment variable with a safe
 placeholder.
 
 ## Before you open a pull request

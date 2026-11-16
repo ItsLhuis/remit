@@ -12,7 +12,7 @@ export async function waitForProcess(child: ChildProcess): Promise<number> {
 
 // `pg_dump` and `pg_restore` are found through the shell on Windows, because that is the only way a
 // `.cmd` shim on PATH resolves — Node will not start one without a shell. Handing a shell an argument
-// array is what Node 24 deprecates (DEP0190): the arguments are concatenated, never escaped. So on
+// array is what Node deprecates (DEP0190): the arguments are concatenated, never escaped. So on
 // Windows the command line is joined here from arguments that are checked to be static, and the
 // connection details travel in the environment rather than on that line. Everywhere else the tool is
 // spawned directly and no shell is involved.
