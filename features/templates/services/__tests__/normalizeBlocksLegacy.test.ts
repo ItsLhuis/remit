@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { type StoredBlock } from "../../schemas"
+import { type StoredBlock } from "../../storedBlockSchemas"
 import { CHILD_NATURAL_SIZES, NATURAL_HEIGHTS, NATURAL_WIDTHS } from "../blocks"
 import { DEFAULT_PAGE_SETTINGS } from "../canvasLayout"
 import { normalizeBlocks } from "../normalizeBlocks"

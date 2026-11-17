@@ -2,6 +2,9 @@ import { type PointerEvent as ReactPointerEvent } from "react"
 
 import {
   ALL_HANDLE_DIRECTIONS,
+  collectRotationMembers,
+  isUniformOnly,
+  type BlockIndex,
   type HandleDirection,
   type Point,
   type Rect,
@@ -10,6 +13,7 @@ import {
 } from "../services"
 
 import {
+  collectResizeSet,
   GESTURE_ACTIVATION_DISTANCE,
   type ActiveGesture,
   type MoveUpdate,
@@ -87,6 +91,77 @@ export type PressState =
       gesture: ActiveGesture | null
       lastUpdate: RotateUpdate | null
     }
+
+// What every press records about where it started and which blocks it acts on.
+type PressStart = {
+  index: BlockIndex
+  targets: string[]
+  event: ReactPointerEvent<HTMLDivElement>
+  point: Point
+}
+
+// A resize always targets the selection, the set its handles render around.
+export function createResizePress({
+  index,
+  targets,
+  direction,
+  event,
+  point
+}: PressStart & { direction: HandleDirection }): Extract<PressState, { kind: "resize" }> | null {
+  const set = collectResizeSet(index, targets)
+
+  if (!set) return null
+
+  return {
+    kind: "resize",
+    pointerId: event.pointerId,
+    startClient: { x: event.clientX, y: event.clientY },
+    origin: point,
+    targets,
+    direction,
+    baseReference: set.baseReference,
+    baseRotation: set.baseRotation,
+    baseRects: set.baseRects,
+    members: set.members,
+    uniformOnly: isUniformOnly(set.members),
+    clamp: targets.some((id) => index.get(id)?.parentId === null),
+    parentRect: set.parentRect,
+    activated: false,
+    gesture: null,
+    lastUpdate: null
+  }
+}
+
+// Rotate zones only render around the selection's chrome, so the selection is always the target
+// set. collectRotationMembers expands a group into its children and skips locked ones.
+export function createRotatePress({
+  index,
+  targets,
+  event,
+  point
+}: PressStart): Extract<PressState, { kind: "rotate" }> | null {
+  const set = collectRotationMembers(index, targets)
+
+  if (!set) return null
+
+  const baseRects = new Map<string, Rect>()
+
+  for (const member of set.members) baseRects.set(member.id, member.rect)
+
+  return {
+    kind: "rotate",
+    pointerId: event.pointerId,
+    startClient: { x: event.clientX, y: event.clientY },
+    origin: point,
+    targets,
+    members: set.members,
+    baseRects,
+    center: set.center,
+    activated: false,
+    gesture: null,
+    lastUpdate: null
+  }
+}
 
 export function pastThreshold(start: Point, event: { clientX: number; clientY: number }): boolean {
   return Math.hypot(event.clientX - start.x, event.clientY - start.y) >= GESTURE_ACTIVATION_DISTANCE

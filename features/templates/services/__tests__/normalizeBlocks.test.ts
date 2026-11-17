@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { storedBlocksSchema, type StoredBlock } from "../../schemas"
+import { storedBlocksSchema, type StoredBlock } from "../../storedBlockSchemas"
 import { getContentBounds, overlaps, DEFAULT_PAGE_SETTINGS } from "../canvasLayout"
 import { normalizeBlocks } from "../normalizeBlocks"
 

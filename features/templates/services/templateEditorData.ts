@@ -1,5 +1,6 @@
-import { storedBlocksSchema, storedPageSettingsSchema } from "../schemas"
+import { storedPageSettingsSchema } from "../schemas"
 import { type TemplateType } from "../schemas"
+import { storedBlocksSchema } from "../storedBlockSchemas"
 import { type TemplateEditorData } from "../types"
 
 import { normalizePageSettings } from "./canvasLayout"

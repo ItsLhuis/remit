@@ -5,15 +5,14 @@ import {
   GRID_SIZE,
   MIN_BLOCK_HEIGHT,
   MIN_BLOCK_WIDTH,
-  storedBlockSchema,
   type Block,
   type BlockStyle,
   type BlockType,
   type FrameContent,
-  type StoredBlock,
   type TemplatePageSettings,
   type TemplateType
 } from "../schemas"
+import { storedBlockSchema, type StoredBlock } from "../storedBlockSchemas"
 
 import { CHILD_NATURAL_SIZES, NATURAL_HEIGHTS, NATURAL_WIDTHS, type FrameChildType } from "./blocks"
 import {

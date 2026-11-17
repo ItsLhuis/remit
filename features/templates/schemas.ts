@@ -87,7 +87,7 @@ export const BLOCK_CAPABILITIES = {
   shape: { resizableAxes: "both" }
 } as const satisfies Record<(typeof BLOCK_TYPES)[number], BlockCapability>
 
-const blockIdSchema = z.string().min(1)
+export const blockIdSchema = z.string().min(1)
 
 const BLOCK_NAME_MAX_LENGTH = 120
 
@@ -153,7 +153,10 @@ export type BlockLayout = z.infer<typeof blockLayoutSchema>
 // handle-cursor bucketing assumes. A sibling of layout and never folded into it, so every rect-only
 // consumer keeps working in plain axis-aligned rects. Absent means 0, applied by readers.
 const rotationInvalidMessage = i18n.t("templates.validation.layoutInvalid")
-const rotationSchema = z.number().min(0, rotationInvalidMessage).lt(360, rotationInvalidMessage)
+export const rotationSchema = z
+  .number()
+  .min(0, rotationInvalidMessage)
+  .lt(360, rotationInvalidMessage)
 
 const hexColorSchema = z
   .string()
@@ -208,7 +211,7 @@ export const blockStyleSchema = z.object({
 
 export type BlockStyle = z.infer<typeof blockStyleSchema>
 
-const textContentSchema = z.object({
+export const textContentSchema = z.object({
   html: z.string().max(TEXT_HTML_MAX_LENGTH, {
     message: i18n.t("templates.validation.textTooLong", { count: TEXT_HTML_MAX_LENGTH })
   })
@@ -226,11 +229,11 @@ const imageContentSchema = z.object({
     })
 })
 
-const spacerContentSchema = z.object({
+export const spacerContentSchema = z.object({
   size: z.enum(["sm", "md", "lg"])
 })
 
-const shapeContentSchema = z.object({
+export const shapeContentSchema = z.object({
   variant: z.enum(["rectangle", "ellipse", "line"])
 })
 
@@ -250,7 +253,7 @@ export const LINE_ITEM_FIELDS = [
 
 export type LineItemField = (typeof LINE_ITEM_FIELDS)[number]
 
-const tableColumnSchema = z.object({
+export const tableColumnSchema = z.object({
   id: blockIdSchema,
   header: z.string().max(TABLE_HEADER_MAX_LENGTH, {
     message: i18n.t("templates.validation.tableHeaderTooLong", { count: TABLE_HEADER_MAX_LENGTH })
@@ -261,7 +264,7 @@ const tableColumnSchema = z.object({
 
 export type TableColumn = z.infer<typeof tableColumnSchema>
 
-const tableRowSchema = z.object({
+export const tableRowSchema = z.object({
   id: blockIdSchema,
   cells: z.array(
     z.string().max(TABLE_CELL_MAX_LENGTH, {
@@ -434,132 +437,6 @@ export const blocksSchema = z.array(blockSchema).superRefine((blocks, context) =
 })
 
 export type Blocks = z.infer<typeof blocksSchema>
-
-// Stored rows may predate the free-canvas model in three generations: the list model (no layout),
-// the freeform-canvas model (per-block frame, no layout), and the document-flow model ((row,
-// column) layouts, structured domain types, the heading primitive). Reads parse with this tolerant
-// schema and normalize through normalizeBlocks; strict blocksSchema stays the only write shape.
-const legacyFrameSchema = z.object({
-  x: z.number().int().min(0).max(4000),
-  y: z.number().int().min(0).max(4000),
-  width: z.number().int().min(16).max(2000),
-  height: z.number().int().min(16).max(2000)
-})
-
-const storedLayoutSchema = z.object({
-  slot: z.enum(["header", "body", "footer"]).optional(),
-  row: z.number().optional(),
-  column: z.number().optional(),
-  x: z.number().optional(),
-  y: z.number().optional(),
-  width: z.number().nullable().optional(),
-  height: z.number().nullable().optional()
-})
-
-const storedImageContentSchema = z.object({
-  source: z.enum(["upload", "businessLogo"]).optional(),
-  uploadId: z.uuid().nullable().optional(),
-  alt: z.string().optional()
-})
-
-const storedBlockBaseShape = {
-  id: blockIdSchema,
-  name: z.string().optional(),
-  layout: storedLayoutSchema.optional(),
-  rotation: rotationSchema.optional(),
-  hidden: z.boolean().optional(),
-  locked: z.boolean().optional(),
-  constraints: blockConstraintsSchema.optional(),
-  style: blockStyleSchema.optional(),
-  frame: legacyFrameSchema.optional()
-}
-
-// Only the user-authored string survives the migration; presentation toggles are dropped.
-const storedHeadingContentSchema = z.object({
-  text: z.string(),
-  level: z.union([z.literal(1), z.literal(2), z.literal(3)])
-})
-
-const storedTitleContentSchema = z.object({ title: z.string().optional() })
-const storedTextContentSchema = z.object({ text: z.string().optional() })
-
-const storedTableContentSchema = z.object({
-  source: z.enum(["manual", "lineItems"]),
-  columns: z.array(tableColumnSchema),
-  rows: z.array(tableRowSchema)
-})
-
-const storedBoxContentSchema = z.object({
-  direction: z.enum(["row", "column"]),
-  justify: z.enum(["start", "center", "end", "space-between"]),
-  align: z.enum(["start", "center", "end"]),
-  gap: z.number(),
-  children: z.array(z.unknown())
-})
-
-const storedFrameContentSchema = z.object({
-  clip: z.boolean().optional(),
-  children: z.array(z.unknown())
-})
-
-const storedGroupContentSchema = z.object({
-  children: z.array(z.unknown())
-})
-
-export const storedBlockSchema = z.discriminatedUnion("type", [
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("heading"),
-    content: storedHeadingContentSchema
-  }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("text"), content: textContentSchema }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("image"),
-    content: storedImageContentSchema
-  }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("divider"), content: z.object({}) }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("spacer"), content: spacerContentSchema }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("shape"), content: shapeContentSchema }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("table"),
-    content: storedTableContentSchema
-  }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("box"), content: storedBoxContentSchema }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("frame"),
-    content: storedFrameContentSchema
-  }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("group"),
-    content: storedGroupContentSchema
-  }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("header"),
-    content: storedTitleContentSchema
-  }),
-  z.object({
-    ...storedBlockBaseShape,
-    type: z.literal("footer"),
-    content: storedTextContentSchema
-  }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("business_info"), content: z.unknown() }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("client_info"), content: z.unknown() }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("line_items"), content: z.unknown() }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("totals"), content: z.unknown() }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("payment_info"), content: z.unknown() }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("notes"), content: storedTextContentSchema }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("terms"), content: storedTextContentSchema }),
-  z.object({ ...storedBlockBaseShape, type: z.literal("signature"), content: z.unknown() })
-])
-
-export type StoredBlock = z.infer<typeof storedBlockSchema>
-
-export const storedBlocksSchema = z.array(storedBlockSchema)
 
 const marginSideSchema = z
   .number()

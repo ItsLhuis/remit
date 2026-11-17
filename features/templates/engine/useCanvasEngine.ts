@@ -9,10 +9,8 @@ import {
 } from "react"
 
 import {
-  collectRotationMembers,
   cursorForHandle,
   enclosingFrameRect,
-  isUniformOnly,
   type HandleDirection,
   type Point,
   type Rect
@@ -33,14 +31,10 @@ import {
   applyResizeRects,
   type UseCanvasEngineOptions
 } from "./frameTick"
+import { classifyPress, descendAt, textEditTargetAt, type PressClassification } from "./gestures"
 import {
-  classifyPress,
-  collectResizeSet,
-  descendAt,
-  textEditTargetAt,
-  type PressClassification
-} from "./gestures"
-import {
+  createResizePress,
+  createRotatePress,
   capturePointer,
   clearNodeTransforms,
   handleDirectionAt,
@@ -263,59 +257,32 @@ export function useCanvasEngine(options: UseCanvasEngineOptions): CanvasEngine {
     ) => {
       const opts = optionsRef.current
       const targets = [...opts.interaction.selection]
-      const set = collectResizeSet(opts.editor.blockIndex, targets)
-
-      if (!set) return
-
-      pressRef.current = {
-        kind: "resize",
-        pointerId: event.pointerId,
-        startClient: { x: event.clientX, y: event.clientY },
-        origin: point,
+      const press = createResizePress({
+        index: opts.editor.blockIndex,
         targets,
         direction,
-        baseReference: set.baseReference,
-        baseRotation: set.baseRotation,
-        baseRects: set.baseRects,
-        members: set.members,
-        uniformOnly: isUniformOnly(set.members),
-        clamp: targets.some((id) => opts.editor.blockIndex.get(id)?.parentId === null),
-        parentRect: set.parentRect,
-        activated: false,
-        gesture: null,
-        lastUpdate: null
-      }
+        event,
+        point
+      })
 
+      if (!press) return
+
+      pressRef.current = press
       event.preventDefault()
     }
 
-    // Rotate zones only render around the selection's chrome, so the selection is always the
-    // target set. collectRotationMembers expands a group into its children and skips locked ones.
     const armRotatePress = (event: ReactPointerEvent<HTMLDivElement>, point: Point) => {
       const opts = optionsRef.current
-      const targets = [...opts.interaction.selection]
-      const set = collectRotationMembers(opts.editor.blockIndex, targets)
+      const press = createRotatePress({
+        index: opts.editor.blockIndex,
+        targets: [...opts.interaction.selection],
+        event,
+        point
+      })
 
-      if (!set) return
+      if (!press) return
 
-      const baseRects = new Map<string, Rect>()
-
-      for (const member of set.members) baseRects.set(member.id, member.rect)
-
-      pressRef.current = {
-        kind: "rotate",
-        pointerId: event.pointerId,
-        startClient: { x: event.clientX, y: event.clientY },
-        origin: point,
-        targets,
-        members: set.members,
-        baseRects,
-        center: set.center,
-        activated: false,
-        gesture: null,
-        lastUpdate: null
-      }
-
+      pressRef.current = press
       event.preventDefault()
     }
 
