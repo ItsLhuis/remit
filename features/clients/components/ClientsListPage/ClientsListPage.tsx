@@ -98,11 +98,11 @@ const ClientsListPage = ({ data }: ClientsListPageProps) => {
   const joinedColumn = table.getColumn("joined")
   const outstandingColumn = table.getColumn("outstanding")
 
-  const columnFiltersActive = table.getState().columnFilters.length > 0
+  const columnFiltersActive = table.state.columnFilters.length > 0
   const hasActiveFilters = search !== "" || status !== "active" || columnFiltersActive
   const hasNoClients = data.rowCount === 0 && !hasActiveFilters
 
-  const activeFilterCount = table.getState().columnFilters.length + (status !== "active" ? 1 : 0)
+  const activeFilterCount = table.state.columnFilters.length + (status !== "active" ? 1 : 0)
 
   const reset = () => {
     void setSearch("")

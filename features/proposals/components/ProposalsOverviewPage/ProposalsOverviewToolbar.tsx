@@ -47,7 +47,7 @@ const ProposalsOverviewToolbar = ({
   const totalColumn = table.getColumn("total")
   const validUntilColumn = table.getColumn("validUntil")
 
-  const columnFilterCount = table.getState().columnFilters.length
+  const columnFilterCount = table.state.columnFilters.length
   const hasActiveFilters = search !== "" || columnFilterCount > 0
 
   return (

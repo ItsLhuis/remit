@@ -1,14 +1,13 @@
-import { type Table } from "@tanstack/react-table"
-
 import { downloadCsv, serializeCsv } from "./csv"
+import { type DataTableInstance, type DataTableRowData } from "./dataTable"
 
 type ExportTableToCsvOptions = {
   filename?: string
   excludeColumns?: string[]
 }
 
-export function exportTableToCsv<TData>(
-  table: Table<TData>,
+export function exportTableToCsv<TData extends DataTableRowData>(
+  table: DataTableInstance<TData>,
   options: ExportTableToCsvOptions = {}
 ): void {
   const { filename = "export", excludeColumns = [] } = options

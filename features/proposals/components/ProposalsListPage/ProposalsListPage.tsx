@@ -65,7 +65,7 @@ const ProposalsListPage = ({ data }: ProposalsListPageProps) => {
     initialState: { sorting: [{ id: "created", desc: true }] }
   })
 
-  const hasFilters = table.getState().columnFilters.length > 0
+  const hasFilters = table.state.columnFilters.length > 0
 
   const createHref = `/projects/${data.projectId}/proposals/new`
 

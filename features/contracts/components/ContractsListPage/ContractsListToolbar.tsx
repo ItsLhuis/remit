@@ -43,7 +43,7 @@ const ContractsListToolbar = ({
   const statusColumn = table.getColumn("status")
   const clientColumn = table.getColumn("client")
 
-  const columnFilterCount = table.getState().columnFilters.length
+  const columnFilterCount = table.state.columnFilters.length
   const hasActiveFilters = search !== "" || columnFilterCount > 0
 
   return (

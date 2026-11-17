@@ -2,11 +2,11 @@
 
 import { type MouseEvent, type ReactNode } from "react"
 
-import { flexRender, type Table as TanstackTable } from "@tanstack/react-table"
+import { flexRender } from "@tanstack/react-table"
 
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
+import { cn, type DataTableInstance, type DataTableRowData } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import { ScrollArea } from "@/components/ui/ScrollArea"
@@ -22,13 +22,13 @@ import {
 
 import { DataTablePagination } from "./DataTablePagination"
 
-export type DataTableSelection<TData> = {
+export type DataTableSelection<TData extends DataTableRowData> = {
   selectedRows: TData[]
   clearSelection: () => void
 }
 
-type DataTableProps<TData> = {
-  table: TanstackTable<TData>
+type DataTableProps<TData extends DataTableRowData> = {
+  table: DataTableInstance<TData>
   caption?: string
   onRowClick?: (row: TData) => void
   getRowClassName?: (row: TData) => string
@@ -42,7 +42,7 @@ type DataTableProps<TData> = {
   className?: string
 }
 
-const DataTable = <TData,>({
+const DataTable = <TData extends DataTableRowData>({
   table,
   caption,
   onRowClick,

@@ -98,11 +98,11 @@ const LeadsListPage = ({ data }: LeadsListPageProps) => {
 
   const stageColumn = table.getColumn("stage")
 
-  const columnFiltersActive = table.getState().columnFilters.length > 0
+  const columnFiltersActive = table.state.columnFilters.length > 0
   const hasActiveFilters = search !== "" || status !== "active" || columnFiltersActive
   const hasNoLeads = data.rowCount === 0 && !hasActiveFilters
 
-  const activeFilterCount = table.getState().columnFilters.length + (status !== "active" ? 1 : 0)
+  const activeFilterCount = table.state.columnFilters.length + (status !== "active" ? 1 : 0)
 
   const reset = () => {
     void setSearch("")

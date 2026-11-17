@@ -124,7 +124,7 @@ const TimeTrackingPage = ({ data }: TimeTrackingPageProps) => {
     initialState: { sorting: [{ id: "started", desc: true }] }
   })
 
-  const activeFilterCount = table.getState().columnFilters.length + (status !== "active" ? 1 : 0)
+  const activeFilterCount = table.state.columnFilters.length + (status !== "active" ? 1 : 0)
   const hasActiveFilters = search !== "" || status !== "active" || activeFilterCount > 0
   const hasNoEntries = data.rowCount === 0 && !hasActiveFilters
 

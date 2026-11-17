@@ -82,7 +82,7 @@ const InvoicesListPage = ({ data, convertibleProposals }: InvoicesListPageProps)
     initialState: { sorting: [{ id: "issueDate", desc: true }] }
   })
 
-  const hasFilters = table.getState().columnFilters.length > 0
+  const hasFilters = table.state.columnFilters.length > 0
 
   const createHref = `/projects/${data.projectId}/invoices/new`
 

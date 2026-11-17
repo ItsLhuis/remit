@@ -2,11 +2,9 @@
 
 import { Fragment } from "react"
 
-import { type Column } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
+import { cn, type DataTableColumn, type DataTableRowData } from "@/lib/utils"
 
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -23,12 +21,12 @@ import { Icon } from "@/components/ui/Icon"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover"
 import { Separator } from "@/components/ui/Separator"
 
-type DataTableFacetedFilterProps<TData, TValue> = {
-  column: Column<TData, TValue>
+type DataTableFacetedFilterProps<TData extends DataTableRowData, TValue> = {
+  column: DataTableColumn<TData, TValue>
   title: string
 }
 
-const DataTableFacetedFilter = <TData, TValue>({
+const DataTableFacetedFilter = <TData extends DataTableRowData, TValue>({
   column,
   title
 }: DataTableFacetedFilterProps<TData, TValue>) => {

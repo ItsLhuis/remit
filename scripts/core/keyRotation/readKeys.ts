@@ -107,7 +107,7 @@ export function validateRuntimeKeys(options: RotationRuntimeKeys): void {
   }
 }
 
-function exitOnCancel<T>(value: T | symbol): asserts value is T {
+function exitOnCancel<T>(value: T | typeof p.CANCEL_SYMBOL): asserts value is T {
   if (p.isCancel(value)) {
     p.cancel("Encryption key rotation cancelled. No rotation was applied.")
     process.exit(0)

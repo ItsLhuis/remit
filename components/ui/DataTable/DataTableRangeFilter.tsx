@@ -2,9 +2,9 @@
 
 import { Fragment, useEffect, useState } from "react"
 
-import { type Column } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
+
+import { type DataTableColumn, type DataTableRowData } from "@/lib/utils"
 
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -13,8 +13,8 @@ import { NumberInput } from "@/components/ui/NumberInput"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover"
 import { Separator } from "@/components/ui/Separator"
 
-type DataTableRangeFilterProps<TData, TValue> = {
-  column: Column<TData, TValue>
+type DataTableRangeFilterProps<TData extends DataTableRowData, TValue> = {
+  column: DataTableColumn<TData, TValue>
   title: string
 }
 
@@ -24,7 +24,7 @@ const centsToMajor = (cents?: string): string =>
 const majorToCents = (major: string): string =>
   major.trim() === "" ? "" : String(Math.round(Number(major) * 100))
 
-const DataTableRangeFilter = <TData, TValue>({
+const DataTableRangeFilter = <TData extends DataTableRowData, TValue>({
   column,
   title
 }: DataTableRangeFilterProps<TData, TValue>) => {

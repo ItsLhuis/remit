@@ -2,11 +2,9 @@
 
 import { Fragment } from "react"
 
-import { type Column } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { formatMonthDay } from "@/lib/utils"
+import { formatMonthDay, type DataTableColumn, type DataTableRowData } from "@/lib/utils"
 
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -15,8 +13,8 @@ import { Icon } from "@/components/ui/Icon"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover"
 import { Separator } from "@/components/ui/Separator"
 
-type DataTableDateFilterProps<TData, TValue> = {
-  column: Column<TData, TValue>
+type DataTableDateFilterProps<TData extends DataTableRowData, TValue> = {
+  column: DataTableColumn<TData, TValue>
   title: string
 }
 
@@ -33,7 +31,7 @@ const parseDateRange = (value: unknown): { from?: Date; to?: Date } => {
   }
 }
 
-const DataTableDateFilter = <TData, TValue>({
+const DataTableDateFilter = <TData extends DataTableRowData, TValue>({
   column,
   title
 }: DataTableDateFilterProps<TData, TValue>) => {

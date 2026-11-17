@@ -151,7 +151,7 @@ const ExpensesListPage = ({ data }: ExpensesListPageProps) => {
     initialState: { sorting: [{ id: "spentAt", desc: true }] }
   })
 
-  const activeFilterCount = table.getState().columnFilters.length + (status !== "active" ? 1 : 0)
+  const activeFilterCount = table.state.columnFilters.length + (status !== "active" ? 1 : 0)
   const hasActiveFilters = search !== "" || status !== "active" || activeFilterCount > 0
   const hasNoExpenses = data.rowCount === 0 && !hasActiveFilters
 

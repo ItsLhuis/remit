@@ -1,64 +1,42 @@
 "use client"
 
-import { type ReactNode, type TransitionStartFunction, useEffect, useMemo, useState } from "react"
+import { type TransitionStartFunction, useEffect, useMemo, useState } from "react"
 
 import {
-  type ColumnDef,
   type ColumnFiltersState,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   type PaginationState,
   type RowData,
   type RowSelectionState,
   type SortingState,
-  type Table,
   type TableOptions,
   type TableState,
   type Updater,
-  useReactTable,
-  type VisibilityState
+  useTable,
+  type ColumnVisibilityState
 } from "@tanstack/react-table"
 
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs"
 
-import { DEFAULT_PAGE_SIZE, getSortingStateParser } from "@/lib/utils"
+import {
+  dataTableFeatures,
+  DEFAULT_PAGE_SIZE,
+  getSortingStateParser,
+  type DataTableColumnDef,
+  type DataTableFeatures,
+  type DataTableInstance
+} from "@/lib/utils"
 
 import { useLocalStorage } from "./useLocalStorage"
-
-declare module "@tanstack/react-table" {
-  // Module augmentation requires `interface`; `type` cannot merge into the library declaration.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/consistent-type-definitions
-  interface ColumnMeta<TData extends RowData, TValue> {
-    label?: string
-    variant?: DataTableFilterVariant
-    options?: DataTableFilterOption[]
-    align?: "start" | "end"
-    headerClassName?: string
-    cellClassName?: string
-    skeleton?: ReactNode
-  }
-}
-
-type DataTableFilterVariant = "text" | "multiSelect" | "range" | "date"
-
-type DataTableFilterOption = {
-  label: string
-  value: string
-  count?: number
-  icon?: string
-}
 
 const ARRAY_SEPARATOR = ","
 
 const filterValueParser = parseAsArrayOf(parseAsString, ARRAY_SEPARATOR)
 
-export type UseDataTableOptions<TData> = Omit<
-  TableOptions<TData>,
+export type UseDataTableOptions<TData extends RowData> = Omit<
+  TableOptions<DataTableFeatures, TData>,
+  | "features"
   | "state"
   | "pageCount"
-  | "getCoreRowModel"
   | "manualPagination"
   | "manualSorting"
   | "manualFiltering"
@@ -75,10 +53,14 @@ export type UseDataTableOptions<TData> = Omit<
   // the other; give every table beyond the route's primary one a prefix (e.g. `"contact_"`).
   urlKeyPrefix?: string
   columnVisibilityStorageKey?: string
-  initialState?: Omit<Partial<TableState>, "sorting"> & { sorting?: SortingState }
+  initialState?: Omit<Partial<TableState<DataTableFeatures>>, "sorting"> & {
+    sorting?: SortingState
+  }
 }
 
-export function useDataTable<TData>(options: UseDataTableOptions<TData>): { table: Table<TData> } {
+export function useDataTable<TData extends RowData>(
+  options: UseDataTableOptions<TData>
+): { table: DataTableInstance<TData> } {
   const {
     columns,
     getRowId,
@@ -162,7 +144,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     [filterKeysByColumnId, filterValues]
   )
 
-  const [columnVisibility, setColumnVisibility] = useLocalStorage<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useLocalStorage<ColumnVisibilityState>(
     columnVisibilityStorageKey ?? null,
     initialState?.columnVisibility ?? {}
   )
@@ -214,11 +196,9 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     void setFilterValues(updates)
   }
 
-  // TanStack Table's builder-pattern state reads aren't visible to React Compiler, so it cannot
-  // safely memoize this hook. Memoization is intentionally skipped; the warning is expected here.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
     ...tableOptions,
+    features: dataTableFeatures,
     columns,
     getRowId,
     state: { pagination, sorting, columnVisibility, rowSelection, columnFilters },
@@ -233,18 +213,14 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>): { tabl
     onSortingChange,
     onColumnFiltersChange,
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+    onRowSelectionChange: setRowSelection
   })
 
   return { table }
 }
 
-function getColumnId<TData>(column: ColumnDef<TData>): string | undefined {
+function getColumnId<TData extends RowData>(column: DataTableColumnDef<TData>): string | undefined {
   return column.id ?? ("accessorKey" in column ? String(column.accessorKey) : undefined)
 }
 
-export type { ColumnDef, Table } from "@tanstack/react-table"
+export type { DataTableColumnDef as ColumnDef, DataTableInstance as Table } from "@/lib/utils"

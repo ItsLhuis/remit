@@ -93,11 +93,11 @@ const TemplatesListPage = ({ data }: TemplatesListPageProps) => {
 
   const typeColumn = table.getColumn("type")
 
-  const columnFiltersActive = table.getState().columnFilters.length > 0
+  const columnFiltersActive = table.state.columnFilters.length > 0
   const hasActiveFilters = search !== "" || origin !== "all" || columnFiltersActive
   const hasNoTemplates = data.rowCount === 0 && !hasActiveFilters
 
-  const activeFilterCount = table.getState().columnFilters.length + (origin !== "all" ? 1 : 0)
+  const activeFilterCount = table.state.columnFilters.length + (origin !== "all" ? 1 : 0)
 
   const reset = () => {
     void setSearch("")

@@ -46,7 +46,7 @@ const CreditNotesOverviewToolbar = ({
   const totalColumn = table.getColumn("total")
   const issuedAtColumn = table.getColumn("issuedAt")
 
-  const columnFilterCount = table.getState().columnFilters.length
+  const columnFilterCount = table.state.columnFilters.length
   const hasActiveFilters = search !== "" || columnFilterCount > 0
 
   return (

@@ -65,7 +65,7 @@ const CreditNotesOverviewPage = ({ data }: CreditNotesOverviewPageProps) => {
     }
   })
 
-  const hasActiveFilters = search !== "" || table.getState().columnFilters.length > 0
+  const hasActiveFilters = search !== "" || table.state.columnFilters.length > 0
   const hasNoCreditNotes = data.rowCount === 0 && !hasActiveFilters
 
   const reset = () => {

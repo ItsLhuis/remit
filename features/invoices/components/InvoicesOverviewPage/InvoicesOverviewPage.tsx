@@ -68,7 +68,7 @@ const InvoicesOverviewPage = ({ data }: InvoicesOverviewPageProps) => {
     }
   })
 
-  const hasActiveFilters = search !== "" || table.getState().columnFilters.length > 0
+  const hasActiveFilters = search !== "" || table.state.columnFilters.length > 0
   const hasNoInvoices = data.rowCount === 0 && !hasActiveFilters
 
   const reset = () => {

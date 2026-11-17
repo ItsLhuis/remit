@@ -45,7 +45,9 @@ const BilledAreaChart = ({
           cursor={false}
           content={
             <ChartTooltipContent
-              labelFormatter={(value) => formatMonthShort(String(value), locale)}
+              labelFormatter={(value) =>
+                typeof value === "string" ? formatMonthShort(value, locale) : value
+              }
               formatter={(value) => formatCurrency(Number(value), currency, locale)}
             />
           }
@@ -77,7 +79,9 @@ const CountBarChart = ({ data, locale, label, emptyLabel, dataKey }: CountBarCha
           cursor={false}
           content={
             <ChartTooltipContent
-              labelFormatter={(value) => formatMonthShort(String(value), locale)}
+              labelFormatter={(value) =>
+                typeof value === "string" ? formatMonthShort(value, locale) : value
+              }
             />
           }
         />

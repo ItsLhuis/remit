@@ -47,7 +47,7 @@ const InvoicesOverviewToolbar = ({
   const totalColumn = table.getColumn("total")
   const dueDateColumn = table.getColumn("dueDate")
 
-  const columnFilterCount = table.getState().columnFilters.length
+  const columnFilterCount = table.state.columnFilters.length
   const hasActiveFilters = search !== "" || columnFilterCount > 0
 
   return (

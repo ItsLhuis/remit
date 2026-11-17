@@ -1,6 +1,6 @@
 "use client"
 
-import { formatForDisplay } from "@tanstack/react-hotkeys"
+import { useFormatForDisplay } from "@tanstack/react-hotkeys"
 
 import { useTranslation } from "@/lib/i18n"
 
@@ -41,6 +41,8 @@ const CanvasContextMenu = ({
   onRenameRequest
 }: CanvasContextMenuProps) => {
   const { t } = useTranslation()
+
+  const formatForDisplay = useFormatForDisplay()
 
   const selectedIds = [...interaction.selection]
   const hasSelection = selectedIds.length > 0

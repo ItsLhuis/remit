@@ -2,20 +2,18 @@
 
 import { type ComponentProps } from "react"
 
-import { type Column } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { cn } from "@/lib/utils"
+import { cn, type DataTableColumn, type DataTableRowData } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 
-type DataTableColumnHeaderProps<TData, TValue> = {
-  column: Column<TData, TValue>
+type DataTableColumnHeaderProps<TData extends DataTableRowData, TValue> = {
+  column: DataTableColumn<TData, TValue>
   title: string
 } & ComponentProps<"div">
 
-const DataTableColumnHeader = <TData, TValue>({
+const DataTableColumnHeader = <TData extends DataTableRowData, TValue>({
   column,
   title,
   className,

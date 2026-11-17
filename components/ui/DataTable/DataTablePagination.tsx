@@ -2,11 +2,9 @@
 
 import { type ComponentProps } from "react"
 
-import { type Table } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, MAX_PAGE_SIZE } from "@/lib/utils"
+import { cn, MAX_PAGE_SIZE, type DataTableInstance, type DataTableRowData } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"
@@ -32,12 +30,12 @@ const PAGE_SIZE_OPTIONS = Array.from({ length: Math.ceil(MAX_PAGE_SIZE / 10) }, 
 
 type PageItem = number | "ellipsis-start" | "ellipsis-end"
 
-type DataTablePaginationProps<TData> = {
-  table: Table<TData>
+type DataTablePaginationProps<TData extends DataTableRowData> = {
+  table: DataTableInstance<TData>
   pageSizeOptions?: number[]
 } & ComponentProps<"div">
 
-const DataTablePagination = <TData,>({
+const DataTablePagination = <TData extends DataTableRowData>({
   table,
   pageSizeOptions = PAGE_SIZE_OPTIONS,
   className,
@@ -45,7 +43,7 @@ const DataTablePagination = <TData,>({
 }: DataTablePaginationProps<TData>) => {
   const { t } = useTranslation()
 
-  const { pageIndex, pageSize } = table.getState().pagination
+  const { pageIndex, pageSize } = table.state.pagination
   const pageCount = Math.max(table.getPageCount(), 1)
   const currentPage = pageIndex + 1
   const selectedCount = table.getFilteredSelectedRowModel().rows.length

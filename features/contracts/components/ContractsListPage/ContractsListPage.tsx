@@ -66,7 +66,7 @@ const ContractsListPage = ({ data }: ContractsListPageProps) => {
     }
   })
 
-  const hasActiveFilters = search !== "" || table.getState().columnFilters.length > 0
+  const hasActiveFilters = search !== "" || table.state.columnFilters.length > 0
   const hasNoContracts = data.rowCount === 0 && !hasActiveFilters
 
   const reset = () => {

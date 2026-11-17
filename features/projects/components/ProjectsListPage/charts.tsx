@@ -38,7 +38,9 @@ const GrowthAreaChart = ({ data, locale, label, emptyLabel }: TrendChartProps) =
           cursor={false}
           content={
             <ChartTooltipContent
-              labelFormatter={(value) => formatMonthShort(String(value), locale)}
+              labelFormatter={(value) =>
+                typeof value === "string" ? formatMonthShort(value, locale) : value
+              }
             />
           }
         />
@@ -69,7 +71,9 @@ const NewProjectsBarChart = ({ data, locale, label, emptyLabel }: TrendChartProp
           cursor={false}
           content={
             <ChartTooltipContent
-              labelFormatter={(value) => formatMonthShort(String(value), locale)}
+              labelFormatter={(value) =>
+                typeof value === "string" ? formatMonthShort(value, locale) : value
+              }
             />
           }
         />

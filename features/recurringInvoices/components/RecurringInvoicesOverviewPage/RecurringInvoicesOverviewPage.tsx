@@ -79,7 +79,7 @@ const RecurringInvoicesOverviewPage = ({ data }: RecurringInvoicesOverviewPagePr
     initialState: { sorting: [...RECURRING_INVOICE_DEFAULT_SORT] }
   })
 
-  const hasActiveFilters = search !== "" || table.getState().columnFilters.length > 0
+  const hasActiveFilters = search !== "" || table.state.columnFilters.length > 0
 
   const createHref = "/recurring-invoices/new"
 

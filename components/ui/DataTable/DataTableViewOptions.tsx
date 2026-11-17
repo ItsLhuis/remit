@@ -1,8 +1,8 @@
 "use client"
 
-import { type Table } from "@tanstack/react-table"
-
 import { useTranslation } from "@/lib/i18n"
+
+import { type DataTableInstance, type DataTableRowData } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import {
@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/DropdownMenu"
 import { Icon } from "@/components/ui/Icon"
 
-type DataTableViewOptionsProps<TData> = {
-  table: Table<TData>
+type DataTableViewOptionsProps<TData extends DataTableRowData> = {
+  table: DataTableInstance<TData>
 }
 
-const DataTableViewOptions = <TData,>({ table }: DataTableViewOptionsProps<TData>) => {
+const DataTableViewOptions = <TData extends DataTableRowData>({
+  table
+}: DataTableViewOptionsProps<TData>) => {
   const { t } = useTranslation()
 
   const columns = table

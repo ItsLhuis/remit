@@ -31,7 +31,7 @@ const RecurringInvoicesOverviewToolbar = ({
   const cadenceColumn = table.getColumn("cadence")
   const clientColumn = table.getColumn("client")
 
-  const hasActiveFilters = search !== "" || table.getState().columnFilters.length > 0
+  const hasActiveFilters = search !== "" || table.state.columnFilters.length > 0
 
   return (
     <div className="flex flex-col gap-3">
