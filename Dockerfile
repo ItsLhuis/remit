@@ -8,11 +8,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # ─── Stage 2: deps ───────────────────────────────────────────────────────────
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────

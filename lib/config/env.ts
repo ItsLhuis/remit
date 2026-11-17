@@ -15,7 +15,7 @@ const parsed = isBuildEnvValidationSkipped
       ...process.env,
       DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder",
       REDIS_URL: "redis://localhost:6379",
-      BETTER_AUTH_SECRET: "build-time-placeholder-secret",
+      BETTER_AUTH_SECRET: "build-time-placeholder-secret-for-image-builds-only",
       REMIT_PUBLIC_URL: "http://localhost:3000",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       S3_ENDPOINT: "http://localhost:9000",

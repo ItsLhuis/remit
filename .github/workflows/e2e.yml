@@ -16,7 +16,7 @@ env:
   POSTGRES_USER: remit_e2e
   POSTGRES_PASSWORD: remit_e2e
   POSTGRES_DB: remit_e2e
-  BETTER_AUTH_SECRET: e2e-secret-not-used-outside-ci
+  BETTER_AUTH_SECRET: e2e-secret-not-used-outside-ci-or-on-any-instance
   REMIT_PUBLIC_URL: http://localhost:3000
   REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   REMIT_HOSTED_MODE: "false"
