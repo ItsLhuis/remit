@@ -30,7 +30,7 @@ test("retrieves the Stripe balance with the submitted secret key", async () => {
   expect(mocks.stripeConstructor).toHaveBeenCalledWith(
     "sk_test_boundary",
     expect.objectContaining({
-      apiVersion: "2026-05-27.dahlia",
+      apiVersion: "2026-10-28.endive",
       maxNetworkRetries: 1,
       timeout: 10000
     })

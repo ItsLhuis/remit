@@ -287,8 +287,11 @@ function toMcpTool<TInput extends z.ZodObject>(
 //
 // The assertion bridges two packages' JSON Schema types, which disagree only on `$vocabulary`
 // (booleans in the specification and in Zod, strings in the SDK's type); no tool schema carries one.
+// MCP requires an object at the root of a tool's output schema. Zod emits a schema with an `id`, as
+// every response schema has for the OpenAPI document, as a root `$ref` into `$defs`, so the root
+// definition is lifted back in place. `$defs` keeps it, for any reference that points at it.
 function toToolOutputSchema(response: z.ZodObject) {
-  const jsonSchema = z.toJSONSchema(response, {
+  const { $ref, $defs, ...jsonSchema } = z.toJSONSchema(response, {
     io: "output",
     target: "draft-2020-12",
     override: (context) => {
@@ -296,7 +299,10 @@ function toToolOutputSchema(response: z.ZodObject) {
     }
   })
 
-  return fromJsonSchema(jsonSchema as JsonSchemaType)
+  const rootDefinition = $ref?.startsWith("#/$defs/") ? $defs?.[$ref.slice(8)] : undefined
+  const inlined = rootDefinition ? { ...jsonSchema, ...rootDefinition, $defs } : jsonSchema
+
+  return fromJsonSchema(inlined as JsonSchemaType)
 }
 
 async function readPage<TRow>(

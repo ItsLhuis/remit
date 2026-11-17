@@ -40,7 +40,7 @@ export type StartInvoiceCheckoutRequest = {
 
 export type StartInvoiceCheckoutResult = { data: { url: string } } | { error: string }
 
-const STRIPE_API_VERSION = "2026-05-27.dahlia"
+const STRIPE_API_VERSION = "2026-10-28.endive"
 // A client is waiting on a button while this runs, so it fails fast rather than holding the request
 // open through the SDK's default patience. The webhook path keeps that patience; nobody is watching
 // it.

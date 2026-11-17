@@ -15,7 +15,7 @@ export class StripeConnectionTestError extends Error {
 
 // Pinned rather than left to the SDK default, so Stripe rolling its API forward cannot change what
 // this instance sends or how it reads a response without a deliberate edit here.
-const STRIPE_API_VERSION = "2026-05-27.dahlia"
+const STRIPE_API_VERSION = "2026-10-28.endive"
 // A person is watching a settings form while this runs, so it fails fast: one retry and a short
 // timeout, unlike the webhook path, where the SDK's usual patience is what a caller wants.
 const STRIPE_TEST_TIMEOUT_MS = 10_000

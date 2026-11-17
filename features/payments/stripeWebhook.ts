@@ -37,7 +37,7 @@ export type StripeWebhookRequest = {
   userAgent: string | null
 }
 
-const STRIPE_API_VERSION = "2026-05-27.dahlia"
+const STRIPE_API_VERSION = "2026-10-28.endive"
 
 // The contract with whatever starts a Checkout Session or Payment Intent for a Remit invoice: the
 // invoice id travels in the intent's metadata under this key. It is namespaced because a
