@@ -102,8 +102,8 @@ export async function listArchivedObjects(store: ObjectStore): Promise<ListedObj
   return { objects, unarchivableObjectCount }
 }
 
-// A listing that ends early looks, from the outside, like a bucket with fewer files — RustFS 1.0.0
-// can return one. Every file the database names is therefore checked against it: one that
+// A listing that ends early looks, from the outside, like a bucket with fewer files, and the bundled
+// store has returned one. Every file the database names is therefore checked against it: one that
 // exists but was not listed fails the backup rather than leaving it out of an archive that would
 // otherwise look complete. A row whose object is truly gone is an earlier interrupted delete; it is
 // counted and reported, not fatal, or a single lost file would stop every backup from then on.

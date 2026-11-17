@@ -17,7 +17,7 @@ published for `linux/amd64` and `linux/arm64`. Neither image carries anything ab
 the `Dockerfile` takes no build argument, no address, no secret and no `NEXT_PUBLIC_*` value, so the
 image a release names runs at any address.
 
-`docker-compose.yml` runs the two beside PostgreSQL 16, Redis 8 and a bundled S3-compatible object
+`docker-compose.yml` runs the two beside PostgreSQL 18, Redis 8 and a bundled S3-compatible object
 store, RustFS, which is pinned to an exact release and image digest. Only `app` publishes a port;
 the database, Redis and object storage are reachable inside the Compose network alone, and browsers
 never talk to object storage: the app serves the files. `app` and `worker` mount the same

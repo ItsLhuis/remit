@@ -68,12 +68,14 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       # The backup flows run `pnpm remit:backup` and the spawned worker from the runner, and both shell
-      # out to `pg_dump`. The distribution's client is at least as new as the stack's PostgreSQL 16,
-      # which is all pg_dump needs to dump it.
+      # out to `pg_dump`, which refuses a server newer than itself. The distribution's client is older
+      # than the stack's PostgreSQL 18, so the client comes from the PostgreSQL project's repository.
       - name: Install the PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends postgresql-client
+          sudo apt-get install -y --no-install-recommends postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
           pg_dump --version
 
       - name: Build Docker image

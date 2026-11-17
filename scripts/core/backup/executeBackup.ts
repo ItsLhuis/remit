@@ -245,7 +245,7 @@ export function redactBackupReason(error: unknown): string {
   return redactOperationalError(error, {
     hint: (message) => {
       if (message.includes("spawn pg_dump ENOENT")) {
-        return "pg_dump is not installed on this machine. Run the backup in the app container with docker compose exec app pnpm remit:backup, or install the PostgreSQL 16 client locally and retry."
+        return "pg_dump is not installed on this machine. Run the backup in the app container with docker compose exec app pnpm remit:backup, or install the PostgreSQL 18 client locally and retry."
       }
 
       if (message.includes("ECONNREFUSED") || message.startsWith("Failed query:")) {

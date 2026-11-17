@@ -5,7 +5,7 @@ name: remit-test
 
 services:
   database_test:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: remit_test
       POSTGRES_PASSWORD: remit_test
@@ -19,7 +19,7 @@ services:
       retries: 5
 
   redis_test:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       # 6380, never the development stack's 6379: on a developer host that port is already taken, so
       # this container could not start beside it and the integration suite counted, queued and
@@ -35,7 +35,7 @@ services:
   # digest — on 9020, never the development stack's 9000, so a storage test can never write into the
   # store the developer's own app reads.
   storage_test:
-    image: ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
+    image: ghcr.io/rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
     environment:
       RUSTFS_ACCESS_KEY: remit-test
       RUSTFS_SECRET_KEY: remit-test-secret

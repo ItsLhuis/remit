@@ -18,8 +18,24 @@ function sha256(bytes: Buffer | Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex")
 }
 
+// Listed in full first, then deleted sixteen at a time like the uploads: one delete after another
+// takes over ten seconds for the pagination test's 1,050 objects on the bundled store.
 async function drain(store: ObjectStore, role: StorageBucketRole): Promise<void> {
-  for await (const object of store.listObjects(role)) await store.deleteObject(role, object.key)
+  const keys: string[] = []
+
+  for await (const object of store.listObjects(role)) keys.push(object.key)
+
+  let next = 0
+
+  await Promise.all(
+    Array.from({ length: 16 }, async () => {
+      while (next < keys.length) {
+        const key = keys[next++]
+
+        await store.deleteObject(role, key)
+      }
+    })
+  )
 }
 
 // The contract the adapter relies on, run against the bundled store rather than a mock: the semantics

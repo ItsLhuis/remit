@@ -12,7 +12,7 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url))
 // digest, a tag put back — has to be made here too, deliberately: moving the store's pin means
 // re-verifying the store, not bumping a tag.
 const STORE_IMAGE =
-  "ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff"
+  "ghcr.io/rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a"
 
 function listFiles(directory: string): string[] {
   return readdirSync(join(repoRoot, directory))

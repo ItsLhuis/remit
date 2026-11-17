@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     ports:
       # Port exposed to the host in development only - useful for local database clients
@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-remit}
       POSTGRES_DB: ${POSTGRES_DB:-remit}
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-remit} -d ${POSTGRES_DB:-remit}"]
       interval: 5s
@@ -37,7 +37,7 @@ services:
 
   storage:
     # The store docker-compose.yml bundles, pinned to the same digest.
-    image: ghcr.io/rustfs/rustfs:1.0.0@sha256:8cc9801755448b71a786705ce76692c77e14936cccd87cf2fc31842e58f4d1ff
+    image: ghcr.io/rustfs/rustfs:1.0.6@sha256:ee717072290bec9b11abfc0365f8310b00df1cd9b3639943edae47bdef05044a
     restart: unless-stopped
     environment:
       RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-remit}
