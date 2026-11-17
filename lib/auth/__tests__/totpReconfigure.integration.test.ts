@@ -65,14 +65,20 @@ async function signUpAccount(): Promise<Headers> {
   return toCookieHeader(signUp.headers)
 }
 
+// Every enrolment here is a TOTP one; an OTP response would mean the call itself changed.
+async function enableTotp(headers: Headers, password: string) {
+  const enrolment = await auth.api.enableTwoFactor({ headers, body: { password } })
+
+  if (enrolment.method !== "totp") throw new Error("Better Auth started an OTP enrolment")
+
+  return enrolment
+}
+
 // Better Auth rotates the session when the first factor verifies, so only the cookies of that
 // response stay valid; the sign-up cookie is dead after it.
 async function enrolAccount(): Promise<EnrolledAccount> {
   const signUpHeaders = await signUpAccount()
-  const { totpURI, backupCodes } = await auth.api.enableTwoFactor({
-    headers: signUpHeaders,
-    body: { password: ACCOUNT_PASSWORD }
-  })
+  const { totpURI, backupCodes } = await enableTotp(signUpHeaders, ACCOUNT_PASSWORD)
   const secret = readSecret(totpURI)
 
   const verification = await auth.api.verifyTOTP({
@@ -87,10 +93,7 @@ async function enrolAccount(): Promise<EnrolledAccount> {
 // The reconfigure dialog's first step: the new secret exists only on the server until a code from
 // it verifies.
 async function startReconfigure(account: EnrolledAccount): Promise<string> {
-  const { totpURI } = await auth.api.enableTwoFactor({
-    headers: account.headers,
-    body: { password: ACCOUNT_PASSWORD }
-  })
+  const { totpURI } = await enableTotp(account.headers, ACCOUNT_PASSWORD)
 
   return readSecret(totpURI)
 }
@@ -407,12 +410,9 @@ describe("enrolling a first TOTP factor", () => {
   test("hands the second enable of an unverified enrolment to Better Auth and enrols from the new secret", async () => {
     const headers = await signUpAccount()
 
-    await auth.api.enableTwoFactor({ headers, body: { password: ACCOUNT_PASSWORD } })
+    await enableTotp(headers, ACCOUNT_PASSWORD)
 
-    const second = await auth.api.enableTwoFactor({
-      headers,
-      body: { password: ACCOUNT_PASSWORD }
-    })
+    const second = await enableTotp(headers, ACCOUNT_PASSWORD)
     const secret = readSecret(second.totpURI)
 
     await auth.api.verifyTOTP({ headers, body: { code: generateTotpCode(secret) } })
@@ -432,10 +432,7 @@ describe("enrolling a first TOTP factor", () => {
       .set({ verified: null })
       .where(eq(twoFactors.userId, await readUserId()))
 
-    const { backupCodes } = await auth.api.enableTwoFactor({
-      headers: account.headers,
-      body: { password: ACCOUNT_PASSWORD }
-    })
+    const { backupCodes } = await enableTotp(account.headers, ACCOUNT_PASSWORD)
 
     expect({
       backupCodes,
@@ -454,10 +451,7 @@ describe("enrolling a first TOTP factor", () => {
     // With no factor left, a password sign-in opens a full session, so the cached user data of the
     // old session cannot claim a factor that is gone.
     const reenrolling = { ...account, headers: await startSignIn() }
-    const { totpURI } = await auth.api.enableTwoFactor({
-      headers: reenrolling.headers,
-      body: { password: ACCOUNT_PASSWORD }
-    })
+    const { totpURI } = await enableTotp(reenrolling.headers, ACCOUNT_PASSWORD)
     const secret = readSecret(totpURI)
 
     expect({
@@ -543,10 +537,7 @@ describe("auditing changes of the TOTP factor", () => {
   test("writes one reconfiguration with the acting user when a first factor verified", async () => {
     const headers = await signUpAccount()
     const userId = await readUserId()
-    const { totpURI } = await auth.api.enableTwoFactor({
-      headers,
-      body: { password: ACCOUNT_PASSWORD }
-    })
+    const { totpURI } = await enableTotp(headers, ACCOUNT_PASSWORD)
 
     expect(await readTotpAudit()).toEqual([])
 

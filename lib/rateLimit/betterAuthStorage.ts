@@ -10,20 +10,10 @@ const BETTER_AUTH_KEY_PREFIX = "auth:"
 // limit in Remit uses: one fixed window in Redis, shared by every process and surviving a
 // restart, falling back per process while Redis is unreachable. Better Auth keeps choosing the rule
 // for each path, `lib/auth/index.ts`'s `customRules` included; only where the count lives changes.
-//
-// `get` and `set` exist because Better Auth's type requires them, and are never called: its
-// rate limiter (`better-auth`'s `api/rate-limiter`, `onRequestRateLimit`) takes the atomic `consume`
-// whenever a storage provides one, and falls back to a non-atomic read-then-write through `get` and
-// `set` only when it does not. Answering `get` with nothing keeps that fallback inert rather than
-// letting it count beside the adapter if a future version ever reached it.
 export function toBetterAuthRateLimitStorage(
   adapter: RateLimitAdapter
 ): BetterAuthRateLimitStorage {
   return {
-    async get() {
-      return null
-    },
-    async set() {},
     async consume(key, { window, max }) {
       const result = await adapter.consume(`${BETTER_AUTH_KEY_PREFIX}${key}`, max, window * 1000)
 

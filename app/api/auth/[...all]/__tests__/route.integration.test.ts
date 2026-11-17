@@ -43,10 +43,14 @@ async function enrolAccount(): Promise<{ cookie: string; userId: string }> {
   if (!sessionCookie) throw new Error("Sign-up returned no session cookie")
 
   const headers = new Headers({ cookie: sessionCookie })
-  const { totpURI } = await auth.api.enableTwoFactor({
+  const enrolment = await auth.api.enableTwoFactor({
     headers,
     body: { password: ACCOUNT_PASSWORD }
   })
+
+  if (enrolment.method !== "totp") throw new Error("Better Auth started an OTP enrolment")
+
+  const { totpURI } = enrolment
 
   const secret = new URL(totpURI).searchParams.get("secret")
 

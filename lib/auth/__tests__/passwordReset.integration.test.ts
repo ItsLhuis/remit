@@ -50,10 +50,14 @@ function readResetToken(): string {
 }
 
 async function enrolTwoFactor(headers: Headers): Promise<void> {
-  const { totpURI } = await auth.api.enableTwoFactor({
+  const enrolment = await auth.api.enableTwoFactor({
     headers,
     body: { password: ORIGINAL_PASSWORD }
   })
+
+  if (enrolment.method !== "totp") throw new Error("Better Auth started an OTP enrolment")
+
+  const { totpURI } = enrolment
 
   const secret = new URL(totpURI).searchParams.get("secret")
 

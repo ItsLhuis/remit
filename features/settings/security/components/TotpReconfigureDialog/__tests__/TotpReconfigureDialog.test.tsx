@@ -48,6 +48,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.twoFactorEnable.mockResolvedValue({
     data: {
+      method: "totp",
       totpURI: "otpauth://totp/Remit?secret=ABC123"
     },
     error: null

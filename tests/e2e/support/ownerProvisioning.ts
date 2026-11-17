@@ -27,10 +27,14 @@ export async function ensureOwnerTotpEnrolled(): Promise<void> {
   const cookie = await createOwnerSessionCookie(userId)
   const headers = new Headers({ cookie: `${cookie.name}=${cookie.value}` })
 
-  const { totpURI } = await auth.api.enableTwoFactor({
+  const enrolment = await auth.api.enableTwoFactor({
     headers,
     body: { password: E2E_OWNER_PASSWORD }
   })
+
+  if (enrolment.method !== "totp") throw new Error("Better Auth started an OTP enrolment")
+
+  const { totpURI } = enrolment
 
   const secret = new URL(totpURI).searchParams.get("secret")
 

@@ -54,7 +54,7 @@ const ConfirmStep = ({ onSuccess }: ConfirmStepProps) => {
       return
     }
 
-    if (!data?.totpURI) {
+    if (data?.method !== "totp" || !data.totpURI) {
       setSubmitError(t("errors.somethingWentWrong"))
 
       return

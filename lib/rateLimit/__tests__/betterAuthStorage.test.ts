@@ -58,15 +58,3 @@ test("tells the caller to retry when the shared window closes, never sooner than
   expect(refusal).toEqual({ allowed: false, retryAfter: 3 })
   expect(lastMoment).toEqual({ allowed: false, retryAfter: 1 })
 })
-
-test("leaves Better Auth's non-atomic fallback with nothing to count", async () => {
-  const storage = toBetterAuthRateLimitStorage(createInMemoryAdapter())
-
-  await storage.set("203.0.113.7|/sign-in/email", {
-    key: "203.0.113.7|/sign-in/email",
-    count: 99,
-    lastRequest: NOW.getTime()
-  })
-
-  expect(await storage.get("203.0.113.7|/sign-in/email")).toBeNull()
-})

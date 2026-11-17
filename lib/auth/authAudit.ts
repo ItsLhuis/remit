@@ -25,6 +25,10 @@ const emailBodySchema = z.object({ email: z.string() })
 
 const challengeSchema = z.object({ userId: z.string() })
 
+// What an `after` hook's middleware receives: the endpoint context plus the endpoint's result,
+// which Better Auth adds only to the middleware's own context type.
+type AfterHookContext = GenericEndpointContext & { context: { returned?: unknown } }
+
 function isSecondFactorPath(path: string | undefined): boolean {
   return path === VERIFY_TOTP_PATH || path === VERIFY_BACKUP_CODE_PATH
 }
@@ -57,7 +61,7 @@ async function findChallengeUserId(ctx: GenericEndpointContext): Promise<string 
   return entry?.value ?? null
 }
 
-async function auditSignIn(ctx: GenericEndpointContext): Promise<void> {
+async function auditSignIn(ctx: AfterHookContext): Promise<void> {
   const returned = ctx.context.returned
   const body = emailBodySchema.safeParse(ctx.body)
 
@@ -83,7 +87,7 @@ async function auditSignIn(ctx: GenericEndpointContext): Promise<void> {
   if (!pending) await writeAudit("auth.login.succeeded", buildAuditContext(ctx, userId))
 }
 
-async function auditSecondFactor(ctx: GenericEndpointContext): Promise<void> {
+async function auditSecondFactor(ctx: AfterHookContext): Promise<void> {
   // A request that carries a session (the reconfigure dialog, a first enrolment) never has a
   // challenge, so it is not a sign-in; a request with neither is not audited at all, so an
   // anonymous caller cannot add a row per request to the insert-only table.
@@ -111,7 +115,7 @@ async function auditSecondFactor(ctx: GenericEndpointContext): Promise<void> {
   await writeAudit("auth.login.succeeded", buildAuditContext(ctx, userId))
 }
 
-async function auditBackupCodesRegenerated(ctx: GenericEndpointContext): Promise<void> {
+async function auditBackupCodesRegenerated(ctx: AfterHookContext): Promise<void> {
   if (isAPIError(ctx.context.returned)) return
 
   const session = await getSessionFromCtx(ctx)

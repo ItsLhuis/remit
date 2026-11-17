@@ -137,6 +137,7 @@ beforeEach(() => {
   mocks.saveBusinessProfile.mockResolvedValue({ data: { success: true } })
   mocks.twoFactorEnable.mockResolvedValue({
     data: {
+      method: "totp",
       backupCodes: ["alpha-code", "bravo-code"],
       totpURI: "otpauth://totp/Remit?secret=ABC123"
     },

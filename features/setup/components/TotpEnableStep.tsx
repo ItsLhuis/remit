@@ -62,7 +62,7 @@ const TotpEnableStep = ({ onSuccess }: TotpEnableStepProps) => {
       return
     }
 
-    if (!enableData?.totpURI) {
+    if (enableData?.method !== "totp" || !enableData.totpURI) {
       setEnableError(t("setup.errors.totpUriMissing"))
 
       return

@@ -92,10 +92,14 @@ async function enrolAccount(): Promise<{
   backupCodes: string[]
 }> {
   const signUpHeaders = await signUpAccount()
-  const { totpURI, backupCodes } = await auth.api.enableTwoFactor({
+  const enrolment = await auth.api.enableTwoFactor({
     headers: signUpHeaders,
     body: { password: ACCOUNT_PASSWORD }
   })
+
+  if (enrolment.method !== "totp") throw new Error("Better Auth started an OTP enrolment")
+
+  const { totpURI, backupCodes } = enrolment
   const secret = readSecret(totpURI)
 
   const verification = await auth.api.verifyTOTP({

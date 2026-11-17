@@ -114,6 +114,7 @@ async function holdPendingSecret(ctx: GenericEndpointContext, session: Session) 
   await auditTotp("auth.totp.reconfigure_started", ctx, session.user.id)
 
   return {
+    method: "totp",
     totpURI: buildTotpUri({
       secret,
       issuer: parsed.data.issuer || issuer || ctx.context.appName,
