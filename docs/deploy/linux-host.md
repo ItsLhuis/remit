@@ -264,9 +264,9 @@ usage, and the retention counts on `/settings/backup` decide how many archives a
 ## arm64 hosts
 
 **Not tested** — no arm64 host has run this guide, a Raspberry Pi included. The facts below are read
-from the build files, not measured, with one exception: a recorded run of the arm64 worker image's
-Chromium, which executed and reported `Chromium 149.0.7827.53 Alpine Linux`. No Raspberry Pi was
-used for it, and no one has re-run it for this guide.
+from the build files, not measured, with one exception: the worker image's Chromium package,
+installed on its arm64 base image under emulation, executed and reported
+`Chromium 156.0.8078.79 Alpine Linux`. No arm64 hardware, a Raspberry Pi included, was used for it.
 
 Both images are published for `linux/amd64` and `linux/arm64` (`.github/workflows/docker.yml`), and
 Docker picks the variant for the host, so every step above is unchanged. The worker image installs
