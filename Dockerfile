@@ -1,18 +1,19 @@
 # ─── Stage 1: base ───────────────────────────────────────────────────────────
 FROM node:26.13.1-alpine3.24 AS base
 RUN apk add --no-cache libc6-compat
-# Node.js no longer bundles Corepack, so pnpm is installed at the exact `packageManager` version.
-RUN npm install --global --no-fund --no-audit pnpm@10.33.4
+# Node.js no longer bundles Corepack, so pnpm is installed at the exact `packageManager` version. Its
+# install script swaps the Node.js launcher for the native binary, so it is the one script allowed.
+RUN npm install --global --no-fund --no-audit --no-update-notifier --allow-scripts=pnpm pnpm@12.21.0
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # ─── Stage 2: deps ───────────────────────────────────────────────────────────
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────
@@ -44,7 +45,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm install --global --no-fund --no-audit pnpm@10.33.4
+RUN npm install --global --no-fund --no-audit --no-update-notifier --allow-scripts=pnpm pnpm@12.21.0
+# pnpm only runs the bundled `remit:*` scripts here. The pinned version is the installed one, and
+# the dependencies were installed at build time. Otherwise pnpm checks both before each run and
+# writes the result into /app, which the runtime user cannot do.
+ENV pnpm_config_pm_on_fail=ignore
+ENV pnpm_config_verify_deps_before_run=false
 
 # Create a non-root system user and group in a single layer.
 RUN addgroup --system --gid 1001 nodejs && \

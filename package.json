@@ -2,7 +2,7 @@
   "name": "remit",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@10.33.4",
+  "packageManager": "pnpm@12.21.0",
   "type": "module",
   "description": "Open-source, self-hostable business management platform for independent freelancers",
   "homepage": "https://github.com/ItsLhuis/remit#readme",
@@ -74,7 +74,7 @@
   },
   "engines": {
     "node": ">=26.13.1 <27",
-    "pnpm": ">=10.33.4 <11"
+    "pnpm": ">=12.21.0 <13"
   },
   "devEngines": {
     "runtime": {
@@ -84,7 +84,7 @@
     },
     "packageManager": {
       "name": "pnpm",
-      "version": "10.33.4",
+      "version": "12.21.0",
       "onFail": "error"
     }
   },

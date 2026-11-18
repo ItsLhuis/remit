@@ -7,7 +7,7 @@ Lead -> Client -> Project -> Proposal/Contract -> Invoice is optional.
 
 Stack: Next.js 16 App Router, React 19, TypeScript strict mode, Drizzle ORM (PostgreSQL),
 better-auth (organization + TOTP plugins), Tailwind CSS v4, Zod, react-hook-form,
-i18next/react-i18next/ICU, pino. Node >=26.13.1 <27, pnpm 10.33.4. Windows is a first-class
+i18next/react-i18next/ICU, pino. Node >=26.13.1 <27, pnpm 12.21.0. Windows is a first-class
 development platform.
 
 ## Commands

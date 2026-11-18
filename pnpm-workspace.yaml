@@ -9,9 +9,8 @@ trustPolicy: no-downgrade
 trustPolicyExclude:
   - eslint-import-resolver-typescript@3.10.1
 engineStrict: true
-packageManagerStrict: true
-packageManagerStrictVersion: true
-managePackageManagerVersions: true
+saveExact: false
+pmOnFail: download
 verifyStoreIntegrity: true
 strictStorePkgContentCheck: true
 
@@ -24,3 +23,7 @@ allowBuilds:
   msw: false
   sharp: false
   unrs-resolver: false
+
+# Agent guidance is curated under .agents/, so dependencies' agent skills are never linked into it.
+skills:
+  dirs: []
