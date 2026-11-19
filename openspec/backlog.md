@@ -193,13 +193,15 @@ Ordered; the first entry is next. Each entry is a change name and one line.
     platforms (R5-18).
 91. `pwa-shell` - manifest, service worker and push, with the read cache of the offline set (7.9,
     R13-10 step 1, R13-Q5).
-92. `offline-sync` - offline operation queue for time, expenses and receipts on the API (R13-10 step
-    2).
+92. `offline-sync` - offline operation queue for time, expenses and receipts on the API; operations
+    the server rejects go to a needs-attention list (R13-10 step 2, R13-Q5).
 93. `backup-pitr` - WAL archiving behind a tool-neutral adapter with monthly drills, on
     automatically when a remote destination is configured in the agency and large-company presets,
     an option in the freelancer preset (8.3, R13-5, R13-Q2).
-94. `high-availability` - two app containers for rolling restarts and a read-replica path (8.3,
-    R13-6, L15).
+94. `high-availability` - two app containers for rolling restarts and a read-replica path; hosted
+    availability published as monthly objectives (99.5 % freelancer, 99.9 % agency, 99.95 %
+    dedicated large-company), not a contractual SLA with credits until hosted customers exist (8.3,
+    R13-6, L15, R13-Q1).
 95. `control-plane` - `apps/control-plane` provisioning instances on shared fleet services (5.4,
     R9-7, R9-8).
 96. `hosted-billing` - hosted plans and meters billed from a Remit instance (5.5, R9-9).
