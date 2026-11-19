@@ -30,16 +30,16 @@ workspace root, and `server.js` is then written under `.next/standalone/<path fr
     `instrumentation.ts`, the app's own configs (Next.js, PostCSS, Drizzle, Playwright, Vitest,
     `components.json`), the `remit:*` CLI under `scripts/` and `scripts/core/`, and the app's tests.
     The `@/*` alias keeps its meaning inside `apps/web`, so imports inside the app do not change.
-    Question 3 lists what stays at the root.
+    Decision 3 lists what stays at the root.
   - Move the worker process into `apps/worker`: `scripts/worker.ts`, `scripts/core/worker/` and its
-    tests, with its own tsup build. How it reaches the job handlers is question 1.
+    tests, with its own tsup build. Decision 1 sets how it reaches the job handlers.
   - Create `packages/core` with the purity rule applied to the whole package (no framework, React,
     Drizzle, IO, environment or `apps/*` import, enforced by lint), its own `tsconfig`, a Vitest
-    project, and the first content from question 2.
+    project, and the first content from decision 2.
   - Standalone output proven from the workspace root (R13-12): `outputFileTracingRoot`, plus
     `turbopack.root` if the build needs it, set to the root. The Dockerfile builds from the root and
     runs `apps/web/server.js`, and both image targets (`runner`, `worker`) build and start. This
-    proof is the first task, so a failure stops the change before the worker and core work (question
+    proof is the first task, so a failure stops the change before the worker and core work (decision
     5).
   - The root commands in `AGENTS.md` (`pnpm dev`, `build`, `lint`, `typecheck`, `test`,
     `test:integration`, `test:e2e`, `database:*`, `remit:*`, `version:*`) keep their names and pass
@@ -56,7 +56,7 @@ workspace root, and `server.js` is then written under `.next/standalone/<path fr
     change that ships pack data), and every other folder in R13 section 2.14 (`apps/control-plane`,
     `apps/mobile`, `apps/docs`, `packages/db`, `packages/sdk`, `packages/config`): each is created
     when its own deliverable starts (FR1).
-  - Moving feature `services/` into `packages/core` beyond question 2's answer.
+  - Moving feature `services/` into `packages/core` beyond decision 2.
   - Any behaviour change, any schema or migration change, and any dependency upgrade.
   - Licence fields in `package.json` files (`scope-text-amendments`).
   - A task runner, remote build caching, separate image names and new Compose services.
@@ -91,60 +91,47 @@ root; `docker compose up` with `/api/health` 200; the worker rendering an invoic
 `docker compose exec app pnpm remit:backup --yes`; and `pnpm test:integration` and `pnpm test:e2e`
 against the moved app.
 
+## Decisions
+
+The owner accepted the recommended answer to each of the five open questions.
+
+1. **The worker reaches the job handlers, the database and `lib/` through `@remit/web`.**
+   `apps/worker` depends on `@remit/web` (`workspace:*`), and `apps/web` declares an `exports` map
+   that names only the modules the worker loads today (`features/*/jobs`, `features/*/events`,
+   `lib/jobs/worker`, `lib/config/env`, `lib/errorTracking`, `@/database`, per
+   `scripts/core/worker/loadWorkerFeatureModules.ts`). The architecture map records this app-to-app
+   edge as a known limit until `job-queues`, `command-layer-outbox` or a `packages/db` change
+   removes it. Rejected: `packages/db` plus a server package now (amends FR1 and pulls a later
+   layout forward without the change that designs it); the worker entry staying in `apps/web`
+   (leaves `apps/worker` with nothing to own).
+2. **`packages/core` starts with the framework-free helpers in `lib/utils/`** that feature services
+   already import: `money`, `datetime`, `format`, `string`, `csv`, `locale`, `html` and `url`, each
+   confirmed free of IO when moved. `cn`, `dataTable`, `exportTableToCsv`, `request`, `response` and
+   `searchParams` stay in `apps/web`. Feature services stay in `features/<name>/services/` and move
+   into core later, starting with the Layer 0 changes that rewrite them (`money-precision` first).
+   Rejected: moving all 174 non-test service files now, which redesigns the feature boundary rather
+   than moving code.
+3. **The root keeps the workspace and repository tooling:** ESLint, oxlint, Prettier, commitlint,
+   husky, `lint-staged`, a `tsconfig.base.json` that each package extends, the release scripts
+   (`bump-version`, `check-changelog`) and `tests/docs/`. It also keeps the deployment files
+   (`Dockerfile`, `docker-compose*.yml`, `docker-entrypoint.sh`, `deploy/`, `scripts/host/`), the
+   docs, `openspec/`, `.agents/` and `CHANGELOG.md`. There is one root `eslint.config.mjs` and one
+   Vitest configuration with a project per package; no `packages/config` (FR1). Rejected: a config
+   per package from the start, which costs files now and saves nothing until a package needs
+   different rules.
+4. **One root `Dockerfile` builds both images from the workspace root.** The `worker` stage still
+   extends the web `runner`, so both run byte-identical code and only the worker carries Chromium.
+   Image names, targets and Compose services stay the same. Rejected for now: an independent worker
+   image built with `pnpm deploy --filter @remit/worker` (R13 section 2.14), which works only once
+   the worker no longer needs web code (decision 1).
+5. **A failed standalone proof stops the change.** The change stops at that task and returns to the
+   owner with the evidence, as R13-12 states ("would change if"). Agents do not work around it, for
+   example by building `apps/web` as a non-workspace root or copying `node_modules` by hand.
+
 ## Open questions
 
-1. **How does `apps/worker` reach the job handlers, the database and `lib/`?** The worker today
-   imports `features/*/jobs`, `features/*/events`, `lib/jobs/worker`, `lib/config/env`,
-   `lib/errorTracking` and `@/database` (`scripts/core/worker/loadWorkerFeatureModules.ts`). FR1
-   allows no `packages/db` or server package now.
-   - A. `apps/worker` depends on `@remit/web` (`workspace:*`). `apps/web` declares an `exports` map
-     that names only the modules the worker loads. The app-to-app edge is recorded as a known limit
-     in the architecture map until `job-queues`/`command-layer-outbox` or a `packages/db` change
-     removes it.
-   - B. Create `packages/db` and a server package now, which amends FR1.
-   - C. The worker entry stays in `apps/web`, and `apps/worker` holds only its build and image
-     stage.
-   - Recommended: **A**. It keeps FR1's three packages, gives the worker its own source and build,
-     and makes the edge explicit and narrow. B pulls part of a later layout forward without the
-     change that designs it. C makes `apps/worker` a folder with nothing to own.
-
-2. **What does `packages/core` hold when it is created?** An empty package is stub code (hard rule).
-   - A. The framework-free helpers in `lib/utils/` that feature services already import (`money`,
-     `datetime`, `format`, `string`, `csv`, `locale`, `html`, `url`, each confirmed free of IO when
-     moved). `cn`, `dataTable`, `exportTableToCsv`, `request`, `response` and `searchParams` stay in
-     `apps/web`. Feature services stay in `features/<name>/services/` and move into core later,
-     starting with the Layer 0 changes that rewrite them (`money-precision` first).
-   - B. All 174 non-test files under `features/*/services/` now. They import their feature's
-     `types.ts`/`schemas.ts` and other features through public doors, so this is a redesign of the
-     feature boundary, not a move.
-   - Recommended: **A**. It proves the package wiring (TypeScript resolution, Next.js transpiling,
-     the tsup bundle, Vitest, the lint boundary) with real code in a small diff. It also gives
-     `country-neutrality-check` and `money-precision` a home.
-
-3. **What stays at the root, and how is tooling shared?**
-   - Recommended: the root keeps the workspace and repository tooling. That is ESLint, oxlint,
-     Prettier, commitlint, husky, `lint-staged`, a `tsconfig.base.json` that each package extends,
-     the release scripts (`bump-version`, `check-changelog`) and `tests/docs/`. The root also keeps
-     the deployment files: `Dockerfile`, `docker-compose*.yml`, `docker-entrypoint.sh`, `deploy/`,
-     `scripts/host/`. Docs, `openspec/`, `.agents/` and `CHANGELOG.md` stay too. One root
-     `eslint.config.mjs` and one Vitest configuration with a project per package; no
-     `packages/config` (FR1).
-   - Alternative: a config per package from the start. It costs more files now and saves nothing
-     until a package needs different rules.
-
-4. **How are the images built?**
-   - Recommended: one root `Dockerfile` built from the workspace root. The `worker` stage still
-     extends the web `runner`, so both run byte-identical code and only the worker carries Chromium.
-     Image names, targets and Compose services stay the same.
-   - Alternative: an independent worker image built with `pnpm deploy --filter @remit/worker`, as
-     R13 section 2.14 sketches ("each image builds one app"). This only works once the worker no
-     longer needs web code (question 1), so it waits for that change.
-
-5. **What happens if the standalone proof fails from the workspace root?**
-   - Recommended: the change stops at that task and returns to the owner with the evidence, as
-     R13-12 states ("would change if"). Agents do not work around it, for example by building
-     `apps/web` as a non-workspace root or copying `node_modules` by hand.
+None.
 
 ## Gate 1
 
-pending
+approved
