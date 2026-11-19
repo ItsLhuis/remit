@@ -7,9 +7,9 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
-1. `monorepo-layout` - pnpm workspaces with `apps/web`, `apps/worker`, `packages/core`,
-   `packages/i18n` and `packages/fiscal-packs`; standalone output proven from the workspace root
-   (FR1, R13-12).
+1. `monorepo-layout` - pnpm workspaces with only `apps/web`, `apps/worker` and `packages/core`;
+   other packages are created when their own deliverable starts; standalone output proven from the
+   workspace root (FR1, R13-12).
 2. `data-class-registry` - every column declares a data class from the closed list and a subject
    link; a test fails on any unclassified column (R12-1).
 3. `spike-better-auth` - prove on the installed 1.7 a second instance for external contacts, OIDC
