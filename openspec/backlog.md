@@ -53,13 +53,15 @@ Ordered; the first entry is next. Each entry is a change name and one line.
 17. `migration-discipline` - expand and contract, `lock_timeout`, a lint on generated SQL and
     concurrent index builds, written into the database rule (R13-6).
 18. `accessibility-gate` - axe in Playwright on every route and dialog state, keyboard E2E for
-    primary flows, the current findings fixed (R13-3).
+    primary flows, the current findings fixed, the house standard of WCAG 2.2 AA plus 2.4.13 Focus
+    Appearance and 44 px mobile targets through the design gate (R13-3, R13-Q4).
 19. `job-queues` - the spike's queue with a queue per workload class, per-queue concurrency,
     fairness groups and one explicit pool size per process (D12, R13-7, R13-8).
 20. `command-layer-outbox` - one typed command registry behind app, API and jobs, each command
     writing its outbox rows and idempotency record in its own transaction (D7, R11-1, R11-2, R11-4).
 21. `observability-tracing` - W3C trace context through requests, jobs and outbox rows, trace ids in
-    logs, opt-in OTLP export (8.4, R13-9).
+    logs, OTLP export off by default, Prometheus kept, example alerts and dashboard documented, no
+    bundled observability stack (8.4, R13-9, R13-Q8).
 22. `authorization-catalog` - code-defined permission catalog, custom roles, scoped assignments with
     `can()` and its SQL twin, separation of duties as data (D3, R9-2, R9-3, C6-5).
 23. `mfa-policy` - MFA policy layer, passkeys as a factor, step-up on flagged permissions, SSO trust
@@ -88,7 +90,9 @@ Ordered; the first entry is next. Each entry is a change name and one line.
 34. `restore-guard` - after a restore close every series, re-enter in recovery series, replay
     erasures and count restores (8.3, R14-4, R12-6).
 35. `i18n-json-catalogs` - catalogs as i18next JSON with ICU in `packages/i18n`, types generated
-    from the source locale, Weblate-ready (7.7, R13-11).
+    from the source locale, Weblate-ready; English and European Portuguese first, then French,
+    German and Spanish, plus one right-to-left language through the design gate (7.7, R13-11,
+    R13-Q7).
 36. `intake-submissions` - X2 intake endpoints with unconfirmed records and the X2 rule in the
     security and routes rules (X2, R2-7).
 37. `party-dedup-consent` - duplicate queue and merge, consent per person and purpose, suppression
@@ -187,11 +191,13 @@ Ordered; the first entry is next. Each entry is a change name and one line.
     (N3, R1-7).
 90. `e-invoicing-transmission` - one transmission adapter for Peppol access points and national
     platforms (R5-18).
-91. `pwa-shell` - manifest, service worker and push (7.9, R13-10 step 1).
+91. `pwa-shell` - manifest, service worker and push, with the read cache of the offline set (7.9,
+    R13-10 step 1, R13-Q5).
 92. `offline-sync` - offline operation queue for time, expenses and receipts on the API (R13-10 step
     2).
-93. `backup-pitr` - optional WAL archiving behind a tool-neutral adapter with monthly drills (8.3,
-    R13-5).
+93. `backup-pitr` - WAL archiving behind a tool-neutral adapter with monthly drills, on
+    automatically when a remote destination is configured in the agency and large-company presets,
+    an option in the freelancer preset (8.3, R13-5, R13-Q2).
 94. `high-availability` - two app containers for rolling restarts and a read-replica path (8.3,
     R13-6, L15).
 95. `control-plane` - `apps/control-plane` provisioning instances on shared fleet services (5.4,
@@ -201,7 +207,8 @@ Ordered; the first entry is next. Each entry is a change name and one line.
     (R12-8, R12-Q7).
 98. `docs-site` - documentation site on Fumadocs (8.8, R13-12).
 99. `storefront-connectors` - Shopify, WooCommerce and Amazon order connectors (R5-17).
-100. `native-apps` - `apps/mobile` signing in to any instance by URL (7.9, R13-10 step 3).
+100. `native-apps` - Expo (React Native) `apps/mobile` signing in to any instance by URL, after the
+     PWA and the writable API, through the design gate (7.9, R13-10 step 3, R13-Q6).
 101. `resource-booking` - rooms and equipment booking and automatic scheduling by dependencies (1.6,
      R3-16 step 14).
 
@@ -243,11 +250,6 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | GAP-30 | The role of Redis is undecided: R9 wants instances without it, R13 keeps rate limits in it for several app processes, R10 needs a realtime transport (`LISTEN/NOTIFY` or Redis pub/sub)                                                                            | `spike-job-queue`           |
 | GAP-31 | Better Auth 1.7 coverage of the R11 OAuth provider, `mcp` and `cimd` plugins on the workforce instance only is unproven                                                                                                                                            | `spike-better-auth`         |
 | GAP-32 | InvoiceXpress API coverage (invoices, credit notes, receipts, transport documents, idempotent creation) and qualified seals on its PDFs are unverified                                                                                                             | `spike-fiscal-issuer`       |
-| GAP-49 | Quality targets: adopt the R13 target table, hosted SLOs as objectives or contractual, self-hosted WAL archiving default (R13-1, questions 1-2, C13-3)                                                                                                             | owner                       |
-| GAP-50 | House accessibility standard beyond AA (focus appearance, 44 px targets) and the offline set (R13 questions 4-5)                                                                                                                                                   | owner                       |
-| GAP-51 | Native apps: Expo or a wrapped PWA, and a permanent public demo instance for store review (R13 question 6, C13-4)                                                                                                                                                  | owner                       |
-| GAP-52 | First UI languages after English and European Portuguese, and the right-to-left language (R13-11)                                                                                                                                                                  | owner                       |
-| GAP-53 | Observability: documentation only or an optional compose profile, with an adviser on its licence (R13 question 8)                                                                                                                                                  | owner                       |
 | GAP-55 | First Peppol access point and first national platform (R5-Q10, R8 question 5)                                                                                                                                                                                      | owner                       |
 | GAP-56 | Second payroll provider (API) by first markets (R3-Q12)                                                                                                                                                                                                            | owner                       |
 | GAP-57 | Whether the hosted offering brokers one bank-aggregator contract (R7-Q8)                                                                                                                                                                                           | owner                       |
