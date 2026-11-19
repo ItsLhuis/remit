@@ -12,30 +12,30 @@ Ordered; the first entry is next. Each entry is a change name and one line.
    (FR1, R13-12).
 2. `data-class-registry` - every column declares a data class from the closed list and a subject
    link; a test fails on any unclassified column (R12-1).
-3. `audit-principal-shape` - principal types on every audit row, ordered sequence and transaction
+3. `spike-better-auth` - prove on the installed 1.7 a second instance for external contacts, OIDC
+   and SAML SSO, SCIM role projection, passkeys with required user verification and the
+   `auth_method` stamp (FR4, R9-1).
+4. `spike-job-queue` - BullMQ with an outbox relay against pg-boss enqueuing in the business
+   transaction: relay lag, open-source group concurrency, a Redis-free instance (R11-Q2, R11-2,
+   R11-3, C13-6).
+5. `audit-principal-shape` - principal types on every audit row, ordered sequence and transaction
    id, ids only with no referential actions, an asynchronous sealer with checkpoints anchored
    outside the database (R9-6, R13-2, C12-3, C13-7).
-4. `money-precision` - Remit-owned ISO 4217 table, bigint minor units, `numeric` scales for
+6. `money-precision` - Remit-owned ISO 4217 table, bigint minor units, `numeric` scales for
    quantities, unit prices, FX, tax rates and UoM factors, one exact rounding primitive replacing
    `Math.round` in the money rule (FR2, R8 R-1, R-2).
-5. `legal-entities` - entities with settings split from the singleton, `entity_id` with composite
+7. `legal-entities` - entities with settings split from the singleton, `entity_id` with composite
    keys that include the future partition key, a mandatory entity predicate (X1, R9-4, C7-9).
-6. `parties` - parties, roles, contact points, addresses, tax identifiers, party accounts and
+8. `parties` - parties, roles, contact points, addresses, tax identifiers, party accounts and
    relationships replace clients, contacts and leads, with deals on pipelines (D4, R2-1 to R2-3,
    R2-10 steps 1-7).
-7. `issuance-series` - series per entity and document type, numbers claimed at issuance, immutable
+9. `issuance-series` - series per entity and document type, numbers claimed at issuance, immutable
    issued snapshots behind triggers no migration may disable (D6, R5-2, R12-10).
-8. `ledger-books` - first ledger schema: accounts, roles, journals, entries and lines carrying the
-   book column, with `ledger_books` primary, tax and IFRS (D2, R7-1, R7-Q4).
-9. `migration-squash` - fresh baseline after every one-way door, hand-written schema SQL appended
-   unchanged, data corrections dropped, CI schema-equivalence check, every database rebuilt;
-   scheduled by the owner (D11, R12-9, C12-4).
-10. `spike-better-auth` - prove on the installed 1.7 a second instance for external contacts, OIDC
-    and SAML SSO, SCIM role projection, passkeys with required user verification and the
-    `auth_method` stamp (FR4, R9-1).
-11. `spike-job-queue` - BullMQ with an outbox relay against pg-boss enqueuing in the business
-    transaction: relay lag, open-source group concurrency, a Redis-free instance (R11-Q2, R11-2,
-    R11-3, C13-6).
+10. `ledger-books` - first ledger schema: accounts, roles, journals, entries and lines carrying the
+    book column, with `ledger_books` primary, tax and IFRS (D2, R7-1, R7-Q4).
+11. `migration-squash` - fresh baseline after every one-way door, hand-written schema SQL appended
+    unchanged, data corrections dropped, CI schema-equivalence check, every database rebuilt;
+    scheduled by the owner (D11, R12-9, C12-4).
 12. `spike-pdf-rendering` - P1 Chromium plus an in-worker conformance step against P2 Gotenberg 9 on
     real templates, scored by veraPDF for PDF/A-3 and PDF/UA-1 (FR5, R4-8, R4-Q8).
 13. `spike-fiscal-issuer` - provider-neutral fiscal-issuer adapter with InvoiceXpress as its first
@@ -43,7 +43,10 @@ Ordered; the first entry is next. Each entry is a change name and one line.
     R14-2).
 14. `scope-text-amendments` - apply the accepted text amendments to rules, AGENTS.md and the
     architecture docs: C5-1, C5-2, C5-5, C6-1, C6-3, C6-6, C7-1, C7-3, C7-4, C11-1, C11-2, C12-1,
-    C12-2, C12-7, C4-2, C4-5, C3-6 and the Group 1 and 4 repo conflicts.
+    C12-2, C12-7, C4-2, C4-5, C3-6, the Group 1 and 4 repo conflicts, D1's meaning of instance on
+    shared fleet services (C9-1, FR3), the bulk email stream rule (C10-4, R10-5), the 7.8 EAA text
+    (C13-2), the MFA policy wording (C9-2 to C9-4, R9-3) and the licence (AGPL-3.0, MIT for
+    `packages/sdk`) in the docs.
 15. `country-neutrality-check` - CI fails on a country code or country rule in `packages/core` (N2).
 16. `contract-signing-sessions` - one link per signer, emailed code, document hash and consent
     version on the signature row, replacing the shared signing link (R4-3, R4-Q1).
@@ -217,7 +220,7 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | GAP-7  | The reconfigure hold cannot tell a missing session from a failed session read, so a transient read failure on `enable` for a verified user reaches Better Auth's handler, which replaces the factor                                                                | owner                       |
 | GAP-8  | Money helpers divide by 100 for every currency and multiply floats: currencies whose exponent is not 2 are wrong and 0.29 × 50 cents rounds to 14; the money rule prescribes `Math.round`                                                                          | `money-precision`           |
 | GAP-9  | `audit_logs.actor_user_id` declares `ON DELETE SET NULL` on an insert-only table, so deleting a user can never succeed; audit ids are random UUIDs with no order                                                                                                   | `audit-principal-shape`     |
-| GAP-10 | The reports propose four hash-chain shapes (per row, per signature request, per entity and journal, one instance chain sealed with checkpoints); one design must serve audit, ledger, signatures and retention disposal                                            | `audit-principal-shape`     |
+| GAP-10 | Audit rows are written inline and chained by an asynchronous sealer with checkpoints anchored outside the database (R13-Q3, C13-1); whether ledger and signature evidence reuse the same sealer and checkpoint primitive is open                                   | `audit-principal-shape`     |
 | GAP-11 | No column declares a data class, so erasure, export, retention, AI exclusion and the BI schema cannot be derived from the schema                                                                                                                                   | `data-class-registry`       |
 | GAP-12 | One settings singleton holds one global invoice series; a draft claims its number and an issued invoice can be soft-deleted                                                                                                                                        | `issuance-series`           |
 | GAP-13 | A payment belongs to one invoice and `chk_invoices_amount_paid` refuses overpayments                                                                                                                                                                               | `payments-allocation`       |
@@ -240,28 +243,11 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | GAP-30 | The role of Redis is undecided: R9 wants instances without it, R13 keeps rate limits in it for several app processes, R10 needs a realtime transport (`LISTEN/NOTIFY` or Redis pub/sub)                                                                            | `spike-job-queue`           |
 | GAP-31 | Better Auth 1.7 coverage of the R11 OAuth provider, `mcp` and `cimd` plugins on the workforce instance only is unproven                                                                                                                                            | `spike-better-auth`         |
 | GAP-32 | InvoiceXpress API coverage (invoices, credit notes, receipts, transport documents, idempotent creation) and qualified seals on its PDFs are unverified                                                                                                             | `spike-fiscal-issuer`       |
-| GAP-33 | Licence: MIT or AGPL for the hosted offering, with the R1-9 market input; confirm with a qualified adviser                                                                                                                                                         | owner                       |
-| GAP-34 | Audit sealer: accept "sealed within seconds" instead of chaining inside the command transaction (C13-1, R13 question 3); blocks `audit-principal-shape`                                                                                                            | owner                       |
-| GAP-35 | Meaning of D1 for hosting: one instance per customer on shared fleet services and its revisit triggers, written into D1 (C9-1, R1 C-1)                                                                                                                             | owner                       |
-| GAP-36 | Hosted pricing: price corridor for FR3, "no platform fee" promise, seats and resources without a merchant of record; adviser on OSS registration and B2C VAT (R1-3, R1-4, R9-9)                                                                                    | owner                       |
-| GAP-37 | Market segment: large companies are service and trading businesses only, so MRP and a storefront builder stay out (R1 question 1)                                                                                                                                  | owner                       |
-| GAP-38 | Importer waves of R1-5 as the 7.6 list; each product's export is unverified                                                                                                                                                                                        | owner                       |
-| GAP-39 | Return filing: which markets after Portugal; France or the United Kingdom would move filing into scope (R1 C-3, C7-5)                                                                                                                                              | owner                       |
-| GAP-40 | Tax rounding defaults: per document per rate or per line, half away from zero or half even (R8 questions 1-2)                                                                                                                                                      | owner                       |
-| GAP-41 | FX source default (ECB opt-in or manual) and separate functional and VAT accounting currencies at setup (R8 questions 3 and 7)                                                                                                                                     | owner                       |
-| GAP-42 | E-invoicing core in TypeScript or gobl as a sidecar, and seeding packs from gobl data under Apache-2.0 with an adviser (R8 C-4, questions 4 and 6)                                                                                                                 | owner                       |
-| GAP-43 | Identity defaults: MFA policy P1, passkey user verification required, per-provider IdP MFA check, single-user SoD `audit_only`, delegated SSO administration, auth rule wording (R9 questions 3-5 and 8, C9-2 to C9-4)                                             | owner                       |
-| GAP-44 | Hosted suspension stages with export until termination; adviser on retention duties for issued documents (R9 question 7)                                                                                                                                           | owner                       |
-| GAP-45 | Portal and sharing: portal host per entity, ticket visibility, link grants with expiry and recipient code, the T2 portal action list (R10 questions 1, 2, 4, 6; C10-1, C10-3)                                                                                      | owner                       |
-| GAP-46 | Malware scanning absent: hold external files for manual release or refuse them (C10-2)                                                                                                                                                                             | owner                       |
-| GAP-47 | Bulk email: a separate stream within one provider (R10, C10-4) contradicts the scope rule requiring a separate provider                                                                                                                                            | owner                       |
-| GAP-48 | Notifications: in-app retention, reply by email for workforce users, whether contacts may mute payment reminders with an adviser (R10 questions 8-10, R5-13)                                                                                                       | owner                       |
 | GAP-49 | Quality targets: adopt the R13 target table, hosted SLOs as objectives or contractual, self-hosted WAL archiving default (R13-1, questions 1-2, C13-3)                                                                                                             | owner                       |
 | GAP-50 | House accessibility standard beyond AA (focus appearance, 44 px targets) and the offline set (R13 questions 4-5)                                                                                                                                                   | owner                       |
 | GAP-51 | Native apps: Expo or a wrapped PWA, and a permanent public demo instance for store review (R13 question 6, C13-4)                                                                                                                                                  | owner                       |
 | GAP-52 | First UI languages after English and European Portuguese, and the right-to-left language (R13-11)                                                                                                                                                                  | owner                       |
 | GAP-53 | Observability: documentation only or an optional compose profile, with an adviser on its licence (R13 question 8)                                                                                                                                                  | owner                       |
-| GAP-54 | Whether the owner would register as a Portuguese software producer and run a signing service for the hosted offering (O1, R14 question 2)                                                                                                                          | owner                       |
 | GAP-55 | First Peppol access point and first national platform (R5-Q10, R8 question 5)                                                                                                                                                                                      | owner                       |
 | GAP-56 | Second payroll provider (API) by first markets (R3-Q12)                                                                                                                                                                                                            | owner                       |
 | GAP-57 | Whether the hosted offering brokers one bank-aggregator contract (R7-Q8)                                                                                                                                                                                           | owner                       |
@@ -286,3 +272,9 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | GAP-76 | Adviser: consent basis for B2B email per jurisdiction and how long unconfirmed intake may be kept (R2-5, R2-7)                                                                                                                                                     | owner                       |
 | GAP-77 | Adviser: whether a listed AI use falls under AI Act Annex III (R11-13)                                                                                                                                                                                             | owner                       |
 | GAP-78 | Adviser: e-invoicing mandate dates per country and the Portuguese qualified-seal date (OE2027) re-checked each budget year (R1-7, R14-6)                                                                                                                           | owner                       |
+| GAP-79 | Adviser: the licence (AGPL-3.0 for app, worker and control-plane, MIT for `packages/sdk`) is reviewed before external pull requests are accepted; CLA versus DCO stays open until then (R1-7)                                                                      | owner                       |
+| GAP-80 | Adviser: OSS registration and B2C VAT for hosted pricing by seats and resources without a merchant of record (R9-6)                                                                                                                                                | owner                       |
+| GAP-81 | Adviser: attribution for packs seeded from gobl regime data under Apache-2.0 (R8-6)                                                                                                                                                                                | owner                       |
+| GAP-82 | Adviser: retention duties for issued documents through the hosted suspension stages up to termination (R9-7)                                                                                                                                                       | owner                       |
+| GAP-83 | Adviser: contacts cannot turn off payment reminders as contractual communication (R10-10, R5-13)                                                                                                                                                                   | owner                       |
+| GAP-84 | The export of each product in the R1-5 importer waves is unverified (R1-4)                                                                                                                                                                                         | `import-export`             |
