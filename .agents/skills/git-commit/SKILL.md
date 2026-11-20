@@ -72,12 +72,14 @@ not try to unstage with `reset` or `restore`: report the difference and stop.
 <type>(<scope>): <imperative subject, lower-case start, no period>
 
 <optional body: why, when the subject cannot say it>
+
 Change: <change-name>, task <n>
 ```
 
 - Scope is the capability or area (`invoicing`, `rules`, `openspec`).
-- The `Change:` body line is required for commits that complete a task of an `openspec` change;
-  `next-step` finds tasks by it. It is body text, not a trailer.
+- The `Change:` line is required for commits that complete a task of an `openspec` change;
+  `next-step` finds tasks by it. Commitlint and git read it as a trailer, so it ends the message
+  after a blank line.
 - English only. No co-author lines, AI credits, `Co-Authored-By` or other trailers, and no mention
   that the commit was generated.
 
