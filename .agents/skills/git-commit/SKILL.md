@@ -78,10 +78,10 @@ Change: <change-name>, task <n>
 
 - Scope is the capability or area (`invoicing`, `rules`, `openspec`).
 - The `Change:` line is required for commits that complete a task of an `openspec` change;
-  `next-step` finds tasks by it. Commitlint and git read it as a trailer, so it ends the message
-  after a blank line.
-- English only. No co-author lines, AI credits, `Co-Authored-By` or other trailers, and no mention
-  that the commit was generated.
+  `next-step` finds tasks by it. Commitlint reads it as a footer and warns `footer-leading-blank`
+  without a blank line above it, so it ends the message as its own paragraph.
+- English only. No co-author lines, AI credits, `Co-Authored-By` or any trailer other than
+  `Change:`, and no mention that the commit was generated.
 
 Commit with `git commit -F -` and a heredoc, or `-m` for a one-line message.
 
