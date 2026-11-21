@@ -19,5 +19,7 @@ if [ -n "$forced" ]; then
   exit 1
 fi
 
-pnpm lint-staged
+# lint-staged splits the file list at 8,191 characters on Windows but leaves the quotes and the
+# .cmd shim out of its count, so a large commit overflows cmd.exe; half that limit leaves room.
+pnpm lint-staged --max-arg-length 4096
 pnpm lint:cycles
