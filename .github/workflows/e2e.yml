@@ -20,7 +20,9 @@ env:
   REMIT_PUBLIC_URL: http://localhost:3000
   REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   REMIT_HOSTED_MODE: "false"
-  REMIT_DATA_DIR: ./data/e2e
+  # Absolute, because Compose resolves a relative bind mount from the repository root and the
+  # Playwright process, which runs in apps/web, resolves it from there.
+  REMIT_DATA_DIR: ${{ github.workspace }}/data/e2e
   # Compose interpolates this into the app and the worker, which reach Redis over the compose
   # network. The Playwright step overrides it with the published port for its own process.
   REDIS_URL: redis://redis:6379
@@ -65,7 +67,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter @remit/web exec playwright install --with-deps chromium
 
       # The backup flows run `pnpm remit:backup` and the spawned worker from the runner, and both shell
       # out to `pg_dump`, which refuses a server newer than itself. The distribution's client is older
@@ -111,8 +113,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            playwright-report
-            tests/e2e/results
+            apps/web/playwright-report
+            apps/web/tests/e2e/results
           if-no-files-found: ignore
 
       - name: Dump compose logs

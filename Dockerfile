@@ -8,17 +8,22 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # ─── Stage 2: deps ───────────────────────────────────────────────────────────
+# Every workspace package's manifest goes in before the install, or pnpm installs nothing for it and
+# the frozen lockfile no longer matches the workspace.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
 RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
 RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 
 ENV NODE_ENV=production
@@ -32,8 +37,9 @@ ENV NODE_ENV=production
 RUN REMIT_BUILD_ENV_VALIDATION=skip pnpm build
 
 # The standalone output keeps the server chunks but not their source maps, which is what lets a
-# reported error's frames name source files instead of minified chunks (lib/errorTracking/
-# sourceMaps.ts). The maps go in without their source text, and nothing uploads them anywhere.
+# reported error's frames name source files instead of minified chunks
+# (apps/web/lib/errorTracking/sourceMaps.ts). The maps go in without their source text, and nothing
+# uploads them anywhere.
 RUN pnpm build:source-maps
 
 # ─── Stage 4: runner ─────────────────────────────────────────────────────────
@@ -58,22 +64,30 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
+# The standalone output mirrors the workspace: its dependencies at the root, the server under
+# `apps/web/`. The application runs from `apps/web`, so `node server.js`, `scripts/dist/<cmd>.js` and
+# `pnpm remit:<cmd>` resolve there, as docker-entrypoint.sh and the operator runbooks expect.
+#
 # All COPY instructions include --chown so files are owned by the runtime
 # user from the start, not by root.
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=nextjs:nodejs /app/apps/web/node_modules ./apps/web/node_modules
 
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle/migrations ./drizzle/migrations
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/migrate.js ./scripts/dist/migrate.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/reset-password.js ./scripts/dist/reset-password.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/backup.js ./scripts/dist/backup.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/restore.js ./scripts/dist/restore.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/rotate-encryption-key.js ./scripts/dist/rotate-encryption-key.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/reset-data.js ./scripts/dist/reset-data.js
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/dist/worker.js ./scripts/dist/worker.js
+WORKDIR /app/apps/web
+
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/drizzle/migrations ./drizzle/migrations
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/migrate.js ./scripts/dist/migrate.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/reset-password.js ./scripts/dist/reset-password.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/backup.js ./scripts/dist/backup.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/restore.js ./scripts/dist/restore.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/rotate-encryption-key.js ./scripts/dist/rotate-encryption-key.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/reset-data.js ./scripts/dist/reset-data.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/worker.js ./scripts/dist/worker.js
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
@@ -103,8 +117,8 @@ USER root
 RUN apk add --no-cache chromium
 USER nextjs
 
-# The Alpine package installs the launcher under this name; `lib/pdf/renderPdf.ts` refuses to render
-# when it is unset rather than guessing a path.
+# The Alpine package installs the launcher under this name; `apps/web/lib/pdf/renderPdf.ts` refuses
+# to render when it is unset rather than guessing a path.
 ENV REMIT_CHROMIUM_PATH=/usr/bin/chromium-browser
 
 ENTRYPOINT ["node", "scripts/dist/worker.js"]

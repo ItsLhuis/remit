@@ -57,7 +57,7 @@ fails.
 - WHEN a sign-in answers through the HTTP route
 - THEN the route writes no login entry; it writes only the rate-limit entry when a limit refuses
 
-Enforced by: `lib/auth/__tests__/authAudit.integration.test.ts`
+Enforced by: `apps/web/lib/auth/__tests__/authAudit.integration.test.ts`
 `app/api/auth/[...all]/__tests__/route.test.ts`
 
 ### Requirement: Regenerating recovery codes is audited
@@ -75,7 +75,7 @@ replaced, and SHALL write nothing when the replacement is refused.
 - WHEN the same request carries a wrong password
 - THEN nothing is written and the saved codes stay
 
-Enforced by: `lib/auth/__tests__/authAudit.integration.test.ts`
+Enforced by: `apps/web/lib/auth/__tests__/authAudit.integration.test.ts`
 
 ## How it works
 

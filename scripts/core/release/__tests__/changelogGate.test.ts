@@ -21,8 +21,8 @@ describe("evaluateChangelogGate", () => {
 
   test("requires nothing when only tests and tooling changed", () => {
     const paths = [
-      "features/invoices/__tests__/mutations.integration.test.ts",
-      "tests/e2e/timeToInvoice.spec.ts",
+      "apps/web/features/invoices/__tests__/mutations.integration.test.ts",
+      "apps/web/tests/e2e/timeToInvoice.spec.ts",
       "tools/eslint-rules/index.mjs",
       "scripts/host/__tests__/install.test.ts",
       ".github/workflows/ci.yml"
@@ -42,15 +42,15 @@ describe("evaluateChangelogGate", () => {
   })
 
   test("refuses application code that adds no unreleased entry", () => {
-    expect(gate(["features/invoices/mutations.ts", "README.md"])).toEqual({
+    expect(gate(["apps/web/features/invoices/mutations.ts", "README.md"])).toEqual({
       required: true,
       satisfied: false,
-      changedPaths: ["features/invoices/mutations.ts"]
+      changedPaths: ["apps/web/features/invoices/mutations.ts"]
     })
   })
 
   test("accepts application code once an entry is added to the unreleased section", () => {
-    expect(gate(["features/invoices/mutations.ts"], withEntry)).toEqual({
+    expect(gate(["apps/web/features/invoices/mutations.ts"], withEntry)).toEqual({
       required: true,
       satisfied: true
     })
@@ -58,7 +58,7 @@ describe("evaluateChangelogGate", () => {
 
   test("refuses a migration, an operator script and a compose change alike", () => {
     const paths = [
-      "drizzle/migrations/0011_new_column.sql",
+      "apps/web/drizzle/migrations/0011_new_column.sql",
       "scripts/host/upgrade.sh",
       "docker-compose.yml"
     ]
@@ -69,7 +69,7 @@ describe("evaluateChangelogGate", () => {
   test("does not accept the entries the base branch already carried", () => {
     const reordered = ["# Changelog", "", "## [Unreleased]", "", "- An older entry.", ""]
 
-    expect(gate(["lib/invoices/total.ts"], reordered)).toMatchObject({ satisfied: false })
+    expect(gate(["apps/web/lib/invoices/total.ts"], reordered)).toMatchObject({ satisfied: false })
   })
 
   test("ignores entries that belong to an already released section", () => {
@@ -83,6 +83,6 @@ describe("evaluateChangelogGate", () => {
       ""
     ]
 
-    expect(gate(["app/api/health/route.ts"], released)).toMatchObject({ satisfied: false })
+    expect(gate(["apps/web/app/api/health/route.ts"], released)).toMatchObject({ satisfied: false })
   })
 })

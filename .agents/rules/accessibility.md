@@ -8,7 +8,7 @@ announced to screen readers.
 
 Every clickable or activatable surface is a semantic `<button>`, `<a>`, or `<input>` - never a
 `<div>` or `<span>` with an `onClick` handler, even when `role="button"` is added. Use the `Button`
-primitive from `components/ui/` for clickable controls; use `<a>` or Next.js `<Link>` for
+primitive from `apps/web/components/ui/` for clickable controls; use `<a>` or Next.js `<Link>` for
 navigation.
 
 ```tsx
@@ -75,8 +75,8 @@ focus ring; use it via Tailwind's `ring` utilities.
 ## Modal and dialog focus
 
 Modals trap focus within the dialog while open and restore focus to the trigger element on close.
-Always use the `Dialog` primitive from `components/ui/`; it handles focus trapping and restoration
-via Radix UI. Never implement a custom modal with raw `<div>` elements.
+Always use the `Dialog` primitive from `apps/web/components/ui/`; it handles focus trapping and
+restoration via Radix UI. Never implement a custom modal with raw `<div>` elements.
 
 ## Keyboard-only flows
 

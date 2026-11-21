@@ -5,22 +5,22 @@
 Each file category has one canonical exemplar. Match it, then fall back to the nearest comparable
 file in the same feature and layer for anything it does not cover. Where two files of the same role
 disagree, the exemplar wins, not the nearest neighbour. The exemplar never overrides architecture
-boundaries: a generic helper still belongs in `lib/utils/`.
+boundaries: a generic helper still belongs in `apps/web/lib/utils/`.
 
-| Category                         | Canonical exemplar                                                                       |
-| -------------------------------- | ---------------------------------------------------------------------------------------- |
-| `*Page` (server, foldered)       | `features/settings/business/components/BusinessSettingsPage/BusinessSettingsPage.tsx`    |
-| Form component                   | `features/clients/components/ClientForm/ClientForm.tsx` (returns/structure) + `forms.md` |
-| Dialog                           | `features/settings/security/components/TotpReconfigureDialog/`                           |
-| List/table page                  | `features/clients/components/ClientsListPage/ClientsListPage.tsx`                        |
-| `mutations.ts`                   | `features/settings/business/mutations.ts`                                                |
-| `queries.ts`                     | `features/clients/queries.ts`                                                            |
-| API route                        | `app/api/upload/[type]/route.ts`                                                         |
-| `schemas.ts`                     | `features/clients/schemas.ts`                                                            |
-| `services/*.ts`                  | `features/clients/services/clientHealth.ts`                                              |
-| `services/__tests__/*`           | `features/clients/services/__tests__/clientHealth.test.ts`                               |
-| feature `index.ts` / `server.ts` | `features/clients/index.ts` / `features/clients/server.ts`                               |
-| component barrel                 | `features/settings/business/components/index.ts` (`export * from "./X"`)                 |
+| Category                         | Canonical exemplar                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `*Page` (server, foldered)       | `apps/web/features/settings/business/components/BusinessSettingsPage/BusinessSettingsPage.tsx`    |
+| Form component                   | `apps/web/features/clients/components/ClientForm/ClientForm.tsx` (returns/structure) + `forms.md` |
+| Dialog                           | `apps/web/features/settings/security/components/TotpReconfigureDialog/`                           |
+| List/table page                  | `apps/web/features/clients/components/ClientsListPage/ClientsListPage.tsx`                        |
+| `mutations.ts`                   | `apps/web/features/settings/business/mutations.ts`                                                |
+| `queries.ts`                     | `apps/web/features/clients/queries.ts`                                                            |
+| API route                        | `apps/web/app/api/upload/[type]/route.ts`                                                         |
+| `schemas.ts`                     | `apps/web/features/clients/schemas.ts`                                                            |
+| `services/*.ts`                  | `apps/web/features/clients/services/clientHealth.ts`                                              |
+| `services/__tests__/*`           | `apps/web/features/clients/services/__tests__/clientHealth.test.ts`                               |
+| feature `index.ts` / `server.ts` | `apps/web/features/clients/index.ts` / `apps/web/features/clients/server.ts`                      |
+| component barrel                 | `apps/web/features/settings/business/components/index.ts` (`export * from "./X"`)                 |
 
 Match the exemplar for: whether a component is an expression body or a block with `return`, whether
 helpers sit before or after the component, and how many blank lines separate hooks and derived
@@ -169,11 +169,12 @@ preserves flow-specific translation keys.
 ## Helper discipline
 
 Do not add local helpers for generic request, string, date, number, URL or object normalization when
-an equivalent exists under `lib/utils/` (request metadata parsing is `getIpAddress(headers)` in
-`lib/utils/request.ts`). A generic helper needed by more than one feature goes in a focused file
-under `lib/utils/`, exported from `lib/utils/index.ts`. Helpers that differ in trimming, null
-handling, return shape, translation keys, return columns, rollback or error messages stay local
-until a deliberate shared contract exists.
+an equivalent exists under `apps/web/lib/utils/` (request metadata parsing is
+`getIpAddress(headers)` in `apps/web/lib/utils/request.ts`). A generic helper needed by more than
+one feature goes in a focused file under `apps/web/lib/utils/`, exported from
+`apps/web/lib/utils/index.ts`. Helpers that differ in trimming, null handling, return shape,
+translation keys, return columns, rollback or error messages stay local until a deliberate shared
+contract exists.
 
 ## Barrels
 

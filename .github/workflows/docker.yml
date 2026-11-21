@@ -31,10 +31,10 @@ jobs:
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
-          package_version=$(node -p "require('./package.json').version")
+          package_version=$(node -p "require('./apps/web/package.json').version")
 
           if [[ "${package_version}" != "${version}" ]]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${package_version}"
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match apps/web/package.json version ${package_version}"
             exit 1
           fi
 

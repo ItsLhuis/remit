@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url"
 
 import chalk from "chalk"
 
+import { incrementSemver, type SemverIncrement } from "../apps/web/scripts/core/utils/semver"
+
 import { releaseChangelog, type ChangelogReleaseRefusal } from "./core/release/changelog"
-import { incrementSemver, type SemverIncrement } from "./core/utils/semver"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,7 +31,9 @@ function bumpVersion() {
   }
 
   const projectRoot = path.resolve(__dirname, "..")
-  const packageJsonPath = path.join(projectRoot, "package.json")
+  // The release version lives in the application's manifest, the one `@/package.json` resolves to
+  // for the health check, the backup manifest and the worker.
+  const packageJsonPath = path.join(projectRoot, "apps", "web", "package.json")
   const changelogPath = path.join(projectRoot, "CHANGELOG.md")
 
   try {
@@ -65,11 +68,11 @@ function bumpVersion() {
 
     packageJson.version = newVersion
     fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`)
-    console.log(chalk.gray(`Updated package.json`))
+    console.log(chalk.gray(`Updated apps/web/package.json`))
 
     console.log(chalk.green(`\nVersion bumped to ${newVersion}`))
     console.log(chalk.yellow("\nNext steps:"))
-    console.log(chalk.white(`  git add package.json CHANGELOG.md`))
+    console.log(chalk.white(`  git add apps/web/package.json CHANGELOG.md`))
     console.log(chalk.white(`  git commit -m "chore: bump version to ${newVersion}"`))
     console.log(chalk.white(`  git tag ${tag}`))
     console.log(chalk.white(`  git push && git push origin ${tag}`))

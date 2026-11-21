@@ -29,18 +29,18 @@ Omitting a load-bearing "why" is a failure exactly as writing noise is. These ar
 justified comments cluster; reaching one is a prompt to ask the question, and most visits correctly
 end with nothing.
 
-| Layer               | Look for                                                                                                                                                                                                             |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `services/*.ts`     | Where rounding happens and why once rather than per line; why a status transition is refused; date-window and next-run math a reader would re-derive                                                                 |
-| `mutations.ts`      | An ordering between two writes that looks arbitrary and is not; why a failure is swallowed; why a rollback is best-effort; emit-after-write and revalidation order                                                   |
-| `queries.ts`        | Soft-delete visibility that differs from a sibling read; a status derived in SQL that must agree with a badge; an encrypted column reaching a client-bound read model                                                |
-| `schemas.ts`        | A bound that silently restates a database check constraint; a resolver contract (`raw: true`) and any deliberate exception to it                                                                                     |
-| `database/schema/`  | The business reason behind `set null` versus `cascade`; insert-only enforced by a migration trigger; a partial index that is the structural form of a domain rule; a column typed for an external library's contract |
-| Public token routes | Constant-time comparison; the enumeration-defeating response shape; the rate-limit key; why a body or response is cloned before being consumed                                                                       |
-| `.tsx`              | Only the four categories in "Components and JSX" below                                                                                                                                                               |
-| `scripts/`          | Data-loss safety; what makes a run resumable or a re-run a no-op; lock and connection semantics                                                                                                                      |
-| `__tests__/`        | A pin that is load-bearing rather than leftover (a fixed time zone, a frozen clock); a hardcoded list that is itself the guard and must not be derived                                                               |
-| Config              | A setting whose removal silently breaks a different file                                                                                                                                                             |
+| Layer                       | Look for                                                                                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/*.ts`             | Where rounding happens and why once rather than per line; why a status transition is refused; date-window and next-run math a reader would re-derive                                                                 |
+| `mutations.ts`              | An ordering between two writes that looks arbitrary and is not; why a failure is swallowed; why a rollback is best-effort; emit-after-write and revalidation order                                                   |
+| `queries.ts`                | Soft-delete visibility that differs from a sibling read; a status derived in SQL that must agree with a badge; an encrypted column reaching a client-bound read model                                                |
+| `schemas.ts`                | A bound that silently restates a database check constraint; a resolver contract (`raw: true`) and any deliberate exception to it                                                                                     |
+| `apps/web/database/schema/` | The business reason behind `set null` versus `cascade`; insert-only enforced by a migration trigger; a partial index that is the structural form of a domain rule; a column typed for an external library's contract |
+| Public token routes         | Constant-time comparison; the enumeration-defeating response shape; the rate-limit key; why a body or response is cloned before being consumed                                                                       |
+| `.tsx`                      | Only the four categories in "Components and JSX" below                                                                                                                                                               |
+| `scripts/`                  | Data-loss safety; what makes a run resumable or a re-run a no-op; lock and connection semantics                                                                                                                      |
+| `__tests__/`                | A pin that is load-bearing rather than leftover (a fixed time zone, a frozen clock); a hardcoded list that is itself the guard and must not be derived                                                               |
+| Config                      | A setting whose removal silently breaks a different file                                                                                                                                                             |
 
 ## Before you finish
 
@@ -82,7 +82,7 @@ Do not write a comment that:
 - **Justifies a change to a reviewer** — that is a commit message.
 - **Records a changelog or an author** — `git log` and `git blame` answer both.
 - **Is a divider or a banner** (`// ===== HELPERS =====`). Column-group comments in large
-  `database/schema/` tables are the one sanctioned exception.
+  `apps/web/database/schema/` tables are the one sanctioned exception.
 - **Is a joke, an initial or a personal note.**
 - **Is commented-out code.** No exceptions.
 - **Is a `TODO`/`FIXME` marker.** Incomplete work does not ship to `main` (see `AGENTS.md`);
@@ -142,6 +142,7 @@ Apply to each comment, written or reviewed. Any "yes" in the first three means i
 
 Deleting a comment that fails this is a success, including one written minutes earlier.
 
-Reference examples: the `BlockIndexEntry` comment in `features/templates/services/blockIndex.ts`
-(cross-file contract plus invariant) and the `parseTokens` grammar comment in
-`features/templates/services/expression.ts` (complex logic).
+Reference examples: the `BlockIndexEntry` comment in
+`apps/web/features/templates/services/blockIndex.ts` (cross-file contract plus invariant) and the
+`parseTokens` grammar comment in `apps/web/features/templates/services/expression.ts` (complex
+logic).

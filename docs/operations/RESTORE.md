@@ -5,8 +5,8 @@ and documents buckets with the contents of a `.remitbak` archive. Treat every re
 incident-response operation, not a routine import.
 
 The archive format is specified in
-[`scripts/core/archive/README.md`](../../scripts/core/archive/README.md). The command contract is
-specified in [`scripts/README.md`](../../scripts/README.md).
+[`apps/web/scripts/core/archive/README.md`](../../apps/web/scripts/core/archive/README.md). The
+command contract is specified in [`apps/web/scripts/README.md`](../../apps/web/scripts/README.md).
 
 ## Destructive warning
 

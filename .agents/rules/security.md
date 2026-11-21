@@ -3,8 +3,8 @@
 ## Secrets and credentials
 
 Secrets are never logged, never returned in responses, never embedded in toast messages, and never
-present in test fixtures committed to the repository. Use the env validator in `lib/config/env.ts`
-for required secrets and document each one in `.env.example`.
+present in test fixtures committed to the repository. Use the env validator in
+`apps/web/lib/config/env.ts` for required secrets and document each one in `.env.example`.
 
 Agents must not read `.env` or `.env.*` files except example/template env files such as
 `.env.example` and `.env.test.example`.
@@ -12,25 +12,26 @@ Agents must not read `.env` or `.env.*` files except example/template env files 
 ## Encrypted fields
 
 An encrypted field is declared with the `encryptedColumn()` helper from
-`database/schema/helpers.ts`, never as a raw `text()` column; the `encryptedColumn(` calls in
-`database/schema/` are the list of encrypted fields.
+`apps/web/database/schema/helpers.ts`, never as a raw `text()` column; the `encryptedColumn(` calls
+in `apps/web/database/schema/` are the list of encrypted fields.
 
 ## Public token generation and comparison
 
 Every public token on `/i/[token]`, `/p/[token]`, `/c/[token]` and `/s/[token]` is minted by
-`mintPublicToken` in `lib/publicToken.ts`, the one minter (32 bytes from the platform CSPRNG,
-`base64url`); never mint a token inline.
+`mintPublicToken` in `apps/web/lib/publicToken.ts`, the one minter (32 bytes from the platform
+CSPRNG, `base64url`); never mint a token inline.
 
 Token comparison uses constant-time equality to prevent timing attacks: compare with
 `matchesPublicToken` from the same module, never with `===`. A token miss returns the same response
 shape and timing as a "valid token, document archived" case to defeat enumeration.
 
-No attachment is ever reachable through a public token: `app/api/attachments/[id]/route.ts`, the one
-route that serves an attachment, requires a session, and proposals and contracts are never
-attachable (`database/schema/attachments.ts` has no proposal or contract parent column).
+No attachment is ever reachable through a public token:
+`apps/web/app/api/attachments/[id]/route.ts`, the one route that serves an attachment, requires a
+session, and proposals and contracts are never attachable (`apps/web/database/schema/attachments.ts`
+has no proposal or contract parent column).
 
 The client portal route `/s/[token]` writes no record besides a rate-limit trip audit:
-`getClientPortal` in `features/clients/publicQueries.ts` only reads.
+`getClientPortal` in `apps/web/features/clients/publicQueries.ts` only reads.
 
 ## Public route indexing
 
@@ -48,7 +49,7 @@ deletions, public token rotations, and backup and restore operations written by 
 A sign-in is audited by the stage it reaches: `auth.login.password_verified` when the password
 checks out, `auth.login.succeeded` only when a session is established, and `auth.login.failed` with
 the stage (`password` or `second_factor`) in its metadata. Regenerating recovery codes writes
-`auth.backup_codes.regenerated`. `lib/auth/authAudit.ts` writes them inside Better Auth, so
+`auth.backup_codes.regenerated`. `apps/web/lib/auth/authAudit.ts` writes them inside Better Auth, so
 `auth.api.*` callers are covered; the route writes none of them.
 
 Required fields per entry: `actorUserId` (or `null` for pre-auth events), `targetEntityType`,
@@ -66,17 +67,17 @@ const userAgent = requestHeaders.get("user-agent")
 ```
 
 If IP address and user-agent extraction repeat together across several files, extract a shared
-request audit metadata helper under `lib/utils/request.ts`.
+request audit metadata helper under `apps/web/lib/utils/request.ts`.
 
 ## Rate limiting
 
 No endpoint that handles authentication or processes a public token ships without a rate limit.
 Sign-in, sign-up and password reset requests take theirs from `rateLimit.customRules` in
-`lib/auth/index.ts`, the Better Auth two-factor plugin limits `/two-factor/` routes (recovery code
-redemption included, `/two-factor/disable` excepted because it is refused before the limiter) to 3
-per 10 seconds, and every other Better Auth route takes the default there; `proxy.ts` limits every
-public token route, and a route module adds a tighter limit where it needs one
-(`app/(public)/s/[token]/page.tsx`).
+`apps/web/lib/auth/index.ts`, the Better Auth two-factor plugin limits `/two-factor/` routes
+(recovery code redemption included, `/two-factor/disable` excepted because it is refused before the
+limiter) to 3 per 10 seconds, and every other Better Auth route takes the default there; `proxy.ts`
+limits every public token route, and a route module adds a tighter limit where it needs one
+(`apps/web/app/(public)/s/[token]/page.tsx`).
 
 ## Cookie settings
 
@@ -86,14 +87,15 @@ Cookies set anywhere in the codebase use `httpOnly: true`, `secure: true` in pro
 ## Two-factor authentication
 
 TOTP can never be disabled, for any role: no Remit surface offers it, and
-`app/api/auth/[...all]/route.ts` answers Better Auth's `POST /api/auth/two-factor/disable` with
-`403` before its handler, audited as `auth.totp.disable_refused`, one entry per instance per window.
+`apps/web/app/api/auth/[...all]/route.ts` answers Better Auth's `POST /api/auth/two-factor/disable`
+with `403` before its handler, audited as `auth.totp.disable_refused`, one entry per instance per
+window.
 
 A reconfigured factor takes effect only when a code from it verifies. Until then the current
 authenticator and recovery codes stay valid: for a user with a verified factor,
-`lib/auth/totpReconfigure.ts` answers `enable` by holding the new secret as pending and swaps it
-into the factor on a session's `verify-totp`. Better Auth's own `enable` replaces the factor with an
-unproven secret and must never run for such a user.
+`apps/web/lib/auth/totpReconfigure.ts` answers `enable` by holding the new secret as pending and
+swaps it into the factor on a session's `verify-totp`. Better Auth's own `enable` replaces the
+factor with an unproven secret and must never run for such a user.
 
 `auth.totp.reconfigured` is written once per change of factor, by the same plugin on the swap and by
 a database hook when a first factor verifies; `auth.totp.reconfigure_started` when `enable` holds a
@@ -102,7 +104,7 @@ pending secret. The route writes neither, and no sign-in writes a TOTP entry.
 ## Outbound traffic
 
 No telemetry, analytics or update check leaves the instance unless the operator configures it; error
-reports leave only when the operator sets `SENTRY_DSN` (`lib/errorTracking/reporter.ts`).
+reports leave only when the operator sets `SENTRY_DSN` (`apps/web/lib/errorTracking/reporter.ts`).
 
 ## Proxy and routing state
 

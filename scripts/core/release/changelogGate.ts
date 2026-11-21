@@ -9,16 +9,17 @@ export type ChangelogGateResult =
 // paths reaches a running instance — application code, the database, the images, the proxy
 // configuration, and the commands an operator runs by hand.
 const SHIPPED_ROOTS = [
-  "app/",
-  "components/",
-  "database/",
+  "apps/web/app/",
+  "apps/web/components/",
+  "apps/web/database/",
+  "apps/web/drizzle/",
+  "apps/web/features/",
+  "apps/web/hooks/",
+  "apps/web/lib/",
+  "apps/web/providers/",
+  "apps/web/public/",
+  "apps/web/scripts/",
   "deploy/",
-  "drizzle/",
-  "features/",
-  "hooks/",
-  "lib/",
-  "providers/",
-  "public/",
   "scripts/"
 ]
 
@@ -26,15 +27,15 @@ const SHIPPED_FILES = [
   "Dockerfile",
   "docker-compose.yml",
   "docker-entrypoint.sh",
-  "instrumentation.ts",
-  "next.config.ts",
-  "package.json",
-  "proxy.ts"
+  "apps/web/instrumentation.ts",
+  "apps/web/next.config.ts",
+  "apps/web/package.json",
+  "apps/web/proxy.ts"
 ]
 
 // The release tooling that lives under `scripts/` beside the operator commands but runs only in this
-// repository: the version bump and this gate. Neither is in `tsup.scripts.config.ts`, which is the
-// list of scripts that reach an image.
+// repository: the version bump and this gate. Neither is in `apps/web/tsup.scripts.config.ts`, which
+// is the list of scripts that reach an image.
 const REPOSITORY_TOOLING = [
   "scripts/bump-version.ts",
   "scripts/check-changelog.ts",
@@ -78,6 +79,7 @@ function isExcluded(path: string): boolean {
   return (
     path.includes("/__tests__/") ||
     path.startsWith("tests/") ||
+    path.startsWith("apps/web/tests/") ||
     path.startsWith("tools/") ||
     REPOSITORY_TOOLING.some((tool) => path.startsWith(tool)) ||
     /\.(test|spec)\.[cm]?[jt]sx?$/.test(path)

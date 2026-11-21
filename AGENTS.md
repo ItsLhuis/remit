@@ -30,16 +30,17 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 
 ## Directory map
 
-- `app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
+- `apps/web/app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
   `(public)`; token routes for invoices, proposals, contracts and the client portal.
-- `features/<name>/` - closed domain modules (`components/`, `hooks/`, `services/`, `queries.ts`,
-  `mutations.ts`, `schemas.ts`, `types.ts`, `events.ts`, `index.ts`, `server.ts`). Cross-feature
-  imports only through public doors (`.agents/rules/architecture.md`).
-- `components/` - shared UI (`ui/`, `layout/`), each with an `index.ts` barrel.
-- `database/` - Drizzle schemas (`database/schema/`); `drizzle/migrations/` is generated,
-  hand-written SQL aside.
-- `lib/` - server and client utilities; `lib/auth/session.ts` has `requireSession`/`requireRole`.
-- `hooks/`, `providers/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
+- `features/<name>/` - closed domain modules (`components`, `hooks` and `services` folders,
+  `queries.ts`, `mutations.ts`, `schemas.ts`, `types.ts`, `events.ts`, `index.ts`, `server.ts`).
+  Cross-feature imports only through public doors (`.agents/rules/architecture.md`).
+- `apps/web/components/` - shared UI (`ui/`, `layout/`), each with an `index.ts` barrel.
+- `apps/web/database/` - Drizzle schemas (`apps/web/database/schema/`); `drizzle/migrations/` is
+  generated, hand-written SQL aside.
+- `apps/web/lib/` - server and client utilities; `apps/web/lib/auth/session.ts` has
+  `requireSession`/`requireRole`.
+- `apps/web/hooks/`, `providers/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
 - `scripts/` - `remit:*` commands, host scripts, worker.
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
 - `docs/` - architecture map, operator runbooks, deployment guides.
@@ -129,11 +130,11 @@ oxlint without deciding deliberately which tool owns them.
 
 ## Gotchas
 
-- A `remit:*` command: `scripts/README.md`. The archive or its manifest:
-  `scripts/core/archive/README.md`.
+- A `remit:*` command: `apps/web/scripts/README.md`. The archive or its manifest:
+  `apps/web/scripts/core/archive/README.md`.
 - What an operator runs on install, upgrade or restore: its runbook in `docs/operations/`.
-- `docs/operations/UPGRADE.md` stays put: `features/health/services/releaseLinks.ts` builds its URL
-  and `scripts/host/install.sh` prints it.
+- `docs/operations/UPGRADE.md` stays put: `apps/web/features/health/services/releaseLinks.ts` builds
+  its URL and `scripts/host/install.sh` prints it.
 
 ## References
 

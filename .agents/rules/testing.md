@@ -9,10 +9,10 @@ justifies itself by describing a behaviour.
 
 `features/<feature>/services/` holds the pure business logic (tax, status transition guards, invoice
 numbering, retainer pools, next-run dates). Coverage above 90% is a hard CI gate. Shared utilities
-under `lib/utils/` with branches, parsing, fallbacks or edge cases are unit-tested too: request
-metadata helpers such as `getIpAddress(headers)` cover forwarded headers, fallback headers, empty
-values and missing values. Hooks under `hooks/` and `features/<feature>/hooks/` with non-trivial
-state or side effects are in this tier.
+under `apps/web/lib/utils/` with branches, parsing, fallbacks or edge cases are unit-tested too:
+request metadata helpers such as `getIpAddress(headers)` cover forwarded headers, fallback headers,
+empty values and missing values. Hooks under `apps/web/hooks/` and `features/<feature>/hooks/` with
+non-trivial state or side effects are in this tier.
 
 ### Tier 2 - Integration tests: server actions, jobs, and IO adapters
 
@@ -27,14 +27,16 @@ audit metadata is populated through the shared helper path.
 Keep E2E tests short and focused on flows that cross features:
 
 1. Register -> setup wizard -> TOTP enrollment -> recovery codes -> first dashboard view.
-   `tests/e2e/auth.spec.ts` drives it to the QR step; the recovery-code screen is not asserted.
+   `apps/web/tests/e2e/auth.spec.ts` drives it to the QR step; the recovery-code screen is not
+   asserted.
 2. Client -> project -> proposal -> public acceptance (OTP) -> convert to invoice -> mark paid.
-   `tests/e2e/proposalToPaid.spec.ts`.
-3. Time entry -> conversion to invoice -> send -> mark paid. `tests/e2e/timeToInvoice.spec.ts`.
+   `apps/web/tests/e2e/proposalToPaid.spec.ts`.
+3. Time entry -> conversion to invoice -> send -> mark paid.
+   `apps/web/tests/e2e/timeToInvoice.spec.ts`.
 4. Recurring invoice generation produces the expected draft on the configured next-run date.
-   `tests/e2e/recurringGeneration.spec.ts`.
+   `apps/web/tests/e2e/recurringGeneration.spec.ts`.
 5. Password reset, and the second factor still demanded afterwards.
-   `lib/auth/__tests__/passwordReset.integration.test.ts`.
+   `apps/web/lib/auth/__tests__/passwordReset.integration.test.ts`.
 
 Flow 5 is deliberately not a Playwright spec: Remit has exactly one user by construction, so a
 browser-driven reset would change the credential every other spec authenticates as — on a
@@ -54,7 +56,7 @@ comment explaining why no semantic query works.
 
 ### Tier 5 - Never tested
 
-- UI primitives in `components/ui/` (trust shadcn and Radix).
+- UI primitives in `apps/web/components/ui/` (trust shadcn and Radix).
 - Server components and page files directly (covered by E2E).
 - Pure presentational components with no logic.
 - Drizzle queries in isolation (covered by integration tests of their consumers).

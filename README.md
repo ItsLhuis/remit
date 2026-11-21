@@ -253,13 +253,13 @@ Operational support:
 - **CLI tools** - shipped in-container commands:
   - `pnpm remit:backup` writes an AES-256-GCM encrypted `.remitbak` archive containing
     `pg_dump --format=custom` output and uploads. The archive contract is documented in
-    [`scripts/core/archive/README.md`](./scripts/core/archive/README.md).
+    [`apps/web/scripts/core/archive/README.md`](./apps/web/scripts/core/archive/README.md).
   - `pnpm remit:restore <backup-file>` and remote `remit://<destination>/<key>` restores validate,
     decrypt, snapshot, and replace live data from a `.remitbak` archive. Restore safety details are
     documented in [`docs/operations/RESTORE.md`](./docs/operations/RESTORE.md).
   - `pnpm remit:rotate-encryption-key` rotates Remit-owned encrypted columns and existing
     `.remitbak` archive encryption with a mandatory pre-rotation backup. The rotation contract is
-    documented in [`scripts/README.md`](./scripts/README.md#key-rotation).
+    documented in [`apps/web/scripts/README.md`](./apps/web/scripts/README.md#key-rotation).
   - `pnpm remit:reset-password` provides interactive password reset for the lost-everything case.
   - `pnpm remit:seed-demo` creates demo data for screenshots, screencasts, and local demo
     deployments, with presets and capped numeric overrides. The same seed produces the same records
@@ -269,13 +269,13 @@ Operational support:
   - `pnpm remit:reset-data` is its inverse: it empties the instance's domain data in one transaction
     while the account, organization, settings, tax rates, templates, and audit trail survive. The
     scope is the `reset` column of
-    [`scripts/core/domainData/inventory.ts`](./scripts/core/domainData/inventory.ts).
+    [`apps/web/scripts/core/domainData/inventory.ts`](./apps/web/scripts/core/domainData/inventory.ts).
 - **Host-side upgrades** - `bash scripts/host/upgrade.sh` snapshots a backup, pulls images, restarts
   the compose project, and waits for `/api/health`. The operator runbook is
   [`docs/operations/UPGRADE.md`](./docs/operations/UPGRADE.md). Upgrade is host-side: no
   `remit:upgrade` package script, no Docker socket mount.
 - **Operational command contract** - new `remit:*` scripts follow
-  [`scripts/README.md`](./scripts/README.md).
+  [`apps/web/scripts/README.md`](./apps/web/scripts/README.md).
 
 ## Stack
 
@@ -295,10 +295,10 @@ Where to look:
 - Monitor: [`docs/operations/METRICS.md`](./docs/operations/METRICS.md).
 - How the system fits together:
   [`docs/architecture/ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md).
-- Tables and columns: [`database/schema/`](./database/schema/).
-- What a `remit:*` command does: [`scripts/README.md`](./scripts/README.md).
+- Tables and columns: [`apps/web/database/schema/`](./apps/web/database/schema/).
+- What a `remit:*` command does: [`apps/web/scripts/README.md`](./apps/web/scripts/README.md).
 - What a `.remitbak` archive contains:
-  [`scripts/core/archive/README.md`](./scripts/core/archive/README.md).
+  [`apps/web/scripts/core/archive/README.md`](./apps/web/scripts/core/archive/README.md).
 - Writing code: [`AGENTS.md`](./AGENTS.md) and [`.agents/rules/`](./.agents/rules/).
 
 ## License

@@ -6,8 +6,8 @@ Before adding a feature, service, mutation, query, hook, component, schema or ut
 first rung that solves the task:
 
 1. Does it need to exist at all? If the task does not require it, do not write it.
-2. Does this codebase already have it (`lib/utils/`, `lib/`, `hooks/`, `components/ui/`, the
-   relevant feature barrel)? Reuse it.
+2. Does this codebase already have it (`apps/web/lib/utils/`, `apps/web/lib/`, `apps/web/hooks/`,
+   `apps/web/components/ui/`, the relevant feature barrel)? Reuse it.
 3. Does the standard library or a native platform feature (Next.js, React, the web platform,
    PostgreSQL, Drizzle, Zod) do it? Use it.
 4. Can an installed dependency do it? Reuse it before adding one.
@@ -23,12 +23,13 @@ the nearest comparable file in the same feature and layer.
 Each feature lives under `features/<feature>/` and is a closed module. One responsibility per file;
 add only the files the feature needs now.
 
-- `components/` - React UI and module-private contracts only (see `components.md`).
-- `hooks/` - feature-scoped hooks (see `hooks.md`).
+- `features/<feature>/components/` - React UI and module-private contracts only (see
+  `components.md`).
+- `features/<feature>/hooks/` - feature-scoped hooks (see `hooks.md`).
 - `services/` - pure business logic; no framework or IO imports.
 - `engine/` - the canvas editor's pointer runtime (gesture machinery, its hooks, module stores and
   overlay components), which is one cohesive unit that belongs to none of the other folders. Only
-  `features/templates/` has one; do not copy it without an equally strong reason.
+  `apps/web/features/templates/` has one; do not copy it without an equally strong reason.
 - `labels.ts` - domain value → translation key, icon name, badge variant.
 - `queries.ts` - reads via Drizzle; server-only.
 - `mutations.ts` - writes (server actions); server-only. Splits into `<concern>Mutations.ts` at the
@@ -52,7 +53,7 @@ add only the files the feature needs now.
   module or other feature's server graph, so it can never close an import cycle and is safe in the
   browser, the server, the worker and a unit test. Use it when the rule is all you need — the root
   barrel re-exports components and `server.ts` reaches mutations, and either can close a cycle.
-  `features/clients/publicQueries.ts` reads the contract display status this way, because
+  `apps/web/features/clients/publicQueries.ts` reads the contract display status this way, because
   `features/contracts` reaches `features/clients/server` through its own mutations.
 
 Never export database/auth/server-only code from `index.ts`. Sibling files inside a feature import
@@ -94,8 +95,8 @@ returns in the action.
 ## Shared helper placement and abstraction threshold
 
 Cross-feature infrastructure helpers (request metadata, string, date and number normalization,
-URL-safe formatting, object filtering) belong in `lib/utils/`. Feature-specific write plans and
-persistence details stay in their feature.
+URL-safe formatting, object filtering) belong in `apps/web/lib/utils/`. Feature-specific write plans
+and persistence details stay in their feature.
 
 Extract shared logic only when the behaviour is identical, the call sites need the same inputs, the
 return shape is stable and the error behaviour is the same. Do not extract when return columns,
@@ -112,25 +113,26 @@ that preserves flow-specific translation keys and field names.
 
 Every server action, public endpoint and settings read validates input with Zod `safeParse`
 (`remit/validate-before-io` enforces it before IO in mutations, queries, public modules and routes).
-Environment variables are validated at boot in `lib/config/env.ts` and the process exits on failure.
-No data crosses a trust boundary unvalidated; see `types.md` for the bans on `any` and non-null
-assertions.
+Environment variables are validated at boot in `apps/web/lib/config/env.ts` and the process exits on
+failure. No data crosses a trust boundary unvalidated; see `types.md` for the bans on `any` and
+non-null assertions.
 
 ## Background work and caching
 
-Scheduled and asynchronous server work runs only through the BullMQ job layer in `lib/jobs/`
-(`enqueue.ts`, `schedules.ts`), never an in-process timer. Remit has no application cache, and
-adding one needs an owner decision.
+Scheduled and asynchronous server work runs only through the BullMQ job layer in
+`apps/web/lib/jobs/` (`enqueue.ts`, `schedules.ts`), never an in-process timer. Remit has no
+application cache, and adding one needs an owner decision.
 
 ## Adding an environment variable
 
-Variables are defined once in the Zod schema in `lib/config/envSchema.ts` and read through the `env`
-object from `lib/config/env.ts`; application code never reads `process.env` directly.
+Variables are defined once in the Zod schema in `apps/web/lib/config/envSchema.ts` and read through
+the `env` object from `apps/web/lib/config/env.ts`; application code never reads `process.env`
+directly.
 
-1. Add the variable to `lib/config/envSchema.ts`. Optional variables use `optionalEnvString` so
-   blank values become `undefined`. Never use the `NEXT_PUBLIC_` prefix: Next.js freezes it into the
-   bundle at build time, and a published image must run at any address. A value the browser needs is
-   read on the server and passed down.
+1. Add the variable to `apps/web/lib/config/envSchema.ts`. Optional variables use
+   `optionalEnvString` so blank values become `undefined`. Never use the `NEXT_PUBLIC_` prefix:
+   Next.js freezes it into the bundle at build time, and a published image must run at any address.
+   A value the browser needs is read on the server and passed down.
 2. Document it in `.env.example` with a safe placeholder, never a real secret.
 
 Required secrets also follow `security.md`: validated here, never logged, never returned in a

@@ -13,7 +13,7 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url))
 // Markdown file under docs/ while the gitignored prompt packs stay out.
 const CHECKED_PATHSPECS = [
   "docs/*.md",
-  "scripts/*.md",
+  "apps/web/scripts/*.md",
   "openspec/*.md",
   "README.md",
   "AGENTS.md",

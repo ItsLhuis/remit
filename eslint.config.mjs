@@ -15,13 +15,20 @@ import remitRules from "./tools/eslint-rules/index.mjs"
 import { readdirSync } from "node:fs"
 import { createRequire } from "node:module"
 
-const pkg = createRequire(import.meta.url)("./package.json")
+const require = createRequire(import.meta.url)
+const manifests = [require("./package.json"), require("./apps/web/package.json")]
+
+// React is a dependency of `apps/web` only, so the plugin's "detect", which resolves `react` from the
+// working directory, finds nothing at the workspace root. The version is read where it is installed.
+const reactVersion = createRequire(new URL("./apps/web/package.json", import.meta.url))(
+  "react/package.json"
+).version
 
 // Each external npm origin (scope for @scope/x, bare package name otherwise) becomes its own
 // perfectionist group, so imports from different packages sit in separate paragraphs while
-// same-origin imports stay together. Generated from package.json so new dependencies are covered
-// without editing this file. The form triad (@hookform/resolvers + react-hook-form) shares one
-// paragraph per imports.md.
+// same-origin imports stay together. Generated from the workspace's package.json files so new
+// dependencies are covered without editing this file. The form triad (@hookform/resolvers +
+// react-hook-form) shares one paragraph per imports.md.
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
 const externalOriginsHandledElsewhere = new Set([
@@ -34,7 +41,9 @@ const externalOriginsHandledElsewhere = new Set([
 
 const externalOrigins = [
   ...new Set(
-    Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).map((name) => name.split("/")[0])
+    manifests
+      .flatMap((manifest) => Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }))
+      .map((name) => name.split("/")[0])
   )
 ]
   .filter((origin) => !externalOriginsHandledElsewhere.has(origin))
@@ -66,9 +75,11 @@ const externalTierGroups = [
 
 // Each feature under features/ becomes its own perfectionist group, so imports from different
 // features sit in separate paragraphs while same-feature imports (root barrel + /server) stay
-// together. Generated from the features/ directory so new features are covered without editing
-// this file.
-const featureOrigins = readdirSync(new URL("./features", import.meta.url), { withFileTypes: true })
+// together. Generated from the apps/web/features/ directory so new features are covered without
+// editing this file.
+const featureOrigins = readdirSync(new URL("./apps/web/features", import.meta.url), {
+  withFileTypes: true
+})
   .flatMap((entry) => (entry.isDirectory() ? [entry.name] : []))
   .sort()
 
@@ -230,6 +241,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    settings: {
+      react: { version: reactVersion }
+    }
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
@@ -283,12 +299,12 @@ const eslintConfig = defineConfig([
   },
   {
     files: [
-      "features/**/*.{ts,tsx}",
-      "app/**/*.{ts,tsx}",
-      "components/**/*.{ts,tsx}",
-      "hooks/**/*.{ts,tsx}",
-      "lib/**/*.{ts,tsx}",
-      "providers/**/*.{ts,tsx}"
+      "apps/web/features/**/*.{ts,tsx}",
+      "apps/web/app/**/*.{ts,tsx}",
+      "apps/web/components/**/*.{ts,tsx}",
+      "apps/web/hooks/**/*.{ts,tsx}",
+      "apps/web/lib/**/*.{ts,tsx}",
+      "apps/web/providers/**/*.{ts,tsx}"
     ],
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
@@ -307,24 +323,24 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["features/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+    files: ["apps/web/features/**/*.{ts,tsx}", "apps/web/app/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": featureBoundaryRule
     }
   },
   {
-    files: ["features/**/services/**/*.{ts,tsx}"],
+    files: ["apps/web/features/**/services/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": pureServicesRule
     }
   },
   {
     files: [
-      "features/**/*.{ts,tsx}",
-      "components/**/*.{ts,tsx}",
-      "hooks/**/*.{ts,tsx}",
-      "lib/**/*.{ts,tsx}",
-      "providers/**/*.{ts,tsx}"
+      "apps/web/features/**/*.{ts,tsx}",
+      "apps/web/components/**/*.{ts,tsx}",
+      "apps/web/hooks/**/*.{ts,tsx}",
+      "apps/web/lib/**/*.{ts,tsx}",
+      "apps/web/providers/**/*.{ts,tsx}"
     ],
     plugins: {
       import: importPlugin
@@ -340,12 +356,12 @@ const eslintConfig = defineConfig([
   },
   {
     files: [
-      "features/**/*.{ts,tsx}",
-      "app/**/*.{ts,tsx}",
-      "components/**/*.{ts,tsx}",
-      "hooks/**/*.{ts,tsx}",
-      "lib/**/*.{ts,tsx}",
-      "providers/**/*.{ts,tsx}"
+      "apps/web/features/**/*.{ts,tsx}",
+      "apps/web/app/**/*.{ts,tsx}",
+      "apps/web/components/**/*.{ts,tsx}",
+      "apps/web/hooks/**/*.{ts,tsx}",
+      "apps/web/lib/**/*.{ts,tsx}",
+      "apps/web/providers/**/*.{ts,tsx}"
     ],
     plugins: {
       sonarjs
@@ -357,11 +373,11 @@ const eslintConfig = defineConfig([
   },
   {
     files: [
-      "features/**/*.tsx",
-      "app/**/*.tsx",
-      "components/**/*.tsx",
-      "hooks/**/*.tsx",
-      "providers/**/*.tsx"
+      "apps/web/features/**/*.tsx",
+      "apps/web/app/**/*.tsx",
+      "apps/web/components/**/*.tsx",
+      "apps/web/hooks/**/*.tsx",
+      "apps/web/providers/**/*.tsx"
     ],
     ignores: ["**/__tests__/**", "**/*.test.tsx"],
     plugins: {
@@ -382,19 +398,23 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["lib/i18n/locales/**/*.{ts,tsx}", "lib/i18n/types.ts", "components/ui/**/*.{ts,tsx}"],
+    files: [
+      "apps/web/lib/i18n/locales/**/*.{ts,tsx}",
+      "apps/web/lib/i18n/types.ts",
+      "apps/web/components/ui/**/*.{ts,tsx}"
+    ],
     rules: {
       "max-lines": "off"
     }
   },
   {
-    files: ["lib/utils/request.ts"],
+    files: ["apps/web/lib/utils/request.ts"],
     rules: {
       "no-restricted-syntax": "off"
     }
   },
   {
-    files: ["components/**/index.ts", "features/**/components/**/index.ts"],
+    files: ["apps/web/components/**/index.ts", "apps/web/features/**/components/**/index.ts"],
     rules: {
       "perfectionist/sort-exports": ["error", { type: "natural", order: "asc" }]
     }
@@ -410,10 +430,10 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    // Vitest unit/integration tests only — Playwright e2e (tests/e2e) legitimately uses test.skip
-    // for conditional skips, so it is excluded.
+    // Vitest unit/integration tests only — Playwright e2e (apps/web/tests/e2e) legitimately uses
+    // test.skip for conditional skips, so it is excluded.
     files: ["**/*.{test,spec}.{ts,tsx}"],
-    ignores: ["tests/e2e/**"],
+    ignores: ["apps/web/tests/e2e/**"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -434,11 +454,11 @@ const eslintConfig = defineConfig([
     // concern-named siblings a large `mutations.ts` splits into (`actions.md`), which are the same
     // server actions under another name.
     files: [
-      "features/**/mutations.ts",
-      "features/**/*Mutations.ts",
-      "features/**/queries.ts",
-      "features/**/public*.ts",
-      "app/**/route.ts"
+      "apps/web/features/**/mutations.ts",
+      "apps/web/features/**/*Mutations.ts",
+      "apps/web/features/**/queries.ts",
+      "apps/web/features/**/public*.ts",
+      "apps/web/app/**/route.ts"
     ],
     plugins: {
       remit: remitRules
@@ -448,7 +468,7 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["features/**/components/**/*.{ts,tsx}"],
+    files: ["apps/web/features/**/components/**/*.{ts,tsx}"],
     plugins: {
       remit: remitRules
     },
@@ -458,7 +478,7 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["hooks/**/*.{ts,tsx}", "features/**/hooks/**/*.{ts,tsx}"],
+    files: ["apps/web/hooks/**/*.{ts,tsx}", "apps/web/features/**/hooks/**/*.{ts,tsx}"],
     plugins: {
       remit: remitRules
     },
@@ -467,7 +487,7 @@ const eslintConfig = defineConfig([
     }
   },
   globalIgnores([
-    ".next/**",
+    "**/.next/**",
     ".cache/**",
     ".corepack/**",
     ".agents/**",
@@ -477,8 +497,8 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "out/**",
     "build/**",
-    "scripts/dist/**",
-    "next-env.d.ts"
+    "**/scripts/dist/**",
+    "**/next-env.d.ts"
   ])
 ])
 

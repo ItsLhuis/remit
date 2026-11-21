@@ -3,7 +3,7 @@
 Read operations live in `features/<feature>/queries.ts`. Queries are the read-path counterpart to
 the server actions in `actions.md`: thin, server-only orchestrators that read through Drizzle and
 hand the result to pure services for any calculation. The canonical exemplar is
-`features/clients/queries.ts`.
+`apps/web/features/clients/queries.ts`.
 
 ## Server-only
 

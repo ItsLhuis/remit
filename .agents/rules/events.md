@@ -41,11 +41,11 @@ noun; the verb is what happened to it.
 
 Adding a new event requires two steps:
 
-1. Extend `EventMap` in `lib/events/types.ts` with the event name and its payload type.
+1. Extend `EventMap` in `apps/web/lib/events/types.ts` with the event name and its payload type.
 2. Call `emit()` in the relevant server action after all writes succeed.
 
 The compiler rejects any `emit()` call whose event name or payload shape does not match the map.
-Never use string literals for event names outside of `lib/events/types.ts`.
+Never use string literals for event names outside of `apps/web/lib/events/types.ts`.
 
 ## Registering handlers
 
@@ -54,7 +54,7 @@ Handlers live in `features/<feature>/events.ts`. They register at module load ti
 before any request is handled.
 
 A subscriber that listens to many features splits into an `events/` folder, one module per emitting
-feature, as `features/activityLog/events/` does. Each module exports its subscriptions as a
+feature, as `apps/web/features/activityLog/events/` does. Each module exports its subscriptions as a
 `subscribe<Entity>Activity()`-style function, and the folder's `index.ts` calls every one: it stays
 the single import site the bootstrap loads, and a test pins the subscribed event set, so no handler
 can stop registering because an import was lost.

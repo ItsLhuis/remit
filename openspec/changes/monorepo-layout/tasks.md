@@ -6,7 +6,7 @@ same commit. A ticked box is a claim; `next-step` checks it against `git log`.
 Every task ends with `pnpm lint`, `pnpm typecheck` and `pnpm test` green from the repository root,
 and no task changes behaviour, the schema, a migration or a dependency version (proposal, Out).
 
-- [ ] 1. Move the web application into `apps/web` and prove standalone output from the root
+- [x] 1. Move the web application into `apps/web` and prove standalone output from the root
   - Do: List `apps/*` and `packages/*` in `pnpm-workspace.yaml`. Create `apps/web/package.json`
     (`@remit/web`, `private`) carrying the application's runtime dependencies; the root
     `package.json` keeps the repository tooling (decision 3). Move with `git mv`, so history

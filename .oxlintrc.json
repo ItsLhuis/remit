@@ -20,11 +20,11 @@
     ]
   },
   "ignorePatterns": [
-    ".next/**",
+    "**/.next/**",
     "coverage/**",
-    "scripts/dist/**",
-    "drizzle/**",
-    "public/**",
-    "next-env.d.ts"
+    "**/scripts/dist/**",
+    "apps/web/drizzle/**",
+    "apps/web/public/**",
+    "**/next-env.d.ts"
   ]
 }

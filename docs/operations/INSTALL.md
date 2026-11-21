@@ -304,11 +304,11 @@ What is not executed by any automation:
 
 ## Where to go next
 
-| Question                            | Runbook                                                |
-| ----------------------------------- | ------------------------------------------------------ |
-| How do I upgrade?                   | [UPGRADE.md](UPGRADE.md)                               |
-| How do I restore from a backup?     | [RESTORE.md](RESTORE.md)                               |
-| How do I scrape it with Prometheus? | [METRICS.md](METRICS.md)                               |
-| What exactly does a command do?     | [scripts/README.md](../../scripts/README.md)           |
-| What is inside a `.remitbak` file?  | [archive README](../../scripts/core/archive/README.md) |
-| How is the system built?            | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)     |
+| Question                            | Runbook                                                         |
+| ----------------------------------- | --------------------------------------------------------------- |
+| How do I upgrade?                   | [UPGRADE.md](UPGRADE.md)                                        |
+| How do I restore from a backup?     | [RESTORE.md](RESTORE.md)                                        |
+| How do I scrape it with Prometheus? | [METRICS.md](METRICS.md)                                        |
+| What exactly does a command do?     | [scripts/README.md](../../apps/web/scripts/README.md)           |
+| What is inside a `.remitbak` file?  | [archive README](../../apps/web/scripts/core/archive/README.md) |
+| How is the system built?            | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)              |

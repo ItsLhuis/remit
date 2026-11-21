@@ -27,9 +27,9 @@ function extractExemplarPaths(codeStyle: string): string[] {
       const value = match[1]
 
       if (/[<>*\s]/.test(value)) continue
-      if (!/^(features|app|lib|components|hooks|database)\//.test(value)) continue
+      if (!/^apps\/web\/(features|app|lib|components|hooks|database)\//.test(value)) continue
       if (!value.endsWith(".ts") && !value.endsWith(".tsx") && !value.endsWith("/")) continue
-      if ((value.match(/\//g)?.length ?? 0) < 2) continue
+      if ((value.match(/\//g)?.length ?? 0) < 4) continue
 
       paths.add(value.replace(/\/$/, ""))
     }

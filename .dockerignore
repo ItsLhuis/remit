@@ -1,5 +1,5 @@
-node_modules
-.next
+**/node_modules
+**/.next
 .git
 .gitignore
 .env
@@ -8,6 +8,7 @@ node_modules
 *.log
 coverage
 data
+apps/web/scripts/dist
 .turbo
 .vscode
 .idea

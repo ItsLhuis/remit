@@ -7,15 +7,17 @@ import { fileURLToPath } from "node:url"
 import { expect, test } from "vitest"
 
 // Guards the sanitization consolidation: exactly one canonical HTML-escape implementation
-// (lib/utils/html.ts) and one sanitize-html wrapper (the templates sanitizeHtml service) exist
-// repo-wide.
+// (apps/web/lib/utils/html.ts) and one sanitize-html wrapper (the templates sanitizeHtml service)
+// exist repo-wide.
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url))
 
-const SOURCE_ROOTS = ["app", "components", "features", "hooks", "lib", "providers"]
+const SOURCE_ROOTS = ["app", "components", "features", "hooks", "lib", "providers"].map(
+  (root) => `apps/web/${root}`
+)
 
-const CANONICAL_ESCAPE_FILE = "lib/utils/html.ts"
-const CANONICAL_SANITIZER_FILE = "features/templates/services/sanitizeHtml.ts"
+const CANONICAL_ESCAPE_FILE = "apps/web/lib/utils/html.ts"
+const CANONICAL_SANITIZER_FILE = "apps/web/features/templates/services/sanitizeHtml.ts"
 
 function collectSourceFiles(directory: string, files: string[]): void {
   for (const entry of readdirSync(directory)) {

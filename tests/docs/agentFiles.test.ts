@@ -95,7 +95,7 @@ function referencedPaths(markdown: string): string[] {
       !/[<>*\s{}|$]/.test(value) &&
       !/^https?:/.test(value) &&
       !/\/[A-Z]\//.test(value) &&
-      /^(\.agents|\.claude|\.codex|\.husky|openspec|tests|features|lib|app|components|hooks|docs|scripts|tools|database)\//.test(
+      /^(\.agents|\.claude|\.codex|\.husky|openspec|tests|apps|features|lib|app|components|hooks|docs|scripts|tools|database)\//.test(
         value
       ) &&
       /\.(md|ts|tsx|mjs|json|toml|rules)$|\/$/.test(value)

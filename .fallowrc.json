@@ -1,40 +1,40 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
-    "scripts/*.ts",
-    "instrumentation.ts",
-    "features/*/index.ts",
-    "features/*/server.ts",
-    "lib/*/index.ts"
+    "apps/web/scripts/*.ts",
+    "apps/web/instrumentation.ts",
+    "apps/web/features/*/index.ts",
+    "apps/web/features/*/server.ts",
+    "apps/web/lib/*/index.ts"
   ],
   "ignorePatterns": [
-    "database/schema/**",
-    "scripts/dist/**",
+    "apps/web/database/schema/**",
+    "apps/web/scripts/dist/**",
     "**/*.generated.ts",
-    "doctor.config.ts"
+    "apps/web/doctor.config.ts"
   ],
   "ignoreDependencies": ["pino-pretty", "postcss-load-config", "intl-messageformat"],
   "dynamicallyLoaded": [
-    "lib/storage/s3.ts",
-    "lib/jobs/worker.ts",
-    "features/invoices/jobs.ts",
-    "features/recurringInvoices/jobs.ts",
-    "features/dataExport/jobs.ts",
-    "features/reports/jobs.ts",
-    "features/activityLog/events/index.ts",
-    "features/proposals/jobs.ts",
-    "features/creditNotes/jobs.ts",
-    "features/contracts/jobs.ts",
-    "features/trash/jobs.ts",
-    "features/backups/jobs.ts",
-    "features/webhooks/jobs.ts",
-    "features/webhooks/events.ts"
+    "apps/web/lib/storage/s3.ts",
+    "apps/web/lib/jobs/worker.ts",
+    "apps/web/features/invoices/jobs.ts",
+    "apps/web/features/recurringInvoices/jobs.ts",
+    "apps/web/features/dataExport/jobs.ts",
+    "apps/web/features/reports/jobs.ts",
+    "apps/web/features/activityLog/events/index.ts",
+    "apps/web/features/proposals/jobs.ts",
+    "apps/web/features/creditNotes/jobs.ts",
+    "apps/web/features/contracts/jobs.ts",
+    "apps/web/features/trash/jobs.ts",
+    "apps/web/features/backups/jobs.ts",
+    "apps/web/features/webhooks/jobs.ts",
+    "apps/web/features/webhooks/events.ts"
   ],
   "rules": {
     "unused-exports": "warn",
     "unused-types": "warn"
   },
   "duplicates": {
-    "ignore": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "tests/**"]
+    "ignore": ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx", "apps/web/tests/**"]
   }
 }

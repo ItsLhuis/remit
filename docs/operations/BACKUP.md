@@ -18,7 +18,7 @@ archive restores into an instance whose `S3_BUCKET` differs. The exports bucket 
 The archive is encrypted with `REMIT_ENCRYPTION_KEY`. Without that key the archive cannot be read
 and a restore refuses it (`scripts/core/restore/runRestore.ts`), so the key must be stored somewhere
 other than the host the backups protect. The byte layout is in
-[`scripts/core/archive/header.ts`](../../scripts/core/archive/header.ts).
+[`apps/web/scripts/core/archive/header.ts`](../../apps/web/scripts/core/archive/header.ts).
 
 An archive lives at one of two places, set on `/settings/backup`:
 

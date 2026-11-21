@@ -18,7 +18,7 @@ function read(path: string): string {
 }
 
 function scriptKeys(): Record<string, string> {
-  const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> }
+  const pkg = JSON.parse(read("apps/web/package.json")) as { scripts: Record<string, string> }
 
   return Object.fromEntries(
     Object.entries(pkg.scripts)
@@ -28,7 +28,7 @@ function scriptKeys(): Record<string, string> {
 }
 
 function tsupEntries(): Record<string, string> {
-  const source = read("tsup.scripts.config.ts")
+  const source = read("apps/web/tsup.scripts.config.ts")
   const block = /entry:\s*\{([^}]*)\}/.exec(source)?.[1] ?? ""
 
   return Object.fromEntries(
@@ -39,7 +39,7 @@ function tsupEntries(): Record<string, string> {
 function copiedBundles(): string[] {
   return [
     ...read("Dockerfile").matchAll(
-      /^COPY --from=builder \S+ \/app\/scripts\/dist\/([\w-]+)\.js \.\/scripts\/dist\/\1\.js$/gm
+      /^COPY --from=builder \S+ \/app\/apps\/web\/scripts\/dist\/([\w-]+)\.js \.\/scripts\/dist\/\1\.js$/gm
     )
   ].map((match) => match[1])
 }
@@ -55,7 +55,10 @@ describe("operational command packaging", () => {
 
   test("each tsup entry is scripts/<name>.ts and that file exists", () => {
     const wrong = Object.entries(tsupEntries())
-      .filter(([name, file]) => file !== `scripts/${name}.ts` || !existsSync(join(repoRoot, file)))
+      .filter(
+        ([name, file]) =>
+          file !== `scripts/${name}.ts` || !existsSync(join(repoRoot, "apps", "web", file))
+      )
       .map(([name]) => name)
 
     expect(wrong).toEqual([])

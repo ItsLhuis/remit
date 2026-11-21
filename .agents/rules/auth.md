@@ -15,7 +15,7 @@ Direct database access to Better Auth-owned tables is acceptable only for:
 - Schema definitions and generated migrations.
 - Explicit operational recovery scripts, such as the password reset CLI.
 
-`requireSession` and `requireRole` in `lib/auth/session.ts` are the canonical application
+`requireSession` and `requireRole` in `apps/web/lib/auth/session.ts` are the canonical application
 authorization helpers. `requireRole` delegates to Better Auth organization state, specifically the
 active member role, and must not create or repair memberships as a fallback.
 
@@ -27,10 +27,10 @@ own runtime password reset tokens or write credential password hashes directly o
 operational recovery scripts.
 
 TOTP setup, verification, recovery-code consumption, and recovery-code regeneration use Better Auth
-two-factor APIs. The one exception is `lib/auth/totpReconfigure.ts`, the one runtime writer: inside
-Better Auth's pipeline and through its adapters it writes only `two_factors.secret` and its own
-`totp-reconfigure-<userId>` entry in `verifications`, and it verifies a code only against that
-pending secret.
+two-factor APIs. The one exception is `apps/web/lib/auth/totpReconfigure.ts`, the one runtime
+writer: inside Better Auth's pipeline and through its adapters it writes only `two_factors.secret`
+and its own `totp-reconfigure-<userId>` entry in `verifications`, and it verifies a code only
+against that pending secret.
 
 Auth-sensitive routes and actions that write audit metadata use shared request metadata helpers,
 including `getIpAddress` from `@/lib/utils`, instead of parsing forwarded headers inline.

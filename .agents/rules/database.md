@@ -2,8 +2,8 @@
 
 ## Schema file organization
 
-- Create one schema file per domain in `database/schema/` and export it from
-  `database/schema/index.ts`.
+- Create one schema file per domain in `apps/web/database/schema/` and export it from
+  `apps/web/database/schema/index.ts`.
 - Database schema files import Drizzle column builders first, then Drizzle helpers such as
   `relations` or `sql`, then relative enum/helper/table imports.
 - Define table constants before relation constants.
@@ -22,7 +22,8 @@
 - Spread `timestamps` from `@/database/schema/helpers` on normal domain tables instead of redefining
   `createdAt` and `updatedAt`.
 - Domain entities are soft-deleted by default: spread `softDelete` from `@/database/schema/helpers`;
-  a domain table that hard-deletes says why in a comment, as `database/schema/attachments.ts` does.
+  a domain table that hard-deletes says why in a comment, as
+  `apps/web/database/schema/attachments.ts` does.
 - Do not add `tenantId` columns or row-level tenancy.
 
 ## Foreign keys
@@ -40,7 +41,7 @@ A table with both a project and a client parent needs the composite foreign key 
 `uq_projects_id_client_id` (hand-written, as `drizzle/migrations/0002_document_parent_agreement.sql`
 shows for `fk_<table>_project_client`), a `chk_<table>_project_requires_client` check and, when the
 table already holds rows, a backfill of them first (a requirement, not shown by those files);
-`database/__tests__/documentParentage.integration.test.ts` shows the behaviour.
+`apps/web/database/__tests__/documentParentage.integration.test.ts` shows the behaviour.
 
 ## Indexes and checks
 
@@ -91,7 +92,7 @@ Only extract persistence helpers when return columns, no-op behavior, error mapp
 and transaction semantics are identical.
 
 If a helper requires broad generic Drizzle typing that obscures the write, keep the write local and
-extract only the truly generic non-IO pieces to `lib/utils/` or a pure service.
+extract only the truly generic non-IO pieces to `apps/web/lib/utils/` or a pure service.
 
 ## Comments
 

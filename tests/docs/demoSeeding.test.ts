@@ -10,13 +10,14 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url))
 
 // The documents that describe `pnpm remit:seed-demo` to an operator. Listed rather than discovered,
 // because the list is the guard: each one once called the seed "deterministic" without saying that
-// its public tokens are not, which `scripts/core/seedDemo/plan.ts` mints at random on purpose.
+// its public tokens are not, which `apps/web/scripts/core/seedDemo/plan.ts` mints at random on
+// purpose.
 const SEEDING_DOCUMENTS = [
   "AGENTS.md",
   "README.md",
   "docs/operations/INSTALL.md",
   "docs/architecture/ARCHITECTURE.md",
-  "scripts/README.md"
+  "apps/web/scripts/README.md"
 ]
 
 function read(path: string): string {

@@ -38,7 +38,7 @@ forbidden message, and SHALL leave the account's factor untouched.
   plugin may answer enable and verify-totp
 
 <!-- prettier-ignore -->
-Enforced by: `app/api/auth/[...all]/__tests__/route.test.ts` `app/api/auth/[...all]/__tests__/route.integration.test.ts` `lib/auth/__tests__/totpReconfigure.integration.test.ts`
+Enforced by: `apps/web/app/api/auth/[...all]/__tests__/route.test.ts` `apps/web/app/api/auth/[...all]/__tests__/route.integration.test.ts` `apps/web/lib/auth/__tests__/totpReconfigure.integration.test.ts`
 
 ### Requirement: TOTP enrolment is required
 
@@ -65,7 +65,8 @@ the business profile is complete.
 - WHEN the setup form starts on the TOTP step because the business profile is complete
 - THEN it shows the TOTP step and no business profile field
 
-Enforced by: `__tests__/proxy.test.ts` `features/setup/components/__tests__/SetupForm.test.tsx`
+Enforced by: `apps/web/__tests__/proxy.test.ts`
+`apps/web/features/setup/components/__tests__/SetupForm.test.tsx`
 
 ### Requirement: Recovery codes
 
@@ -110,7 +111,7 @@ stand in for a TOTP code at sign-in.
 - THEN an `auth.backup_code.consumed` entry is written with that user as actor and target
 
 <!-- prettier-ignore -->
-Enforced by: `features/setup/components/__tests__/SetupForm.test.tsx` `features/settings/security/components/TotpReconfigureDialog/__tests__/TotpReconfigureDialog.test.tsx` `features/auth/components/LoginForm/__tests__/TotpForm.test.tsx` `features/auth/components/LoginForm/__tests__/RecoveryCodeForm.test.tsx` `app/api/auth/[...all]/__tests__/route.test.ts` `lib/auth/__tests__/totpReconfigure.integration.test.ts`
+Enforced by: `apps/web/features/setup/components/__tests__/SetupForm.test.tsx` `apps/web/features/settings/security/components/TotpReconfigureDialog/__tests__/TotpReconfigureDialog.test.tsx` `apps/web/features/auth/components/LoginForm/__tests__/TotpForm.test.tsx` `apps/web/features/auth/components/LoginForm/__tests__/RecoveryCodeForm.test.tsx` `apps/web/app/api/auth/[...all]/__tests__/route.test.ts` `apps/web/lib/auth/__tests__/totpReconfigure.integration.test.ts`
 
 ### Requirement: Reconfiguring keeps the current factor until the new one verifies
 
@@ -158,7 +159,7 @@ from it has verified in a session of that user.
   while the user has a verified factor
 
 <!-- prettier-ignore -->
-Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `lib/auth/__tests__/totp.test.ts`
+Enforced by: `apps/web/lib/auth/__tests__/totpReconfigure.integration.test.ts` `apps/web/lib/auth/__tests__/totp.test.ts`
 
 ### Requirement: A change of factor is audited once
 
@@ -193,7 +194,7 @@ password-checked `enable` holds a pending secret.
 - THEN the entry carries that address and the route writes no TOTP entry of its own
 
 <!-- prettier-ignore -->
-Enforced by: `lib/auth/__tests__/totpReconfigure.integration.test.ts` `app/api/auth/[...all]/__tests__/route.test.ts`
+Enforced by: `apps/web/lib/auth/__tests__/totpReconfigure.integration.test.ts` `apps/web/app/api/auth/[...all]/__tests__/route.test.ts`
 
 ## How it works
 

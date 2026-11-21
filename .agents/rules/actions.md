@@ -82,8 +82,8 @@ const userAgent = requestHeaders.get("user-agent")
 ```
 
 If `ipAddress` and `userAgent` extraction repeat together across three or more actions/routes,
-extract a shared `getRequestAuditMetadata(headers: Headers)` helper under `lib/utils/request.ts` and
-export it from `lib/utils/index.ts`.
+extract a shared `getRequestAuditMetadata(headers: Headers)` helper under
+`apps/web/lib/utils/request.ts` and export it from `apps/web/lib/utils/index.ts`.
 
 ## Logic and error handling
 
@@ -133,7 +133,8 @@ permission derivation, invoice numbering, scheduling rules, or generic normaliza
 Move that logic to:
 
 - `features/<feature>/services/` when it is feature/domain logic.
-- `lib/utils/` when it is generic request, string, date, number, URL, or object normalization.
+- `apps/web/lib/utils/` when it is generic request, string, date, number, URL, or object
+  normalization.
 
 Settings actions may currently repeat session, owner-role, audit setup, upsert, and changed-field
 patterns. Do not force a generic helper unless the signatures, return columns, no-op behavior,

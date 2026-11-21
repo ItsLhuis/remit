@@ -1,6 +1,6 @@
 # Component Rules
 
-## What belongs in `components/`
+## What belongs in `features/<feature>/components/`
 
 A file belongs in `features/<feature>/components/` only when it is:
 
@@ -11,19 +11,19 @@ A file belongs in `features/<feature>/components/` only when it is:
 
 Everything else has a home:
 
-| The file is...                              | Home                           |
-| ------------------------------------------- | ------------------------------ |
-| a hook (`use*`, calls React hooks)          | `features/<feature>/hooks/`    |
-| pure domain logic, no React and no IO       | `features/<feature>/services/` |
-| a domain value → label / icon / variant map | `features/<feature>/labels.ts` |
-| the canvas editor's pointer runtime         | `features/templates/engine/`   |
+| The file is...                              | Home                                  |
+| ------------------------------------------- | ------------------------------------- |
+| a hook (`use*`, calls React hooks)          | `features/<feature>/hooks/`           |
+| pure domain logic, no React and no IO       | `features/<feature>/services/`        |
+| a domain value → label / icon / variant map | `features/<feature>/labels.ts`        |
+| the canvas editor's pointer runtime         | `apps/web/features/templates/engine/` |
 
 Extension follows content (JSX makes it `.tsx`), never the folder; classify by kind.
 `TemplatesListPage/columns.ts` (a config function rendering no JSX) and
 `ClientsListPage/columns.tsx` are the same kind and both correctly co-located. Lint-enforced from
 both sides: `remit/no-hook-in-components` fails an exported `use*` function under
-`features/**/components/**`; `remit/hook-file-exports-its-hook` fails a `hooks/` file named `use*`
-that does not export that hook.
+`features/**/components/**`; `remit/hook-file-exports-its-hook` fails a file in a `hooks` folder
+named `use*` that does not export that hook.
 
 ## Component files
 
@@ -39,11 +39,11 @@ that does not export that hook.
 ## File-private helpers in `.tsx`
 
 In component files, arrow functions are components and `function` declarations are helpers. A
-file-private helper (not generic enough for `lib/utils/`, not domain logic for `services/`) is a
-`function` statement placed immediately after the imports, before the props type and the component —
-never after the component or the export, so a reader meets the helper before its first call. This is
-the opposite of the `.ts` convention ("private helpers below the public API" in `code-style.md`).
-Enforced by `remit/helper-placement`.
+file-private helper (not generic enough for `apps/web/lib/utils/`, not domain logic for `services/`)
+is a `function` statement placed immediately after the imports, before the props type and the
+component — never after the component or the export, so a reader meets the helper before its first
+call. This is the opposite of the `.ts` convention ("private helpers below the public API" in
+`code-style.md`). Enforced by `remit/helper-placement`.
 
 ## Component body shape
 
@@ -54,7 +54,8 @@ with one blank line.
 
 ## UI primitives
 
-- Add every new `components/ui/` component to `components/ui/index.ts` immediately.
+- Add every new `apps/web/components/ui/` component to `apps/web/components/ui/index.ts`
+  immediately.
 - Add `data-slot="component-name"` to the root element of every primitive and sub-primitive.
 - Use `Slot.Root` from `radix-ui` for `asChild`, not `@radix-ui/react-slot`.
 - Use `cva` for variant-heavy primitives, with the variants constant above the component.
@@ -65,12 +66,13 @@ with one blank line.
 
 ## Always use UI primitives
 
-Compose application UI from `components/ui/index.ts` whenever a primitive fits. Before writing
-visual JSX, check the barrel: badges, buttons, cards, inputs, tooltips, separators and scroll areas
-are primitives. A surface that reads as a card is a `Card` with `CardHeader`/`CardContent`/
-`CardFooter`, never a hand-rolled `<div className="rounded-lg border p-4">`. Why: when a token,
-radius, spacing or variant changes in `components/ui/`, every screen built from primitives updates
-at once; raw elements drift out of the system.
+Compose application UI from `apps/web/components/ui/index.ts` whenever a primitive fits. Before
+writing visual JSX, check the barrel: badges, buttons, cards, inputs, tooltips, separators and
+scroll areas are primitives. A surface that reads as a card is a `Card` with
+`CardHeader`/`CardContent`/ `CardFooter`, never a hand-rolled
+`<div className="rounded-lg border p-4">`. Why: when a token, radius, spacing or variant changes in
+`apps/web/components/ui/`, every screen built from primitives updates at once; raw elements drift
+out of the system.
 
 Raw elements are reserved for the rare case with no suitable primitive or a surface that must stay
 outside the design system. Prefer adding or extending a primitive over inlining raw markup, and

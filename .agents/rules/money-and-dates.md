@@ -18,7 +18,7 @@ represent money as a float and never do money math with floats.
 
 ## Format at the boundary through `lib/utils`
 
-Display formatting uses the locale-aware helpers in `lib/utils/format.ts`, exported from
+Display formatting uses the locale-aware helpers in `apps/web/lib/utils/format.ts`, exported from
 `lib/utils`. Reach for these instead of constructing `new Intl.NumberFormat` or
 `new Intl.DateTimeFormat` in a feature component.
 
@@ -41,10 +41,10 @@ formatCurrency(invoice.totalCents, invoice.currency, locale)
 new Intl.NumberFormat(locale, { style: "currency", currency }).format(invoice.totalCents / 100)
 ```
 
-When a needed format does not exist, add a named formatter to `lib/utils/format.ts` and export it
-rather than inlining `Intl` at the call site (see helper discipline in `code-style.md`). A genuinely
-one-off `Intl` use inside a UI primitive in `components/ui/` may stay local when no shared formatter
-fits; leave a short comment when it does.
+When a needed format does not exist, add a named formatter to `apps/web/lib/utils/format.ts` and
+export it rather than inlining `Intl` at the call site (see helper discipline in `code-style.md`). A
+genuinely one-off `Intl` use inside a UI primitive in `apps/web/components/ui/` may stay local when
+no shared formatter fits; leave a short comment when it does.
 
 ## Dates are stored in UTC, formatted with a locale and time zone
 

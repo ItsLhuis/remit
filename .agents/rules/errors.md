@@ -4,8 +4,8 @@
 
 Server actions always return `{ data: T } | { error: string }`. Throwing is reserved for
 unrecoverable boot-time failures, such as environment variable validation failure in
-`lib/config/env.ts` or a missing encryption key at startup. Everything else is caught and returned
-as `{ error }`.
+`apps/web/lib/config/env.ts` or a missing encryption key at startup. Everything else is caught and
+returned as `{ error }`.
 
 ```ts
 import { t } from "@/lib/i18n/server"
@@ -97,11 +97,11 @@ Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure
 
 - An error that **escapes** a server component, a route handler, a server action or the proxy.
   Next.js hands it to `onRequestError` in `instrumentation.ts`.
-- A job whose **last attempt** fails in the worker (`lib/jobs/worker.ts`), a worker that fails to
-  start, and a worker that crashes after starting on an unhandled rejection or an uncaught exception
-  (`scripts/worker.ts`, `scripts/core/worker/crash.ts`). An attempt a retry may still recover is
-  only logged. A crash is the same class as a failed start: nobody is watching the process, so it
-  reports, logs, and exits non-zero for its container to restart.
+- A job whose **last attempt** fails in the worker (`apps/web/lib/jobs/worker.ts`), a worker that
+  fails to start, and a worker that crashes after starting on an unhandled rejection or an uncaught
+  exception (`apps/web/scripts/worker.ts`, `apps/web/scripts/core/worker/crash.ts`). An attempt a
+  retry may still recover is only logged. A crash is the same class as a failed start: nobody is
+  watching the process, so it reports, logs, and exits non-zero for its container to restart.
 
 At the request boundary Next.js has already logged the error itself, so `onRequestError` logs a
 receipt — the event id, route, error type and digest — and never the error a second time.
@@ -120,15 +120,16 @@ So the rule for a new failure is a choice between the two, never a third path:
 - If it is handled, catch and log it.
 
 Feature and route code never imports `@/lib/errorTracking`; `no-restricted-imports` fails it under
-`features/` and `app/`. Nothing in a log entry's context is sent either: an event carries the
-error's type, code and stack frames and the boundary's own context, never the message and never a
-record's id. The boundary logs the full error with the same `errorEventId` the receiver shows, which
-is how an event is traced back to its log line; at the request boundary that full error is the line
-Next.js writes, and the receipt beside it carries the id and the digest that tie the two together.
+`apps/web/features/` and `apps/web/app/`. Nothing in a log entry's context is sent either: an event
+carries the error's type, code and stack frames and the boundary's own context, never the message
+and never a record's id. The boundary logs the full error with the same `errorEventId` the receiver
+shows, which is how an event is traced back to its log line; at the request boundary that full error
+is the line Next.js writes, and the receipt beside it carries the id and the digest that tie the two
+together.
 
 Remit adds no error-tracking SDK, build integration, source-map upload or browser DSN: reporting is
-the in-repository sender in `lib/errorTracking/`, which resolves stack frames against the source
-maps on the server.
+the in-repository sender in `apps/web/lib/errorTracking/`, which resolves stack frames against the
+source maps on the server.
 
 ## Database errors
 
@@ -149,9 +150,9 @@ close to the action so feature-specific copy stays clear.
 
 ## Route error boundaries
 
-Every route segment under `app/` that can fail must have a co-located `error.tsx` file. The error
-boundary receives the error and renders a user-friendly message; it does not display the raw error
-object.
+Every route segment under `apps/web/app/` that can fail must have a co-located `error.tsx` file. The
+error boundary receives the error and renders a user-friendly message; it does not display the raw
+error object.
 
 ## Form error surfacing
 
