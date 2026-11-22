@@ -111,14 +111,15 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     base without overriding `lib` and is covered by the root `pnpm typecheck`, its own
     `vitest.config.ts`, which the root `packages/*` glob picks up and which restates the root
     `maxWorkers` (decision 3), and an `index.ts` door; add `packages/core/**` to the root `coverage`
-    include, since Vitest reads coverage only from the root. Move with `git mv` `money`, `datetime`,
-    `format`, `string`, `locale`, `html` and `url` from `apps/web/lib/utils/` with their tests, and
-    from `csv.ts` move `escapeCsvValue` and `serializeCsv`; `downloadCsv` touches `document`, so it
-    stays in `apps/web/lib/utils` (decision 2: confirmed free of IO when moved). Callers import the
-    moved helpers from `@remit/core`; `@/lib/utils` keeps only the web-only helpers and does not
-    re-export core. Add the ESLint block that applies the purity rule to `packages/core/**` (no
-    `next`, `react`, `drizzle-orm`, `postgres`, `node:*` IO modules, `@/` or `@remit/web` import,
-    and no `process` or `document` global), a `@remit/core` import group,
+    include, since Vitest reads coverage only from the root, and `**/*.md` to its exclude, so the
+    coverage run stops trying to parse `apps/web/scripts/core/archive/README.md`. Move with `git mv`
+    `money`, `datetime`, `format`, `string`, `locale`, `html` and `url` from `apps/web/lib/utils/`
+    with their tests, and from `csv.ts` move `escapeCsvValue` and `serializeCsv`; `downloadCsv`
+    touches `document`, so it stays in `apps/web/lib/utils` (decision 2: confirmed free of IO when
+    moved). Callers import the moved helpers from `@remit/core`; `@/lib/utils` keeps only the
+    web-only helpers and does not re-export core. Add the ESLint block that applies the purity rule
+    to `packages/core/**` (no `next`, `react`, `drizzle-orm`, `postgres`, `node:*` IO modules, `@/`
+    or `@remit/web` import, and no `process` or `document` global), a `@remit/core` import group,
     `transpilePackages: ["@remit/core"]` in `next.config.mjs` if the build needs it, and the core
     paths in `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
