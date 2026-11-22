@@ -20,8 +20,9 @@ env:
   REMIT_PUBLIC_URL: http://localhost:3000
   REMIT_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   REMIT_HOSTED_MODE: "false"
-  # Absolute, because Compose resolves a relative bind mount from the repository root and the
-  # Playwright process, which runs in apps/web, resolves it from there.
+  # The Playwright process must see the directory Compose bind-mounts into the containers. Compose
+  # resolves a relative mount from the repository root and apps/web/lib/config/env.ts resolves a
+  # relative REMIT_DATA_DIR from the workspace root, so both agree; absolute just states it.
   REMIT_DATA_DIR: ${{ github.workspace }}/data/e2e
   # Compose interpolates this into the app and the worker, which reach Redis over the compose
   # network. The Playwright step overrides it with the published port for its own process.
