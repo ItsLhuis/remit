@@ -53,6 +53,9 @@ next-env.d.ts
 CLAUDE.local.md
 .claude/settings.local.json
 
+# written by next dev
+apps/web/AGENTS.md
+
 # ephemeral docs (not versioned)
 docs/superpowers/
 docs/ai/
