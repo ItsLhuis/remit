@@ -27,10 +27,10 @@ other `@/lib/*` → `@/database` → `@/components/ui` → `@/components/layout`
   feature import by direct relative path. Types from `@/database/schema` are shared substrate and
   may be imported directly.
 - **Root folders use their barrel.** Every shared root folder (`apps/web/components/`,
-  `apps/web/lib/utils/`, `apps/web/hooks/`, `providers/`, `features/*`) has an `index.ts` and
-  consumers import through it (`import { useIsMobile } from "@/hooks"`), never by direct file path.
-  Files inside the folder import each other by direct relative path (`./useLocalStorage`), never
-  through their own barrel, to avoid a self-cycle.
+  `apps/web/lib/utils/`, `apps/web/hooks/`, `apps/web/providers/`, `features/*`) has an `index.ts`
+  and consumers import through it (`import { useIsMobile } from "@/hooks"`), never by direct file
+  path. Files inside the folder import each other by direct relative path (`./useLocalStorage`),
+  never through their own barrel, to avoid a self-cycle.
 - **Generic helpers** come from their utility barrel (`import { getIpAddress } from "@/lib/utils"`).
   Never import from a feature just to reuse generic request, string, date or number normalization;
   move such a helper to `apps/web/lib/utils/`.

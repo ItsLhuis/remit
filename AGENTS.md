@@ -14,14 +14,14 @@ development platform.
 
 ```bash
 pnpm dev | build | start           # Next.js dev server (Turbopack), production build, start
-pnpm dev:worker | start:worker     # Background job worker, in watch mode or from its build
+pnpm dev:worker | start:worker     # Background job worker, from source (tsx) or from its build
 pnpm services:up | down | logs     # Local Docker services; pnpm dev:setup also migrates
 pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached), whole repository
 pnpm typecheck                     # tsc --noEmit for the root and apps/web
 pnpm test                          # Vitest, the web and repository projects (~2-3 min); pnpm exec vitest related --run <files>
-pnpm --filter @remit/web <script>  # One package's own script; root commands delegate
 pnpm test:integration              # Needs pnpm database:test:up and database:test:migrate
 pnpm test:e2e                      # Playwright
+pnpm --filter @remit/web <script>  # One script of apps/web; the root's app commands delegate to it
 pnpm check | ci                    # lint+typecheck+test | + build
 pnpm format | format:check         # Prettier
 pnpm database:generate             # Drizzle migration from schema changes (never hand-edit output)
