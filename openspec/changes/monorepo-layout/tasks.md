@@ -54,10 +54,11 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     alias to `apps/web` and the node and happy-dom environment projects as its nested projects, with
     the comment that keeps their `include` and `exclude` exact complements. Reduce the root
     `vitest.config.ts` to `projects: ["apps/*", "packages/*"]` plus the `repository` project,
-    keeping only the options Vitest reads from the root alone: `maxWorkers` and the `coverage` block
-    with its include, exclude and thresholds (decision 3). Remove `dom`, `dom.iterable`, `jsx` and
-    `allowJs` from `tsconfig.base.json` and add them to `apps/web/tsconfig.json`. Move `happy-dom`
-    from the root `devDependencies` to those of `apps/web`, keeping its version range.
+    keeping `maxWorkers`, which `apps/web/vitest.config.ts` restates, and the one option Vitest
+    reads from the root alone: the `coverage` block with its include, exclude and thresholds
+    (decision 3). Remove `dom`, `dom.iterable`, `jsx` and `allowJs` from `tsconfig.base.json` and
+    add them to `apps/web/tsconfig.json`. Move `happy-dom` from the root `devDependencies` to those
+    of `apps/web`, keeping its version range.
   - Done when: `pnpm test` runs the same test files as before, split across the two `web` projects
     and `repository`; the root `vitest.config.ts` names no `apps/web` path outside `coverage`;
     `tsconfig.base.json` sets no `dom` library, `jsx` or `allowJs`; `happy-dom` is declared only in
@@ -92,10 +93,11 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     modules, and drop the `worker` entry from the `apps/web` tsup config. Keep `pnpm dev:worker` and
     `pnpm start:worker` working from the root. Point the Dockerfile `worker` stage at the new bundle
     while it still extends `runner` (decision 4), give the worker its own `vitest.config.ts`, which
-    the root `apps/*` glob picks up, add the package to the root `pnpm typecheck`, and update
-    `tests/docs/packaging.test.ts` to the bundles each package builds. Record the app-to-app edge as
-    a known limit in `docs/architecture/ARCHITECTURE.md`, naming `job-queues`,
-    `command-layer-outbox` or a `packages/db` change as what removes it.
+    the root `apps/*` glob picks up and which restates the root `maxWorkers` (decision 3), add the
+    package to the root `pnpm typecheck`, and update `tests/docs/packaging.test.ts` to the bundles
+    each package builds. Record the app-to-app edge as a known limit in
+    `docs/architecture/ARCHITECTURE.md`, naming `job-queues`, `command-layer-outbox` or a
+    `packages/db` change as what removes it.
   - Done when: `apps/worker` imports nothing from `apps/web` outside the `exports` map (a deep
     import fails `pnpm typecheck`); the job-catalog test runs from `apps/worker`; the `worker` image
     starts and renders an invoice PDF.
@@ -107,18 +109,18 @@ and no task changes behaviour, the schema, a migration or a dependency version (
 - [ ] 5. Create `packages/core` with the pure `lib/utils` helpers
   - Do: Create `packages/core` (`@remit/core`, `private`) with a `tsconfig.json` that extends the
     base without overriding `lib` and is covered by the root `pnpm typecheck`, its own
-    `vitest.config.ts`, which the root `packages/*` glob picks up, and an `index.ts` door; add
-    `packages/core/**` to the root `coverage` include, since Vitest reads coverage only from the
-    root. Move with `git mv` `money`, `datetime`, `format`, `string`, `locale`, `html` and `url`
-    from `apps/web/lib/utils/` with their tests, and from `csv.ts` move `escapeCsvValue` and
-    `serializeCsv`; `downloadCsv` touches `document`, so it stays in `apps/web/lib/utils` (decision
-    2: confirmed free of IO when moved). Callers import the moved helpers from `@remit/core`;
-    `@/lib/utils` keeps only the web-only helpers and does not re-export core. Add the ESLint block
-    that applies the purity rule to `packages/core/**` (no `next`, `react`, `drizzle-orm`,
-    `postgres`, `node:*` IO modules, `@/` or `@remit/web` import, and no `process` or `document`
-    global), a `@remit/core` import group, `transpilePackages: ["@remit/core"]` in `next.config.mjs`
-    if the build needs it, and the core paths in `tests/docs/sanitization.test.ts`. The tsup bundles
-    inline `@remit/core`.
+    `vitest.config.ts`, which the root `packages/*` glob picks up and which restates the root
+    `maxWorkers` (decision 3), and an `index.ts` door; add `packages/core/**` to the root `coverage`
+    include, since Vitest reads coverage only from the root. Move with `git mv` `money`, `datetime`,
+    `format`, `string`, `locale`, `html` and `url` from `apps/web/lib/utils/` with their tests, and
+    from `csv.ts` move `escapeCsvValue` and `serializeCsv`; `downloadCsv` touches `document`, so it
+    stays in `apps/web/lib/utils` (decision 2: confirmed free of IO when moved). Callers import the
+    moved helpers from `@remit/core`; `@/lib/utils` keeps only the web-only helpers and does not
+    re-export core. Add the ESLint block that applies the purity rule to `packages/core/**` (no
+    `next`, `react`, `drizzle-orm`, `postgres`, `node:*` IO modules, `@/` or `@remit/web` import,
+    and no `process` or `document` global), a `@remit/core` import group,
+    `transpilePackages: ["@remit/core"]` in `next.config.mjs` if the build needs it, and the core
+    paths in `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
     `packages/core`; `pnpm test:coverage` reports the `packages/core` files; `pnpm build` and both

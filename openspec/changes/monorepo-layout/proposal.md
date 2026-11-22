@@ -119,9 +119,11 @@ The owner accepted the recommended answer to each of the five open questions.
    `packages/config` (FR1). A shared config holds only what every package needs:
    `tsconfig.base.json` carries no `dom` library, `jsx` or `allowJs`, which `apps/web/tsconfig.json`
    adds, and the root Vitest configuration discovers each package's own `vitest.config.ts`, keeping
-   only the repository project and the options Vitest reads from the root alone (`coverage`,
-   `maxWorkers`). Rejected: a config per package for ESLint and Prettier from the start, which costs
-   files now and saves nothing until a package needs different rules.
+   only the repository project, `maxWorkers` and the one option Vitest reads from the root alone
+   (`coverage`). Each package config restates the root `maxWorkers`, because Vitest reads it per
+   project and refuses to run projects that disagree on it. Rejected: a config per package for
+   ESLint and Prettier from the start, which costs files now and saves nothing until a package needs
+   different rules.
 4. **One root `Dockerfile` builds both images from the workspace root.** The `worker` stage still
    extends the web `runner`, so both run byte-identical code and only the worker carries Chromium.
    Image names, targets and Compose services stay the same. Rejected for now: an independent worker
