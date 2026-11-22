@@ -48,7 +48,8 @@ export default defineConfig({
             ...webNodeTests,
             "**/*.integration.test.ts",
             "tests/e2e/**",
-            "**/node_modules/**"
+            "**/node_modules/**",
+            "**/.next/**"
           ],
           environment: "happy-dom",
           setupFiles: ["tests/setup.ts"]

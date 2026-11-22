@@ -106,7 +106,7 @@ async function waitForJob(jobId: string): Promise<void> {
 await loadWorkerFeatureModules()
 
 beforeAll(async () => {
-  const shimDirectory = path.resolve(".tmp/integration-data", "bin")
+  const shimDirectory = path.join(env.REMIT_DATA_DIR, "bin")
 
   await mkdir(shimDirectory, { recursive: true })
   await writePgDumpShim(shimDirectory)
