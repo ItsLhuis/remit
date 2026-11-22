@@ -29,8 +29,8 @@ export default defineConfig({
       // there, which on a developer host is the development stack's own queue.
       REDIS_URL: "redis://localhost:6380",
       REMIT_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      // Never the `data` default: `REMIT_DATA_DIR` is resolved relative to the working directory, so
-      // a suite that writes backup archives would otherwise drop them into the developer's real data
+      // Never the `data` default: `REMIT_DATA_DIR` is resolved against the workspace root, so a
+      // suite that writes backup archives would otherwise drop them into the developer's real data
       // volume beside their own uploads.
       REMIT_DATA_DIR: ".tmp/integration-data",
       BETTER_AUTH_SECRET: "test-secret-for-integration-tests-not-real",

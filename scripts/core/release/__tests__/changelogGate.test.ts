@@ -66,6 +66,14 @@ describe("evaluateChangelogGate", () => {
     expect(gate(paths)).toEqual({ required: true, satisfied: false, changedPaths: paths })
   })
 
+  test("refuses a change to the Next.js configuration that adds no unreleased entry", () => {
+    expect(gate(["apps/web/next.config.mjs"])).toEqual({
+      required: true,
+      satisfied: false,
+      changedPaths: ["apps/web/next.config.mjs"]
+    })
+  })
+
   test("does not accept the entries the base branch already carried", () => {
     const reordered = ["# Changelog", "", "## [Unreleased]", "", "- An older entry.", ""]
 

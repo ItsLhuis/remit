@@ -1,6 +1,9 @@
+import path from "node:path"
+
 import { logger } from "@/lib/logger"
 
 import { envSchema } from "./envSchema"
+import { findWorkspaceRoot } from "./workspaceRoot"
 
 // The placeholders below exist so `next build` can run in an image build with no real secrets
 // available. They are gated on both an explicit opt-in and the build lifecycle event so they can
@@ -38,4 +41,10 @@ if (!parsed.success) {
   process.exit(1)
 }
 
-export const env = parsed.data
+// A relative `REMIT_DATA_DIR` names a directory under the workspace root, the `./data` that
+// docker-compose.yml mounts, never one under the working directory: host commands run from
+// `apps/web`. Resolving it once here hands every consumer the same absolute path.
+export const env = {
+  ...parsed.data,
+  REMIT_DATA_DIR: path.resolve(findWorkspaceRoot(), parsed.data.REMIT_DATA_DIR)
+}

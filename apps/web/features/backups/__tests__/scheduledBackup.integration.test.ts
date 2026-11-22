@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, beforeEach, expect, test } from "vitest"
 
 import { acquireBackupLock, releaseBackupLock } from "@/lib/backups/backupLock"
+import { env } from "@/lib/config/env"
 import { enqueueJob } from "@/lib/jobs"
 import { getQueue } from "@/lib/jobs/queue"
 import { startWorker, stopWorker } from "@/lib/jobs/worker"
@@ -17,7 +18,7 @@ import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatur
 import { makeSettings } from "@/tests/factories"
 import { client, database } from "@/tests/integration/database"
 
-const BACKUPS_DIRECTORY = path.resolve(".tmp/integration-data", "backups")
+const BACKUPS_DIRECTORY = path.join(env.REMIT_DATA_DIR, "backups")
 
 const POLL_INTERVAL_MS = 100
 const POLL_TIMEOUT_MS = 25_000

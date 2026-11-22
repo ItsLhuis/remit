@@ -63,6 +63,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+# Absolute because the application runs from `apps/web`: an image carries no workspace marker, so
+# `lib/config/env.ts` would resolve a relative data directory under it rather than here.
+ENV REMIT_DATA_DIR=/app/data
 
 # The standalone output mirrors the workspace: its dependencies at the root, the server under
 # `apps/web/`. The application runs from `apps/web`, so `node server.js`, `scripts/dist/<cmd>.js` and

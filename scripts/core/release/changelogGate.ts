@@ -28,7 +28,7 @@ const SHIPPED_FILES = [
   "docker-compose.yml",
   "docker-entrypoint.sh",
   "apps/web/instrumentation.ts",
-  "apps/web/next.config.ts",
+  "apps/web/next.config.mjs",
   "apps/web/package.json",
   "apps/web/proxy.ts"
 ]

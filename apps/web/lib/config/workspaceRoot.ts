@@ -3,7 +3,7 @@ import path from "node:path"
 
 // The `.env` the application reads in development sits at the workspace root, beside the Compose
 // files that read it too, not in `apps/web`. A built image carries no `pnpm-workspace.yaml`, so
-// there the search falls back to the starting directory and finds no `.env`, as before.
+// there the search falls back to the starting directory and finds no `.env`.
 export function findWorkspaceRoot(from: string = process.cwd()): string {
   const start = path.resolve(from)
   let directory = start

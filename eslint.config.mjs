@@ -242,7 +242,8 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     settings: {
-      react: { version: reactVersion }
+      react: { version: reactVersion },
+      next: { rootDir: "apps/web/" }
     }
   },
   {
