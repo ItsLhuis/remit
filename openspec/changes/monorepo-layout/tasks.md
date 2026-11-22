@@ -125,9 +125,12 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     core paths in `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`. Add
     `packages/core` to the `AGENTS.md` directory map and its Commands block, and a `packages/core`
     section to `.agents/rules/architecture.md` that states what the package holds and its purity
-    rule and names the ESLint block that enforces it. Repoint the guidance that names a moved helper
-    or the import order: `.agents/rules/money-and-dates.md`, `.agents/rules/testing.md`,
-    `.agents/rules/imports.md` and the work-placement table in `.agents/rules/architecture.md`.
+    rule and names the ESLint block that enforces it, and reword the line of its `services/` purity
+    rule that names `packages/core` as a future extraction path, so it says the package exists and
+    services move into it with the changes that rewrite them (decision 2). Repoint the guidance that
+    names a moved helper or the import order: `.agents/rules/money-and-dates.md`,
+    `.agents/rules/testing.md`, `.agents/rules/imports.md` and the work-placement table in
+    `.agents/rules/architecture.md`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
     `packages/core`; `pnpm test:coverage` reports the `packages/core` files; `pnpm build` and both
