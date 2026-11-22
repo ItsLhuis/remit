@@ -107,9 +107,10 @@ and no task changes behaviour, the schema, a migration or a dependency version (
 - [ ] 5. Create `packages/core` with the pure `lib/utils` helpers
   - Do: Create `packages/core` (`@remit/core`, `private`) with a `tsconfig.json` that extends the
     base without overriding `lib` and is covered by the root `pnpm typecheck`, its own
-    `vitest.config.ts`, which the root `packages/*` glob picks up, and an `index.ts` door. Move with
-    `git mv` `money`, `datetime`, `format`, `string`, `locale`, `html` and `url` from
-    `apps/web/lib/utils/` with their tests, and from `csv.ts` move `escapeCsvValue` and
+    `vitest.config.ts`, which the root `packages/*` glob picks up, and an `index.ts` door; add
+    `packages/core/**` to the root `coverage` include, since Vitest reads coverage only from the
+    root. Move with `git mv` `money`, `datetime`, `format`, `string`, `locale`, `html` and `url`
+    from `apps/web/lib/utils/` with their tests, and from `csv.ts` move `escapeCsvValue` and
     `serializeCsv`; `downloadCsv` touches `document`, so it stays in `apps/web/lib/utils` (decision
     2: confirmed free of IO when moved). Callers import the moved helpers from `@remit/core`;
     `@/lib/utils` keeps only the web-only helpers and does not re-export core. Add the ESLint block
@@ -120,7 +121,8 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     inline `@remit/core`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
-    `packages/core`; `pnpm build` and both images still build.
+    `packages/core`; `pnpm test:coverage` reports the `packages/core` files; `pnpm build` and both
+    images still build.
   - Verify: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`,
     `printf 'import "react"\n' | pnpm exec eslint --stdin --stdin-filename packages/core/probe.ts`
     exits non-zero, and `docker build --target runner . && docker build --target worker .`
