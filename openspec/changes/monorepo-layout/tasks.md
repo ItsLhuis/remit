@@ -49,7 +49,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `docker compose exec -T app pnpm remit:backup --yes`,
     `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, `pnpm test:e2e`
 
-- [ ] 2. Give each package its own Vitest config and make the TypeScript base neutral
+- [x] 2. Give each package its own Vitest config and make the TypeScript base neutral
   - Do: Create `apps/web/vitest.config.ts` with `defineProject`, named `web`, holding the `@/*`
     alias to `apps/web` and the node and happy-dom environment projects as its nested projects, with
     the comment that keeps their `include` and `exclude` exact complements. Reduce the root

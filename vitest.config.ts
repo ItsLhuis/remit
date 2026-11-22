@@ -1,24 +1,6 @@
-import { fileURLToPath } from "url"
-
 import { defineConfig } from "vitest/config"
 
-// The `node` and `happy-dom` projects partition `apps/web` by environment, so the `node` project's
-// `include` and the `happy-dom` project's `exclude` have to stay exact complements: a `__tests__`
-// root added to one and not the other either runs twice, once per environment, or stops running at
-// all.
-const webNodeTests = [
-  "features/**/services/__tests__/**",
-  "lib/**/__tests__/**",
-  "hooks/__tests__/**",
-  "scripts/core/**/__tests__/**"
-]
-
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./apps/web", import.meta.url))
-    }
-  },
   test: {
     // Half the host's cores, not Vitest's default of all-but-one. Each worker runs happy-dom, React
     // and user-event, so on a twelve-core host eleven of them oversubscribe it: the same suite took
@@ -27,38 +9,19 @@ export default defineConfig({
     // which is the difference between failing the five-second budget and passing it.
     maxWorkers: "50%",
     projects: [
-      {
-        extends: true,
-        test: {
-          name: "web:node",
-          root: "apps/web",
-          include: webNodeTests.map((pattern) => `${pattern}/*.{test,spec}.?(c|m)[jt]s?(x)`),
-          exclude: ["**/*.integration.test.ts", "**/node_modules/**"],
-          environment: "node",
-          setupFiles: ["tests/setup.ts"]
-        }
-      },
-      {
-        extends: true,
-        test: {
-          name: "web:happy-dom",
-          root: "apps/web",
-          include: ["**/*.{test,spec}.?(c|m)[jt]s?(x)"],
-          exclude: [
-            ...webNodeTests,
-            "**/*.integration.test.ts",
-            "tests/e2e/**",
-            "**/node_modules/**",
-            "**/.next/**"
-          ],
-          environment: "happy-dom",
-          setupFiles: ["tests/setup.ts"]
-        }
-      },
+      "apps/*",
+      "packages/*",
       // The repository's own tooling: the guidance checks under `tests/docs`, the custom lint rules
       // and git guard under `tools/`, the release scripts and the host scripts under `scripts/`.
       {
         extends: true,
+        // `scripts/host/__tests__/install.test.ts` imports the web app's env schema through `@/`,
+        // and so do that module's own imports. Each import resolves through the tsconfig.json that
+        // owns its file, so the root one maps `@/*` for the test and `apps/web/tsconfig.json` maps
+        // it inside the app.
+        resolve: {
+          tsconfigPaths: true
+        },
         test: {
           name: "repository",
           include: [
