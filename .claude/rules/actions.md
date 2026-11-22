@@ -1,9 +1,9 @@
 ---
 paths:
-  - "features/**/mutations.ts"
-  - "features/**/*Mutations.ts"
-  - "features/**/systemWrites.ts"
-  - "app/**/actions.ts"
+  - "apps/web/features/**/mutations.ts"
+  - "apps/web/features/**/*Mutations.ts"
+  - "apps/web/features/**/systemWrites.ts"
+  - "apps/web/app/**/actions.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/actions.md` and follow it.

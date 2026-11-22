@@ -75,9 +75,9 @@ No endpoint that handles authentication or processes a public token ships withou
 Sign-in, sign-up and password reset requests take theirs from `rateLimit.customRules` in
 `apps/web/lib/auth/index.ts`, the Better Auth two-factor plugin limits `/two-factor/` routes
 (recovery code redemption included, `/two-factor/disable` excepted because it is refused before the
-limiter) to 3 per 10 seconds, and every other Better Auth route takes the default there; `proxy.ts`
-limits every public token route, and a route module adds a tighter limit where it needs one
-(`apps/web/app/(public)/s/[token]/page.tsx`).
+limiter) to 3 per 10 seconds, and every other Better Auth route takes the default there;
+`apps/web/proxy.ts` limits every public token route, and a route module adds a tighter limit where
+it needs one (`apps/web/app/(public)/s/[token]/page.tsx`).
 
 ## Cookie settings
 
@@ -108,11 +108,11 @@ reports leave only when the operator sets `SENTRY_DSN` (`apps/web/lib/errorTrack
 
 ## Proxy and routing state
 
-The proxy logic in `proxy.ts` derives authentication and onboarding state exclusively from the
-database and the session. Routing state is never stored in cookies. Adding a cookie to control which
-route a user is directed to is a violation of this rule; extend the DB-derived state machine
+The proxy logic in `apps/web/proxy.ts` derives authentication and onboarding state exclusively from
+the database and the session. Routing state is never stored in cookies. Adding a cookie to control
+which route a user is directed to is a violation of this rule; extend the DB-derived state machine
 instead. The state machine is listed in `docs/architecture/ARCHITECTURE.md` ("Request flow") and is
-the guard order in `proxy.ts`, tested in `__tests__/proxy.test.ts`.
+the guard order in `apps/web/proxy.ts`, tested in `apps/web/__tests__/proxy.test.ts`.
 
 ## Comments
 

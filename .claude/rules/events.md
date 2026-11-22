@@ -1,9 +1,9 @@
 ---
 paths:
-  - "features/**/events.ts"
-  - "features/**/events/**"
-  - "features/**/mutations.ts"
-  - "lib/events/**"
+  - "apps/web/features/**/events.ts"
+  - "apps/web/features/**/events/**"
+  - "apps/web/features/**/mutations.ts"
+  - "apps/web/lib/events/**"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/events.md` and follow it.

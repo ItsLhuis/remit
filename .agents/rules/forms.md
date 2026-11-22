@@ -43,10 +43,10 @@ Drop the third `useForm` generic when you do: with `raw: true` the input shape i
 `useForm<XFormInputValues>` is the whole contract and the output type has no call site.
 
 The exception is a form whose schema is a deliberate **bridge** into a differently shaped action
-schema. `features/contracts` is the only one: `contractFormSchema` owns the string shape the
-controls hold and transforms it into the nullable uuids and `Date`s `createContractSchema` expects,
-because a select with nothing chosen is `""` and the domain shape wants `null`. That form resolves
-_without_ `raw`, and adding it there would send `""` where a uuid is required.
+schema. `apps/web/features/contracts` is the only one: `contractFormSchema` owns the string shape
+the controls hold and transforms it into the nullable uuids and `Date`s `createContractSchema`
+expects, because a select with nothing chosen is `""` and the domain shape wants `null`. That form
+resolves _without_ `raw`, and adding it there would send `""` where a uuid is required.
 
 Splitting every feature's form and action schemas the way contracts does was considered and
 rejected: it would restate every field and every validation message twice for no gain, which

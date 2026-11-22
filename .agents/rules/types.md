@@ -4,7 +4,7 @@
 - Never use `any`. Prefer `unknown` for unknown external input and narrow it before use.
 - Avoid non-null assertions; `@typescript-eslint/no-non-null-assertion` is set to `error` for
   `apps/web/features/`, `apps/web/app/`, `apps/web/components/`, `apps/web/hooks/`, `apps/web/lib/`,
-  and `providers/`, so a `!` in that code fails lint. Narrow explicitly instead. Existing
+  and `apps/web/providers/`, so a `!` in that code fails lint. Narrow explicitly instead. Existing
   library-bound code may still contain isolated `!`; do not copy it into new application code.
 - Export reusable types inline on their declaration: `export type Foo = { ... }`.
 - Keep file-private types unexported.

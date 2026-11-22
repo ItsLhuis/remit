@@ -1,7 +1,7 @@
 ---
 paths:
-  - "hooks/**"
-  - "features/**/hooks/**"
+  - "apps/web/hooks/**"
+  - "apps/web/features/**/hooks/**"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/hooks.md` and follow it.

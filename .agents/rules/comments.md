@@ -125,8 +125,8 @@ printer width.
   `useWatch` names the fields it does (`components.md`).
 - **A third-party quirk or workaround** — a Radix, dnd-kit or react-hook-form behaviour whose
   workaround would silently break something if removed.
-- **A deliberate escape from the design system** — raw markup where a `components/ui` primitive
-  exists (`components.md`).
+- **A deliberate escape from the design system** — raw markup where an `apps/web/components/ui`
+  primitive exists (`components.md`).
 
 Layout, markup structure, class names, conditional rendering and prop wiring get none.
 

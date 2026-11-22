@@ -1,6 +1,6 @@
 ---
 paths:
-  - "app/**/route.ts"
+  - "apps/web/app/**/route.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/routes.md` and follow it.

@@ -50,8 +50,8 @@ Never use string literals for event names outside of `apps/web/lib/events/types.
 ## Registering handlers
 
 Handlers live in `features/<feature>/events.ts`. They register at module load time via `on()` from
-`lib/events`. The file must be imported in the application bootstrap so that handlers register
-before any request is handled.
+`apps/web/lib/events`. The file must be imported in the application bootstrap so that handlers
+register before any request is handled.
 
 A subscriber that listens to many features splits into an `events/` folder, one module per emitting
 feature, as `apps/web/features/activityLog/events/` does. Each module exports its subscriptions as a
@@ -60,7 +60,7 @@ the single import site the bootstrap loads, and a test pins the subscribed event
 can stop registering because an import was lost.
 
 ```ts
-// features/email/events.ts
+// apps/web/features/email/events.ts
 import { on } from "@/lib/events"
 
 import { sendPaymentReceiptEmail } from "./services/sendPaymentReceiptEmail"

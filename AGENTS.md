@@ -14,10 +14,12 @@ development platform.
 
 ```bash
 pnpm dev | build | start           # Next.js dev server (Turbopack), production build, start
+pnpm dev:worker | start:worker     # Background job worker, in watch mode or from its build
 pnpm services:up | down | logs     # Local Docker services; pnpm dev:setup also migrates
-pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached)
-pnpm typecheck                     # tsc --noEmit
-pnpm test                          # Vitest unit suite (~2-3 min); pnpm exec vitest related --run <files>
+pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached), whole repository
+pnpm typecheck                     # tsc --noEmit for every package
+pnpm test                          # Vitest, a project per package (~2-3 min); pnpm exec vitest related --run <files>
+pnpm --filter @remit/<web|worker|core> <script>   # One package's own script; root commands delegate
 pnpm test:integration              # Needs pnpm database:test:up and database:test:migrate
 pnpm test:e2e                      # Playwright
 pnpm check | ci                    # lint+typecheck+test | + build
@@ -30,18 +32,26 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 
 ## Directory map
 
+A pnpm workspace of three private packages: `apps/web` (`@remit/web`, the Next.js application),
+`apps/worker` (`@remit/worker`, the background job process) and `packages/core` (`@remit/core`, pure
+helpers). The root keeps the repository tooling, the deployment files, the docs and `openspec/`.
+
 - `apps/web/app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
   `(public)`; token routes for invoices, proposals, contracts and the client portal.
-- `features/<name>/` - closed domain modules (`components`, `hooks` and `services` folders,
+- `apps/web/features/<name>/` - closed domain modules (`components`, `hooks` and `services` folders,
   `queries.ts`, `mutations.ts`, `schemas.ts`, `types.ts`, `events.ts`, `index.ts`, `server.ts`).
   Cross-feature imports only through public doors (`.agents/rules/architecture.md`).
 - `apps/web/components/` - shared UI (`ui/`, `layout/`), each with an `index.ts` barrel.
-- `apps/web/database/` - Drizzle schemas (`apps/web/database/schema/`); `drizzle/migrations/` is
-  generated, hand-written SQL aside.
+- `apps/web/database/` - Drizzle schemas (`apps/web/database/schema/`); `apps/web/drizzle/` holds
+  the generated migrations, hand-written SQL aside.
 - `apps/web/lib/` - server and client utilities; `apps/web/lib/auth/session.ts` has
   `requireSession`/`requireRole`.
-- `apps/web/hooks/`, `providers/`, `tools/eslint-rules/` (custom `remit/*` lint rules).
-- `scripts/` - `remit:*` commands, host scripts, worker.
+- `apps/web/hooks/`, `apps/web/providers/`; `tools/eslint-rules/` (custom `remit/*` lint rules).
+- `apps/web/scripts/` - `remit:*` commands; `scripts/` - host and release scripts.
+- `apps/worker` - the worker entry and its job wiring, reaching the web modules it loads through
+  `@remit/web`.
+- `packages/core` - framework-free money, date, formatting, string, locale, HTML, URL and CSV
+  helpers; no framework, database, IO or environment access (`.agents/rules/architecture.md`).
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
 - `docs/` - architecture map, operator runbooks, deployment guides.
 
@@ -99,19 +109,20 @@ a lint rule at `error` backs it; the rest is reviewer guidance. `pnpm lint` does
 warnings; the `warn` rules (`max-lines`, `max-params`, `sonarjs/*`) are advisory and no change may
 add new ones.
 
-| Files                                                    | Rules                                                                             |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| any `.ts`/`.tsx`                                         | `code-style`, `comments`, `types`, `imports`, `errors`, `i18n`, `money-and-dates` |
-| `features/**`, `app/**`, `lib/**`                        | `architecture`, `auth`                                                            |
-| `.tsx` components                                        | `components`, `accessibility`, `forms`                                            |
-| `mutations.ts`, `*Mutations.ts`, `systemWrites.ts`       | `actions`, `events`, `database`                                                   |
-| `queries.ts`, `public*.ts`                               | `queries`, `database`                                                             |
-| `app/**/route.ts`                                        | `routes`, `security`                                                              |
-| public token routes, `proxy.ts`, `lib/auth/**`, settings | `security`, `auth`                                                                |
-| `hooks/**`, `features/**/hooks/**`                       | `hooks`                                                                           |
-| `database/**`, `drizzle/**`                              | `database`                                                                        |
-| `events.ts`, `events/**`, `lib/events/**`                | `events`                                                                          |
-| tests, `tests/**`, test configs                          | `testing`                                                                         |
+| Files                                                                      | Rules                                                                             |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| any `.ts`/`.tsx`, in every package                                         | `code-style`, `comments`, `types`, `imports`, `errors`, `i18n`, `money-and-dates` |
+| `apps/web/features/**`, `apps/web/app/**`, `apps/web/lib/**`               | `architecture`, `auth`                                                            |
+| `packages/core/**`                                                         | `architecture`                                                                    |
+| `.tsx` components                                                          | `components`, `accessibility`, `forms`                                            |
+| `mutations.ts`, `*Mutations.ts`, `systemWrites.ts`                         | `actions`, `events`, `database`                                                   |
+| `queries.ts`, `public*.ts`                                                 | `queries`, `database`                                                             |
+| `apps/web/app/**/route.ts`                                                 | `routes`, `security`                                                              |
+| public token routes, `apps/web/proxy.ts`, `apps/web/lib/auth/**`, settings | `security`, `auth`                                                                |
+| `apps/web/hooks/**`, `apps/web/features/**/hooks/**`                       | `hooks`                                                                           |
+| `apps/web/database/**`, `apps/web/drizzle/**`                              | `database`                                                                        |
+| `events.ts`, `events/**`, `apps/web/lib/events/**`                         | `events`                                                                          |
+| tests, `tests/**`, `apps/web/tests/**`, test configs                       | `testing`                                                                         |
 
 Each rule is `.agents/rules/<name>.md`: [accessibility](.agents/rules/accessibility.md),
 [actions](.agents/rules/actions.md), [architecture](.agents/rules/architecture.md),

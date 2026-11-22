@@ -38,9 +38,10 @@ Foreign key `onDelete` behavior follows the relationship semantics, not a single
 - Match the nearest existing table in the same domain before choosing behavior.
 
 A table with both a project and a client parent needs the composite foreign key to
-`uq_projects_id_client_id` (hand-written, as `drizzle/migrations/0002_document_parent_agreement.sql`
-shows for `fk_<table>_project_client`), a `chk_<table>_project_requires_client` check and, when the
-table already holds rows, a backfill of them first (a requirement, not shown by those files);
+`uq_projects_id_client_id` (hand-written, as
+`apps/web/drizzle/migrations/0002_document_parent_agreement.sql` shows for
+`fk_<table>_project_client`), a `chk_<table>_project_requires_client` check and, when the table
+already holds rows, a backfill of them first (a requirement, not shown by those files);
 `apps/web/database/__tests__/documentParentage.integration.test.ts` shows the behaviour.
 
 ## Indexes and checks
@@ -67,9 +68,9 @@ values with `Intl.NumberFormat` at the application boundary.
 
 After any schema change, run `pnpm database:generate` to create a migration file. Never edit
 generated migration output. Hand-written SQL migrations exist only for what Drizzle cannot express,
-each states why in its header, as `drizzle/migrations/0001_insert_only_guards.sql` does, and the
-squash before the schema freeze, which the owner schedules, must recreate them unchanged. Do not run
-`pnpm database:migrate` without confirming the target environment first.
+each states why in its header, as `apps/web/drizzle/migrations/0001_insert_only_guards.sql` does,
+and the squash before the schema freeze, which the owner schedules, must recreate them unchanged. Do
+not run `pnpm database:migrate` without confirming the target environment first.
 
 ## Database access
 
@@ -80,7 +81,8 @@ Database access belongs in:
 
 - `features/<feature>/queries.ts` for reads.
 - `features/<feature>/mutations.ts` for writes.
-- Explicit operational scripts under `scripts/` when the operation is not part of the web app.
+- Explicit operational scripts under `apps/web/scripts/` when the operation is not part of the web
+  app.
 
 Do not move Drizzle operations into `features/<feature>/services/`. Services stay pure and receive
 database rows as ordinary typed input.

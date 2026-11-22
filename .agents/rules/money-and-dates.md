@@ -1,8 +1,8 @@
 # Money and Date Rules
 
-Money and dates are parsed and formatted through shared helpers in `lib/utils`, never with ad-hoc
-`Intl` calls or floating-point math scattered across features. Storage rules live in `database.md`;
-this file covers how the values move and render at the application boundary.
+Money and dates are parsed and formatted through shared helpers in `apps/web/lib/utils`, never with
+ad-hoc `Intl` calls or floating-point math scattered across features. Storage rules live in
+`database.md`; this file covers how the values move and render at the application boundary.
 
 ## Money is integer minor units
 
@@ -12,14 +12,14 @@ represent money as a float and never do money math with floats.
 - Convert a `bigint` money column to `number` at the query boundary with `Number(...)` (see
   `queries.md`).
 - Parse a user-entered amount with `parseAmountToCents` and render cents back into an input with
-  `formatCentsForInput`, both from `lib/utils`.
+  `formatCentsForInput`, both from `apps/web/lib/utils`.
 - Round inside pure `services/` with `Math.round` when deriving totals or tax (see
   `architecture.md`); orchestrators and components receive already-computed cents.
 
-## Format at the boundary through `lib/utils`
+## Format at the boundary through `apps/web/lib/utils`
 
 Display formatting uses the locale-aware helpers in `apps/web/lib/utils/format.ts`, exported from
-`lib/utils`. Reach for these instead of constructing `new Intl.NumberFormat` or
+`apps/web/lib/utils`. Reach for these instead of constructing `new Intl.NumberFormat` or
 `new Intl.DateTimeFormat` in a feature component.
 
 | Need                       | Helper                                          |

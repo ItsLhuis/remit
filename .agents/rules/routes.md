@@ -1,9 +1,9 @@
 # API Route Rules
 
-API route handlers under `app/**/route.ts` are the narrow exception to the server-action write path.
-They exist only for public anonymous token routes, webhooks, health and metrics, and explicitly
-justified public API surfaces (see `AGENTS.md`). Anything a logged-in user does from the app is a
-server action in `mutations.ts`, not a route. Canonical exemplars:
+API route handlers under `apps/web/app/**/route.ts` are the narrow exception to the server-action
+write path. They exist only for public anonymous token routes, webhooks, health and metrics, and
+explicitly justified public API surfaces (see `AGENTS.md`). Anything a logged-in user does from the
+app is a server action in `mutations.ts`, not a route. Canonical exemplars:
 `apps/web/app/api/health/route.ts` and `apps/web/app/api/upload/[type]/route.ts`.
 
 ## Public API versions

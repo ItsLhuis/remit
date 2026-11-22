@@ -21,7 +21,7 @@ permission rules).
    them: you must never commit the owner's unrelated work.
 2. List the exact paths you intend to commit. Never stage with `git add -A`, `git add .`,
    `git add -u`, a directory or a glob. A path containing `[` (Next.js dynamic routes) is staged as
-   a literal pathspec, for example `git add -- ':(literal)app/api/auth/[...all]/route.ts'`.
+   a literal pathspec, for example `git add -- ':(literal)apps/web/app/api/auth/[...all]/route.ts'`.
 
 ## 2. Read the message rules
 

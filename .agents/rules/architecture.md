@@ -20,8 +20,8 @@ the nearest comparable file in the same feature and layer.
 
 ## Feature module shape
 
-Each feature lives under `features/<feature>/` and is a closed module. One responsibility per file;
-add only the files the feature needs now.
+Each feature lives under `apps/web/features/<feature>/` and is a closed module. One responsibility
+per file; add only the files the feature needs now.
 
 - `features/<feature>/components/` - React UI and module-private contracts only (see
   `components.md`).
@@ -54,12 +54,13 @@ add only the files the feature needs now.
   browser, the server, the worker and a unit test. Use it when the rule is all you need — the root
   barrel re-exports components and `server.ts` reaches mutations, and either can close a cycle.
   `apps/web/features/clients/publicQueries.ts` reads the contract display status this way, because
-  `features/contracts` reaches `features/clients/server` through its own mutations.
+  `apps/web/features/contracts` reaches `apps/web/features/clients/server` through its own
+  mutations.
 
 Never export database/auth/server-only code from `index.ts`. Sibling files inside a feature import
 by direct path. Never restate another feature's rule to avoid a cycle; import it through the
-services door. Types from `database/schema` are shared substrate and may be imported directly.
-Enforced by `no-restricted-imports` (`featureBoundaryRule` in `eslint.config.mjs`).
+services door. Types from `apps/web/database/schema` are shared substrate and may be imported
+directly. Enforced by `no-restricted-imports` (`featureBoundaryRule` in `eslint.config.mjs`).
 
 ## Purity rule for `services/`
 
@@ -69,21 +70,30 @@ Every non-trivial calculation, state transition, validation or transformation li
 any IO module (`pureServicesRule` in `eslint.config.mjs` enforces the framework and database part).
 They receive all data as arguments and return all data; they do not read the session, headers,
 environment, database, request state or global mutable state. Why: millisecond Vitest runs without
-mocks, refactor confidence when the ORM or framework changes, and a clean extraction path to
-`packages/core`.
+mocks, refactor confidence when the ORM or framework changes, and a service can move into
+`packages/core` unchanged.
+
+## `packages/core`
+
+`packages/core` (`@remit/core`) holds the framework-free helpers that feature services and the rest
+of the application share: the money, date, formatting, string, locale, HTML and URL helpers and the
+CSV serializers. The whole package is pure: it imports no `next`, `react`, `drizzle-orm`,
+`postgres`, `node:*` IO module, `@/` path or `@remit/web`, and reads no `process` or `document`
+global. A helper that needs any of them stays in `apps/web/lib/utils/`. Feature services stay in
+`features/<feature>/services/` until a change that rewrites one moves it into core.
 
 ## Work placement
 
-| Work kind                                     | File                           |
-| --------------------------------------------- | ------------------------------ |
-| Read a record or list                         | `queries.ts`                   |
-| Write, create, update, delete                 | `mutations.ts` (server action) |
-| Business logic, calculation, state transition | `services/<name>.ts`           |
-| Input shape and validation                    | `schemas.ts`                   |
-| Public types consumed by other features       | `types.ts` or `index.ts`       |
-| Cross-feature event wiring                    | `events.ts`                    |
-| Generic request/string/date/number helper     | `lib/utils/<name>.ts`          |
-| Shared UI primitive                           | `components/ui/<Name>.tsx`     |
+| Work kind                                     | File                                |
+| --------------------------------------------- | ----------------------------------- |
+| Read a record or list                         | `queries.ts`                        |
+| Write, create, update, delete                 | `mutations.ts` (server action)      |
+| Business logic, calculation, state transition | `services/<name>.ts`                |
+| Input shape and validation                    | `schemas.ts`                        |
+| Public types consumed by other features       | `types.ts` or `index.ts`            |
+| Cross-feature event wiring                    | `events.ts`                         |
+| Generic request/string/date/number helper     | `apps/web/lib/utils/<name>.ts`      |
+| Shared UI primitive                           | `apps/web/components/ui/<Name>.tsx` |
 
 ## Thin orchestrators
 

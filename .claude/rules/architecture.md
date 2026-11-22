@@ -1,10 +1,11 @@
 ---
 paths:
-  - "features/**/*.ts"
-  - "features/**/*.tsx"
-  - "app/**/*.ts"
-  - "app/**/*.tsx"
-  - "lib/**/*.ts"
+  - "apps/web/features/**/*.ts"
+  - "apps/web/features/**/*.tsx"
+  - "apps/web/app/**/*.ts"
+  - "apps/web/app/**/*.tsx"
+  - "apps/web/lib/**/*.ts"
+  - "packages/core/**/*.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/architecture.md` and follow

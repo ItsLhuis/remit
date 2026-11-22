@@ -1,8 +1,8 @@
 ---
 paths:
-  - "components/**/*.tsx"
-  - "features/**/*.tsx"
-  - "app/**/*.tsx"
+  - "apps/web/components/**/*.tsx"
+  - "apps/web/features/**/*.tsx"
+  - "apps/web/app/**/*.tsx"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/accessibility.md` and follow

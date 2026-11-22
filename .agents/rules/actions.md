@@ -167,10 +167,9 @@ A feature's server actions live in `mutations.ts`. When that file reaches the 50
 splits by concern into named `<concern>Mutations.ts` siblings — `imageMutations.ts` for upload
 confirmation, `forgetMutations.ts` for erasure — and never by moving one action away from the action
 it undoes. A soft delete and its restore are one lifecycle and always share a file: in
-`mutations.ts` while it fits, and in `trashMutations.ts` once it does not (`features/clients`,
-`features/contracts`, `features/invoices` and `features/proposals` today). A split file is a
-`"use server"` module like `mutations.ts`, carries the same rules, and is exported through the
-feature's `server.ts`.
+`mutations.ts` while it fits, and in `trashMutations.ts` once it does not (the `clients`,
+`contracts`, `invoices` and `proposals` features today). A split file is a `"use server"` module
+like `mutations.ts`, carries the same rules, and is exported through the feature's `server.ts`.
 
 Placing restore in its own file because `mutations.ts` was full was rejected: it left the action
 that undoes a delete in a different file from the delete, which is the first place a reader looks,

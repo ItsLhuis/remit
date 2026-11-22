@@ -4,8 +4,9 @@ paths:
   - "**/*.test.tsx"
   - "**/__tests__/**"
   - "tests/**"
-  - "vitest*.ts"
-  - "playwright.config.ts"
+  - "apps/web/tests/**"
+  - "**/vitest*.ts"
+  - "apps/web/playwright.config.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/testing.md` and follow it.

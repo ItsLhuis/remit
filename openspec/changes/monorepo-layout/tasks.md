@@ -66,7 +66,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
   - Verify: `pnpm lint && pnpm typecheck && pnpm test`, `pnpm test:coverage`, and
     `pnpm exec vitest list --filesOnly` lists the same files before and after the task
 
-- [ ] 3. Repoint rule loading and the agent guidance to the new layout
+- [x] 3. Repoint rule loading and the agent guidance to the new layout
   - Do: Rewrite the `paths:` globs in every `.claude/rules/*.md` pointer and the Files column of the
     rule table in `AGENTS.md` to the `apps/web/...` locations, and add `packages/core/**` and
     `apps/worker/**` where a rule applies to them (`code-style`, `comments`, `types`, `imports`,

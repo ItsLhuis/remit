@@ -1,7 +1,7 @@
 ---
 paths:
-  - "features/**/queries.ts"
-  - "features/**/public*.ts"
+  - "apps/web/features/**/queries.ts"
+  - "apps/web/features/**/public*.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/queries.md` and follow it.

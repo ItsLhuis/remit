@@ -1,10 +1,10 @@
 ---
 paths:
-  - "database/**"
-  - "drizzle/**"
-  - "features/**/queries.ts"
-  - "features/**/mutations.ts"
-  - "features/**/*Mutations.ts"
+  - "apps/web/database/**"
+  - "apps/web/drizzle/**"
+  - "apps/web/features/**/queries.ts"
+  - "apps/web/features/**/mutations.ts"
+  - "apps/web/features/**/*Mutations.ts"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/database.md` and follow it.

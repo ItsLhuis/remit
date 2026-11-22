@@ -81,19 +81,19 @@ The integration schema is migrated freshly per run; tables are truncated between
 
 ## File placement and structure
 
-| Test kind                               | Location                                                         |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| Service unit tests                      | `features/<feature>/services/__tests__/<serviceName>.test.ts`    |
-| Shared utility unit tests               | `lib/utils/__tests__/<utilityName>.test.ts`                      |
-| Shared hook tests                       | `hooks/__tests__/<useHookName>.test.ts`                          |
-| Feature hook tests                      | Sibling `useHookName.test.ts` next to the hook file              |
-| Component tests (folder component)      | `ComponentName/__tests__/ComponentName.test.tsx`                 |
-| Component tests (single-file component) | `__tests__/ComponentName.test.tsx` adjacent to the component     |
-| Server action integration tests         | `features/<feature>/__tests__/<actionName>.integration.test.ts`  |
-| E2E tests                               | `tests/e2e/<flow-name>.spec.ts`, one flow per file               |
-| Host-side script tests                  | `scripts/host/__tests__/<scriptName>.test.ts`                    |
-| Test factories                          | `tests/factories/<entity>.ts` exporting `makeEntity(overrides?)` |
-| Docs consistency tests                  | `tests/docs/*.test.ts`                                           |
+| Test kind                               | Location                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------- |
+| Service unit tests                      | `features/<feature>/services/__tests__/<serviceName>.test.ts`             |
+| Shared utility unit tests               | `apps/web/lib/utils/__tests__/<utilityName>.test.ts`                      |
+| Shared hook tests                       | `apps/web/hooks/__tests__/<useHookName>.test.ts`                          |
+| Feature hook tests                      | Sibling `useHookName.test.ts` next to the hook file                       |
+| Component tests (folder component)      | `ComponentName/__tests__/ComponentName.test.tsx`                          |
+| Component tests (single-file component) | `__tests__/ComponentName.test.tsx` adjacent to the component              |
+| Server action integration tests         | `features/<feature>/__tests__/<actionName>.integration.test.ts`           |
+| E2E tests                               | `apps/web/tests/e2e/<flow-name>.spec.ts`, one flow per file               |
+| Host-side script tests                  | `scripts/host/__tests__/<scriptName>.test.ts`                             |
+| Test factories                          | `apps/web/tests/factories/<entity>.ts` exporting `makeEntity(overrides?)` |
+| Docs consistency tests                  | `tests/docs/*.test.ts`                                                    |
 
 - Use top-level `test(...)` when a file has fewer than four tests; `describe(...)` only to group
   beyond that.
@@ -126,5 +126,5 @@ The integration schema is migrated freshly per run; tables are truncated between
 | `pnpm test:integration` | Integration suite against Dockerized Postgres     | Every PR                           |
 | `pnpm test:e2e`         | Playwright suite against a built image            | PRs into `main`; nightly otherwise |
 
-Coverage is tracked for all tiers but enforced as a hard gate only for `features/*/services/`, which
-must stay above 90%.
+Coverage is tracked for all tiers but enforced as a hard gate only for
+`apps/web/features/*/services/`, which must stay above 90%.

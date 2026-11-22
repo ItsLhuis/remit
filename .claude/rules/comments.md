@@ -4,6 +4,7 @@ paths:
   - "**/*.tsx"
   - "**/*.mjs"
   - "scripts/**"
+  - "apps/web/scripts/**"
 ---
 
 Before writing or editing a file this rule matches, read `.agents/rules/comments.md` and follow it.

@@ -96,7 +96,7 @@ Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure
 **reported** to their Sentry-compatible receiver, and it is reported from exactly two boundaries:
 
 - An error that **escapes** a server component, a route handler, a server action or the proxy.
-  Next.js hands it to `onRequestError` in `instrumentation.ts`.
+  Next.js hands it to `onRequestError` in `apps/web/instrumentation.ts`.
 - A job whose **last attempt** fails in the worker (`apps/web/lib/jobs/worker.ts`), a worker that
   fails to start, and a worker that crashes after starting on an unhandled rejection or an uncaught
   exception (`apps/web/scripts/worker.ts`, `apps/web/scripts/core/worker/crash.ts`). An attempt a

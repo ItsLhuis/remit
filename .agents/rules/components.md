@@ -22,8 +22,8 @@ Extension follows content (JSX makes it `.tsx`), never the folder; classify by k
 `TemplatesListPage/columns.ts` (a config function rendering no JSX) and
 `ClientsListPage/columns.tsx` are the same kind and both correctly co-located. Lint-enforced from
 both sides: `remit/no-hook-in-components` fails an exported `use*` function under
-`features/**/components/**`; `remit/hook-file-exports-its-hook` fails a file in a `hooks` folder
-named `use*` that does not export that hook.
+`apps/web/features/**/components/**`; `remit/hook-file-exports-its-hook` fails a file in a `hooks`
+folder named `use*` that does not export that hook.
 
 ## Component files
 
@@ -61,7 +61,8 @@ with one blank line.
 - Use `cva` for variant-heavy primitives, with the variants constant above the component.
 - Compose classes with `cn(...)`, following the surrounding primitive's wrapping style.
 - Use `<Icon name="IconName" />` for Lucide icons; never import from `lucide-react` directly.
-- Tailwind v4 tokens are CSS variables in `app/globals.css`; there is no `tailwind.config.js`.
+- Tailwind v4 tokens are CSS variables in `apps/web/app/globals.css`; there is no
+  `tailwind.config.js`.
 - Add shadcn components with `pnpm shadcn add <component>`.
 
 ## Always use UI primitives
@@ -101,7 +102,7 @@ leave a short comment saying why when a raw element is kept on purpose.
 `useWatch({ control })` with no `name` subscribes to every field, so one keystroke re-renders the
 component and everything below it. Name the fields the component reads, and put the `useWatch` in
 the component that reads them rather than at the form root (a value watched at the root re-renders
-every sibling). Enforced by `remit/no-unnamed-use-watch` under `features/**/components/**`.
+every sibling). Enforced by `remit/no-unnamed-use-watch` under `apps/web/features/**/components/**`.
 `ProposalPricingSection` and `InvoicePricingSection` are the canonical shape; their rows are
 `memo`'d because a document-level discount makes every row's total depend on every other row.
 
