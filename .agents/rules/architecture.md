@@ -70,17 +70,8 @@ Every non-trivial calculation, state transition, validation or transformation li
 any IO module (`pureServicesRule` in `eslint.config.mjs` enforces the framework and database part).
 They receive all data as arguments and return all data; they do not read the session, headers,
 environment, database, request state or global mutable state. Why: millisecond Vitest runs without
-mocks, refactor confidence when the ORM or framework changes, and a service can move into
-`packages/core` unchanged.
-
-## `packages/core`
-
-`packages/core` (`@remit/core`) holds the framework-free helpers that feature services and the rest
-of the application share: the money, date, formatting, string, locale, HTML and URL helpers and the
-CSV serializers. The whole package is pure: it imports no `next`, `react`, `drizzle-orm`,
-`postgres`, `node:*` IO module, `@/` path or `@remit/web`, and reads no `process` or `document`
-global. A helper that needs any of them stays in `apps/web/lib/utils/`. Feature services stay in
-`features/<feature>/services/` until a change that rewrites one moves it into core.
+mocks, refactor confidence when the ORM or framework changes, and a clean extraction path to
+`packages/core`.
 
 ## Work placement
 

@@ -17,9 +17,9 @@ pnpm dev | build | start           # Next.js dev server (Turbopack), production 
 pnpm dev:worker | start:worker     # Background job worker, in watch mode or from its build
 pnpm services:up | down | logs     # Local Docker services; pnpm dev:setup also migrates
 pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached), whole repository
-pnpm typecheck                     # tsc --noEmit for every package
-pnpm test                          # Vitest, a project per package (~2-3 min); pnpm exec vitest related --run <files>
-pnpm --filter @remit/<web|worker|core> <script>   # One package's own script; root commands delegate
+pnpm typecheck                     # tsc --noEmit for the root and apps/web
+pnpm test                          # Vitest, the web and repository projects (~2-3 min); pnpm exec vitest related --run <files>
+pnpm --filter @remit/web <script>  # One package's own script; root commands delegate
 pnpm test:integration              # Needs pnpm database:test:up and database:test:migrate
 pnpm test:e2e                      # Playwright
 pnpm check | ci                    # lint+typecheck+test | + build
@@ -32,9 +32,9 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 
 ## Directory map
 
-A pnpm workspace of three private packages: `apps/web` (`@remit/web`, the Next.js application),
-`apps/worker` (`@remit/worker`, the background job process) and `packages/core` (`@remit/core`, pure
-helpers). The root keeps the repository tooling, the deployment files, the docs and `openspec/`.
+A pnpm workspace (`apps/*`, `packages/*`) that today holds one private package, `apps/web`
+(`@remit/web`, the Next.js application). The root keeps the repository tooling, the deployment
+files, the docs and `openspec/`.
 
 - `apps/web/app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
   `(public)`; token routes for invoices, proposals, contracts and the client portal.
@@ -47,11 +47,8 @@ helpers). The root keeps the repository tooling, the deployment files, the docs 
 - `apps/web/lib/` - server and client utilities; `apps/web/lib/auth/session.ts` has
   `requireSession`/`requireRole`.
 - `apps/web/hooks/`, `apps/web/providers/`; `tools/eslint-rules/` (custom `remit/*` lint rules).
-- `apps/web/scripts/` - `remit:*` commands; `scripts/` - host and release scripts.
-- `apps/worker` - the worker entry and its job wiring, reaching the web modules it loads through
-  `@remit/web`.
-- `packages/core` - framework-free money, date, formatting, string, locale, HTML, URL and CSV
-  helpers; no framework, database, IO or environment access (`.agents/rules/architecture.md`).
+- `apps/web/scripts/` - `remit:*` commands and the worker entry (`worker.ts`, `core/worker/`);
+  `scripts/` - host and release scripts.
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
 - `docs/` - architecture map, operator runbooks, deployment guides.
 
