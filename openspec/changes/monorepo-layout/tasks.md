@@ -71,11 +71,10 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     rule table in `AGENTS.md` to the `apps/web/...` locations, and add `packages/core/**` and
     `apps/worker/**` where a rule applies to them (`code-style`, `comments`, `types`, `imports`,
     `errors`, `testing`, and `architecture` for `packages/core`). Update the `AGENTS.md` directory
-    map and Commands block to the three packages, and the matching path mentions in
-    `.agents/rules/*`, `.agents/skills/*`, `.agents/agents/*`, `.agents/README.md` and `.codex/`
-    that tasks 1 and 2 did not have to change. In `.agents/rules/architecture.md`, replace the line
-    that names `packages/core` as a future extraction with what the package holds and its purity
-    rule.
+    map and Commands block to the workspace as it stands, with `apps/web` its only package (tasks 4
+    and 5 each add their own package), and the matching path mentions in `.agents/rules/*`,
+    `.agents/skills/*`, `.agents/agents/*`, `.agents/README.md` and `.codex/` that tasks 1 and 2 did
+    not have to change.
   - Done when: no rule pointer glob or rule-table row names a root `app/`, `features/`, `lib/`,
     `components/`, `hooks/`, `providers/`, `database/` or `drizzle/` path; a file under
     `apps/web/features/` and one under `packages/core/` each match the rules the table lists for
@@ -97,7 +96,9 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     package to the root `pnpm typecheck`, and update `tests/docs/packaging.test.ts` to the bundles
     each package builds. Record the app-to-app edge as a known limit in
     `docs/architecture/ARCHITECTURE.md`, naming `job-queues`, `command-layer-outbox` or a
-    `packages/db` change as what removes it.
+    `packages/db` change as what removes it. Add `apps/worker` to the `AGENTS.md` directory map and
+    its Commands block, take the worker entry out of the `apps/web/scripts/` entry there, and
+    repoint the worker paths in `.agents/rules/errors.md` and any other guidance that names them.
   - Done when: `apps/worker` imports nothing from `apps/web` outside the `exports` map (a deep
     import fails `pnpm typecheck`); the job-catalog test runs from `apps/worker`; the `worker` image
     starts and renders an invoice PDF.
@@ -119,9 +120,14 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     moved). Callers import the moved helpers from `@remit/core`; `@/lib/utils` keeps only the
     web-only helpers and does not re-export core. Add the ESLint block that applies the purity rule
     to `packages/core/**` (no `next`, `react`, `drizzle-orm`, `postgres`, `node:*` IO modules, `@/`
-    or `@remit/web` import, and no `process` or `document` global), a `@remit/core` import group,
-    `transpilePackages: ["@remit/core"]` in `next.config.mjs` if the build needs it, and the core
-    paths in `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`.
+    or `apps/*` package import, and no `process` or `document` global), a `@remit/core` import
+    group, `transpilePackages: ["@remit/core"]` in `next.config.mjs` if the build needs it, and the
+    core paths in `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`. Add
+    `packages/core` to the `AGENTS.md` directory map and its Commands block, and a `packages/core`
+    section to `.agents/rules/architecture.md` that states what the package holds and its purity
+    rule and names the ESLint block that enforces it. Repoint the guidance that names a moved helper
+    or the import order: `.agents/rules/money-and-dates.md`, `.agents/rules/testing.md`,
+    `.agents/rules/imports.md` and the work-placement table in `.agents/rules/architecture.md`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
     `packages/core`; `pnpm test:coverage` reports the `packages/core` files; `pnpm build` and both
