@@ -17,7 +17,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `vitest.integration.config.ts`, `components.json`, `tsup.scripts.config.ts`, the `remit:*`
     entries and `migrate.ts`, `worker.ts`, `ship-server-source-maps.ts` and
     `generate-encryption-key.ts` under `scripts/`, `scripts/core/` except the modules only the
-    release scripts use, and `scripts/README.md`. The worker stays inside `apps/web` until task 3.
+    release scripts use, and `scripts/README.md`. The worker stays inside `apps/web` until task 4.
     Add a root `tsconfig.base.json` that `apps/web/tsconfig.json` extends, with `@/*` resolving to
     `apps/web`. Set `outputFileTracingRoot` (and `turbopack.root` only if the build needs it) to the
     workspace root. Turn the root `vitest.config.ts` into one configuration with a project per
@@ -49,15 +49,32 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `docker compose exec -T app pnpm remit:backup --yes`,
     `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, `pnpm test:e2e`
 
-- [ ] 2. Repoint rule loading and the agent guidance to the new layout
+- [ ] 2. Give each package its own Vitest config and make the TypeScript base neutral
+  - Do: Create `apps/web/vitest.config.ts` with `defineProject`, named `web`, holding the `@/*`
+    alias to `apps/web` and the node and happy-dom environment projects as its nested projects, with
+    the comment that keeps their `include` and `exclude` exact complements. Reduce the root
+    `vitest.config.ts` to `projects: ["apps/*", "packages/*"]` plus the `repository` project,
+    keeping only the options Vitest reads from the root alone: `maxWorkers` and the `coverage` block
+    with its include, exclude and thresholds (decision 3). Remove `dom`, `dom.iterable`, `jsx` and
+    `allowJs` from `tsconfig.base.json` and add them to `apps/web/tsconfig.json`. Move `happy-dom`
+    from the root `devDependencies` to those of `apps/web`, keeping its version range.
+  - Done when: `pnpm test` runs the same test files as before, split across the two `web` projects
+    and `repository`; the root `vitest.config.ts` names no `apps/web` path outside `coverage`;
+    `tsconfig.base.json` sets no `dom` library, `jsx` or `allowJs`; `happy-dom` is declared only in
+    `apps/web/package.json`; `pnpm test:coverage` still enforces the services threshold.
+  - Verify: `pnpm lint && pnpm typecheck && pnpm test`, `pnpm test:coverage`, and
+    `pnpm exec vitest list --filesOnly` lists the same files before and after the task
+
+- [ ] 3. Repoint rule loading and the agent guidance to the new layout
   - Do: Rewrite the `paths:` globs in every `.claude/rules/*.md` pointer and the Files column of the
     rule table in `AGENTS.md` to the `apps/web/...` locations, and add `packages/core/**` and
     `apps/worker/**` where a rule applies to them (`code-style`, `comments`, `types`, `imports`,
     `errors`, `testing`, and `architecture` for `packages/core`). Update the `AGENTS.md` directory
     map and Commands block to the three packages, and the matching path mentions in
     `.agents/rules/*`, `.agents/skills/*`, `.agents/agents/*`, `.agents/README.md` and `.codex/`
-    that task 1 did not have to change. In `.agents/rules/architecture.md`, replace the line that
-    names `packages/core` as a future extraction with what the package holds and its purity rule.
+    that tasks 1 and 2 did not have to change. In `.agents/rules/architecture.md`, replace the line
+    that names `packages/core` as a future extraction with what the package holds and its purity
+    rule.
   - Done when: no rule pointer glob or rule-table row names a root `app/`, `features/`, `lib/`,
     `components/`, `hooks/`, `providers/`, `database/` or `drizzle/` path; a file under
     `apps/web/features/` and one under `packages/core/` each match the rules the table lists for
@@ -66,7 +83,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `git grep -nE '^\s+- "(app|features|lib|components|hooks|providers|database|drizzle)/' -- .claude/rules`
     prints nothing
 
-- [ ] 3. Move the worker process into `apps/worker`
+- [ ] 4. Move the worker process into `apps/worker`
   - Do: Create `apps/worker/package.json` (`@remit/worker`, `private`, depending on
     `@remit/web: workspace:*`) and its `tsconfig.json`. Move `worker.ts` and `core/worker/` with its
     tests into `apps/worker` with `git mv`. Give `apps/web/package.json` an `exports` map that names
@@ -74,8 +91,8 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     them through `@remit/web/...`. Give the worker its own tsup build that bundles the `@remit/web`
     modules, and drop the `worker` entry from the `apps/web` tsup config. Keep `pnpm dev:worker` and
     `pnpm start:worker` working from the root. Point the Dockerfile `worker` stage at the new bundle
-    while it still extends `runner` (decision 4), add the worker test project to the root Vitest
-    configuration and the package to the root `pnpm typecheck`, and update
+    while it still extends `runner` (decision 4), give the worker its own `vitest.config.ts`, which
+    the root `apps/*` glob picks up, add the package to the root `pnpm typecheck`, and update
     `tests/docs/packaging.test.ts` to the bundles each package builds. Record the app-to-app edge as
     a known limit in `docs/architecture/ARCHITECTURE.md`, naming `job-queues`,
     `command-layer-outbox` or a `packages/db` change as what removes it.
@@ -87,19 +104,20 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     worker log shows the render job completing, and
     `docker compose exec -T app pnpm remit:backup --yes`
 
-- [ ] 4. Create `packages/core` with the pure `lib/utils` helpers
-  - Do: Create `packages/core` (`@remit/core`, `private`) with a `tsconfig.json` extending the base
-    without the `dom` library and covered by the root `pnpm typecheck`, a Vitest project, and an
-    `index.ts` door. Move with `git mv` `money`, `datetime`, `format`, `string`, `locale`, `html`
-    and `url` from `apps/web/lib/utils/` with their tests, and from `csv.ts` move `escapeCsvValue`
-    and `serializeCsv`; `downloadCsv` touches `document`, so it stays in `apps/web/lib/utils`
-    (decision 2: confirmed free of IO when moved). Callers import the moved helpers from
-    `@remit/core`; `@/lib/utils` keeps only the web-only helpers and does not re-export core. Add
-    the ESLint block that applies the purity rule to `packages/core/**` (no `next`, `react`,
-    `drizzle-orm`, `postgres`, `node:*` IO modules, `@/` or `@remit/web` import, and no `process` or
-    `document` global), a `@remit/core` import group, `transpilePackages: ["@remit/core"]` in
-    `next.config.mjs` if the build needs it, and the core paths in
-    `tests/docs/sanitization.test.ts`. The tsup bundles inline `@remit/core`.
+- [ ] 5. Create `packages/core` with the pure `lib/utils` helpers
+  - Do: Create `packages/core` (`@remit/core`, `private`) with a `tsconfig.json` that extends the
+    base without overriding `lib` and is covered by the root `pnpm typecheck`, its own
+    `vitest.config.ts`, which the root `packages/*` glob picks up, and an `index.ts` door. Move with
+    `git mv` `money`, `datetime`, `format`, `string`, `locale`, `html` and `url` from
+    `apps/web/lib/utils/` with their tests, and from `csv.ts` move `escapeCsvValue` and
+    `serializeCsv`; `downloadCsv` touches `document`, so it stays in `apps/web/lib/utils` (decision
+    2: confirmed free of IO when moved). Callers import the moved helpers from `@remit/core`;
+    `@/lib/utils` keeps only the web-only helpers and does not re-export core. Add the ESLint block
+    that applies the purity rule to `packages/core/**` (no `next`, `react`, `drizzle-orm`,
+    `postgres`, `node:*` IO modules, `@/` or `@remit/web` import, and no `process` or `document`
+    global), a `@remit/core` import group, `transpilePackages: ["@remit/core"]` in `next.config.mjs`
+    if the build needs it, and the core paths in `tests/docs/sanitization.test.ts`. The tsup bundles
+    inline `@remit/core`.
   - Done when: the moved helpers' tests run in the `packages/core` project; nothing under
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
     `packages/core`; `pnpm build` and both images still build.
@@ -107,7 +125,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `printf 'import "react"\n' | pnpm exec eslint --stdin --stdin-filename packages/core/probe.ts`
     exits non-zero, and `docker build --target runner . && docker build --target worker .`
 
-- [ ] 5. Repoint the architecture map, operator docs and remaining path mentions
+- [ ] 6. Repoint the architecture map, operator docs and remaining path mentions
   - Do: Update `docs/architecture/ARCHITECTURE.md` (directory map, the three packages, where pure
     logic lives), `apps/web/scripts/README.md`, the operator runbooks in `docs/operations/` and the
     deployment guides that name repository paths, `README.md`, and any remaining prose mention of a

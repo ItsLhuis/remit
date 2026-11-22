@@ -115,10 +115,13 @@ The owner accepted the recommended answer to each of the five open questions.
    husky, `lint-staged`, a `tsconfig.base.json` that each package extends, the release scripts
    (`bump-version`, `check-changelog`) and `tests/docs/`. It also keeps the deployment files
    (`Dockerfile`, `docker-compose*.yml`, `docker-entrypoint.sh`, `deploy/`, `scripts/host/`), the
-   docs, `openspec/`, `.agents/` and `CHANGELOG.md`. There is one root `eslint.config.mjs` and one
-   Vitest configuration with a project per package; no `packages/config` (FR1). Rejected: a config
-   per package from the start, which costs files now and saves nothing until a package needs
-   different rules.
+   docs, `openspec/`, `.agents/` and `CHANGELOG.md`. There is one root `eslint.config.mjs`; no
+   `packages/config` (FR1). A shared config holds only what every package needs:
+   `tsconfig.base.json` carries no `dom` library, `jsx` or `allowJs`, which `apps/web/tsconfig.json`
+   adds, and the root Vitest configuration discovers each package's own `vitest.config.ts`, keeping
+   only the repository project and the options Vitest reads from the root alone (`coverage`,
+   `maxWorkers`). Rejected: a config per package for ESLint and Prettier from the start, which costs
+   files now and saves nothing until a package needs different rules.
 4. **One root `Dockerfile` builds both images from the workspace root.** The `worker` stage still
    extends the web `runner`, so both run byte-identical code and only the worker carries Chromium.
    Image names, targets and Compose services stay the same. Rejected for now: an independent worker
