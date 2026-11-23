@@ -241,6 +241,40 @@ const pureServicesRule = [
   }
 ]
 
+// The worker reaches `apps/web` only through the `@remit/web` exports map. `pnpm typecheck` rejects
+// an `@remit/web/...` path the map does not name, but it accepts `@/`, which
+// apps/worker/tsconfig.json maps for the web modules it checks, and a relative path into apps/web,
+// which needs no mapping. These two rules are what reject both: `no-restricted-imports` for static
+// imports and re-exports, and selectors for `import()`, which that rule never inspects and through
+// which the worker loads nearly all of its web code.
+const webDeepImportPattern = /^(@\/|(\.\.\/)+(apps\/)?web\/)/
+
+const webDeepImportMessage =
+  "Import web code through an @remit/web export (apps/web/package.json), never through @/ or a relative path."
+
+const forbidWebDeepImportRule = [
+  "error",
+  { patterns: [{ regex: webDeepImportPattern.source, message: webDeepImportMessage }] }
+]
+
+const forbidDynamicWebDeepImportSelectors = [
+  {
+    selector: `ImportExpression[source.value=${webDeepImportPattern}]`,
+    message: webDeepImportMessage
+  },
+  {
+    selector: `ImportExpression[source.quasis.0.value.cooked=${webDeepImportPattern}]`,
+    message: webDeepImportMessage
+  }
+]
+
+const forbidFocusedTestsSelector = {
+  selector:
+    "CallExpression[callee.object.name=/^(describe|test|it|suite|bench)$/][callee.property.name=/^(only|skip)$/]",
+  message:
+    "Do not commit focused or skipped tests (.only/.skip). Remove the modifier before committing (see testing.md)."
+}
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -340,23 +374,10 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    // The worker reaches `apps/web` only through the `@remit/web` exports map, and `pnpm typecheck`
-    // rejects a package import the map does not name. apps/worker/tsconfig.json still maps `@/` for
-    // the web modules it checks, so this closes that path, and the relative one, around the map.
     files: ["apps/worker/**/*.ts"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              regex: "^(@/|(\.\./)+web/)",
-              message:
-                "Import web code through an @remit/web export (apps/web/package.json), never through @/ or a relative path."
-            }
-          ]
-        }
-      ]
+      "no-restricted-imports": forbidWebDeepImportRule,
+      "no-restricted-syntax": ["error", ...forbidDynamicWebDeepImportSelectors]
     }
   },
   {
@@ -460,14 +481,18 @@ const eslintConfig = defineConfig([
     files: ["**/*.{test,spec}.{ts,tsx}"],
     ignores: ["apps/web/tests/e2e/**"],
     rules: {
+      "no-restricted-syntax": ["error", forbidFocusedTestsSelector]
+    }
+  },
+  {
+    // A later `no-restricted-syntax` replaces an earlier one rather than adding to it, so without
+    // this block the test block above would drop the worker's `import()` selectors from its tests.
+    files: ["apps/worker/**/*.{test,spec}.ts"],
+    rules: {
       "no-restricted-syntax": [
         "error",
-        {
-          selector:
-            "CallExpression[callee.object.name=/^(describe|test|it|suite|bench)$/][callee.property.name=/^(only|skip)$/]",
-          message:
-            "Do not commit focused or skipped tests (.only/.skip). Remove the modifier before committing (see testing.md)."
-        }
+        forbidFocusedTestsSelector,
+        ...forbidDynamicWebDeepImportSelectors
       ]
     }
   },

@@ -3,7 +3,9 @@
   // The worker reaches `apps/web` only through the `@remit/web` exports map, but the compiler checks
   // the web modules it loads with these options. Their graph reaches `.tsx` components and DOM
   // types, and they import each other through `@/`, so this restates what apps/web/tsconfig.json
-  // sets for them. ESLint forbids `@/` in the worker's own files.
+  // sets for them. The mapping also lets the worker's own files compile with `@/`, as a relative
+  // path into apps/web would, so ESLint rejects both there (`webDeepImportPattern` in
+  // eslint.config.mjs), static and `import()` alike.
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx",

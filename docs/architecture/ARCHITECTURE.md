@@ -80,8 +80,12 @@ worker. `import/no-cycle` runs in oxlint (`.oxlintrc.json`).
 
 The worker is its own package, `apps/worker`, and reaches the job handlers, the database and `lib/`
 through the web package: it depends on `@remit/web`, whose `exports` map in `apps/web/package.json`
-names only the modules the worker loads, so `pnpm typecheck` rejects any other import of web code
-and ESLint rejects `@/` and relative paths into `apps/web`. Its tsup bundle inlines those modules,
+names the modules the worker loads, plus `./lib/jobs`, which only
+`apps/worker/core/__tests__/jobCatalog.integration.test.ts` imports. `pnpm typecheck` rejects an
+`@remit/web/...` path the map does not name. It cannot reject `@/`, which
+`apps/worker/tsconfig.json` maps for the web modules it checks, or a relative path into `apps/web`,
+which needs no mapping, so ESLint rejects both (`webDeepImportPattern` in `eslint.config.mjs`) in
+static imports, re-exports and `import()` alike. Its tsup bundle inlines the `@remit/web` modules,
 and `apps/worker/resolveWebDependencies.ts` resolves their dependencies from the web package at run
 time. Known limit: this is one application depending on another, not on a shared package. The
 `job-queues` change, the `command-layer-outbox` change, or a change that creates `packages/db`
