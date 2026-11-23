@@ -2,7 +2,7 @@ import { registerJobHandler } from "@/lib/jobs"
 
 import { sendWebhookDelivery, settleExhaustedWebhookDelivery } from "./delivery"
 
-// Loaded by the worker through `scripts/core/worker/loadWorkerFeatureModules.ts`; registering here
+// Loaded by the worker through `apps/worker/core/loadWorkerFeatureModules.ts`; registering here
 // is what gives `webhook.delivery.send` its consumer.
 registerJobHandler(
   "webhook.delivery.send",

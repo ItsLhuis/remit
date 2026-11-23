@@ -2,6 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": [
     "apps/web/scripts/*.ts",
+    "apps/worker/worker.ts",
+    "apps/worker/resolveWebDependencies.ts",
     "apps/web/instrumentation.ts",
     "apps/web/features/*/index.ts",
     "apps/web/features/*/server.ts",
@@ -10,6 +12,7 @@
   "ignorePatterns": [
     "apps/web/database/schema/**",
     "apps/web/scripts/dist/**",
+    "apps/worker/dist/**",
     "**/*.generated.ts",
     "apps/web/doctor.config.ts"
   ],

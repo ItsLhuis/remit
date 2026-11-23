@@ -13,17 +13,20 @@ ENV NEXT_TELEMETRY_DISABLED=1
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
 RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
 RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/apps/worker/node_modules ./apps/worker/node_modules
 COPY . .
 
 ENV NODE_ENV=production
@@ -90,7 +93,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/restore.js 
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/rotate-encryption-key.js ./scripts/dist/rotate-encryption-key.js
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/seed-demo.js ./scripts/dist/seed-demo.js
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/reset-data.js ./scripts/dist/reset-data.js
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/scripts/dist/worker.js ./scripts/dist/worker.js
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
@@ -124,4 +126,14 @@ USER nextjs
 # to render when it is unset rather than guessing a path.
 ENV REMIT_CHROMIUM_PATH=/usr/bin/chromium-browser
 
-ENTRYPOINT ["node", "scripts/dist/worker.js"]
+# The worker's own package beside the web application it bundles: its manifest, the `@remit/web`
+# link through which apps/worker/resolveWebDependencies.ts finds the web dependencies, and the two
+# bundles. The command is `pnpm start:worker`'s, preloading that resolver ahead of the worker.
+WORKDIR /app/apps/worker
+
+COPY --from=builder --chown=nextjs:nodejs /app/apps/worker/package.json ./package.json
+COPY --from=prod-deps --chown=nextjs:nodejs /app/apps/worker/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/apps/worker/dist/resolveWebDependencies.js ./dist/resolveWebDependencies.js
+COPY --from=builder --chown=nextjs:nodejs /app/apps/worker/dist/worker.js ./dist/worker.js
+
+ENTRYPOINT ["node", "--import", "./dist/resolveWebDependencies.js", "./dist/worker.js"]

@@ -17,8 +17,7 @@ export default defineConfig({
     "reset-password": "scripts/reset-password.ts",
     restore: "scripts/restore.ts",
     "rotate-encryption-key": "scripts/rotate-encryption-key.ts",
-    "seed-demo": "scripts/seed-demo.ts",
-    worker: "scripts/worker.ts"
+    "seed-demo": "scripts/seed-demo.ts"
   },
   outDir: OUT_DIR,
   format: ["esm"],
@@ -29,7 +28,7 @@ export default defineConfig({
   sourcemap: false,
   splitting: false,
   // The scripts run under plain Node's ESM loader, which resolves a bare `next/headers` only through
-  // a package `exports` map, and `next` has none: the worker died at startup with
+  // a package `exports` map, and `next` has none: a bundle dies at startup with
   // ERR_MODULE_NOT_FOUND on the first `next/*` import its graph reaches through
   // `lib/auth/session.ts`. Next.js ships each subpath as a CommonJS file at the package root
   // (`next/headers.js`), whose named exports survive Node's CommonJS interop, so the emitted

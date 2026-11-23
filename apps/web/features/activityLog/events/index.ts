@@ -13,8 +13,8 @@ import { subscribeTimeEntryActivity } from "./timeTracking"
 // The user-facing half of the fan-out described in ARCHITECTURE.md, "Request flow": every
 // subscription in this folder turns one cross-feature domain event into one `activity_logs` row.
 // Handlers register when this module loads, the way `features/*/jobs.ts` register job handlers —
-// `instrumentation.ts` imports it for the Next server runtime and `scripts/worker.ts` for the job
-// process, because nothing under `lib/` may reach into a feature.
+// `instrumentation.ts` imports it for the Next server runtime and `apps/worker/worker.ts` for the
+// job process, because nothing under `lib/` may reach into a feature.
 //
 // One module per emitting feature, and this one is the only import site: each sibling exports its
 // subscriptions as a function rather than registering as an import side effect, so a feed source

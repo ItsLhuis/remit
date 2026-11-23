@@ -19,6 +19,7 @@ apps/web/tests/e2e/results/
 # production
 /build
 **/scripts/dist/
+apps/worker/dist/
 
 # local runtime data
 /data/

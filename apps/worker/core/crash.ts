@@ -38,8 +38,8 @@ export function exitOnWorkerCrash(): void {
 
 export async function reportWorkerCrash(error: unknown): Promise<void> {
   const [{ flushErrorReports, reportError }, { logger }] = await Promise.all([
-    import("@/lib/errorTracking"),
-    import("@/lib/logger")
+    import("@remit/web/lib/errorTracking"),
+    import("@remit/web/lib/logger")
   ])
 
   const errorEventId = reportError(error, { source: "process", phase: "run" })

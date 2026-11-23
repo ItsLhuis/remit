@@ -1,8 +1,8 @@
+import { getJobHandler, getRegisteredJobNames, JOB_NAMES } from "@remit/web/lib/jobs"
+
 import { expect, test } from "vitest"
 
-import { getJobHandler, getRegisteredJobNames, JOB_NAMES } from "@/lib/jobs"
-
-import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatureModules"
+import { loadWorkerFeatureModules } from "../loadWorkerFeatureModules"
 
 // The drift guard between producers and the job worker. A producer only has to satisfy the
 // compiler, which checks the name against `JobMap` and never against the registry, so a job name can
@@ -11,14 +11,13 @@ import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatur
 // stubs the queue never notices.
 //
 // An integration test rather than a unit one because it loads the real feature modules, which reach
-// `@/database` and `lib/config/env.ts`. It deliberately does not stub `@/lib/jobs`: the registry
-// under test is the one the worker uses, and the modules are loaded through the same function
-// `scripts/worker.ts` calls, so a job module added to the worker is covered here without anyone
-// remembering to add it twice.
+// the web database client and `lib/config/env.ts`. It deliberately does not stub
+// `@remit/web/lib/jobs`: the registry under test is the one the worker uses, and the modules are
+// loaded through the same function `worker.ts` calls, so a job module added to the worker is
+// covered here without anyone remembering to add it twice.
 // Loaded while the file is collected rather than inside a hook: it imports every feature job module
 // in one go — the whole document-rendering graph, sanitizer and template renderer included — which
 // is the worker's real startup cost, and under a full-suite run it outlasts any fixed hook budget.
-// `queueRoundTrip.integration.test.ts` and `scheduledBackup.integration.test.ts` load it the same way.
 await loadWorkerFeatureModules()
 
 test("registers a handler for every job name in the catalog", () => {

@@ -21,7 +21,7 @@ let worker: Worker | null = null
 
 // Deliberately not re-exported from `lib/jobs/index.ts`: that barrel is imported by server actions
 // for `enqueueJob`, and re-exporting the consumer half would drag BullMQ's blocking connections into
-// the Next.js server graph. The only caller is `scripts/worker.ts`.
+// the Next.js server graph. The only caller is `apps/worker/worker.ts`.
 export async function startWorker(): Promise<void> {
   if (worker) throw new Error("Worker already started")
 

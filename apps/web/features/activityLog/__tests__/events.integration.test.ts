@@ -21,8 +21,8 @@ import {
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
 
-// Imported for its side effect, exactly as `instrumentation.ts` and `scripts/worker.ts` do it: the
-// subscriptions register at module load, so nothing here wires a handler by hand and the test
+// Imported for its side effect, exactly as `instrumentation.ts` and `apps/worker/worker.ts` do it:
+// the subscriptions register at module load, so nothing here wires a handler by hand and the test
 // exercises the same registration path production uses.
 import "../events"
 

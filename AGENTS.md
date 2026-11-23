@@ -14,14 +14,14 @@ development platform.
 
 ```bash
 pnpm dev | build | start           # Next.js dev server (Turbopack), production build, start
-pnpm dev:worker | start:worker     # Background job worker, from source (tsx) or from its build
+pnpm dev:worker | start:worker     # apps/worker job consumer, from source (tsx) or from its build
 pnpm services:up | down | logs     # Local Docker services; pnpm dev:setup also migrates
 pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached), whole repository
-pnpm typecheck                     # tsc --noEmit for the root and apps/web
-pnpm test                          # Vitest, the web and repository projects (~2-3 min); pnpm exec vitest related --run <files>
+pnpm typecheck                     # tsc --noEmit for the root, apps/web and apps/worker
+pnpm test                          # Vitest, the web, worker and repository projects (~2-3 min); pnpm exec vitest related --run <files>
 pnpm test:integration              # Needs pnpm database:test:up and database:test:migrate
 pnpm test:e2e                      # Playwright
-pnpm --filter @remit/web <script>  # One script of apps/web; the root's app commands delegate to it
+pnpm --filter @remit/<web|worker> <script>  # One package's script; the root's app commands delegate
 pnpm check | ci                    # lint+typecheck+test | + build
 pnpm format | format:check         # Prettier
 pnpm database:generate             # Drizzle migration from schema changes (never hand-edit output)
@@ -32,9 +32,9 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 
 ## Directory map
 
-A pnpm workspace (`apps/*`, `packages/*`) that today holds one private package, `apps/web`
-(`@remit/web`, the Next.js application). The root keeps the repository tooling, the deployment
-files, the docs and `openspec/`.
+A pnpm workspace (`apps/*`, `packages/*`) that today holds two private packages, `apps/web`
+(`@remit/web`, the Next.js application) and `apps/worker` (`@remit/worker`, the job worker). The
+root keeps the repository tooling, the deployment files, the docs and `openspec/`.
 
 - `apps/web/app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
   `(public)`; token routes for invoices, proposals, contracts and the client portal.
@@ -47,8 +47,9 @@ files, the docs and `openspec/`.
 - `apps/web/lib/` - server and client utilities; `apps/web/lib/auth/session.ts` has
   `requireSession`/`requireRole`.
 - `apps/web/hooks/`, `apps/web/providers/`; `tools/eslint-rules/` (custom `remit/*` lint rules).
-- `apps/web/scripts/` - `remit:*` commands and the worker entry (`worker.ts`, `core/worker/`);
-  `scripts/` - host and release scripts.
+- `apps/web/scripts/` - `remit:*` commands; `scripts/` - host and release scripts.
+- `apps/worker/` - `@remit/worker`, the background job worker (`worker.ts`, `core/`). It reaches web
+  code only through the `exports` map in `apps/web/package.json`.
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
 - `docs/` - architecture map, operator runbooks, deployment guides.
 

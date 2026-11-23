@@ -39,7 +39,8 @@ export default defineConfig({
         "apps/web/features/**",
         "apps/web/lib/**",
         "apps/web/hooks/**",
-        "apps/web/scripts/core/**"
+        "apps/web/scripts/core/**",
+        "apps/worker/core/**"
       ],
       exclude: ["**/__tests__/**", "apps/web/components/ui/**", "**/*.d.ts", "**/*.config.*"],
       // Checked only by a coverage run: `pnpm test` never reads it. The unit-tests job in

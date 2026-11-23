@@ -48,15 +48,15 @@ Multi-user is three fixed roles inside one organization (`lib/auth/index.ts`), n
  Caddy  (optional, profile with-proxy)
    |
    v
- +---------------------------------------------+      +-----------------------------+
- | app  (Next.js)                              |      | worker  (scripts/worker.ts) |
- |                                             |      |                             |
- |  proxy.ts           routing state, headers  |      |  lib/jobs/worker.ts         |
- |  app/(auth) (dashboard) (editor) (public)   |      |  features/*/jobs.ts         |
- |  app/api/**         routes                  |      |  features/*/pdfRenderJob.ts |
- |  features/*         mutations, queries      |      |                             |
- |  features/*/services   pure rules           |      |                             |
- +---------------------------------------------+      +-----------------------------+
+ +---------------------------------------------+      +--------------------------------+
+ | app  (Next.js)                              |      | worker  (apps/worker/worker.ts)|
+ |                                             |      |                                |
+ |  proxy.ts           routing state, headers  |      |  lib/jobs/worker.ts            |
+ |  app/(auth) (dashboard) (editor) (public)   |      |  features/*/jobs.ts            |
+ |  app/api/**         routes                  |      |  features/*/pdfRenderJob.ts    |
+ |  features/*         mutations, queries      |      |                                |
+ |  features/*/services   pure rules           |      |                                |
+ +---------------------------------------------+      +--------------------------------+
       |             |               |                        |        |        |
       v             v               v                        v        v        v
   database       redis           storage                  database  redis   storage
@@ -66,9 +66,9 @@ Multi-user is three fixed roles inside one organization (`lib/auth/index.ts`), n
 
 `docker-compose.yml` defines these six services: `database`, `redis`, `storage`, `app`, `worker` and
 `caddy` (profile `with-proxy`). The app and worker images share one codebase; the worker image
-starts `scripts/dist/worker.js` (`Dockerfile`) and is the only one that ships Chromium. The route
-groups are `(auth)` (login, register, setup, invite, password pages), `(dashboard)`, `(editor)`
-(templates) and `(public)` (the `/i`, `/p`, `/c` and `/s` token routes), under `app/`.
+starts `apps/worker/dist/worker.js` (`Dockerfile`) and is the only one that ships Chromium. The
+route groups are `(auth)` (login, register, setup, invite, password pages), `(dashboard)`,
+`(editor)` (templates) and `(public)` (the `/i`, `/p`, `/c` and `/s` token routes), under `app/`.
 
 ## Module boundaries
 
@@ -76,9 +76,18 @@ A feature is a closed module under `features/<feature>/`. Another feature, a rou
 it only through four doors: `index`, `server`, `systemWrites` and `services` (`featureBoundaryRule`
 in `eslint.config.mjs`; the shape and the reasons are in `.agents/rules/architecture.md`).
 `systemWrites` exists because `server` re-exports `"use server"` actions that cannot load in the
-worker. `import/no-cycle` runs in oxlint (`.oxlintrc.json`). Drizzle is called from `queries.ts`,
-`mutations.ts`, `public*.ts`, `jobs.ts`, `systemWrites.ts`, `proxy.ts` and `scripts/`, and never
-from `services/`.
+worker. `import/no-cycle` runs in oxlint (`.oxlintrc.json`).
+
+The worker is its own package, `apps/worker`, and reaches the job handlers, the database and `lib/`
+through the web package: it depends on `@remit/web`, whose `exports` map in `apps/web/package.json`
+names only the modules the worker loads, so `pnpm typecheck` rejects any other import of web code
+and ESLint rejects `@/` and relative paths into `apps/web`. Its tsup bundle inlines those modules,
+and `apps/worker/resolveWebDependencies.ts` resolves their dependencies from the web package at run
+time. Known limit: this is one application depending on another, not on a shared package. The
+`job-queues` change, the `command-layer-outbox` change, or a change that creates `packages/db`
+removes the edge by moving what the worker needs out of `apps/web`. Drizzle is called from
+`queries.ts`, `mutations.ts`, `public*.ts`, `jobs.ts`, `systemWrites.ts`, `proxy.ts` and `scripts/`,
+and never from `services/`.
 
 ## Request flow
 
@@ -115,7 +124,7 @@ The event bus (`lib/events/bus.ts`, names and payloads in `lib/events/types.ts`)
 (`.agents/rules/events.md`). Its subscribers are `features/activityLog/events/`, which turns events
 into `activity_logs` rows, and `features/webhooks/events.ts`, which queues outbound deliveries. They
 are imported by `instrumentation.ts` for the app and by
-`scripts/core/worker/loadWorkerFeatureModules.ts` for the worker. The audit log is not on the bus:
+`apps/worker/core/loadWorkerFeatureModules.ts` for the worker. The audit log is not on the bus:
 `writeAudit` (`lib/audit/index.ts`) runs inline in the action, because an entry a handler could drop
 is not an audit entry.
 
@@ -127,9 +136,9 @@ so a queued side effect never fails the action; a malformed `jobId` does throw
 (`lib/jobs/jobId.ts`). The worker (`lib/jobs/worker.ts`) runs one job at a time, five attempts with
 exponential backoff (`lib/jobs/queue.ts`). A job name has exactly one handler, registered at module
 load by `features/*/jobs.ts` (`lib/jobs/registry.ts`), and the worker loads those modules through
-`scripts/core/worker/loadWorkerFeatureModules.ts`;
-`lib/jobs/__tests__/jobCatalog.integration.test.ts` fails when a name has no handler or a handler
-has no name. Money-affecting handlers are idempotent in the database, not by job id.
+`apps/worker/core/loadWorkerFeatureModules.ts`;
+`apps/worker/core/__tests__/jobCatalog.integration.test.ts` fails when a name has no handler or a
+handler has no name. Money-affecting handlers are idempotent in the database, not by job id.
 
 Six sweeps are scheduled in UTC from `lib/jobs/schedules.ts`: backup, recurring invoices, overdue
 detection, reminders, retention purge and the hourly storage deletion sweep. A schedule that is
@@ -262,8 +271,8 @@ allowed; and, only when `SENTRY_DSN` is set, error reports.
 An error report is built only by `buildErrorEvent` in `lib/errorTracking/errorEvent.ts`: it carries
 no message, request path, id or business data, and it drops the whole event rather than a field when
 a value is outside its vocabulary (`lib/errorTracking/__tests__/errorEvent.test.ts`). Reports leave
-from `instrumentation.ts`, `lib/jobs/worker.ts`, `scripts/worker.ts` and
-`scripts/core/worker/crash.ts` and nowhere else; features cannot import the reporter
+from `instrumentation.ts`, `lib/jobs/worker.ts`, `apps/worker/worker.ts` and
+`apps/worker/core/crash.ts` and nowhere else; features cannot import the reporter
 (`featureBoundaryRule` in `eslint.config.mjs`).
 
 `GET /api/metrics` is pull only, behind `REMIT_METRICS_TOKEN`; an unadmitted request is

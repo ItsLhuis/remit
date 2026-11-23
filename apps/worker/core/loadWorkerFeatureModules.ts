@@ -1,5 +1,5 @@
 // The feature modules the worker process imports for their side effects, extracted from
-// `scripts/worker.ts` so the job-catalog test can load exactly what the worker loads. A drifting
+// `worker.ts` so the job-catalog test can load exactly what the worker loads. A drifting
 // second copy of this list is how a job name ends up with no handler in production while a test that
 // imports its own selection still passes.
 //
@@ -17,17 +17,17 @@
 // modules reaches `lib/config/env.ts`, which exits the process when a variable is missing.
 export async function loadWorkerFeatureModules(): Promise<void> {
   await Promise.all([
-    import("@/features/invoices/jobs"),
-    import("@/features/proposals/jobs"),
-    import("@/features/creditNotes/jobs"),
-    import("@/features/contracts/jobs"),
-    import("@/features/recurringInvoices/jobs"),
-    import("@/features/dataExport/jobs"),
-    import("@/features/reports/jobs"),
-    import("@/features/trash/jobs"),
-    import("@/features/backups/jobs"),
-    import("@/features/webhooks/jobs"),
-    import("@/features/activityLog/events"),
-    import("@/features/webhooks/events")
+    import("@remit/web/features/invoices/jobs"),
+    import("@remit/web/features/proposals/jobs"),
+    import("@remit/web/features/creditNotes/jobs"),
+    import("@remit/web/features/contracts/jobs"),
+    import("@remit/web/features/recurringInvoices/jobs"),
+    import("@remit/web/features/dataExport/jobs"),
+    import("@remit/web/features/reports/jobs"),
+    import("@remit/web/features/trash/jobs"),
+    import("@remit/web/features/backups/jobs"),
+    import("@remit/web/features/webhooks/jobs"),
+    import("@remit/web/features/activityLog/events"),
+    import("@remit/web/features/webhooks/events")
   ])
 }

@@ -1,0 +1,21 @@
+{
+  "name": "@remit/worker",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ItsLhuis/remit.git"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx ./worker.ts",
+    "start": "node --import ./dist/resolveWebDependencies.js ./dist/worker.js",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@remit/web": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^9.0.0"
+  }
+}

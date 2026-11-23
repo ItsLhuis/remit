@@ -61,7 +61,7 @@ export async function startJobWorker(): Promise<JobQueue> {
     import("@/lib/jobs/queue")
   ])
 
-  const child = spawn(process.execPath, ["node_modules/tsx/dist/cli.mjs", "scripts/worker.ts"], {
+  const child = spawn(process.execPath, ["node_modules/tsx/dist/cli.mjs", "../worker/worker.ts"], {
     cwd: process.cwd(),
     stdio: "ignore"
   })

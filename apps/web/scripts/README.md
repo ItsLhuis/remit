@@ -68,15 +68,15 @@ helper they share (`_check-prereqs.sh`, `_wait-for-health.sh`), not an operator 
 
 ### Processes that are not commands
 
-`scripts/migrate.ts` and `scripts/worker.ts` are bundled by tsup like the commands but are never run
-by an operator.
+`scripts/migrate.ts` is bundled by tsup like the commands but is never run by an operator. It
+applies pending Drizzle migrations; `docker-entrypoint.sh` runs it before the web server starts in
+the `app` image.
 
-- `migrate` applies pending Drizzle migrations; `docker-entrypoint.sh` runs it before the web server
-  starts in the `app` image.
-- `worker` is the background job consumer. It is the `ENTRYPOINT` of the `worker` stage of
-  `Dockerfile`, which `docker-compose.yml` builds for the `worker` service; that service sets no
-  `entrypoint:` of its own and never reaches `docker-entrypoint.sh`. The process stays up until
-  `SIGTERM` or `SIGINT`, so it does not follow the exit-on-success rule above.
+The background job consumer is its own package, `apps/worker`, with its own tsup bundle. It is the
+`ENTRYPOINT` of the `worker` stage of `Dockerfile`, which `docker-compose.yml` builds for the
+`worker` service; that service sets no `entrypoint:` of its own and never reaches
+`docker-entrypoint.sh`. The process stays up until `SIGTERM` or `SIGINT`, so it does not follow the
+exit-on-success rule above.
 
 ## Scheduled backups and the locks
 

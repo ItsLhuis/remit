@@ -37,8 +37,8 @@ import {
 const MILLISECONDS_PER_DAY = 86_400_000
 
 // The invoice module's half of the scheduled work. Handlers register at module load, the
-// way `features/*/events.ts` register bus subscribers, and `scripts/worker.ts` is what imports this
-// file — nothing under `lib/` reaches into a feature.
+// way `features/*/events.ts` register bus subscribers, and `apps/worker/worker.ts` is what imports
+// this file — nothing under `lib/` reaches into a feature.
 registerJobHandler("invoice.pdf.render", renderInvoicePdf)
 registerJobHandler("invoice.email.send", sendInvoiceEmail)
 registerJobHandler("invoice.overdue.sweep", runOverdueSweep)

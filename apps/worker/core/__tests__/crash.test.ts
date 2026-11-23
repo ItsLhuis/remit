@@ -6,12 +6,12 @@ const mocks = vi.hoisted(() => ({
   reportError: vi.fn(() => "0123456789abcdef0123456789abcdef")
 }))
 
-vi.mock("@/lib/errorTracking", () => ({
+vi.mock("@remit/web/lib/errorTracking", () => ({
   flushErrorReports: mocks.flushErrorReports,
   reportError: mocks.reportError
 }))
 
-vi.mock("@/lib/logger", () => ({ logger: mocks.logger }))
+vi.mock("@remit/web/lib/logger", () => ({ logger: mocks.logger }))
 
 type CrashListener = (error: unknown) => void
 

@@ -9,7 +9,6 @@ import { type RenderPdfInput } from "@/lib/pdf"
 
 import { contractSignatures, invoices, uploads } from "@/database/schema"
 
-import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatureModules"
 import {
   makeClient,
   makeContract,
@@ -19,6 +18,7 @@ import {
   makeTemplate
 } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
+import { loadJobModules } from "@/tests/integration/jobModules"
 
 const mocks = vi.hoisted(() => ({
   sendTransactionalEmail: vi.fn(),
@@ -122,7 +122,7 @@ async function countInvoicesFor(recurringInvoiceId: string): Promise<number> {
 // of the application's module graph, and transforming them under a full-suite run took longer than
 // the ten seconds a hook is allowed. Collection has no such budget, and the graph costs the same
 // wherever it is loaded; it only has to be registered before the worker starts.
-await loadWorkerFeatureModules()
+await loadJobModules()
 
 beforeAll(async () => {
   await getQueue().obliterate({ force: true })

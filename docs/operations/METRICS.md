@@ -25,7 +25,7 @@ Five surfaces, and no others:
 - The container's stdout carries the pino log stream (`lib/logger/index.ts`), which is where an
   error is found in full.
 - With `SENTRY_DSN` set, unhandled request errors in the app and failures in the worker are also
-  reported to a Sentry-compatible receiver (`instrumentation.ts`, `scripts/worker.ts`).
+  reported to a Sentry-compatible receiver (`instrumentation.ts`, `apps/worker/worker.ts`).
 
 ## What `/api/metrics` exposes
 

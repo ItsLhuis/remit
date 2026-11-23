@@ -16,7 +16,11 @@ import { readdirSync } from "node:fs"
 import { createRequire } from "node:module"
 
 const require = createRequire(import.meta.url)
-const manifests = [require("./package.json"), require("./apps/web/package.json")]
+const manifests = [
+  require("./package.json"),
+  require("./apps/web/package.json"),
+  require("./apps/worker/package.json")
+]
 
 // React is a dependency of `apps/web` only, so the plugin's "detect", which resolves `react` from the
 // working directory, finds nothing at the workspace root. The version is read where it is installed.
@@ -336,6 +340,26 @@ const eslintConfig = defineConfig([
     }
   },
   {
+    // The worker reaches `apps/web` only through the `@remit/web` exports map, and `pnpm typecheck`
+    // rejects a package import the map does not name. apps/worker/tsconfig.json still maps `@/` for
+    // the web modules it checks, so this closes that path, and the relative one, around the map.
+    files: ["apps/worker/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(@/|(\.\./)+web/)",
+              message:
+                "Import web code through an @remit/web export (apps/web/package.json), never through @/ or a relative path."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     files: [
       "apps/web/features/**/*.{ts,tsx}",
       "apps/web/components/**/*.{ts,tsx}",
@@ -499,6 +523,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "**/scripts/dist/**",
+    "apps/worker/dist/**",
     "**/next-env.d.ts"
   ])
 ])

@@ -9,6 +9,7 @@
 coverage
 data
 apps/web/scripts/dist
+apps/worker/dist
 .turbo
 .vscode
 .idea

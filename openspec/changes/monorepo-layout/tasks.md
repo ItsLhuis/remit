@@ -83,7 +83,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `git grep -nE '^\s+- "(app|features|lib|components|hooks|providers|database|drizzle)/' -- .claude/rules`
     prints nothing
 
-- [ ] 4. Move the worker process into `apps/worker`
+- [x] 4. Move the worker process into `apps/worker`
   - Do: Create `apps/worker/package.json` (`@remit/worker`, `private`, depending on
     `@remit/web: workspace:*`) and its `tsconfig.json`. Move `worker.ts` and `core/worker/` with its
     tests into `apps/worker` with `git mv`. Give `apps/web/package.json` an `exports` map that names

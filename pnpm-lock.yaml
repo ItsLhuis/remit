@@ -459,6 +459,16 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(vitest@5.1.0)
 
+  apps/worker:
+    dependencies:
+      '@remit/web':
+        specifier: workspace:*
+        version: link:../web
+    devDependencies:
+      tsup:
+        specifier: ^9.0.0
+        version: 9.0.0(jiti@2.7.0)(postcss@8.5.33)(tsx@4.23.15)(typescript@6.0.3)(yaml@2.9.1)
+
 packages:
 
   '@adobe/css-tools@4.4.4':

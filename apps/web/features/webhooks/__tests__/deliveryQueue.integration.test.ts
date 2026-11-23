@@ -11,9 +11,9 @@ import { startWorker, stopWorker } from "@/lib/jobs/worker"
 
 import { webhookDeliveries, webhookEndpoints } from "@/database/schema"
 
-import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatureModules"
 import { makeWebhookDelivery, makeWebhookEndpoint } from "@/tests/factories"
 import { database } from "@/tests/integration/database"
+import { loadJobModules } from "@/tests/integration/jobModules"
 
 // `127.0.0.1` allowlisted for the local receiver, as in `delivery.integration.test.ts`.
 vi.mock("@/lib/config/env", async (importOriginal) => {
@@ -66,7 +66,7 @@ async function enqueueDelivery(deliveryId: string): Promise<void> {
 }
 
 // Loaded while the file is collected, for the reason `queueRoundTrip.integration.test.ts` gives.
-await loadWorkerFeatureModules()
+await loadJobModules()
 
 beforeAll(async () => {
   server = createServer((request, response) => {

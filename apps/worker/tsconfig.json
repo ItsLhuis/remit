@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // The worker reaches `apps/web` only through the `@remit/web` exports map, but the compiler checks
+  // the web modules it loads with these options. Their graph reaches `.tsx` components and DOM
+  // types, and they import each other through `@/`, so this restates what apps/web/tsconfig.json
+  // sets for them. ESLint forbids `@/` in the worker's own files.
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["../web/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

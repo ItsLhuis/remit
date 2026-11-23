@@ -23,6 +23,7 @@
     "**/.next/**",
     "coverage/**",
     "**/scripts/dist/**",
+    "apps/worker/dist/**",
     "apps/web/drizzle/**",
     "apps/web/public/**",
     "**/next-env.d.ts"

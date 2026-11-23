@@ -14,9 +14,9 @@ import { storage } from "@/lib/storage/s3"
 
 import { auditLogs, settings } from "@/database/schema"
 
-import { loadWorkerFeatureModules } from "@/scripts/core/worker/loadWorkerFeatureModules"
 import { makeSettings } from "@/tests/factories"
 import { client, database } from "@/tests/integration/database"
+import { loadJobModules } from "@/tests/integration/jobModules"
 
 const BACKUPS_DIRECTORY = path.join(env.REMIT_DATA_DIR, "backups")
 
@@ -103,7 +103,7 @@ async function waitForJob(jobId: string): Promise<void> {
 // Loaded while the file is collected, not inside `beforeAll`, for the reason
 // `lib/jobs/__tests__/queueRoundTrip.integration.test.ts` gives: under a full-suite run the job
 // modules took longer to transform than the ten seconds a hook is allowed.
-await loadWorkerFeatureModules()
+await loadJobModules()
 
 beforeAll(async () => {
   const shimDirectory = path.join(env.REMIT_DATA_DIR, "bin")

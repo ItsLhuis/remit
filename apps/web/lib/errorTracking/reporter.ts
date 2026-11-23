@@ -42,8 +42,8 @@ let isDeliveryFailing = false
 const inFlight = new Set<Promise<void>>()
 
 // Nothing in this module exists until this runs: no client, no connection, no integration. Its two
-// callers, `instrumentation.ts` and `scripts/worker.ts`, call it only when `env.SENTRY_DSN` is set
-// and take the value from the validated `env`, so a process whose environment failed validation
+// callers, `instrumentation.ts` and `apps/worker/worker.ts`, call it only when `env.SENTRY_DSN` is
+// set and take the value from the validated `env`, so a process whose environment failed validation
 // has exited inside `lib/config/env.ts` before a sender could exist to transmit that failure.
 export function startErrorTracking(options: ErrorTrackingOptions): boolean {
   if (reporter) return true

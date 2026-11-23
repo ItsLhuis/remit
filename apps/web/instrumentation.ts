@@ -26,11 +26,12 @@ export async function register() {
   }
 
   // The activity module is imported for its side effect: it subscribes to the domain events that
-  // belong in the user-facing feed at module load, the way `scripts/worker.ts` imports the feature
-  // job modules. Nothing under `lib/` may import a feature, so this hook is the server runtime's
-  // only place to wire a bus subscriber. `lib/events/bus.ts` holds its registry on `globalThis`
-  // precisely because this file is compiled into its own bundle. The webhooks module subscribes for
-  // the same reason, queueing a delivery for every event an endpoint is subscribed to.
+  // belong in the user-facing feed at module load, the way `apps/worker/worker.ts` imports the
+  // feature job modules. Nothing under `lib/` may import a feature, so this hook is the server
+  // runtime's only place to wire a bus subscriber. `lib/events/bus.ts` holds its registry on
+  // `globalThis` precisely because this file is compiled into its own bundle. The webhooks module
+  // subscribes for the same reason, queueing a delivery for every event an endpoint is subscribed
+  // to.
   const [{ logger }, { ensureBucket }] = await Promise.all([
     import("@/lib/logger"),
     import("@/lib/storage/s3"),

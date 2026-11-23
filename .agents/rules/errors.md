@@ -99,9 +99,9 @@ Every failure is logged as above. When the operator sets `SENTRY_DSN`, a failure
   Next.js hands it to `onRequestError` in `apps/web/instrumentation.ts`.
 - A job whose **last attempt** fails in the worker (`apps/web/lib/jobs/worker.ts`), a worker that
   fails to start, and a worker that crashes after starting on an unhandled rejection or an uncaught
-  exception (`apps/web/scripts/worker.ts`, `apps/web/scripts/core/worker/crash.ts`). An attempt a
-  retry may still recover is only logged. A crash is the same class as a failed start: nobody is
-  watching the process, so it reports, logs, and exits non-zero for its container to restart.
+  exception (`apps/worker/worker.ts`, `apps/worker/core/crash.ts`). An attempt a retry may still
+  recover is only logged. A crash is the same class as a failed start: nobody is watching the
+  process, so it reports, logs, and exits non-zero for its container to restart.
 
 At the request boundary Next.js has already logged the error itself, so `onRequestError` logs a
 receipt — the event id, route, error type and digest — and never the error a second time.
