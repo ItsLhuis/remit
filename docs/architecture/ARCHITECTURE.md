@@ -84,14 +84,15 @@ names the modules the worker loads, plus `./lib/jobs`, which only
 `apps/worker/core/__tests__/jobCatalog.integration.test.ts` imports. `pnpm typecheck` rejects an
 `@remit/web/...` path the map does not name. It cannot reject `@/`, which
 `apps/worker/tsconfig.json` maps for the web modules it checks, or a relative path into `apps/web`,
-which needs no mapping, so ESLint rejects both (`webDeepImportPattern` in `eslint.config.mjs`) in
-static imports, re-exports and `import()` alike. Its tsup bundle inlines the `@remit/web` modules,
-and `apps/worker/resolveWebDependencies.ts` resolves their dependencies from the web package at run
-time. Known limit: this is one application depending on another, not on a shared package. The
-`job-queues` change, the `command-layer-outbox` change, or a change that creates `packages/db`
-removes the edge by moving what the worker needs out of `apps/web`. Drizzle is called from
-`queries.ts`, `mutations.ts`, `public*.ts`, `jobs.ts`, `systemWrites.ts`, `proxy.ts` and `scripts/`,
-and never from `services/`.
+which needs no mapping, so ESLint rejects `@/` and a `../`-prefixed path into `apps/web`
+(`webDeepImportPattern` in `eslint.config.mjs`) in static imports, re-exports and `import()` alike;
+other relative spellings of such a path are not caught. Its tsup bundle inlines the `@remit/web`
+modules, and `apps/worker/resolveWebDependencies.ts` resolves their dependencies from the web
+package at run time. Known limit: this is one application depending on another, not on a shared
+package. The `job-queues` change, the `command-layer-outbox` change, or a change that creates
+`packages/db` removes the edge by moving what the worker needs out of `apps/web`. Drizzle is called
+from `queries.ts`, `mutations.ts`, `public*.ts`, `jobs.ts`, `systemWrites.ts`, `proxy.ts` and
+`scripts/`, and never from `services/`.
 
 ## Request flow
 

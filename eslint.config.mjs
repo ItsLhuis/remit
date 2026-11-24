@@ -244,9 +244,10 @@ const pureServicesRule = [
 // The worker reaches `apps/web` only through the `@remit/web` exports map. `pnpm typecheck` rejects
 // an `@remit/web/...` path the map does not name, but it accepts `@/`, which
 // apps/worker/tsconfig.json maps for the web modules it checks, and a relative path into apps/web,
-// which needs no mapping. These two rules are what reject both: `no-restricted-imports` for static
-// imports and re-exports, and selectors for `import()`, which that rule never inspects and through
-// which the worker loads nearly all of its web code.
+// which needs no mapping. These two rules reject `@/` and a `../`-prefixed path into apps/web, not
+// every relative spelling of one: `no-restricted-imports` for static imports and re-exports, and
+// selectors for `import()`, which that rule never inspects and through which the worker loads
+// nearly all of its web code.
 const webDeepImportPattern = /^(@\/|(\.\.\/)+(apps\/)?web\/)/
 
 const webDeepImportMessage =

@@ -12,8 +12,9 @@ import { pathToFileURL } from "node:url"
 // Only the bundle's own imports are retried, and only when the package was not found. A dependency
 // that probes for an optional package of its own must still see it missing rather than be handed a
 // copy `@remit/web` happens to declare, and any other resolution failure is not this hook's to
-// paper over. When the web package cannot resolve it either, the original error is rethrown,
-// because it names the real importer.
+// paper over. When the web package cannot find it either, the original error is rethrown, because
+// it names the real importer; any other failure of the retry is rethrown as it is, because the web
+// package found the dependency and that failure is the real one.
 //
 // A `require()` is answered through `createRequire`, because Node's CommonJS resolver resolves from
 // the requiring module itself and ignores a replaced `parentURL`.
@@ -41,8 +42,8 @@ registerHooks({
         }
 
         return nextResolve(specifier, { ...context, parentURL: webPackageUrl })
-      } catch {
-        throw error
+      } catch (retryError) {
+        throw isModuleNotFound(retryError) ? error : retryError
       }
     }
   }
