@@ -148,4 +148,12 @@ and no task changes behaviour, the schema, a migration or a dependency version (
   - Done when: no Markdown file outside `openspec/changes/` names a moved path at its old location.
   - Verify: `pnpm lint && pnpm typecheck && pnpm test`, and
     `git grep -nwE '(features|lib|components|hooks|providers|database|drizzle|app)/[A-Za-z]+' -- '*.md' ':!openspec/changes' ':!apps' ':!CHANGELOG.md'`
-    shows no hit that names a moved path at its old location
+    shows no hit that names a moved path at its old location; then the change's end checks
+    (proposal, Size and verification): `pnpm build` from the root,
+    `docker build --target runner -t remit-app:monorepo . && docker build --target worker -t remit-worker:monorepo .`,
+    `docker compose up -d --build` with `curl -fsS http://localhost:3000/api/health` answering 200
+    and the worker container up, an invoice PDF render triggered in the running app with the worker
+    log showing the render job completing, `docker compose exec -T app pnpm remit:backup --yes`
+    writing an archive,
+    `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, and
+    `pnpm test:e2e`
