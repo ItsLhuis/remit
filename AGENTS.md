@@ -17,8 +17,8 @@ pnpm dev | build | start           # Next.js dev server (Turbopack), production 
 pnpm dev:worker | start:worker     # apps/worker job consumer, from source (tsx) or from its build
 pnpm services:up | down | logs     # Local Docker services; pnpm dev:setup also migrates
 pnpm lint | lint:fix               # oxlint import-cycle pass + ESLint (cached), whole repository
-pnpm typecheck                     # tsc --noEmit for the root, apps/web and apps/worker
-pnpm test                          # Vitest, the web, worker and repository projects (~2-3 min); pnpm exec vitest related --run <files>
+pnpm typecheck                     # tsc --noEmit for the root, apps/web, apps/worker and packages/core
+pnpm test                          # Vitest, the web, worker, core and repository projects (~2-3 min); pnpm exec vitest related --run <files>
 pnpm test:integration              # Needs pnpm database:test:up and database:test:migrate
 pnpm test:e2e                      # Playwright
 pnpm --filter @remit/<web|worker> <script>  # One package's script; the root's app commands delegate
@@ -32,9 +32,10 @@ pnpm version:<patch|minor|major>   # Releases CHANGELOG.md Unreleased (refuses i
 
 ## Directory map
 
-A pnpm workspace (`apps/*`, `packages/*`) that today holds two private packages, `apps/web`
-(`@remit/web`, the Next.js application) and `apps/worker` (`@remit/worker`, the job worker). The
-root keeps the repository tooling, the deployment files, the docs and `openspec/`.
+A pnpm workspace (`apps/*`, `packages/*`) that today holds three private packages, `apps/web`
+(`@remit/web`, the Next.js application), `apps/worker` (`@remit/worker`, the job worker) and
+`packages/core` (`@remit/core`, pure helpers). The root keeps the repository tooling, the deployment
+files, the docs and `openspec/`.
 
 - `apps/web/app/` - App Router routes; groups `(auth)` (with `/setup`), `(dashboard)`, `(editor)`,
   `(public)`; token routes for invoices, proposals, contracts and the client portal.
@@ -50,6 +51,9 @@ root keeps the repository tooling, the deployment files, the docs and `openspec/
 - `apps/web/scripts/` - `remit:*` commands; `scripts/` - host and release scripts.
 - `apps/worker/` - `@remit/worker`, the background job worker (`worker.ts`, `core/`). It reaches web
   code only through the `exports` map in `apps/web/package.json`.
+- `packages/core/` - `@remit/core`, the pure helpers (money, dates, formatting, CSV, HTML escaping,
+  URLs) imported through its `index.ts`; no framework, IO or app import
+  (`.agents/rules/architecture.md`).
 - `openspec/` - living capability specs, changes in flight, backlog and gap register.
 - `docs/` - architecture map, operator runbooks, deployment guides.
 

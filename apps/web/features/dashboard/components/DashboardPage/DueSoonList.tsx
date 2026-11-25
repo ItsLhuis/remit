@@ -1,8 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency, formatDay } from "@remit/core"
 
-import { formatCurrency, formatDay } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Badge,

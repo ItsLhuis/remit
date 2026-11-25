@@ -1,4 +1,4 @@
-import { formatCentsForInput } from "@/lib/utils"
+import { formatCentsForInput } from "@remit/core"
 
 import { type ProjectDetail, type ProjectFormData } from "../types"
 

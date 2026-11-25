@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { serializeCsv } from "@/lib/utils"
+import { serializeCsv } from "@remit/core"
 
 import { buildExpenseCsvRows, type ExpenseCsvRow } from "../buildExpenseCsvRows"
 

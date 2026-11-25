@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n"
-
 import {
   formatCompactCurrency,
   formatCompactNumber,
   formatCurrency,
   isSafeHttpUrl
-} from "@/lib/utils"
+} from "@remit/core"
+
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,

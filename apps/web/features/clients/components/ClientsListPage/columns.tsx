@@ -4,9 +4,11 @@ import { Fragment, type Dispatch, type SetStateAction } from "react"
 
 import Link from "next/link"
 
+import { formatCurrency, formatDay } from "@remit/core"
+
 import { type TFunction } from "@/lib/i18n"
 
-import { cn, formatCurrency, formatDay } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import { resolveStorageUrl } from "@/lib/storage"
 

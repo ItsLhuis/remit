@@ -27,6 +27,9 @@ export default defineConfig({
   dts: false,
   sourcemap: false,
   splitting: false,
+  // tsup leaves every dependency external, but `@remit/core` is a workspace package that ships
+  // TypeScript source, which plain Node cannot load, so it is bundled in.
+  noExternal: ["@remit/core"],
   // The scripts run under plain Node's ESM loader, which resolves a bare `next/headers` only through
   // a package `exports` map, and `next` has none: a bundle dies at startup with
   // ERR_MODULE_NOT_FOUND on the first `next/*` import its graph reaches through

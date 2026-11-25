@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@remit/core"
 
-import { formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Table,

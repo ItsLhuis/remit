@@ -1,6 +1,6 @@
-import { t } from "@/lib/i18n/server"
+import { formatDate } from "@remit/core"
 
-import { formatDate } from "@/lib/utils"
+import { t } from "@/lib/i18n/server"
 
 import {
   Card,

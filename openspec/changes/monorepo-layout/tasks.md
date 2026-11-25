@@ -107,7 +107,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     worker log shows the render job completing, and
     `docker compose exec -T app pnpm remit:backup --yes`
 
-- [ ] 5. Create `packages/core` with the pure `lib/utils` helpers
+- [x] 5. Create `packages/core` with the pure `lib/utils` helpers
   - Do: Create `packages/core` (`@remit/core`, `private`) with a `tsconfig.json` that extends the
     base without overriding `lib` and is covered by the root `pnpm typecheck`, its own
     `vitest.config.ts`, which the root `packages/*` glob picks up and which restates the root

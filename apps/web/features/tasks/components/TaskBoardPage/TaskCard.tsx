@@ -4,9 +4,11 @@ import { useState } from "react"
 
 import { useSortable } from "@dnd-kit/react/sortable"
 
+import { formatDay } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatDay } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import {
   Card,

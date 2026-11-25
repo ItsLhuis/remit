@@ -2,9 +2,11 @@
 
 import { Fragment, type Dispatch, type SetStateAction } from "react"
 
+import { formatCurrency, formatDate } from "@remit/core"
+
 import { type TFunction } from "@/lib/i18n"
 
-import { cn, formatCurrency, formatDate } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import {
   Badge,

@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@remit/core"
 
 // The pure services entry rather than the feature barrel: that barrel re-exports components, which
 // reach `lib/auth` and validate the environment at import time — a runtime dependency a pure service

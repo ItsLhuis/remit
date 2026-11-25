@@ -8,7 +8,7 @@ import {
 } from "better-auth/plugins"
 import { defaultAc, ownerAc } from "better-auth/plugins/organization/access"
 
-import { escapeHtml } from "@/lib/utils"
+import { escapeHtml } from "@remit/core"
 
 import { env } from "@/lib/config/env"
 import { rateLimitInstance, toBetterAuthRateLimitStorage } from "@/lib/rateLimit"

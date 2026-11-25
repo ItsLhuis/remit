@@ -1,8 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatDate } from "@remit/core"
 
-import { formatDate } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Icon, Typography } from "@/components/ui"
 

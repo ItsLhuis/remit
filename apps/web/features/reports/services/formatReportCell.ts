@@ -1,4 +1,4 @@
-import { formatCurrency, formatHours, formatNumber } from "@/lib/utils"
+import { formatCurrency, formatHours, formatNumber } from "@remit/core"
 
 import { getCellValue, type ReportCell } from "./reportTable"
 

@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency, formatNumber } from "@remit/core"
 
-import { formatCurrency, formatNumber } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Card,

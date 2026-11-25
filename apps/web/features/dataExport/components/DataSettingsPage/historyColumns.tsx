@@ -1,8 +1,8 @@
 "use client"
 
-import { type TFunction } from "@/lib/i18n"
+import { formatBytes, formatDate } from "@remit/core"
 
-import { formatBytes, formatDate } from "@/lib/utils"
+import { type TFunction } from "@/lib/i18n"
 
 import { Badge, Button, DataTableColumnHeader, Icon, Skeleton, Typography } from "@/components/ui"
 

@@ -2,9 +2,9 @@
 
 import { Area, AreaChart, Bar, BarChart, Pie, PieChart, XAxis, YAxis } from "recharts"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatMonthShort } from "@remit/core"
 
-import { formatMonthShort } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   ChartContainer,

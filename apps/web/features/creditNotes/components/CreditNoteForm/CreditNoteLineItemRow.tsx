@@ -4,9 +4,9 @@ import { memo } from "react"
 
 import { Controller, type Control } from "react-hook-form"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@remit/core"
 
-import { formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Card,

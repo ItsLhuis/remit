@@ -4,9 +4,9 @@ import { Fragment, useMemo, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCentsForInput } from "@remit/core"
 
-import { formatCentsForInput } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,

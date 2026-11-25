@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCompactNumber } from "@remit/core"
 
-import { formatCompactNumber } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { StatCard, StatValue } from "@/components/ui"
 

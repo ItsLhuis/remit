@@ -2,9 +2,11 @@
 
 import { Fragment } from "react"
 
+import { formatMonthDay } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { formatMonthDay, type DataTableColumn, type DataTableRowData } from "@/lib/utils"
+import { type DataTableColumn, type DataTableRowData } from "@/lib/utils"
 
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"

@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation"
 
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatDay, getInitials } from "@remit/core"
 
-import { formatDay, getInitials } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   ActivityTimeline,

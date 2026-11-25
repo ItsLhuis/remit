@@ -14,12 +14,14 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/worker/package.json ./apps/worker/
+COPY packages/core/package.json ./packages/core/
 RUN pnpm i --frozen-lockfile
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/worker/package.json ./apps/worker/
+COPY packages/core/package.json ./packages/core/
 RUN pnpm i --prod --frozen-lockfile --ignore-scripts
 
 # ─── Stage 3: builder ────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import { type ComponentProps } from "react"
 
-import { cn, getInitials } from "@/lib/utils"
+import { getInitials } from "@remit/core"
+
+import { cn } from "@/lib/utils"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar"
 

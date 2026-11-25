@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react"
 
 import { afterEach, expect, test, vi } from "vitest"
 
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@remit/core"
 
 import { type BackupBanner } from "../../types"
 import { BackupStatusBanner } from "../BackupStatusBanner"

@@ -1,4 +1,6 @@
-import { downloadCsv, serializeCsv } from "./csv"
+import { serializeCsv } from "@remit/core"
+
+import { downloadCsv } from "./csv"
 import { type DataTableInstance, type DataTableRowData } from "./dataTable"
 
 type ExportTableToCsvOptions = {

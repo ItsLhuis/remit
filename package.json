@@ -47,7 +47,7 @@
     "lint:fix": "pnpm lint:cycles && eslint . --fix --cache --cache-location node_modules/.cache/eslint/ --cache-strategy content",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit && tsc --noEmit --project apps/web && tsc --noEmit --project apps/worker",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project apps/web && tsc --noEmit --project apps/worker && tsc --noEmit --project packages/core",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

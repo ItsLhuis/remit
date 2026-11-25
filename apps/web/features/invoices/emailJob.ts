@@ -1,10 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm"
 
+import { formatCurrency, formatDay } from "@remit/core"
+
 import { t } from "@/lib/i18n/server"
 
 import { logger } from "@/lib/logger"
-
-import { formatCurrency, formatDay } from "@/lib/utils"
 
 import { env } from "@/lib/config/env"
 import { type InvoiceEmailOccasion } from "@/lib/jobs"

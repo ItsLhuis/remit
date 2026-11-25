@@ -1,8 +1,8 @@
 "use client"
 
-import { type TFunction } from "@/lib/i18n"
+import { formatPercentage } from "@remit/core"
 
-import { formatPercentage } from "@/lib/utils"
+import { type TFunction } from "@/lib/i18n"
 
 import {
   Badge,

@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 
-import { useTranslation } from "@/lib/i18n"
+import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@remit/core"
 
-import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,
@@ -50,7 +50,7 @@ const TimeEntryForm = (props: TimeEntryFormProps) => {
   const [isSaving, startSaving] = useTransition()
 
   // Converted here rather than in `queries.ts` because the instants only become wall-clock readings
-  // in the reader's zone, which the server does not know (see `lib/utils/datetime.ts`).
+  // in the reader's zone, which the server does not know (see `packages/core/datetime.ts`).
   const defaultValues = useMemo<TimeEntryFormInputValues>(() => {
     if (props.mode === "edit") {
       return {

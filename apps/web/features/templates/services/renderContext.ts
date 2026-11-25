@@ -1,4 +1,4 @@
-import { escapeHtml } from "@/lib/utils"
+import { escapeHtml } from "@remit/core"
 
 import { type TemplateType } from "../schemas"
 

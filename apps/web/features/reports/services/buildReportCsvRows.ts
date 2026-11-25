@@ -1,4 +1,4 @@
-import { formatCentsForInput, toHundredthHours } from "@/lib/utils"
+import { formatCentsForInput, toHundredthHours } from "@remit/core"
 
 import { type ReportCell, type ReportResult } from "./reportTable"
 
@@ -17,7 +17,7 @@ export type ReportCsvHeaders = {
 // after it leaves Remit — the rows are never combined here either.
 //
 // Each currency group contributes its rows and then its own total row, so the file reconciles per
-// currency without the reader re-deriving it. Escaping is applied by `serializeCsv` in lib/utils.
+// currency without the reader re-deriving it. Escaping is applied by `serializeCsv` in `@remit/core`.
 export function buildReportCsvRows(result: ReportResult, headers: ReportCsvHeaders): string[][] {
   const headerRow = [headers.label, headers.sublabel, headers.currency, ...headers.columns]
 

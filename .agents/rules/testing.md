@@ -9,10 +9,10 @@ justifies itself by describing a behaviour.
 
 `features/<feature>/services/` holds the pure business logic (tax, status transition guards, invoice
 numbering, retainer pools, next-run dates). Coverage above 90% is a hard CI gate. Shared utilities
-under `apps/web/lib/utils/` with branches, parsing, fallbacks or edge cases are unit-tested too:
-request metadata helpers such as `getIpAddress(headers)` cover forwarded headers, fallback headers,
-empty values and missing values. Hooks under `apps/web/hooks/` and `features/<feature>/hooks/` with
-non-trivial state or side effects are in this tier.
+under `packages/core/` and `apps/web/lib/utils/` with branches, parsing, fallbacks or edge cases are
+unit-tested too: request metadata helpers such as `getIpAddress(headers)` cover forwarded headers,
+fallback headers, empty values and missing values. Hooks under `apps/web/hooks/` and
+`features/<feature>/hooks/` with non-trivial state or side effects are in this tier.
 
 ### Tier 2 - Integration tests: server actions, jobs, and IO adapters
 
@@ -84,6 +84,7 @@ The integration schema is migrated freshly per run; tables are truncated between
 | Test kind                               | Location                                                                  |
 | --------------------------------------- | ------------------------------------------------------------------------- |
 | Service unit tests                      | `features/<feature>/services/__tests__/<serviceName>.test.ts`             |
+| Core helper unit tests                  | `packages/core/__tests__/<helperName>.test.ts`                            |
 | Shared utility unit tests               | `apps/web/lib/utils/__tests__/<utilityName>.test.ts`                      |
 | Shared hook tests                       | `apps/web/hooks/__tests__/<useHookName>.test.ts`                          |
 | Feature hook tests                      | Sibling `useHookName.test.ts` next to the hook file                       |

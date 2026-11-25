@@ -1,8 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@remit/core"
 
-import { formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Meter, MeterLegend, MeterLegendItem, Typography } from "@/components/ui"
 

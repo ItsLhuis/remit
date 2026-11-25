@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 
+import { formatDate } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatDate } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import { Badge, Button, Card, CardContent, Icon, Typography, type IconProps } from "@/components/ui"
 

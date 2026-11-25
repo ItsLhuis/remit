@@ -1,11 +1,10 @@
 import { z } from "zod"
 
+import { isFormattingLocale, isSafeHttpUrl, isValidAmount } from "@remit/core"
+
 import i18n from "@/lib/i18n/i18n"
 
 import {
-  isFormattingLocale,
-  isSafeHttpUrl,
-  isValidAmount,
   readArrayParam,
   readDateAt,
   readIntParam,
@@ -44,7 +43,7 @@ const optionalEmailSchema = z
 
 // Both checks are load-bearing: `z.url()` accepts any well-formed URL, `javascript:` and `data:`
 // included, and a client website is rendered into an `href`. `isSafeHttpUrl` is what narrows it to
-// http and https (`lib/utils/url.ts`), so dropping either half reopens the sink.
+// http and https (`packages/core/url.ts`), so dropping either half reopens the sink.
 const optionalUrlSchema = optionalTextSchema().refine(
   (value) => value === "" || (z.url().safeParse(value).success && isSafeHttpUrl(value)),
   {

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, isNull, sql, type SQL } from "drizzle-orm"
 
-import { formatCentsForInput } from "@/lib/utils"
+import { formatCentsForInput } from "@remit/core"
 
 import { database } from "@/database"
 import {

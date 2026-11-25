@@ -4,7 +4,7 @@ import { Fragment, useMemo } from "react"
 
 import { useWatch, type Control } from "react-hook-form"
 
-import { isValidAmount, parseAmountToCents } from "@/lib/utils"
+import { isValidAmount, parseAmountToCents } from "@remit/core"
 
 import { type InvoiceFormInputValues } from "../../schemas"
 import {

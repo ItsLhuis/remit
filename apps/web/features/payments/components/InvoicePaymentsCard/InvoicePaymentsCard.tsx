@@ -4,9 +4,9 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCentsForInput, formatCurrency } from "@remit/core"
 
-import { formatCentsForInput, formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,

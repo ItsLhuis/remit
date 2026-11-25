@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@remit/core"
 
-import { formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,

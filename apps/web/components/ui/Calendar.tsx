@@ -4,9 +4,11 @@ import { useEffect, useRef, type ComponentProps } from "react"
 
 import { DayPicker, getDefaultClassNames, type DayButton } from "react-day-picker"
 
+import { formatIsoDay } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatIsoDay } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import { Button, buttonVariants } from "@/components/ui/Button"
 import { Icon } from "@/components/ui/Icon"

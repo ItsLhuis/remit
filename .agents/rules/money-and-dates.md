@@ -1,6 +1,6 @@
 # Money and Date Rules
 
-Money and dates are parsed and formatted through shared helpers in `apps/web/lib/utils`, never with
+Money and dates are parsed and formatted through shared helpers in `packages/core`, never with
 ad-hoc `Intl` calls or floating-point math scattered across features. Storage rules live in
 `database.md`; this file covers how the values move and render at the application boundary.
 
@@ -12,14 +12,14 @@ represent money as a float and never do money math with floats.
 - Convert a `bigint` money column to `number` at the query boundary with `Number(...)` (see
   `queries.md`).
 - Parse a user-entered amount with `parseAmountToCents` and render cents back into an input with
-  `formatCentsForInput`, both from `apps/web/lib/utils`.
+  `formatCentsForInput`, both from `@remit/core`.
 - Round inside pure `services/` with `Math.round` when deriving totals or tax (see
   `architecture.md`); orchestrators and components receive already-computed cents.
 
-## Format at the boundary through `apps/web/lib/utils`
+## Format at the boundary through `@remit/core`
 
-Display formatting uses the locale-aware helpers in `apps/web/lib/utils/format.ts`, exported from
-`apps/web/lib/utils`. Reach for these instead of constructing `new Intl.NumberFormat` or
+Display formatting uses the locale-aware helpers in `packages/core/format.ts`, exported from
+`@remit/core`. Reach for these instead of constructing `new Intl.NumberFormat` or
 `new Intl.DateTimeFormat` in a feature component.
 
 | Need                       | Helper                                          |
@@ -33,7 +33,7 @@ Display formatting uses the locale-aware helpers in `apps/web/lib/utils/format.t
 
 ```ts
 // Good - shared, locale-aware formatter
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@remit/core"
 
 formatCurrency(invoice.totalCents, invoice.currency, locale)
 
@@ -41,8 +41,8 @@ formatCurrency(invoice.totalCents, invoice.currency, locale)
 new Intl.NumberFormat(locale, { style: "currency", currency }).format(invoice.totalCents / 100)
 ```
 
-When a needed format does not exist, add a named formatter to `apps/web/lib/utils/format.ts` and
-export it rather than inlining `Intl` at the call site (see helper discipline in `code-style.md`). A
+When a needed format does not exist, add a named formatter to `packages/core/format.ts` and export
+it rather than inlining `Intl` at the call site (see helper discipline in `code-style.md`). A
 genuinely one-off `Intl` use inside a UI primitive in `apps/web/components/ui/` may stay local when
 no shared formatter fits; leave a short comment when it does.
 

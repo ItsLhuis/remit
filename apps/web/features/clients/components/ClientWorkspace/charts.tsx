@@ -2,7 +2,7 @@
 
 import { Area, AreaChart, Bar, BarChart, XAxis, YAxis } from "recharts"
 
-import { formatCurrency, formatMonthShort } from "@/lib/utils"
+import { formatCurrency, formatMonthShort } from "@remit/core"
 
 import {
   ChartContainer,

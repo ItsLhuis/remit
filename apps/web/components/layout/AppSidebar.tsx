@@ -9,11 +9,11 @@ import Link from "next/link"
 
 import { useHotkey } from "@tanstack/react-hotkeys"
 
+import { getInitials } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
 import { signOut, useSession } from "@/lib/auth/client"
-
-import { getInitials } from "@/lib/utils"
 
 import { resolveStorageUrl } from "@/lib/storage"
 

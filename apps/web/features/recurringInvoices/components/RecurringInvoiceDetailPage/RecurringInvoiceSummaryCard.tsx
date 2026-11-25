@@ -2,9 +2,9 @@
 
 import { useId } from "react"
 
-import { useTranslation, type TFunction } from "@/lib/i18n"
+import { formatCurrency, formatDate } from "@remit/core"
 
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { useTranslation, type TFunction } from "@/lib/i18n"
 
 import {
   Card,

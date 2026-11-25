@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { serializeCsv } from "@/lib/utils"
+import { serializeCsv } from "@remit/core"
 
 import { buildReportCsvRows, type ReportCsvHeaders } from "../buildReportCsvRows"
 import { toReportResult, type ReportBucket, type ReportColumnId } from "../reportTable"
@@ -89,7 +89,7 @@ describe("buildReportCsvRows", () => {
   })
 
   // The escaping itself belongs to `serializeCsv` and is round-tripped against an RFC 4180 reader in
-  // lib/utils/__tests__/csv.test.ts. What this pins is that the builder hands the helper raw values
+  // packages/core/__tests__/csv.test.ts. What this pins is that the builder hands the helper raw values
   // and never pre-escapes or pre-formats them, which is the mistake that would defeat it.
   test("leaves a hostile label for the shared serializer to quote and neutralize", () => {
     const rows = buildReportCsvRows(

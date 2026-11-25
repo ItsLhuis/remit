@@ -58,6 +58,7 @@
     "@hookform/resolvers": "^7.0.6",
     "@modelcontextprotocol/server": "^2.4.0",
     "@next/env": "16.4.6",
+    "@remit/core": "workspace:*",
     "@tanstack/react-hotkeys": "^0.27.0",
     "@tanstack/react-table": "^9.3.1",
     "bcryptjs": "^3.0.3",

@@ -1,4 +1,4 @@
-import { formatDay } from "@/lib/utils"
+import { formatDay } from "@remit/core"
 
 // The `client.*`, `business.*` and `payment.*` halves of every document's merge data, which are
 // identical across invoices, proposals, contracts and credit notes because they describe the same

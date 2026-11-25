@@ -1,8 +1,8 @@
 import { and, eq, isNull } from "drizzle-orm"
 
-import { t } from "@/lib/i18n/server"
+import { escapeHtml } from "@remit/core"
 
-import { escapeHtml } from "@/lib/utils"
+import { t } from "@/lib/i18n/server"
 
 import { inlineStorageAssets } from "@/lib/pdf"
 

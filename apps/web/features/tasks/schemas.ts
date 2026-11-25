@@ -1,8 +1,8 @@
 import { z } from "zod"
 
-import i18n from "@/lib/i18n/i18n"
+import { isValidAmount, parseAmountToCents } from "@remit/core"
 
-import { isValidAmount, parseAmountToCents } from "@/lib/utils"
+import i18n from "@/lib/i18n/i18n"
 
 const TASK_TITLE_MAX_LENGTH = 200
 const TASK_DESCRIPTION_MAX_LENGTH = 5000

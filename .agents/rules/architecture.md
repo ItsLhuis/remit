@@ -6,8 +6,8 @@ Before adding a feature, service, mutation, query, hook, component, schema or ut
 first rung that solves the task:
 
 1. Does it need to exist at all? If the task does not require it, do not write it.
-2. Does this codebase already have it (`apps/web/lib/utils/`, `apps/web/lib/`, `apps/web/hooks/`,
-   `apps/web/components/ui/`, the relevant feature barrel)? Reuse it.
+2. Does this codebase already have it (`packages/core/`, `apps/web/lib/utils/`, `apps/web/lib/`,
+   `apps/web/hooks/`, `apps/web/components/ui/`, the relevant feature barrel)? Reuse it.
 3. Does the standard library or a native platform feature (Next.js, React, the web platform,
    PostgreSQL, Drizzle, Zod) do it? Use it.
 4. Can an installed dependency do it? Reuse it before adding one.
@@ -70,8 +70,28 @@ Every non-trivial calculation, state transition, validation or transformation li
 any IO module (`pureServicesRule` in `eslint.config.mjs` enforces the framework and database part).
 They receive all data as arguments and return all data; they do not read the session, headers,
 environment, database, request state or global mutable state. Why: millisecond Vitest runs without
-mocks, refactor confidence when the ORM or framework changes, and a clean extraction path to
-`packages/core`.
+mocks, refactor confidence when the ORM or framework changes, and a move into `packages/core`
+without a rewrite. That package exists; a feature's services move into it with the change that
+rewrites them, never as a bulk move.
+
+## `packages/core`
+
+`@remit/core` holds the pure helpers every layer shares: money parsing (`money.ts`), date-time
+conversion (`datetime.ts`), locale-aware formatting (`format.ts`), formatting locales (`locale.ts`),
+CSV serialization (`csv.ts`), HTML escaping (`html.ts`), URL checks (`url.ts`) and string helpers
+(`string.ts`). Callers import it only through its `index.ts` door
+(`import { formatCurrency } from "@remit/core"`); files inside the package import each other by
+relative path, and their tests sit in `packages/core/__tests__/`. `apps/web/lib/utils/` keeps the
+helpers that need the browser, the request or a web-only library (`cn`, `dataTable`,
+`exportTableToCsv`, `downloadCsv`, `request`, `response`, `searchParams`) and does not re-export
+core.
+
+The package runs in the browser, the Next.js server, the worker bundle and a unit test, so it is
+pure throughout: no `next`, `react`, `drizzle-orm` or `postgres` import, no Node IO module (`fs`,
+`net`, `child_process` and the rest, with or without `node:`), no `@/` path, no `@remit/web` or
+`@remit/worker` and no relative path into `apps/`, and no `process` or `document` global. Everything
+arrives as an argument. Enforced by `pureCoreImportRule` and `pureCoreGlobalsRule` in
+`eslint.config.mjs`, applied to every non-test file under `packages/core/`.
 
 ## Work placement
 
@@ -83,7 +103,8 @@ mocks, refactor confidence when the ORM or framework changes, and a clean extrac
 | Input shape and validation                    | `schemas.ts`                        |
 | Public types consumed by other features       | `types.ts` or `index.ts`            |
 | Cross-feature event wiring                    | `events.ts`                         |
-| Generic request/string/date/number helper     | `apps/web/lib/utils/<name>.ts`      |
+| Pure string/date/number/money helper          | `packages/core/<name>.ts`           |
+| Request, response or browser helper           | `apps/web/lib/utils/<name>.ts`      |
 | Shared UI primitive                           | `apps/web/components/ui/<Name>.tsx` |
 
 ## Thin orchestrators
@@ -95,9 +116,10 @@ returns in the action.
 
 ## Shared helper placement and abstraction threshold
 
-Cross-feature infrastructure helpers (request metadata, string, date and number normalization,
-URL-safe formatting, object filtering) belong in `apps/web/lib/utils/`. Feature-specific write plans
-and persistence details stay in their feature.
+Cross-feature helpers that are pure (string, date and number normalization, URL-safe formatting)
+belong in `packages/core/`; those that need the request, the response, the browser or a web-only
+library (request metadata, object filtering) belong in `apps/web/lib/utils/`. Feature-specific write
+plans and persistence details stay in their feature.
 
 Extract shared logic only when the behaviour is identical, the call sites need the same inputs, the
 return shape is stable and the error behaviour is the same. Do not extract when return columns,

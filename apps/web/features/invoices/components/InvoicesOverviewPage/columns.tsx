@@ -2,9 +2,11 @@
 
 import Link from "next/link"
 
+import { formatCurrency } from "@remit/core"
+
 import { type TFunction } from "@/lib/i18n"
 
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import {
   DataTableColumnHeader,

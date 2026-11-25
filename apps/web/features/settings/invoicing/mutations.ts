@@ -6,6 +6,8 @@ import { headers } from "next/headers"
 
 import { eq } from "drizzle-orm"
 
+import { parseAmountToCents } from "@remit/core"
+
 import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
@@ -15,7 +17,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress, parseAmountToCents } from "@/lib/utils"
+import { getIpAddress } from "@/lib/utils"
 
 import { database } from "@/database"
 import { settings } from "@/database/schema"

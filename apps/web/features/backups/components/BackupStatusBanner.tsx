@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 
-import { useTranslation, type TFunction } from "@/lib/i18n"
+import { formatDate } from "@remit/core"
 
-import { formatDate } from "@/lib/utils"
+import { useTranslation, type TFunction } from "@/lib/i18n"
 
 import { Alert, AlertDescription, AlertTitle, Button, Icon, type IconProps } from "@/components/ui"
 

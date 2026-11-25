@@ -2,9 +2,11 @@
 
 import { type Ref } from "react"
 
+import { formatDay, formatIsoDay } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatDay, formatIsoDay } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/Button"
 import { Calendar } from "@/components/ui/Calendar"
@@ -23,7 +25,7 @@ type DatePickerProps = {
 }
 
 // Built from the parts in local time rather than parsed with `new Date(value)`, which reads a bare
-// `YYYY-MM-DD` as UTC midnight. `formatIsoDay` in `lib/utils/format.ts` writes the value back from
+// `YYYY-MM-DD` as UTC midnight. `formatIsoDay` in `packages/core/format.ts` writes the value back from
 // local getters, so a UTC parse here would print the previous day everywhere west of Greenwich and
 // walk a stored date backwards each time the picker was opened and saved.
 function toDate(value?: string): Date | undefined {

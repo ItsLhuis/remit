@@ -115,6 +115,7 @@ const importOrderRule = [
       { groupName: "next-headers", elementNamePattern: "^next/headers$" },
       { groupName: "next-navigation", elementNamePattern: "^next/navigation$" },
       { groupName: "next-other", elementNamePattern: "^next(/.*)?$" },
+      { groupName: "remit-core", elementNamePattern: "^@remit/core$" },
       { groupName: "i18n", elementNamePattern: "^@/lib/i18n(/.*)?$" },
       { groupName: "lib-auth", elementNamePattern: "^@/lib/auth(/.*)?$" },
       { groupName: "lib-audit", elementNamePattern: "^@/lib/audit(/.*)?$" },
@@ -141,6 +142,7 @@ const importOrderRule = [
       "next-other",
       "builtin",
       ...externalTierGroups,
+      "remit-core",
       "i18n",
       "lib-auth",
       "lib-audit",
@@ -238,6 +240,68 @@ const pureServicesRule = [
         message: "Services must not depend on feature mutations."
       }
     ]
+  }
+]
+
+// `packages/core` runs wherever its callers do: the browser, the Next.js server, the worker bundle and
+// a unit test. So it imports no framework, database driver, IO module or application code, and reads
+// no process or DOM state; its callers pass everything in. The Node built-ins listed are the ones
+// that reach a file, the network, a process or the host, in either spelling (`fs`, `node:fs`).
+const nodeIoModules = [
+  "child_process",
+  "cluster",
+  "dgram",
+  "dns",
+  "fs",
+  "http",
+  "http2",
+  "https",
+  "inspector",
+  "net",
+  "os",
+  "process",
+  "readline",
+  "repl",
+  "tls",
+  "tty",
+  "worker_threads"
+]
+
+const appPackageNames = manifests
+  .map((manifest) => manifest.name)
+  .filter((name) => name.startsWith("@remit/"))
+
+const coreForbiddenImportPattern = new RegExp(
+  [
+    `^(${["next", "react", "react-dom", "drizzle-orm", "postgres", ...appPackageNames].map(escapeRegex).join("|")})(/|$)`,
+    `^(node:)?(${nodeIoModules.join("|")})(/|$)`,
+    "^@/",
+    /^(\.\.\/)+apps\//.source
+  ].join("|")
+)
+
+const pureCoreImportRule = [
+  "error",
+  {
+    patterns: [
+      {
+        regex: coreForbiddenImportPattern.source,
+        message:
+          "packages/core stays pure: no framework, database, IO or application import (.agents/rules/architecture.md, packages/core)."
+      }
+    ]
+  }
+]
+
+const pureCoreGlobalsRule = [
+  "error",
+  {
+    name: "process",
+    message: "packages/core reads no environment or process state. Take the value as an argument."
+  },
+  {
+    name: "document",
+    message: "packages/core touches no DOM. Keep DOM work in apps/web."
   }
 ]
 
@@ -344,7 +408,8 @@ const eslintConfig = defineConfig([
       "apps/web/components/**/*.{ts,tsx}",
       "apps/web/hooks/**/*.{ts,tsx}",
       "apps/web/lib/**/*.{ts,tsx}",
-      "apps/web/providers/**/*.{ts,tsx}"
+      "apps/web/providers/**/*.{ts,tsx}",
+      "packages/core/**/*.ts"
     ],
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
@@ -375,6 +440,16 @@ const eslintConfig = defineConfig([
     }
   },
   {
+    // Tests are left out: they run only under Vitest in Node, and one pins the process time zone
+    // (packages/core/__tests__/format.test.ts).
+    files: ["packages/core/**/*.ts"],
+    ignores: ["packages/core/**/__tests__/**"],
+    rules: {
+      "no-restricted-imports": pureCoreImportRule,
+      "no-restricted-globals": pureCoreGlobalsRule
+    }
+  },
+  {
     files: ["apps/worker/**/*.ts"],
     rules: {
       "no-restricted-imports": forbidWebDeepImportRule,
@@ -387,8 +462,10 @@ const eslintConfig = defineConfig([
       "apps/web/components/**/*.{ts,tsx}",
       "apps/web/hooks/**/*.{ts,tsx}",
       "apps/web/lib/**/*.{ts,tsx}",
-      "apps/web/providers/**/*.{ts,tsx}"
+      "apps/web/providers/**/*.{ts,tsx}",
+      "packages/core/**/*.ts"
     ],
+    ignores: ["packages/core/vitest.config.ts"],
     plugins: {
       import: importPlugin
     },
@@ -408,7 +485,8 @@ const eslintConfig = defineConfig([
       "apps/web/components/**/*.{ts,tsx}",
       "apps/web/hooks/**/*.{ts,tsx}",
       "apps/web/lib/**/*.{ts,tsx}",
-      "apps/web/providers/**/*.{ts,tsx}"
+      "apps/web/providers/**/*.{ts,tsx}",
+      "packages/core/**/*.ts"
     ],
     plugins: {
       sonarjs

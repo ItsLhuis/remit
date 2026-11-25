@@ -1,10 +1,10 @@
 import { z } from "zod"
 
+import { isValidAmount, parseAmountToCents } from "@remit/core"
+
 import i18n from "@/lib/i18n/i18n"
 
 import {
-  isValidAmount,
-  parseAmountToCents,
   readArrayParam,
   readIntParam,
   readSortParam,

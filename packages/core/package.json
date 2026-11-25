@@ -1,0 +1,12 @@
+{
+  "name": "@remit/core",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ItsLhuis/remit.git"
+  },
+  "exports": {
+    ".": "./index.ts"
+  }
+}

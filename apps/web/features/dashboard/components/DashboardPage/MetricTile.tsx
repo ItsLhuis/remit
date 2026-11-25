@@ -5,9 +5,9 @@ import { type ReactNode } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCompactCurrency, formatCurrency } from "@remit/core"
 
-import { formatCompactCurrency, formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Button, Card, CardContent, Typography } from "@/components/ui"
 

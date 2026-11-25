@@ -6,10 +6,11 @@ ESLint owns them and `pnpm lint:fix` settles them. The source of truth is `impor
 same group adjacent, a blank line whenever the group changes. Groups run, in order: React → Next
 core (`next/cache`, `next/headers`, `next/navigation`, other `next/*`, each its own paragraph) →
 Node builtins → external packages (one paragraph per package origin; generated from `package.json`)
-→ `@/lib/i18n` → `@/lib/auth` → `@/lib/audit` → `@/lib/events` → `@/lib/logger` → `@/lib/utils` →
-other `@/lib/*` → `@/database` → `@/components/ui` → `@/components/layout` → other `@/components` →
-`@/features/*` (one paragraph per feature, generated from `apps/web/features/`) → `@/hooks` →
-`@/providers` → other `@/` → parent → sibling/index. Do not hand-order imports; run the fixer.
+→ `@remit/core` → `@/lib/i18n` → `@/lib/auth` → `@/lib/audit` → `@/lib/events` → `@/lib/logger` →
+`@/lib/utils` → other `@/lib/*` → `@/database` → `@/components/ui` → `@/components/layout` → other
+`@/components` → `@/features/*` (one paragraph per feature, generated from `apps/web/features/`) →
+`@/hooks` → `@/providers` → other `@/` → parent → sibling/index. Do not hand-order imports; run the
+fixer.
 
 ## What the linter does not decide
 
@@ -31,9 +32,12 @@ other `@/lib/*` → `@/database` → `@/components/ui` → `@/components/layout`
   `index.ts` and consumers import through it (`import { useIsMobile } from "@/hooks"`), never by
   direct file path. Files inside the folder import each other by direct relative path
   (`./useLocalStorage`), never through their own barrel, to avoid a self-cycle.
-- **Generic helpers** come from their utility barrel (`import { getIpAddress } from "@/lib/utils"`).
-  Never import from a feature just to reuse generic request, string, date or number normalization;
-  move such a helper to `apps/web/lib/utils/`.
+- **Generic helpers** come from their door: pure ones from `@remit/core`
+  (`import { formatCurrency } from "@remit/core"`), web-only ones from the utility barrel
+  (`import { getIpAddress } from "@/lib/utils"`), which does not re-export core. Never import from a
+  feature just to reuse generic request, string, date or number normalization; move such a helper to
+  `packages/core/` when it is pure, or to `apps/web/lib/utils/` when it needs the request or the
+  browser (`architecture.md`, "packages/core").
 - **Barrels** are plain `export` lists. UI and component-folder barrels are alphabetical
   (`perfectionist/sort-exports`). Feature barrels put components first, then schemas, types and
   services, with a blank line between sections. A feature root `index.ts` is client-safe;

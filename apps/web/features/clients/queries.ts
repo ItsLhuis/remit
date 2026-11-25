@@ -17,7 +17,7 @@ import {
   type SQL
 } from "drizzle-orm"
 
-import { formatCentsForInput } from "@/lib/utils"
+import { formatCentsForInput } from "@remit/core"
 
 import { database } from "@/database"
 import { clients, invoices, projects, recurringInvoices, uploads } from "@/database/schema"

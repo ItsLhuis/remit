@@ -1,12 +1,12 @@
 "use server"
 
+import { serializeCsv } from "@remit/core"
+
 import { t } from "@/lib/i18n/server"
 
 import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
-
-import { serializeCsv } from "@/lib/utils"
 
 import { reportColumnLabelKeys, reportDimensionLabelKeys } from "./labels"
 import { requireReportExport } from "./mutationContext"

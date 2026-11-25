@@ -2,9 +2,11 @@
 
 import { type ComponentProps } from "react"
 
+import { formatBytes } from "@remit/core"
+
 import { useTranslation } from "@/lib/i18n"
 
-import { cn, formatBytes } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 import { Icon } from "@/components/ui/Icon"
 import { IconButton } from "@/components/ui/IconButton"

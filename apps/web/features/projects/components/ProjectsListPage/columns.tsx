@@ -4,9 +4,9 @@ import { Fragment, type Dispatch, type SetStateAction } from "react"
 
 import Link from "next/link"
 
-import { type TFunction } from "@/lib/i18n"
+import { formatCurrency, formatDay } from "@remit/core"
 
-import { formatCurrency, formatDay } from "@/lib/utils"
+import { type TFunction } from "@/lib/i18n"
 
 import {
   Badge,

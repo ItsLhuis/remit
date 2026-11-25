@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm"
 
-import { t } from "@/lib/i18n/server"
+import { formatDay, formatNumber } from "@remit/core"
 
-import { formatDay, formatNumber } from "@/lib/utils"
+import { t } from "@/lib/i18n/server"
 
 import { database } from "@/database"
 import { clients, projects, taxRates } from "@/database/schema"

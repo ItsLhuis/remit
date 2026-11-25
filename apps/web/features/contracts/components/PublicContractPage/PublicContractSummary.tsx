@@ -1,8 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatDate, formatDay } from "@remit/core"
 
-import { formatDate, formatDay } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
 

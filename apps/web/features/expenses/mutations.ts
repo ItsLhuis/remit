@@ -6,6 +6,8 @@ import { headers } from "next/headers"
 
 import { and, eq, isNotNull, isNull } from "drizzle-orm"
 
+import { serializeCsv } from "@remit/core"
+
 import { t } from "@/lib/i18n/server"
 
 import { auth } from "@/lib/auth"
@@ -15,7 +17,7 @@ import { writeAudit } from "@/lib/audit"
 
 import { logger } from "@/lib/logger"
 
-import { getIpAddress, serializeCsv } from "@/lib/utils"
+import { getIpAddress } from "@/lib/utils"
 
 import { deleteStorageObject } from "@/lib/storage/s3"
 import { verifyUploadedObject } from "@/lib/storage/verifyUploadedObject"

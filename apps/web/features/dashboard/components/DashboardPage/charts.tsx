@@ -12,7 +12,7 @@ import {
   YAxis
 } from "recharts"
 
-import { formatCompactCurrency, formatCurrency, formatMonthShort } from "@/lib/utils"
+import { formatCompactCurrency, formatCurrency, formatMonthShort } from "@remit/core"
 
 import {
   ChartContainer,

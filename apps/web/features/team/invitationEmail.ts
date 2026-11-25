@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm"
 
+import { escapeHtml } from "@remit/core"
+
 import { t } from "@/lib/i18n/server"
 
 import { logger } from "@/lib/logger"
-
-import { escapeHtml } from "@/lib/utils"
 
 import { database } from "@/database"
 import { emailLogs } from "@/database/schema"

@@ -2,10 +2,10 @@
 
 import { type ComponentProps } from "react"
 
+import { formatCurrency } from "@remit/core"
+
 import { type TFunction } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
-
-import { formatCurrency } from "@/lib/utils"
 
 import { Badge, Icon, Typography } from "@/components/ui"
 

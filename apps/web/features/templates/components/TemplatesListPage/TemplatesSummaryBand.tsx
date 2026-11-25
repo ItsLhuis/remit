@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic"
 
-import { useTranslation, type TFunction } from "@/lib/i18n"
+import { formatCompactNumber } from "@remit/core"
 
-import { formatCompactNumber } from "@/lib/utils"
+import { useTranslation, type TFunction } from "@/lib/i18n"
 
 import { StatCard, StatValue } from "@/components/ui"
 

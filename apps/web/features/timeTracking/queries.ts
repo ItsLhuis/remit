@@ -15,9 +15,9 @@ import {
   type SQL
 } from "drizzle-orm"
 
-import { getSession } from "@/lib/auth/session"
+import { formatCentsForInput } from "@remit/core"
 
-import { formatCentsForInput } from "@/lib/utils"
+import { getSession } from "@/lib/auth/session"
 
 import { database } from "@/database"
 import { clients, projects, tasks, timeEntries } from "@/database/schema"

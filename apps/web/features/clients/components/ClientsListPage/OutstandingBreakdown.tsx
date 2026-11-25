@@ -1,8 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCompactCurrency, formatCompactNumber } from "@remit/core"
 
-import { formatCompactCurrency, formatCompactNumber } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Typography } from "@/components/ui"
 

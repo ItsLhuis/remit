@@ -2,9 +2,9 @@
 
 import Link from "next/link"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@remit/core"
 
-import { formatCurrency } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { Badge, Button, Card, CardContent, Icon, Typography } from "@/components/ui"
 

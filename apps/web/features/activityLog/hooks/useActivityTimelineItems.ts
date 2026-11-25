@@ -2,9 +2,9 @@
 
 import { type ReactNode } from "react"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatDate } from "@remit/core"
 
-import { formatDate } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import { type ActivityTimelineItem } from "@/components/ui"
 

@@ -1,9 +1,9 @@
-// The BCP 47 tags a record may carry as its formatting locale, which every `lib/utils/format.ts`
+// The BCP 47 tags a record may carry as its formatting locale, which every `format.ts`
 // helper hands straight to `Intl`. A closed list rather than "any tag `Intl` accepts", because
 // `Intl` silently falls back to its default locale for a tag it does not recognise, so an accepted
 // typo would format exactly like the instance default and look as though it had been ignored. Each
 // tag here names a region, since the region is what decides separators, currency placement and date
-// order; it is unrelated to the UI languages `lib/i18n/locales.ts` ships.
+// order; it is unrelated to the UI languages `apps/web/lib/i18n/locales.ts` ships.
 export const FORMATTING_LOCALES = [
   "cs-CZ",
   "da-DK",

@@ -8,7 +8,13 @@ const webPackage = JSON.parse(
   readFileSync(new URL("../web/package.json", import.meta.url), "utf8")
 ) as { dependencies: Record<string, string> }
 
-const webDependencies = new Set(Object.keys(webPackage.dependencies))
+// A workspace package the web modules import (`@remit/core`) ships TypeScript source, which plain
+// Node cannot load, so it is inlined with them rather than left external.
+const webDependencies = new Set(
+  Object.entries(webPackage.dependencies)
+    .filter(([, range]) => !range.startsWith("workspace:"))
+    .map(([name]) => name)
+)
 
 function packageName(specifier: string): string {
   const segments = specifier.split("/")

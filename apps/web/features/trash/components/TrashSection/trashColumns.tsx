@@ -1,8 +1,8 @@
 "use client"
 
-import { type TFunction } from "@/lib/i18n"
+import { formatDate } from "@remit/core"
 
-import { formatDate } from "@/lib/utils"
+import { type TFunction } from "@/lib/i18n"
 
 import {
   Badge,

@@ -40,9 +40,16 @@ export default defineConfig({
         "apps/web/lib/**",
         "apps/web/hooks/**",
         "apps/web/scripts/core/**",
-        "apps/worker/core/**"
+        "apps/worker/core/**",
+        "packages/core/**/*.ts"
       ],
-      exclude: ["**/__tests__/**", "apps/web/components/ui/**", "**/*.d.ts", "**/*.config.*"],
+      exclude: [
+        "**/__tests__/**",
+        "apps/web/components/ui/**",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/*.md"
+      ],
       // Checked only by a coverage run: `pnpm test` never reads it. The unit-tests job in
       // .github/workflows/ci.yml runs `pnpm test:coverage` for exactly that reason.
       thresholds: {

@@ -82,7 +82,7 @@ export type TimeTrackingPageData = {
 
 // `startedAt` and `endedAt` travel as ISO instants rather than as the `datetime-local` strings the
 // controls hold, because only the browser knows the zone the user meant. `TimeEntryForm` converts
-// them on mount and on submit (see `lib/utils/datetime.ts`).
+// them on mount and on submit (see `packages/core/datetime.ts`).
 export type TimeEntryFormData = Omit<TimeEntryFormInputValues, "startedAt" | "endedAt"> & {
   id: string
   startedAt: string

@@ -4,9 +4,9 @@ import { useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatBytes } from "@remit/core"
 
-import { formatBytes } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Empty,

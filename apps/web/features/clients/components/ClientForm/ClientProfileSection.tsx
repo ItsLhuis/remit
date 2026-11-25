@@ -4,9 +4,9 @@ import { useMemo } from "react"
 
 import { type Control, Controller } from "react-hook-form"
 
-import { useTranslation } from "@/lib/i18n"
+import { FORMATTING_LOCALES } from "@remit/core"
 
-import { FORMATTING_LOCALES } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   CurrencySelect,

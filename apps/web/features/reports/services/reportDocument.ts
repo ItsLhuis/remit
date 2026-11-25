@@ -1,4 +1,4 @@
-import { escapeHtml, formatDate } from "@/lib/utils"
+import { escapeHtml, formatDate } from "@remit/core"
 
 import { formatReportCell } from "./formatReportCell"
 import {

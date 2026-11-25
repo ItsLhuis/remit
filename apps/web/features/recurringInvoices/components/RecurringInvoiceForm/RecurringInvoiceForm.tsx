@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { useTranslation } from "@/lib/i18n"
+import { formatCentsForInput } from "@remit/core"
 
-import { formatCentsForInput } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Button,

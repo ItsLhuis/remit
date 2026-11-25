@@ -1,8 +1,8 @@
 import { z } from "zod"
 
-import i18n from "@/lib/i18n/i18n"
+import { isValidAmount } from "@remit/core"
 
-import { isValidAmount } from "@/lib/utils"
+import i18n from "@/lib/i18n/i18n"
 
 // Every bound below restates a check constraint on the `settings` table — `chk_settings_invoice_
 // prefix` (24 characters, printable ASCII), `chk_settings_number_padding_width` (1-10),
