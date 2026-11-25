@@ -33,14 +33,15 @@ migrating at the same time. There are two profiles:
   when you choose this profile. `COMPOSE_PROFILES=with-proxy` in `.env` keeps the profile on for
   every later `docker compose` command, `scripts/host/upgrade.sh`'s included.
 
-Uploaded files go through one adapter, `lib/storage`, configured by `S3_ENDPOINT`, `S3_REGION`,
-`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and `S3_FORCE_PATH_STYLE`
-(`lib/config/envSchema.ts`). The bundled store starts with the same key pair the app and worker sign
-with. Pointed at Amazon S3, Cloudflare R2 or Backblaze B2 instead, the same variables keep the files
-there, in three buckets derived from `S3_BUCKET`: `<S3_BUCKET>`, `<S3_BUCKET>-documents` and
-`<S3_BUCKET>-exports` (`lib/storage/bucketNames.ts`). Remit creates a missing bucket, and leaves one
-alone that answers a head request with `403`, so you can create the three in advance for a key that
-cannot create buckets (`lib/storage/objectStore.ts`).
+Uploaded files go through one adapter, `apps/web/lib/storage`, configured by `S3_ENDPOINT`,
+`S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` and `S3_FORCE_PATH_STYLE`
+(`apps/web/lib/config/envSchema.ts`). The bundled store starts with the same key pair the app and
+worker sign with. Pointed at Amazon S3, Cloudflare R2 or Backblaze B2 instead, the same variables
+keep the files there, in three buckets derived from `S3_BUCKET`: `<S3_BUCKET>`,
+`<S3_BUCKET>-documents` and `<S3_BUCKET>-exports` (`apps/web/lib/storage/bucketNames.ts`). Remit
+creates a missing bucket, and leaves one alone that answers a head request with `403`, so you can
+create the three in advance for a key that cannot create buckets
+(`apps/web/lib/storage/objectStore.ts`).
 
 ## Which guide is for me
 
@@ -119,11 +120,12 @@ over `http://`. You can register and then never stay signed in. Browsers make an
 
 **A new instance sends with built-in layouts, and sending needs email configured.** A document with
 no template of its own and no default for its type renders with a built-in layout
-(`features/templates/documentLayout.ts`), so a new instance renders the invoice PDF and mails it
-attached to a plain-text message with Remit's own wording (`features/invoices/emailJob.ts`). The
-mail goes out only once an email provider is configured at `/settings/email`
-(`features/email/documentEmail.ts`). Create templates at `/templates` only to change that look. This
-is true of every new instance, and it is why every guide's verification sends an invoice.
+(`apps/web/features/templates/documentLayout.ts`), so a new instance renders the invoice PDF and
+mails it attached to a plain-text message with Remit's own wording
+(`apps/web/features/invoices/emailJob.ts`). The mail goes out only once an email provider is
+configured at `/settings/email` (`apps/web/features/email/documentEmail.ts`). Create templates at
+`/templates` only to change that look. This is true of every new instance, and it is why every
+guide's verification sends an invoice.
 
 ## Platforms without a guide
 

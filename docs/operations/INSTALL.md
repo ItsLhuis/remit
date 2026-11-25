@@ -293,14 +293,14 @@ What is not executed by any automation:
 - Caddy running, and certificate issuance through ACME.
 - Installing without the installer.
 - External object storage: no run points Remit at Amazon S3, Cloudflare R2 or Backblaze B2.
-- The owner account and the setup wizard on an installer-run stack: `tests/e2e/auth.spec.ts` drives
-  registration, business setup and TOTP enrolment in a browser, but against the stack
-  `.github/workflows/e2e.yml` starts with `docker compose up -d`, not one `scripts/host/install.sh`
-  produced.
-- `remit:seed-demo` on an installed stack: `scripts/core/seedDemo/__tests__/seedDemo.test.ts` covers
-  the plan and the flags, and `seedDemo.integration.test.ts` covers dry-run, the refusal over
-  existing rows and `--reseed` against the test database, which `.github/workflows/ci.yml` runs as
-  `pnpm test:integration`.
+- The owner account and the setup wizard on an installer-run stack:
+  `apps/web/tests/e2e/auth.spec.ts` drives registration, business setup and TOTP enrolment in a
+  browser, but against the stack `.github/workflows/e2e.yml` starts with `docker compose up -d`, not
+  one `scripts/host/install.sh` produced.
+- `remit:seed-demo` on an installed stack:
+  `apps/web/scripts/core/seedDemo/__tests__/seedDemo.test.ts` covers the plan and the flags, and
+  `seedDemo.integration.test.ts` covers dry-run, the refusal over existing rows and `--reseed`
+  against the test database, which `.github/workflows/ci.yml` runs as `pnpm test:integration`.
 
 ## Where to go next
 
@@ -309,6 +309,6 @@ What is not executed by any automation:
 | How do I upgrade?                   | [UPGRADE.md](UPGRADE.md)                                        |
 | How do I restore from a backup?     | [RESTORE.md](RESTORE.md)                                        |
 | How do I scrape it with Prometheus? | [METRICS.md](METRICS.md)                                        |
-| What exactly does a command do?     | [scripts/README.md](../../apps/web/scripts/README.md)           |
+| What exactly does a command do?     | [apps/web/scripts/README.md](../../apps/web/scripts/README.md)  |
 | What is inside a `.remitbak` file?  | [archive README](../../apps/web/scripts/core/archive/README.md) |
 | How is the system built?            | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)              |

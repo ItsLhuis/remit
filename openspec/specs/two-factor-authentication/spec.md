@@ -198,47 +198,47 @@ Enforced by: `apps/web/lib/auth/__tests__/totpReconfigure.integration.test.ts` `
 
 ## How it works
 
-`POST` in `app/api/auth/[...all]/route.ts` matches the path suffix `/two-factor/disable` before it
-reads the body, and answers from `refuseTwoFactorDisable`. That function counts the refusal with
-`countRateLimitTrip` (`lib/rateLimit/tripCounter.ts`) and writes the audit entry only when the count
-says so. A session read that fails is logged and the entry is written without an actor; the response
-stays `403`.
+`POST` in `apps/web/app/api/auth/[...all]/route.ts` matches the path suffix `/two-factor/disable`
+before it reads the body, and answers from `refuseTwoFactorDisable`. That function counts the
+refusal with `countRateLimitTrip` (`apps/web/lib/rateLimit/tripCounter.ts`) and writes the audit
+entry only when the count says so. A session read that fails is logged and the entry is written
+without an actor; the response stays `403`.
 
 Better Auth's router matches a path byte for byte and answers `404` for a trailing slash, an encoded
 byte, a changed case or a doubled slash, so the one spelling that runs the endpoint is the one
 refused.
 
-`proxy.ts` counts setup as complete only with a business name on the settings row and a TOTP factor
-on the session; until then it sends every route but `/setup` and `/api/setup/` to `/setup`.
-`app/(auth)/setup/page.tsx` picks the wizard's first step from `getSetupProgress`
-(`features/setup/queries.ts`).
+`apps/web/proxy.ts` counts setup as complete only with a business name on the settings row and a
+TOTP factor on the session; until then it sends every route but `/setup` and `/api/setup/` to
+`/setup`. `apps/web/app/(auth)/setup/page.tsx` picks the wizard's first step from `getSetupProgress`
+(`apps/web/features/setup/queries.ts`).
 
 The setup wizard takes its codes from `twoFactor.enable`
-(`features/setup/components/TotpEnableStep.tsx`) and lists them in `RecoveryCodesStep.tsx`. The
-reconfigure dialog requests its own after the new factor verifies
-(`features/settings/security/components/TotpReconfigureDialog/ScanStep.tsx`).
-`features/auth/components/LoginForm/TotpForm.tsx` opens `RecoveryCodeForm.tsx`, and `POST` in
-`app/api/auth/[...all]/route.ts` audits a successful verification.
+(`apps/web/features/setup/components/TotpEnableStep.tsx`) and lists them in `RecoveryCodesStep.tsx`.
+The reconfigure dialog requests its own after the new factor verifies
+(`apps/web/features/settings/security/components/TotpReconfigureDialog/ScanStep.tsx`).
+`apps/web/features/auth/components/LoginForm/TotpForm.tsx` opens `RecoveryCodeForm.tsx`, and `POST`
+in `apps/web/app/api/auth/[...all]/route.ts` audits a successful verification.
 
-The `totpReconfigure` plugin (`lib/auth/totpReconfigure.ts`, registered after `twoFactor` in
-`lib/auth/index.ts`) has two `before` hooks, so both the HTTP router and `auth.api.*` reach them.
-For a user whose `two_factors` row exists and is not unverified, `enable` checks the body and the
-password itself, never hands the request to Better Auth's handler, and answers a TOTP URI with no
-recovery codes after storing the new secret, encrypted with Better Auth's `symmetricEncrypt`, as the
-`totp-reconfigure-<userId>` entry in `verifications`. The entry is keyed to the user, not to a
-session: it lapses at the expiry the session that created it had, signing out does not remove it,
-and a later `enable` replaces it. A `verify-totp` from any session of a user with a verified factor
-and an unexpired entry checks the code against the pending secret with `verifyTotpCode`
-(`lib/auth/totp.ts`); a wrong code answers `401` and changes nothing, a right one writes the pending
-ciphertext to `two_factors.secret`, deletes the entry and answers as Better Auth does. Without a
-session or an entry the request goes on to Better Auth, so first-time enrolment, sign-in and a retry
-after the swap run its own handlers.
+The `totpReconfigure` plugin (`apps/web/lib/auth/totpReconfigure.ts`, registered after `twoFactor`
+in `apps/web/lib/auth/index.ts`) has two `before` hooks, so both the HTTP router and `auth.api.*`
+reach them. For a user whose `two_factors` row exists and is not unverified, `enable` checks the
+body and the password itself, never hands the request to Better Auth's handler, and answers a TOTP
+URI with no recovery codes after storing the new secret, encrypted with Better Auth's
+`symmetricEncrypt`, as the `totp-reconfigure-<userId>` entry in `verifications`. The entry is keyed
+to the user, not to a session: it lapses at the expiry the session that created it had, signing out
+does not remove it, and a later `enable` replaces it. A `verify-totp` from any session of a user
+with a verified factor and an unexpired entry checks the code against the pending secret with
+`verifyTotpCode` (`apps/web/lib/auth/totp.ts`); a wrong code answers `401` and changes nothing, a
+right one writes the pending ciphertext to `two_factors.secret`, deletes the entry and answers as
+Better Auth does. Without a session or an entry the request goes on to Better Auth, so first-time
+enrolment, sign-in and a retry after the swap run its own handlers.
 
-The factor-change entries are written by `lib/auth/totpReconfigure.ts` (`auditTotp`) for a swap and
-a started reconfiguration, and by `auditTotpEnrolment`, a Better Auth `user.update.after` database
-hook registered in `lib/auth/index.ts`, when the first code of an enrolment sets `twoFactorEnabled`.
-`POST` in the route writes no entry for `enable`, `verify-totp` or `generate-backup-codes`; those
-paths stay in its audited set only for the rate-limit entry.
+The factor-change entries are written by `apps/web/lib/auth/totpReconfigure.ts` (`auditTotp`) for a
+swap and a started reconfiguration, and by `auditTotpEnrolment`, a Better Auth `user.update.after`
+database hook registered in `apps/web/lib/auth/index.ts`, when the first code of an enrolment sets
+`twoFactorEnabled`. `POST` in the route writes no entry for `enable`, `verify-totp` or
+`generate-backup-codes`; those paths stay in its audited set only for the rate-limit entry.
 
 ## Decisions
 
@@ -260,8 +260,8 @@ caller could flood the insert-only `audit_logs` and grow the in-memory fallback 
 
 ### D3: Enrolment is enforced by the routing guard, from the database and the session
 
-`proxy.ts` derives "setup complete" on every request from the settings row and the session, so a
-user cannot leave the wizard by navigating away. Rejected: a routing cookie, which
+`apps/web/proxy.ts` derives "setup complete" on every request from the settings row and the session,
+so a user cannot leave the wizard by navigating away. Rejected: a routing cookie, which
 `.agents/rules/security.md` forbids.
 
 ### D4: A reconfigured secret is held, then swapped in one update, by a Better Auth plugin

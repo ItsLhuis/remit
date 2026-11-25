@@ -1,4 +1,4 @@
-<img src="public/logo.png" width="80" height="80" />
+<img src="apps/web/public/logo.png" width="80" height="80" />
 
 # Remit
 

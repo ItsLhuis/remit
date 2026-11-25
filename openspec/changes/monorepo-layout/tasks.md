@@ -140,7 +140,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     with the `no-restricted-imports` purity message, not a parsing error, then delete the file; and
     `docker build --target runner . && docker build --target worker .`
 
-- [ ] 6. Repoint the architecture map, operator docs and remaining path mentions
+- [x] 6. Repoint the architecture map, operator docs and remaining path mentions
   - Do: Update `docs/architecture/ARCHITECTURE.md` (directory map, the three packages, where pure
     logic lives), `apps/web/scripts/README.md`, the operator runbooks in `docs/operations/` and the
     deployment guides that name repository paths, `README.md`, and any remaining prose mention of a

@@ -9,30 +9,32 @@ Five surfaces, and no others:
 
 - `GET /api/health` is public and returns `200` with `{"ok":true,"version":"..."}`, or `503` with
   `{"ok":false,"reason":"Database unavailable"}`. It checks that PostgreSQL answers `SELECT 1` and
-  nothing else (`app/api/health/route.ts`, `features/health/queries.ts`). The `app` container's
-  Docker health check calls it (`docker-compose.yml`), and so can an uptime monitor.
+  nothing else (`apps/web/app/api/health/route.ts`, `apps/web/features/health/queries.ts`). The
+  `app` container's Docker health check calls it (`docker-compose.yml`), and so can an uptime
+  monitor.
 - `GET /api/metrics` serves Prometheus metrics to a scraper holding `REMIT_METRICS_TOKEN`; the rest
   of this runbook covers it.
 - `/settings/system` is the status page for the owner role (`requireRole("owner")` in
-  `app/(dashboard)/settings/system/page.tsx`). It runs these checks (`features/health/queries.ts`):
-  database connectivity; pending or unexpected migrations; the backup destination (a write test of
-  the data directory, or a head request on the remote bucket); data-directory disk and inode use,
-  flagged at 90% or more; whether `REMIT_PUBLIC_URL` answers from the server; the last successful
-  backup, flagged when none exists or the newest is older than seven days, beside the destination
-  and the last failure; whether email and Stripe are configured and have passed their test; and
-  whether `SENTRY_DSN` is set. It also shows the running version, a short fingerprint of the
-  encryption key, and links to `CHANGELOG.md` and [`UPGRADE.md`](UPGRADE.md).
-- The container's stdout carries the pino log stream (`lib/logger/index.ts`), which is where an
-  error is found in full.
+  `apps/web/app/(dashboard)/settings/system/page.tsx`). It runs these checks
+  (`apps/web/features/health/queries.ts`): database connectivity; pending or unexpected migrations;
+  the backup destination (a write test of the data directory, or a head request on the remote
+  bucket); data-directory disk and inode use, flagged at 90% or more; whether `REMIT_PUBLIC_URL`
+  answers from the server; the last successful backup, flagged when none exists or the newest is
+  older than seven days, beside the destination and the last failure; whether email and Stripe are
+  configured and have passed their test; and whether `SENTRY_DSN` is set. It also shows the running
+  version, a short fingerprint of the encryption key, and links to `CHANGELOG.md` and
+  [`UPGRADE.md`](UPGRADE.md).
+- The container's stdout carries the pino log stream (`apps/web/lib/logger/index.ts`), which is
+  where an error is found in full.
 - With `SENTRY_DSN` set, unhandled request errors in the app and failures in the worker are also
-  reported to a Sentry-compatible receiver (`instrumentation.ts`, `apps/worker/worker.ts`).
+  reported to a Sentry-compatible receiver (`apps/web/instrumentation.ts`, `apps/worker/worker.ts`).
 
 ## What `/api/metrics` exposes
 
 The response is the Prometheus text exposition format, version 0.0.4, and is pull only: nothing is
 pushed anywhere. It exposes exactly the following, and
-`lib/metrics/__tests__/handleMetricsRequest.test.ts` fails on anything else
-(`lib/metrics/collectMetrics.ts`).
+`apps/web/lib/metrics/__tests__/handleMetricsRequest.test.ts` fails on anything else
+(`apps/web/lib/metrics/collectMetrics.ts`).
 
 | Metric                                               | Type    | Labels           | Source                        |
 | ---------------------------------------------------- | ------- | ---------------- | ----------------------------- |
@@ -46,11 +48,12 @@ pushed anywhere. It exposes exactly the following, and
 | `remit_metrics_collector_up`                         | gauge   | `collector`      | the scrape itself             |
 
 `state` is one of `waiting`, `active`, `delayed`, `prioritized`, `waiting-children` and `failed`
-(`lib/jobs/stats.ts`). `job` is one of the six repeatable sweeps in `lib/jobs/schedules.ts`, and
-`outcome` is `completed` or `failed`, where a failure counts once, after its last retry. A job that
-has never completed has no `remit_scheduled_job_last_success_timestamp_seconds` sample. `collector`
-is `queue` or `scheduled_jobs`. Every label value comes from a closed vocabulary; none is a path, an
-id or an error message.
+(`apps/web/lib/jobs/stats.ts`). `job` is one of the six repeatable sweeps in
+`apps/web/lib/jobs/schedules.ts`, and `outcome` is `completed` or `failed`, where a failure counts
+once, after its last retry. A job that has never completed has no
+`remit_scheduled_job_last_success_timestamp_seconds` sample. `collector` is `queue` or
+`scheduled_jobs`. Every label value comes from a closed vocabulary; none is a path, an id or an
+error message.
 
 Nothing else is exposed, on purpose. There is no count of domain rows such as invoices, clients or
 revenue, because a single shared bearer token is not the protection that business data deserves.
@@ -61,17 +64,17 @@ error counters.
 Collection happens at scrape time and costs a request nothing: no request path is instrumented. The
 process gauges are read in the app container. The queue gauge is one `getJobCounts` call against
 Redis. The scheduled-job metrics are written into one Redis hash by the worker's `completed` and
-`failed` events (`lib/jobs/stats.ts`), because the worker runs in another container from the app
-that answers the scrape. Each collector has a two-second bound. A collector that fails or times out
-drops its own metrics and reports `0` on `remit_metrics_collector_up`, and the scrape still returns
-`200` with everything else (`lib/metrics/collectMetrics.ts`).
+`failed` events (`apps/web/lib/jobs/stats.ts`), because the worker runs in another container from
+the app that answers the scrape. Each collector has a two-second bound. A collector that fails or
+times out drops its own metrics and reports `0` on `remit_metrics_collector_up`, and the scrape
+still returns `200` with everything else (`apps/web/lib/metrics/collectMetrics.ts`).
 
 The endpoint answers only a request carrying `Authorization: Bearer <token>` that matches
-`REMIT_METRICS_TOKEN`, compared in constant time. No route serves `/api/metrics` itself: `proxy.ts`
-rewrites an admitted scrape to `/api/metrics/scrape`, and every other request (no credential, a
-wrong one, or no token configured) is answered as a path with no route, so a caller cannot learn
-whether metrics are enabled (`lib/metrics/admission.ts`). Scrapes carry `Cache-Control: no-store`
-and `X-Robots-Tag: noindex, nofollow`.
+`REMIT_METRICS_TOKEN`, compared in constant time. No route serves `/api/metrics` itself:
+`apps/web/proxy.ts` rewrites an admitted scrape to `/api/metrics/scrape`, and every other request
+(no credential, a wrong one, or no token configured) is answered as a path with no route, so a
+caller cannot learn whether metrics are enabled (`apps/web/lib/metrics/admission.ts`). Scrapes carry
+`Cache-Control: no-store` and `X-Robots-Tag: noindex, nofollow`.
 
 ## 1. Set the token
 
@@ -151,6 +154,6 @@ overdue or failed.
 
 ## Execution
 
-`lib/metrics/__tests__/` runs the endpoint's behaviour: admission and the token, the exposition
-format, the closed set of metrics and labels, and degrading when a collector fails. The scrape
-configuration in step 3 has not been run against Prometheus.
+`apps/web/lib/metrics/__tests__/` runs the endpoint's behaviour: admission and the token, the
+exposition format, the closed set of metrics and labels, and degrading when a collector fails. The
+scrape configuration in step 3 has not been run against Prometheus.

@@ -208,9 +208,9 @@ worker, Chromium, object storage and email in one go, which is why it is the che
 2. **Configure email** at `/settings/email` — SMTP or Resend — and use its test send. Nothing else
    in this list works without it.
 3. **Know what a new instance sends.** It ships with no template. The invoice renders with the
-   built-in layout (`features/templates/documentLayout.ts`) and the email is plain text in Remit's
-   own wording with the PDF attached (`features/invoices/emailJob.ts`). Create a template at
-   `/templates` and mark it the default for invoices only to change that look.
+   built-in layout (`apps/web/features/templates/documentLayout.ts`) and the email is plain text in
+   Remit's own wording with the PDF attached (`apps/web/features/invoices/emailJob.ts`). Create a
+   template at `/templates` and mark it the default for invoices only to change that look.
 4. **Create a client** at `/clients`, with an email address you can read, then a **project** for
    that client. Invoices hang off a project.
 5. **Create an invoice** on that project with one line item, and send it.
@@ -244,11 +244,12 @@ reached over plain HTTP outside `localhost`. Fix `.env` and `docker compose up -
 
 ### An invoice says "sent" but the client got nothing
 
-The mail is not sent when no email provider is configured (`features/email/documentEmail.ts`), when
-the client has no email address, or when the invoice's public link was revoked
-(`features/invoices/emailJob.ts`). The last two log `Invoice email skipped: no recipient` or
-`Invoice email skipped: public link revoked` in `docker compose logs worker`. Configure
-`/settings/email`, add the address, or restore the link, and send again.
+The mail is not sent when no email provider is configured
+(`apps/web/features/email/documentEmail.ts`), when the client has no email address, or when the
+invoice's public link was revoked (`apps/web/features/invoices/emailJob.ts`). The last two log
+`Invoice email skipped: no recipient` or `Invoice email skipped: public link revoked` in
+`docker compose logs worker`. Configure `/settings/email`, add the address, or restore the link, and
+send again.
 
 ### Nothing scheduled ever happens
 

@@ -58,7 +58,7 @@ fails.
 - THEN the route writes no login entry; it writes only the rate-limit entry when a limit refuses
 
 Enforced by: `apps/web/lib/auth/__tests__/authAudit.integration.test.ts`
-`app/api/auth/[...all]/__tests__/route.test.ts`
+`apps/web/app/api/auth/[...all]/__tests__/route.test.ts`
 
 ### Requirement: Regenerating recovery codes is audited
 
@@ -79,17 +79,18 @@ Enforced by: `apps/web/lib/auth/__tests__/authAudit.integration.test.ts`
 
 ## How it works
 
-The `authAudit` plugin (`lib/auth/authAudit.ts`, registered in `lib/auth/index.ts`) hooks Better
-Auth's pipeline, which runs for the HTTP route and for `auth.api.*` alike. An `after` hook on
-`/sign-in/email` reads Better Auth's own answer: an error is a password failure, a two-factor
-redirect is a pending second factor, and a new session is a completed sign-in. A `before` hook on
-`/two-factor/verify-totp` and `/two-factor/verify-backup-code` finds the sign-in's pending user from
-the challenge cookie and leaves it on the request, because Better Auth consumes the challenge while
-it verifies; the `after` hooks on the same paths then write the session or the second-factor
-failure. A request that holds a session has no challenge and is not a sign-in.
-`lib/auth/auditContext.ts` builds the actor, address and user agent from the endpoint context.
+The `authAudit` plugin (`apps/web/lib/auth/authAudit.ts`, registered in
+`apps/web/lib/auth/index.ts`) hooks Better Auth's pipeline, which runs for the HTTP route and for
+`auth.api.*` alike. An `after` hook on `/sign-in/email` reads Better Auth's own answer: an error is
+a password failure, a two-factor redirect is a pending second factor, and a new session is a
+completed sign-in. A `before` hook on `/two-factor/verify-totp` and `/two-factor/verify-backup-code`
+finds the sign-in's pending user from the challenge cookie and leaves it on the request, because
+Better Auth consumes the challenge while it verifies; the `after` hooks on the same paths then write
+the session or the second-factor failure. A request that holds a session has no challenge and is not
+a sign-in. `apps/web/lib/auth/auditContext.ts` builds the actor, address and user agent from the
+endpoint context.
 
-`POST` in `app/api/auth/[...all]/route.ts` keeps `sign-in` in its audited set only for the
+`POST` in `apps/web/app/api/auth/[...all]/route.ts` keeps `sign-in` in its audited set only for the
 rate-limit entry, which is written before Better Auth runs. `auth.backup_code.consumed` is written
 by the route (`openspec/specs/two-factor-authentication/spec.md`).
 

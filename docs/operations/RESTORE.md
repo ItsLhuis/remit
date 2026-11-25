@@ -191,9 +191,10 @@ restored audit log retains the operation trail.
 
 ## Execution
 
-`scripts/core/restore/__tests__/` runs the command: `restore.integration.test.ts` restores local and
-remote archives against the test database and object store, and the other files in that directory
-cover the archive, dump, schema gate and object deletions. One manual run of backup and restore on a
-real host is recorded in the [Linux host](../deploy/linux-host.md) guide's label. CI stops at taking
-a backup (`.github/workflows/install.yml`); no automation restores one into an installed stack, and
-the scratch-instance procedure in [`BACKUP.md`](BACKUP.md#testing-a-backup) has no recorded run.
+`apps/web/scripts/core/restore/__tests__/` runs the command: `restore.integration.test.ts` restores
+local and remote archives against the test database and object store, and the other files in that
+directory cover the archive, dump, schema gate and object deletions. One manual run of backup and
+restore on a real host is recorded in the [Linux host](../deploy/linux-host.md) guide's label. CI
+stops at taking a backup (`.github/workflows/install.yml`); no automation restores one into an
+installed stack, and the scratch-instance procedure in [`BACKUP.md`](BACKUP.md#testing-a-backup) has
+no recorded run.

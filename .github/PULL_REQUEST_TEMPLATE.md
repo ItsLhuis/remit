@@ -25,8 +25,8 @@
 - [ ] Schema changes were generated with `pnpm database:generate`; no generated migration SQL was
       hand-edited, and this PR does not squash the migration history: that happens before the schema
       freeze, which the owner schedules
-- [ ] New user-facing strings go through `t()`, with the key added to both `lib/i18n/types.ts` and
-      the English locale
+- [ ] New user-facing strings go through `t()`, with the key added to both
+      `apps/web/lib/i18n/types.ts` and the English locale
 - [ ] Writes go through a server action in `mutations.ts`; new API routes are public token routes,
       webhooks, health or metrics
 - [ ] Business logic added to `services/` is pure — no framework, Drizzle, React or IO imports
