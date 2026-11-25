@@ -116,10 +116,10 @@ returns in the action.
 
 ## Shared helper placement and abstraction threshold
 
-Cross-feature helpers that are pure (string, date and number normalization, URL-safe formatting)
-belong in `packages/core/`; those that need the request, the response, the browser or a web-only
-library (request metadata, object filtering) belong in `apps/web/lib/utils/`. Feature-specific write
-plans and persistence details stay in their feature.
+Cross-feature helpers that are pure (string, date, number and object normalization, URL-safe
+formatting) belong in `packages/core/`; those that need the request, the response, the browser or a
+web-only library (request metadata) belong in `apps/web/lib/utils/`. Feature-specific write plans
+and persistence details stay in their feature.
 
 Extract shared logic only when the behaviour is identical, the call sites need the same inputs, the
 return shape is stable and the error behaviour is the same. Do not extract when return columns,

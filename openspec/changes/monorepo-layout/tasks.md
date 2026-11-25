@@ -135,9 +135,10 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `apps/web/lib/utils` defines a moved helper; ESLint rejects a framework or IO import in
     `packages/core`; `pnpm test:coverage` reports the `packages/core` files; `pnpm build` and both
     images still build.
-  - Verify: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`,
-    `printf 'import "react"\n' | pnpm exec eslint --stdin --stdin-filename packages/core/probe.ts`
-    exits non-zero, and `docker build --target runner . && docker build --target worker .`
+  - Verify: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`; write `import "react"` to
+    `packages/core/probe.ts`, run `pnpm exec eslint packages/core/probe.ts` and see it exit non-zero
+    with the `no-restricted-imports` purity message, not a parsing error, then delete the file; and
+    `docker build --target runner . && docker build --target worker .`
 
 - [ ] 6. Repoint the architecture map, operator docs and remaining path mentions
   - Do: Update `docs/architecture/ARCHITECTURE.md` (directory map, the three packages, where pure

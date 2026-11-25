@@ -133,8 +133,10 @@ permission derivation, invoice numbering, scheduling rules, or generic normaliza
 Move that logic to:
 
 - `features/<feature>/services/` when it is feature/domain logic.
-- `apps/web/lib/utils/` when it is generic request, string, date, number, URL, or object
-  normalization.
+- `packages/core/`, imported from `@remit/core`, when it is pure string, date, number, URL, or
+  object normalization.
+- `apps/web/lib/utils/` when it needs the request, the response, or the browser, such as request
+  metadata parsing.
 
 Settings actions may currently repeat session, owner-role, audit setup, upsert, and changed-field
 patterns. Do not force a generic helper unless the signatures, return columns, no-op behavior,

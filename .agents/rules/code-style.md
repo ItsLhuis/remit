@@ -5,7 +5,8 @@
 Each file category has one canonical exemplar. Match it, then fall back to the nearest comparable
 file in the same feature and layer for anything it does not cover. Where two files of the same role
 disagree, the exemplar wins, not the nearest neighbour. The exemplar never overrides architecture
-boundaries: a generic helper still belongs in `apps/web/lib/utils/`.
+boundaries: a generic helper still belongs in `packages/core/` when it is pure, or in
+`apps/web/lib/utils/` when it needs the request, the response or the browser.
 
 | Category                         | Canonical exemplar                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -169,12 +170,15 @@ preserves flow-specific translation keys.
 ## Helper discipline
 
 Do not add local helpers for generic request, string, date, number, URL or object normalization when
-an equivalent exists under `apps/web/lib/utils/` (request metadata parsing is
-`getIpAddress(headers)` in `apps/web/lib/utils/request.ts`). A generic helper needed by more than
-one feature goes in a focused file under `apps/web/lib/utils/`, exported from
-`apps/web/lib/utils/index.ts`. Helpers that differ in trimming, null handling, return shape,
-translation keys, return columns, rollback or error messages stay local until a deliberate shared
-contract exists.
+an equivalent exists: pure helpers live in `packages/core/` and are imported from `@remit/core`
+(`import { formatCurrency } from "@remit/core"`); request, response and browser helpers live in
+`apps/web/lib/utils/` (request metadata parsing is `getIpAddress(headers)` in
+`apps/web/lib/utils/request.ts`). A generic helper needed by more than one feature goes in a focused
+file under `packages/core/`, exported from `packages/core/index.ts`, when it is pure, or under
+`apps/web/lib/utils/`, exported from `apps/web/lib/utils/index.ts`, when it needs the request, the
+response or the browser (`architecture.md`, "Shared helper placement and abstraction threshold").
+Helpers that differ in trimming, null handling, return shape, translation keys, return columns,
+rollback or error messages stay local until a deliberate shared contract exists.
 
 ## Barrels
 

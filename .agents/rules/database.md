@@ -94,7 +94,8 @@ Only extract persistence helpers when return columns, no-op behavior, error mapp
 and transaction semantics are identical.
 
 If a helper requires broad generic Drizzle typing that obscures the write, keep the write local and
-extract only the truly generic non-IO pieces to `apps/web/lib/utils/` or a pure service.
+extract only the truly generic non-IO pieces to `packages/core/` (imported from `@remit/core`) or a
+pure service.
 
 ## Comments
 

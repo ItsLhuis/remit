@@ -39,11 +39,11 @@ folder named `use*` that does not export that hook.
 ## File-private helpers in `.tsx`
 
 In component files, arrow functions are components and `function` declarations are helpers. A
-file-private helper (not generic enough for `apps/web/lib/utils/`, not domain logic for `services/`)
-is a `function` statement placed immediately after the imports, before the props type and the
-component — never after the component or the export, so a reader meets the helper before its first
-call. This is the opposite of the `.ts` convention ("private helpers below the public API" in
-`code-style.md`). Enforced by `remit/helper-placement`.
+file-private helper (not generic enough for `packages/core/` or `apps/web/lib/utils/`, not domain
+logic for `services/`) is a `function` statement placed immediately after the imports, before the
+props type and the component — never after the component or the export, so a reader meets the helper
+before its first call. This is the opposite of the `.ts` convention ("private helpers below the
+public API" in `code-style.md`). Enforced by `remit/helper-placement`.
 
 ## Component body shape
 
