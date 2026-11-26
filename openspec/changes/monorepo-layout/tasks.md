@@ -157,3 +157,24 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `docker compose exec -T app pnpm remit:backup --yes` writing an archive,
     `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, and
     `pnpm test:e2e`
+
+- [ ] 7. Close the gaps the change review found in the changelog gate, core purity and coverage
+  - Do: Add `apps/worker/` and `packages/core/` to `SHIPPED_ROOTS` in
+    `scripts/core/release/changelogGate.ts`, with a case for each in its test, so a change to either
+    package needs a release note as it did at its old root path. Extend the `packages/core` purity
+    block in `eslint.config.mjs` to what `.agents/rules/architecture.md` says it enforces: reject a
+    forbidden module through `import()` (selectors as `forbidDynamicWebDeepImportSelectors` does)
+    and `globalThis.process`. Add `scripts/core/**` back to the root `coverage` include, which the
+    move dropped while `scripts/core/release/` stayed at the root. Take `./lib/jobs` out of the
+    `apps/web/package.json` `exports` map if `jobCatalog.integration.test.ts` can reach the catalog
+    through the modules decision 1 names; otherwise keep it and state in
+    `docs/architecture/ARCHITECTURE.md` that only that test imports it.
+  - Done when: `changelogGate` requires a note for a change under `apps/worker/` or
+    `packages/core/`; ESLint rejects `await import("node:fs")` and `globalThis.process.env` in
+    `packages/core`; `pnpm test:coverage` reports `scripts/core/release/` files; the `exports` map
+    names only what decision 1 lists or the architecture map says why it names more.
+  - Verify: `pnpm lint && pnpm typecheck && pnpm test`, `pnpm test:coverage`,
+    `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`; write
+    `export const a = await import("node:fs")` and then `export const b = globalThis.process.env` to
+    `packages/core/probe.ts`, run `pnpm exec eslint packages/core/probe.ts` on each and see it exit
+    non-zero with the purity message, then delete the file
