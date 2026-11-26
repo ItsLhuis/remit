@@ -152,8 +152,8 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     (proposal, Size and verification): `pnpm build` from the root,
     `docker build --target runner -t remit-app:monorepo . && docker build --target worker -t remit-worker:monorepo .`,
     `docker compose up -d --build` with `curl -fsS http://localhost:3000/api/health` answering 200
-    and the worker container up, an invoice PDF render triggered in the running app with the worker
-    log showing the render job completing, `docker compose exec -T app pnpm remit:backup --yes`
-    writing an archive,
+    and the worker container up, an invoice PDF render triggered in the running app with the
+    `invoice.pdf.render` job in the queue's completed list and the invoice's PDF stored,
+    `docker compose exec -T app pnpm remit:backup --yes` writing an archive,
     `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, and
     `pnpm test:e2e`
