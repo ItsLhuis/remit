@@ -19,7 +19,9 @@ const SHIPPED_ROOTS = [
   "apps/web/providers/",
   "apps/web/public/",
   "apps/web/scripts/",
+  "apps/worker/",
   "deploy/",
+  "packages/core/",
   "scripts/"
 ]
 

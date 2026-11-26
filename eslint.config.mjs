@@ -280,21 +280,15 @@ const coreForbiddenImportPattern = new RegExp(
   ].join("|")
 )
 
+const pureCoreImportMessage =
+  "packages/core stays pure: no framework, database, IO or application import (.agents/rules/architecture.md, packages/core)."
+
 const pureCoreImportRule = [
   "error",
-  {
-    patterns: [
-      {
-        regex: coreForbiddenImportPattern.source,
-        message:
-          "packages/core stays pure: no framework, database, IO or application import (.agents/rules/architecture.md, packages/core)."
-      }
-    ]
-  }
+  { patterns: [{ regex: coreForbiddenImportPattern.source, message: pureCoreImportMessage }] }
 ]
 
-const pureCoreGlobalsRule = [
-  "error",
+const pureCoreGlobals = [
   {
     name: "process",
     message: "packages/core reads no environment or process state. Take the value as an argument."
@@ -303,6 +297,25 @@ const pureCoreGlobalsRule = [
     name: "document",
     message: "packages/core touches no DOM. Keep DOM work in apps/web."
   }
+]
+
+const pureCoreGlobalsRule = ["error", ...pureCoreGlobals]
+
+// The two spellings the rules above never see: `no-restricted-imports` does not inspect `import()`,
+// and `no-restricted-globals` matches only the bare identifier, not `globalThis.process`.
+const pureCoreSyntaxSelectors = [
+  {
+    selector: `ImportExpression[source.value=${coreForbiddenImportPattern}]`,
+    message: pureCoreImportMessage
+  },
+  {
+    selector: `ImportExpression[source.quasis.0.value.cooked=${coreForbiddenImportPattern}]`,
+    message: pureCoreImportMessage
+  },
+  ...pureCoreGlobals.map(({ name, message }) => ({
+    selector: `MemberExpression[object.name="globalThis"][property.name="${name}"]`,
+    message
+  }))
 ]
 
 // The worker reaches `apps/web` only through the `@remit/web` exports map. `pnpm typecheck` rejects
@@ -441,12 +454,15 @@ const eslintConfig = defineConfig([
   },
   {
     // Tests are left out: they run only under Vitest in Node, and one pins the process time zone
-    // (packages/core/__tests__/format.test.ts).
+    // (packages/core/__tests__/format.test.ts). A later `no-restricted-syntax` replaces an earlier
+    // one rather than adding to it, so this restates the forwarded-header selector the block above
+    // gives every packages/core file.
     files: ["packages/core/**/*.ts"],
     ignores: ["packages/core/**/__tests__/**"],
     rules: {
       "no-restricted-imports": pureCoreImportRule,
-      "no-restricted-globals": pureCoreGlobalsRule
+      "no-restricted-globals": pureCoreGlobalsRule,
+      "no-restricted-syntax": [...forbidInlineForwardedHeaderRule, ...pureCoreSyntaxSelectors]
     }
   },
   {

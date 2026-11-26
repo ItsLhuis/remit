@@ -74,6 +74,18 @@ describe("evaluateChangelogGate", () => {
     })
   })
 
+  test("refuses a change to the worker package that adds no unreleased entry", () => {
+    const paths = ["apps/worker/worker.ts", "apps/worker/core/crash.ts", "apps/worker/package.json"]
+
+    expect(gate(paths)).toEqual({ required: true, satisfied: false, changedPaths: paths })
+  })
+
+  test("refuses a change to the core package that adds no unreleased entry", () => {
+    const paths = ["packages/core/money.ts", "packages/core/package.json"]
+
+    expect(gate(paths)).toEqual({ required: true, satisfied: false, changedPaths: paths })
+  })
+
   test("does not accept the entries the base branch already carried", () => {
     const reordered = ["# Changelog", "", "## [Unreleased]", "", "- An older entry.", ""]
 

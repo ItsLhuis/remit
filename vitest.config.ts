@@ -41,7 +41,8 @@ export default defineConfig({
         "apps/web/hooks/**",
         "apps/web/scripts/core/**",
         "apps/worker/core/**",
-        "packages/core/**/*.ts"
+        "packages/core/**/*.ts",
+        "scripts/core/**"
       ],
       exclude: [
         "**/__tests__/**",

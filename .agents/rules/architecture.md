@@ -90,8 +90,9 @@ The package runs in the browser, the Next.js server, the worker bundle and a uni
 pure throughout: no `next`, `react`, `drizzle-orm` or `postgres` import, no Node IO module (`fs`,
 `net`, `child_process` and the rest, with or without `node:`), no `@/` path, no `@remit/web` or
 `@remit/worker` and no relative path into `apps/`, and no `process` or `document` global. Everything
-arrives as an argument. Enforced by `pureCoreImportRule` and `pureCoreGlobalsRule` in
-`eslint.config.mjs`, applied to every non-test file under `packages/core/`.
+arrives as an argument. Enforced by `pureCoreImportRule`, `pureCoreGlobalsRule` and, for the
+`import()` and `globalThis.` spellings, `pureCoreSyntaxSelectors` in `eslint.config.mjs`, applied to
+every non-test file under `packages/core/`.
 
 ## Work placement
 

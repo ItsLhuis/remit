@@ -158,7 +158,7 @@ and no task changes behaviour, the schema, a migration or a dependency version (
     `pnpm database:test:up && pnpm database:test:migrate && pnpm test:integration`, and
     `pnpm test:e2e`
 
-- [ ] 7. Close the gaps the change review found in the changelog gate, core purity and coverage
+- [x] 7. Close the gaps the change review found in the changelog gate, core purity and coverage
   - Do: Add `apps/worker/` and `packages/core/` to `SHIPPED_ROOTS` in
     `scripts/core/release/changelogGate.ts`, with a case for each in its test, so a change to either
     package needs a release note as it did at its old root path. Extend the `packages/core` purity
