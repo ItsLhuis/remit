@@ -7,211 +7,208 @@ The single register of what comes next and of every known gap. `next-step` reads
 
 Ordered; the first entry is next. Each entry is a change name and one line.
 
-1. `monorepo-layout` - pnpm workspaces with only `apps/web`, `apps/worker` and `packages/core`;
-   other packages are created when their own deliverable starts; standalone output proven from the
-   workspace root (FR1, R13-12).
-2. `data-class-registry` - every column declares a data class from the closed list and a subject
+1. `data-class-registry` - every column declares a data class from the closed list and a subject
    link; a test fails on any unclassified column (R12-1).
-3. `spike-better-auth` - prove on the installed 1.7 a second instance for external contacts, OIDC
+2. `spike-better-auth` - prove on the installed 1.7 a second instance for external contacts, OIDC
    and SAML SSO, SCIM role projection, passkeys with required user verification and the
    `auth_method` stamp (FR4, R9-1).
-4. `spike-job-queue` - BullMQ with an outbox relay against pg-boss enqueuing in the business
+3. `spike-job-queue` - BullMQ with an outbox relay against pg-boss enqueuing in the business
    transaction: relay lag, open-source group concurrency, a Redis-free instance (R11-Q2, R11-2,
    R11-3, C13-6).
-5. `audit-principal-shape` - principal types on every audit row, ordered sequence and transaction
+4. `audit-principal-shape` - principal types on every audit row, ordered sequence and transaction
    id, ids only with no referential actions, an asynchronous sealer with checkpoints anchored
    outside the database (R9-6, R13-2, C12-3, C13-7).
-6. `money-precision` - Remit-owned ISO 4217 table, bigint minor units, `numeric` scales for
+5. `money-precision` - Remit-owned ISO 4217 table, bigint minor units, `numeric` scales for
    quantities, unit prices, FX, tax rates and UoM factors, one exact rounding primitive replacing
    `Math.round` in the money rule (FR2, R8 R-1, R-2).
-7. `legal-entities` - entities with settings split from the singleton, `entity_id` with composite
+6. `legal-entities` - entities with settings split from the singleton, `entity_id` with composite
    keys that include the future partition key, a mandatory entity predicate (X1, R9-4, C7-9).
-8. `parties` - parties, roles, contact points, addresses, tax identifiers, party accounts and
+7. `parties` - parties, roles, contact points, addresses, tax identifiers, party accounts and
    relationships replace clients, contacts and leads, with deals on pipelines (D4, R2-1 to R2-3,
    R2-10 steps 1-7).
-9. `issuance-series` - series per entity and document type, numbers claimed at issuance, immutable
+8. `issuance-series` - series per entity and document type, numbers claimed at issuance, immutable
    issued snapshots behind triggers no migration may disable (D6, R5-2, R12-10).
-10. `ledger-books` - first ledger schema: accounts, roles, journals, entries and lines carrying the
-    book column, with `ledger_books` primary, tax and IFRS (D2, R7-1, R7-Q4).
-11. `migration-squash` - fresh baseline after every one-way door, hand-written schema SQL appended
+9. `ledger-books` - first ledger schema: accounts, roles, journals, entries and lines carrying the
+   book column, with `ledger_books` primary, tax and IFRS (D2, R7-1, R7-Q4).
+10. `migration-squash` - fresh baseline after every one-way door, hand-written schema SQL appended
     unchanged, data corrections dropped, CI schema-equivalence check, every database rebuilt;
     scheduled by the owner (D11, R12-9, C12-4).
-12. `spike-pdf-rendering` - P1 Chromium plus an in-worker conformance step against P2 Gotenberg 9 on
+11. `spike-pdf-rendering` - P1 Chromium plus an in-worker conformance step against P2 Gotenberg 9 on
     real templates, scored by veraPDF for PDF/A-3 and PDF/UA-1 (FR5, R4-8, R4-Q8).
-13. `spike-fiscal-issuer` - provider-neutral fiscal-issuer adapter with InvoiceXpress as its first
+12. `spike-fiscal-issuer` - provider-neutral fiscal-issuer adapter with InvoiceXpress as its first
     instance: pending issue, idempotency, provider number, ATCUD, QR and PDF (D13, N4, R14-1,
     R14-2).
-14. `scope-text-amendments` - apply the accepted text amendments to rules, AGENTS.md and the
+13. `scope-text-amendments` - apply the accepted text amendments to rules, AGENTS.md and the
     architecture docs: C5-1, C5-2, C5-5, C6-1, C6-3, C6-6, C7-1, C7-3, C7-4, C11-1, C11-2, C12-1,
     C12-2, C12-7, C4-2, C4-5, C3-6, the Group 1 and 4 repo conflicts, D1's meaning of instance on
     shared fleet services (C9-1, FR3), the bulk email stream rule (C10-4, R10-5), the 7.8 EAA text
     (C13-2), the MFA policy wording (C9-2 to C9-4, R9-3) and the licence (AGPL-3.0, MIT for
     `packages/sdk`) in the docs.
-15. `country-neutrality-check` - CI fails on a country code or country rule in `packages/core` (N2).
-16. `contract-signing-sessions` - one link per signer, emailed code, document hash and consent
+14. `country-neutrality-check` - CI fails on a country code or country rule in `packages/core` (N2).
+15. `contract-signing-sessions` - one link per signer, emailed code, document hash and consent
     version on the signature row, replacing the shared signing link (R4-3, R4-Q1).
-17. `migration-discipline` - expand and contract, `lock_timeout`, a lint on generated SQL and
+16. `migration-discipline` - expand and contract, `lock_timeout`, a lint on generated SQL and
     concurrent index builds, written into the database rule (R13-6).
-18. `accessibility-gate` - axe in Playwright on every route and dialog state, keyboard E2E for
+17. `accessibility-gate` - axe in Playwright on every route and dialog state, keyboard E2E for
     primary flows, the current findings fixed, the house standard of WCAG 2.2 AA plus 2.4.13 Focus
     Appearance and 44 px mobile targets through the design gate (R13-3, R13-Q4).
-19. `job-queues` - the spike's queue with a queue per workload class, per-queue concurrency,
+18. `job-queues` - the spike's queue with a queue per workload class, per-queue concurrency,
     fairness groups and one explicit pool size per process (D12, R13-7, R13-8).
-20. `command-layer-outbox` - one typed command registry behind app, API and jobs, each command
+19. `command-layer-outbox` - one typed command registry behind app, API and jobs, each command
     writing its outbox rows and idempotency record in its own transaction (D7, R11-1, R11-2, R11-4).
-21. `observability-tracing` - W3C trace context through requests, jobs and outbox rows, trace ids in
+20. `observability-tracing` - W3C trace context through requests, jobs and outbox rows, trace ids in
     logs, OTLP export off by default, Prometheus kept, example alerts and dashboard documented, no
     bundled observability stack (8.4, R13-9, R13-Q8).
-22. `authorization-catalog` - code-defined permission catalog, custom roles, scoped assignments with
+21. `authorization-catalog` - code-defined permission catalog, custom roles, scoped assignments with
     `can()` and its SQL twin, separation of duties as data (D3, R9-2, R9-3, C6-5).
-23. `mfa-policy` - MFA policy layer, passkeys as a factor, step-up on flagged permissions, SSO trust
+22. `mfa-policy` - MFA policy layer, passkeys as a factor, step-up on flagged permissions, SSO trust
     (Group 5 MFA policy, R9-5).
-24. `approval-engine` - one approval engine with levels, thresholds, delegation and different
+23. `approval-engine` - one approval engine with levels, thresholds, delegation and different
     principals per level (R6-14, R6-Q7).
-25. `tax-engine` - tax regimes, codes, dated rates, exemption reasons and determination rules as
+24. `tax-engine` - tax regimes, codes, dated rates, exemption reasons and determination rules as
     pack data, withholding and cash-basis VAT, the generic baseline pack (4.5, N1, R8 R-3, R-5 to
     R-7).
-26. `fx-rates` - insert-only rate table, opt-in ECB source, manual override with reason, FX snapshot
+25. `fx-rates` - insert-only rate table, opt-in ECB source, manual override with reason, FX snapshot
     at issuance (R8 R-4).
-27. `document-model` - document types with typed links, line tables per document type and a typed
+26. `document-model` - document types with typed links, line tables per document type and a typed
     template registry replacing the enum (R5-1, C6-7, R4-10).
-28. `invoice-corrections` - credit and debit notes, late fees and interest as separate documents,
+27. `invoice-corrections` - credit and debit notes, late fees and interest as separate documents,
     cancellation only where a pack allows (D6, R5-3, R5-Q11).
-29. `ledger-posting` - posting rules as versioned data inside the issuing command, generic chart,
+28. `ledger-posting` - posting rules as versioned data inside the issuing command, generic chart,
     opening balances, periods, locks and close, the statutory-books setting (R7-2 to R7-4, R7-Q3).
-30. `payments-allocation` - provider-neutral payment layer, allocation across invoices, customer
+29. `payments-allocation` - provider-neutral payment layer, allocation across invoices, customer
     credit, refunds, disputes and payouts (R5-9 to R5-12, R5-Q2, R5-Q3).
-31. `en16931-peppol-base` - issued snapshot satisfying EN 16931 with UBL and CII serializers, the
+30. `en16931-peppol-base` - issued snapshot satisfying EN 16931 with UBL and CII serializers, the
     first curated pack (N3, R8 R-8).
-32. `fiscal-issuer-portugal` - production O2 issuance for Portuguese entities and the PT pack data
+31. `fiscal-issuer-portugal` - production O2 issuance for Portuguese entities and the PT pack data
     (D13, R14-2, R14-3, R4-Q14).
-33. `party-erasure-retention` - pseudonymizing erasure replacing the hard delete, retention rules
+32. `party-erasure-retention` - pseudonymizing erasure replacing the hard delete, retention rules
     and profiles without the 3650-day cap, legal holds (D8, R12-2 to R12-4, R14-5).
-34. `restore-guard` - after a restore close every series, re-enter in recovery series, replay
+33. `restore-guard` - after a restore close every series, re-enter in recovery series, replay
     erasures and count restores (8.3, R14-4, R12-6).
-35. `i18n-json-catalogs` - catalogs as i18next JSON with ICU in `packages/i18n`, types generated
+34. `i18n-json-catalogs` - catalogs as i18next JSON with ICU in `packages/i18n`, types generated
     from the source locale, Weblate-ready; English and European Portuguese first, then French,
     German and Spanish, plus one right-to-left language through the design gate (7.7, R13-11,
     R13-Q7).
-36. `intake-submissions` - X2 intake endpoints with unconfirmed records and the X2 rule in the
+35. `intake-submissions` - X2 intake endpoints with unconfirmed records and the X2 rule in the
     security and routes rules (X2, R2-7).
-37. `party-dedup-consent` - duplicate queue and merge, consent per person and purpose, suppression
+36. `party-dedup-consent` - duplicate queue and merge, consent per person and purpose, suppression
     per address, tax-ID validation through VIES (R2-4, R2-5, R2-Q6).
-38. `notifications-engine` - notification catalog, layered preferences, per-user read state,
+37. `notifications-engine` - notification catalog, layered preferences, per-user read state,
     delivery from the outbox, localised at delivery (6.5, R10-9 to R10-11).
-39. `outbound-email-streams` - Remit-owned message ids and threads, separate transactional and bulk
+38. `outbound-email-streams` - Remit-owned message ids and threads, separate transactional and bulk
     streams, one suppression list (R10-5).
-40. `projects-time` - projects without a client, members, `own` and `project` scopes, non-project
+39. `projects-time` - projects without a client, members, `own` and `project` scopes, non-project
     time, two durations, cost rates and rounding (R3-16 steps 1-2, R3-Q1, R3-Q2, R3-Q7).
-41. `business-calendar` - one working-time service with work schedules and holidays as data (R3-15).
-42. `timesheets` - timesheets per person and week with approval steps, lock with grace and adjusting
+40. `business-calendar` - one working-time service with work schedules and holidays as data (R3-15).
+41. `timesheets` - timesheets per person and week with approval steps, lock with grace and adjusting
     entries (R3-6, R3-Q5, R3-Q6).
-43. `calendar-model` - iCalendar-compatible events, invitations and ICS feeds in and out, with the
+42. `calendar-model` - iCalendar-compatible events, invitations and ICS feeds in and out, with the
     money-and-dates rule amended (R3-12, R3-13 K1-K3, C3-5).
-44. `booking-pages` - booking pages on intake, slot holds, a per-host lock, emailed-code manage
+43. `booking-pages` - booking pages on intake, slot holds, a per-host lock, emailed-code manage
     links (R3-14, R3-Q10, R3-Q11).
-45. `catalog-pricing` - products, bundles and kits, variants, UoM, price lists with most-specific
+44. `catalog-pricing` - products, bundles and kits, variants, UoM, price lists with most-specific
     rules and snapshots (2.1, R5-6, C6-6).
-46. `block-editor` - one block schema and registry with per-surface allowlists (R10-7).
-47. `proposal-revisions` - immutable revisions sharing the number, option groups and recorded
+45. `block-editor` - one block schema and registry with per-surface allowlists (R10-7).
+46. `proposal-revisions` - immutable revisions sharing the number, option groups and recorded
     selection (R4-1, R4-Q4, R4-Q5).
-48. `signature-requests` - several signers, order, reminders, expiry, counter-signature, evidence
+47. `signature-requests` - several signers, order, reminders, expiry, counter-signature, evidence
     log, assurance A1-A6 and sealing (R4-2, R4-4, R4-5, R4-7, C4-6, C4-7).
-49. `pdf-conformance` - the spike's renderer with conformance stage, pagination, fonts per locale
+48. `pdf-conformance` - the spike's renderer with conformance stage, pagination, fonts per locale
     and veraPDF in CI (R4-8, R4-9, R4-Q9, R4-Q10).
-50. `sales-orders` - orders with versions, fulfilment, returns, deposits and progress billing (R5-4,
+49. `sales-orders` - orders with versions, fulfilment, returns, deposits and progress billing (R5-4,
     R5-5).
-51. `subscriptions` - plans with versions, proration, billed periods, usage metering and revenue
+50. `subscriptions` - plans with versions, proration, billed periods, usage metering and revenue
     schedules (R5-7, R5-8, R5-Q4, R5-Q5).
-52. `dunning` - dunning policies as data with reminders by default (R5-13, R5-Q11).
-53. `sepa-files` - pain.001 and pain.008 with mandates held encrypted for own-bank collection
+51. `dunning` - dunning policies as data with reminders by default (R5-13, R5-Q11).
+52. `sepa-files` - pain.001 and pain.008 with mandates held encrypted for own-bank collection
     (R5-14, C5-1, R5-Q7).
-54. `bank-reconciliation` - bank accounts, camt.053/052/054, CSV, OFX, MT940 and BAI2 import,
+53. `bank-reconciliation` - bank accounts, camt.053/052/054, CSV, OFX, MT940 and BAI2 import,
     reconciliation engine (R7-9, R7-11, C7-3).
-55. `chart-packs-year-end` - chart packs PT SNC and generic then FR, DE, ES, the year-end pack
+54. `chart-packs-year-end` - chart packs PT SNC and generic then FR, DE, ES, the year-end pack
     (R7-5, R7-6, R7-Q7).
-56. `procurement` - purchase requests and orders, receipts, vendor bills frozen at posting, matching
+55. `procurement` - purchase requests and orders, receipts, vendor bills frozen at posting, matching
     and holds, payables (R6-1 to R6-5).
-57. `expenses` - expense items as the unit of approval, mileage and per-diem packs, opt-in OCR (R6-6
+56. `expenses` - expense items as the unit of approval, mileage and per-diem packs, opt-in OCR (R6-6
     to R6-8).
-58. `inventory` - insert-only stock moves, valuation layer, reservations, lots and serials, reorder
+57. `inventory` - insert-only stock moves, valuation layer, reservations, lots and serials, reorder
     rules, kits (R6-9 to R6-12, R6-16).
-59. `file-library` - document library on per-type link tables, grants with expiry, malware scanning
+58. `file-library` - document library on per-type link tables, grants with expiry, malware scanning
     state machine (6.1, R10-2, R10-3).
-60. `inbound-email` - one inbound pipeline with aliases per consumer and verified provider
+59. `inbound-email` - one inbound pipeline with aliases per consumer and verified provider
     signatures (X4, R10-4).
-61. `portal-accounts` - external principals, access rows and assurance tiers for client and supplier
+60. `portal-accounts` - external principals, access rows and assurance tiers for client and supplier
     portals (D5, R10-1, R6-15).
-62. `hosted-checkout` - catalog and checkout with webhook-confirmed completion in a separate process
+61. `hosted-checkout` - catalog and checkout with webhook-confirmed completion in a separate process
     (2.4, R5-16, C5-2).
-63. `support-ticketing` - tickets, queues, SLAs on the business calendar, ticket time drawn from
+62. `support-ticketing` - tickets, queues, SLAs on the business calendar, ticket time drawn from
     retainers (6.4, R10-6, R10-8).
-64. `knowledge-base` - internal wiki and public help center on the block editor (6.2).
-65. `marketing-campaigns` - segments, campaigns and sequences on the party model and the bulk stream
+63. `knowledge-base` - internal wiki and public help center on the block editor (6.2).
+64. `marketing-campaigns` - segments, campaigns and sequences on the party model and the bulk stream
     (6.6, R2-8).
-66. `public-api-v2` - OAuth provider, scope grammar, cursor pagination, deprecation headers, OpenAPI
+65. `public-api-v2` - OAuth provider, scope grammar, cursor pagination, deprecation headers, OpenAPI
     (R11-5, R11-6, C11-5).
-67. `webhooks-v2` - outbox-driven webhooks with a 27-hour retry schedule and subscription API
+66. `webhooks-v2` - outbox-driven webhooks with a 27-hour retry schedule and subscription API
     (R11-7, R11-Q3).
-68. `mcp-write-tools` - MCP tools generated from commands, tier 3 off and confirmed per call
+67. `mcp-write-tools` - MCP tools generated from commands, tier 3 off and confirmed per call
     (R11-Q6).
-69. `custom-fields` - typed custom fields with data classes and custom objects (R11-9).
-70. `search-read-model` - one permission-filtered Postgres search read model and command palette
+68. `custom-fields` - typed custom fields with data classes and custom objects (R11-9).
+69. `search-read-model` - one permission-filtered Postgres search read model and command palette
     (7.3, R11-10).
-71. `reporting-bi` - saved and scheduled reports, the privileged `reporting` schema and Parquet
+70. `reporting-bi` - saved and scheduled reports, the privileged `reporting` schema and Parquet
     (7.2, R11-11, C11-1).
-72. `import-export` - importers with dry run and batch undo, versioned export schema, round-trip CI
+71. `import-export` - importers with dry run and batch undo, versioned export schema, round-trip CI
     test (R11-12, R12-7, R1-5, R1-6, R12-Q9).
-73. `workflows` - declarative workflows as service principals with versions and waitpoints (7.1,
+72. `workflows` - declarative workflows as service principals with versions and waitpoints (7.1,
     R11-8).
-74. `dsr-workflow` - data-subject request cases with deadlines and subject packages, GDPR and UK
+73. `dsr-workflow` - data-subject request cases with deadlines and subject packages, GDPR and UK
     first (R12-5, R12-Q10).
-75. `ai-assistance` - AI adapter with data-class gate, proposals only and an `ai_calls` log (7.10,
+74. `ai-assistance` - AI adapter with data-class gate, proposals only and an `ai_calls` log (7.10,
     R11-13, C11-4).
-76. `people-leave` - people as party roles with employments and a leave ledger with privacy layers
+75. `people-leave` - people as party roles with employments and a leave ledger with privacy layers
     (R3-8, R3-9).
-77. `capacity` - work schedules, allocations, tentative states and a daily read model (R3-7).
-78. `project-planning` - dependencies, milestones, recurrence, templates and timeline (R3-2, R3-3).
-79. `calendar-provider-sync` - CalDAV, Google and Microsoft sync with setup guides (X3, R3-13
+76. `capacity` - work schedules, allocations, tentative states and a daily read model (R3-7).
+77. `project-planning` - dependencies, milestones, recurrence, templates and timeline (R3-2, R3-3).
+78. `calendar-provider-sync` - CalDAV, Google and Microsoft sync with setup guides (X3, R3-13
     K4-K6).
-80. `payroll-export` - generic payroll export with mapping and journal import (5.2, R3-11).
-81. `recruitment` - openings, applications on the pipeline engine, scorecards and offers (R3-10,
+79. `payroll-export` - generic payroll export with mapping and journal import (5.2, R3-11).
+80. `recruitment` - openings, applications on the pipeline engine, scorecards and offers (R3-10,
     R2-9).
-82. `performance-reviews` - reviews and goals (5.1).
-83. `fixed-assets` - asset register per book with schedules, disposals and revaluation (4.3, R7-12).
-84. `budgets-forecast` - versioned budgets, controls at approval points and cash-flow forecast (4.4,
+81. `performance-reviews` - reviews and goals (5.1).
+82. `fixed-assets` - asset register per book with schedules, disposals and revaluation (4.3, R7-12).
+83. `budgets-forecast` - versioned budgets, controls at approval points and cash-flow forecast (4.4,
     R7-14).
-85. `fx-revaluation` - revaluation runs and a reporting currency computed at report time (R7-8,
+84. `fx-revaluation` - revaluation runs and a reporting currency computed at report time (R7-8,
     R7-Q11).
-86. `intercompany-consolidation` - mirrored intercompany documents and consolidation runs (4.6,
+85. `intercompany-consolidation` - mirrored intercompany documents and consolidation runs (4.6,
     R7-15).
-87. `bank-feeds` - provider-neutral feed adapter, EBICS first (R7-10, C7-2, C7-11).
-88. `leases` - lease register, IFRS 16 engine when an IFRS reporter needs it (R7-13, R7-Q13).
-89. `country-packs-fr-de-es-it` - curated packs for France, Germany, Spain and Italy in N3 order
+86. `bank-feeds` - provider-neutral feed adapter, EBICS first (R7-10, C7-2, C7-11).
+87. `leases` - lease register, IFRS 16 engine when an IFRS reporter needs it (R7-13, R7-Q13).
+88. `country-packs-fr-de-es-it` - curated packs for France, Germany, Spain and Italy in N3 order
     (N3, R1-7).
-90. `e-invoicing-transmission` - one transmission adapter for Peppol access points and national
+89. `e-invoicing-transmission` - one transmission adapter for Peppol access points and national
     platforms (R5-18).
-91. `pwa-shell` - manifest, service worker and push, with the read cache of the offline set (7.9,
+90. `pwa-shell` - manifest, service worker and push, with the read cache of the offline set (7.9,
     R13-10 step 1, R13-Q5).
-92. `offline-sync` - offline operation queue for time, expenses and receipts on the API; operations
+91. `offline-sync` - offline operation queue for time, expenses and receipts on the API; operations
     the server rejects go to a needs-attention list (R13-10 step 2, R13-Q5).
-93. `backup-pitr` - WAL archiving behind a tool-neutral adapter with monthly drills, on
+92. `backup-pitr` - WAL archiving behind a tool-neutral adapter with monthly drills, on
     automatically when a remote destination is configured in the agency and large-company presets,
     an option in the freelancer preset (8.3, R13-5, R13-Q2).
-94. `high-availability` - two app containers for rolling restarts and a read-replica path; hosted
+93. `high-availability` - two app containers for rolling restarts and a read-replica path; hosted
     availability published as monthly objectives (99.5 % freelancer, 99.9 % agency, 99.95 %
     dedicated large-company), not a contractual SLA with credits until hosted customers exist (8.3,
     R13-6, L15, R13-Q1).
-95. `control-plane` - `apps/control-plane` provisioning instances on shared fleet services (5.4,
+94. `control-plane` - `apps/control-plane` provisioning instances on shared fleet services (5.4,
     R9-7, R9-8).
-96. `hosted-billing` - hosted plans and meters billed from a Remit instance (5.5, R9-9).
-97. `hosted-offboarding` - Data Act notice, transition, retrieval and the legal archive package
+95. `hosted-billing` - hosted plans and meters billed from a Remit instance (5.5, R9-9).
+96. `hosted-offboarding` - Data Act notice, transition, retrieval and the legal archive package
     (R12-8, R12-Q7).
-98. `docs-site` - documentation site on Fumadocs (8.8, R13-12).
-99. `storefront-connectors` - Shopify, WooCommerce and Amazon order connectors (R5-17).
-100. `native-apps` - Expo (React Native) `apps/mobile` signing in to any instance by URL, after the
-     PWA and the writable API, through the design gate (7.9, R13-10 step 3, R13-Q6).
-101. `resource-booking` - rooms and equipment booking and automatic scheduling by dependencies (1.6,
+97. `docs-site` - documentation site on Fumadocs (8.8, R13-12).
+98. `storefront-connectors` - Shopify, WooCommerce and Amazon order connectors (R5-17).
+99. `native-apps` - Expo (React Native) `apps/mobile` signing in to any instance by URL, after the
+    PWA and the writable API, through the design gate (7.9, R13-10 step 3, R13-Q6).
+100. `resource-booking` - rooms and equipment booking and automatic scheduling by dependencies (1.6,
      R3-16 step 14).
 
 ## Gaps
@@ -223,7 +220,7 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
 | GAP-1  | `tools/git-guard/classify.mjs` misses a push hidden behind a git alias (`git -c alias.p=push p`, or an alias set with `git config alias.*`), `Invoke-Expression`/`iex` bodies and `cmd /c` bodies. Agents may not edit their own guards, so the fix is the owner's | accepted                    |
 | GAP-2  | The Claude deny `git config core.hooksPath*` also refuses reading the value, because prefix rules cannot tell a read from a write; the guard hook already distinguishes them                                                                                       | accepted                    |
-| GAP-3  | Claude path-scoped rule globs are not anchored to the repository root: `hooks/**` also loads the hooks pointer for `.claude/hooks/**`. Harmless today; revisit if a pointer's scope matters                                                                        | accepted                    |
+| GAP-3  | Claude path-scoped rule globs are not anchored to the repository root: `scripts/**` (comments) and `tests/**` (testing) also match a nested `scripts/` or `tests/` folder in any package. Harmless today; revisit if a pointer's scope matters                     | accepted                    |
 | GAP-4  | An app exposed without a proxy that overwrites `X-Forwarded-For` lets a caller choose the address keying every address-based limit and audit window                                                                                                                | accepted                    |
 | GAP-6  | First-time enrolment keeps a race in Better Auth's `enable`: a tab that reads an unverified row while another tab's `verify-totp` marks it verified carries `verified: true` onto a new, unproven secret; it needs two requests of one user within milliseconds    | owner                       |
 | GAP-7  | The reconfigure hold cannot tell a missing session from a failed session read, so a transient read failure on `enable` for a verified user reaches Better Auth's handler, which replaces the factor                                                                | owner                       |
@@ -282,3 +279,6 @@ owner decision), or `accepted` (a known limit kept on purpose).
 | GAP-82 | Adviser: retention duties for issued documents through the hosted suspension stages up to termination (R9-7)                                                                                                                                                       | owner                       |
 | GAP-83 | Adviser: contacts cannot turn off payment reminders as contractual communication (R10-10, R5-13)                                                                                                                                                                   | owner                       |
 | GAP-84 | The export of each product in the R1-5 importer waves is unverified (R1-4)                                                                                                                                                                                         | `import-export`             |
+| GAP-85 | No rule lists what a new workspace package joins (Dockerfile manifest copies, root `typecheck`, coverage include, changelog `SHIPPED_ROOTS`, ESLint and `.claude/rules` globs, Vitest `maxWorkers`) or the worker's `apps/web` boundary; `architecture.md` should  | owner                       |
+| GAP-86 | `apps/worker` depends on `@remit/web` through its `exports` map, one application on another rather than a shared package, until `job-queues`, `command-layer-outbox` or a `packages/db` change moves what the worker needs out of `apps/web`                       | `job-queues`                |
+| GAP-87 | `apps/web/tsup.scripts.config.ts` builds the `remit:*` and `migrate` bundles the image runs, but the changelog gate's `SHIPPED_FILES` does not name it, so a change to it needs no release note                                                                    | owner                       |
