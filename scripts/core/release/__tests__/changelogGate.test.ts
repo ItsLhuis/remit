@@ -86,6 +86,20 @@ describe("evaluateChangelogGate", () => {
     expect(gate(paths)).toEqual({ required: true, satisfied: false, changedPaths: paths })
   })
 
+  test("refuses a package's build configuration but not its Vitest configuration", () => {
+    const paths = [
+      "apps/worker/vitest.integration.config.ts",
+      "packages/core/vitest.config.ts",
+      "apps/worker/tsup.config.ts"
+    ]
+
+    expect(gate(paths)).toEqual({
+      required: true,
+      satisfied: false,
+      changedPaths: ["apps/worker/tsup.config.ts"]
+    })
+  })
+
   test("does not accept the entries the base branch already carried", () => {
     const reordered = ["# Changelog", "", "## [Unreleased]", "", "- An older entry.", ""]
 

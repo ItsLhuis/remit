@@ -84,6 +84,7 @@ function isExcluded(path: string): boolean {
     path.startsWith("apps/web/tests/") ||
     path.startsWith("tools/") ||
     REPOSITORY_TOOLING.some((tool) => path.startsWith(tool)) ||
-    /\.(test|spec)\.[cm]?[jt]sx?$/.test(path)
+    /\.(test|spec)\.[cm]?[jt]sx?$/.test(path) ||
+    /(^|\/)vitest(\.[\w-]+)?\.config\.[cm]?[jt]s$/.test(path)
   )
 }
